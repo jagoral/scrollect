@@ -15,12 +15,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const statusConfig = {
-  pending: {
-    label: "Pending",
+  uploaded: {
+    label: "Uploaded",
     className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
   },
-  processing: {
-    label: "Processing",
+  parsing: {
+    label: "Parsing",
+    className: "bg-blue-100 text-blue-800 animate-pulse dark:bg-blue-900/30 dark:text-blue-400",
+  },
+  chunking: {
+    label: "Chunking",
+    className: "bg-blue-100 text-blue-800 animate-pulse dark:bg-blue-900/30 dark:text-blue-400",
+  },
+  embedding: {
+    label: "Embedding",
     className: "bg-blue-100 text-blue-800 animate-pulse dark:bg-blue-900/30 dark:text-blue-400",
   },
   ready: {
@@ -30,6 +38,14 @@ const statusConfig = {
   error: {
     label: "Error",
     className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  },
+  pending: {
+    label: "Pending",
+    className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  },
+  processing: {
+    label: "Processing",
+    className: "bg-blue-100 text-blue-800 animate-pulse dark:bg-blue-900/30 dark:text-blue-400",
   },
 } as const;
 

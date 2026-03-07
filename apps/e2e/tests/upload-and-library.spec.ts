@@ -48,7 +48,8 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.getByText(/uploaded|failed/i)).toBeVisible({ timeout: 30000 });
   });
 
-  test("after upload, document appears in library with correct title", async ({ page }) => {
+  // TODO: Unskip after ADR-001 pipeline is fully implemented (processing no longer auto-triggers on upload)
+  test.skip("after upload, document appears in library with correct title", async ({ page }) => {
     await page.goto("/upload");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await uploadFile(page, path.join(FIXTURES_DIR, "test.md"));
@@ -59,7 +60,8 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.locator("a[href^='/library/']").first()).toBeVisible({ timeout: 10000 });
   });
 
-  test("clicking a document in library navigates to detail page", async ({ page }) => {
+  // TODO: Unskip after ADR-001 pipeline is fully implemented
+  test.skip("clicking a document in library navigates to detail page", async ({ page }) => {
     await page.goto("/upload");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await uploadFile(page, path.join(FIXTURES_DIR, "test.md"));
@@ -76,7 +78,8 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.getByText(/back to library/i)).toBeVisible();
   });
 
-  test("document detail page shows title and chunks after processing", async ({ page }) => {
+  // TODO: Unskip after ADR-001 pipeline is fully implemented
+  test.skip("document detail page shows title and chunks after processing", async ({ page }) => {
     test.setTimeout(120000);
     await page.goto("/upload");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();

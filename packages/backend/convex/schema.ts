@@ -7,34 +7,64 @@ export default defineSchema({
     fileType: v.union(v.literal("pdf"), v.literal("md")),
     storageId: v.id("_storage"),
     status: v.union(
-      v.literal("pending"),
-      v.literal("processing"),
+      v.literal("uploaded"),
+      v.literal("parsing"),
+      v.literal("chunking"),
+      v.literal("embedding"),
       v.literal("ready"),
       v.literal("error"),
+      // Deprecated — kept for migration compatibility
+      v.literal("pending"),
+      v.literal("processing"),
     ),
+    failedAt: v.optional(
+      v.union(v.literal("parsing"), v.literal("chunking"), v.literal("embedding")),
+    ),
+    datalabCheckUrl: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
     chunkCount: v.number(),
     userId: v.string(),
     createdAt: v.number(),
-  }).index("by_userId", ["userId"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_status", ["status"]),
 
   posts: defineTable({
     content: v.string(),
     sourceChunkId: v.id("chunks"),
     sourceDocumentId: v.id("documents"),
     userId: v.string(),
+    assetStorageId: v.optional(v.id("_storage")),
+    saved: v.optional(v.boolean()),
+    reaction: v.optional(v.union(v.literal("like"), v.literal("dislike"))),
     createdAt: v.number(),
-  }).index("by_userId", ["userId"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_saved", ["userId", "saved"]),
 
   chunks: defineTable({
     documentId: v.id("documents"),
     content: v.string(),
     chunkIndex: v.number(),
     tokenCount: v.number(),
-    embeddingStatus: v.union(v.literal("pending"), v.literal("embedded"), v.literal("error")),
+    embedded: v.optional(v.boolean()),
+    embeddingId: v.optional(v.string()),
+    // Deprecated fields — kept for migration compatibility
+    embeddingStatus: v.optional(
+      v.union(v.literal("pending"), v.literal("embedded"), v.literal("error")),
+    ),
     qdrantPointId: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_documentId", ["documentId"])
-    .index("by_embeddingStatus", ["embeddingStatus"]),
+    .index("by_documentId_unembedded", ["documentId", "embedded"]),
+
+  processingJobs: defineTable({
+    documentId: v.id("documents"),
+    totalBatches: v.number(),
+    completedBatches: v.number(),
+    failedBatches: v.number(),
+    retryCount: v.number(),
+    createdAt: v.number(),
+  }).index("by_documentId", ["documentId"]),
 });

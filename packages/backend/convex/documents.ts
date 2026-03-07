@@ -1,7 +1,6 @@
 import type { GenericCtx } from "@convex-dev/better-auth";
 import { v } from "convex/values";
 
-import { internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -32,13 +31,10 @@ export const create = mutation({
       title: args.title,
       fileType: args.fileType,
       storageId: args.storageId,
-      status: "pending",
+      status: "uploaded",
       chunkCount: 0,
       userId: user._id,
       createdAt: Date.now(),
-    });
-    await ctx.scheduler.runAfter(0, internal.processing.processDocument, {
-      documentId,
     });
     return documentId;
   },
@@ -78,10 +74,14 @@ export const updateStatus = internalMutation({
   args: {
     id: v.id("documents"),
     status: v.union(
-      v.literal("pending"),
-      v.literal("processing"),
+      v.literal("uploaded"),
+      v.literal("parsing"),
+      v.literal("chunking"),
+      v.literal("embedding"),
       v.literal("ready"),
       v.literal("error"),
+      v.literal("pending"),
+      v.literal("processing"),
     ),
     errorMessage: v.optional(v.string()),
     chunkCount: v.optional(v.number()),
