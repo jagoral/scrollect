@@ -9,19 +9,33 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as chunking from "../chunking.js";
+import type * as chunks from "../chunks.js";
+import type * as documents from "../documents.js";
+import type * as embeddings from "../embeddings.js";
 import type * as healthCheck from "../healthCheck.js";
+import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
+import type * as parsing from "../parsing.js";
 import type * as privateData from "../privateData.js";
-import type * as todos from "../todos.js";
+import type * as processing from "../processing.js";
+import type * as qdrant from "../qdrant.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  chunking: typeof chunking;
+  chunks: typeof chunks;
+  documents: typeof documents;
+  embeddings: typeof embeddings;
   healthCheck: typeof healthCheck;
+  helpers: typeof helpers;
   http: typeof http;
+  parsing: typeof parsing;
   privateData: typeof privateData;
-  todos: typeof todos;
+  processing: typeof processing;
+  qdrant: typeof qdrant;
 }>;
 
 /**

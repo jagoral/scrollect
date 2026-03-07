@@ -1,9 +1,11 @@
+"use node";
+
 import OpenAI from "openai";
 import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { COLLECTION_NAME, ensureCollection, getQdrantClient } from "./qdrant";
 
 function getOpenAIClient(): OpenAI {
@@ -34,7 +36,7 @@ export const embedChunks = internalAction({
     // Fetch all chunks from Convex
     const chunks = await Promise.all(
       args.chunkIds.map(async (id) => {
-        const chunk = await ctx.runQuery(internal.embeddings.getChunk, { id });
+        const chunk = await ctx.runQuery(internal.helpers.getChunk, { id });
         return { id, chunk };
       }),
     );
@@ -56,7 +58,7 @@ export const embedChunks = internalAction({
           chunkIndex: chunk.chunkIndex,
         });
       } else {
-        await ctx.runMutation(internal.embeddings.updateChunkEmbedding, {
+        await ctx.runMutation(internal.helpers.updateChunkEmbedding, {
           id,
           embeddingStatus: "error",
         });
@@ -91,7 +93,7 @@ export const embedChunks = internalAction({
         // Update each chunk in Convex
         await Promise.all(
           batch.map((chunk, idx) =>
-            ctx.runMutation(internal.embeddings.updateChunkEmbedding, {
+            ctx.runMutation(internal.helpers.updateChunkEmbedding, {
               id: chunk.id,
               embeddingStatus: "embedded",
               qdrantPointId: points[idx]!.id,
@@ -102,7 +104,7 @@ export const embedChunks = internalAction({
         // Mark entire batch as error
         await Promise.all(
           batch.map((chunk) =>
-            ctx.runMutation(internal.embeddings.updateChunkEmbedding, {
+            ctx.runMutation(internal.helpers.updateChunkEmbedding, {
               id: chunk.id,
               embeddingStatus: "error",
             }),
@@ -142,7 +144,7 @@ export const searchSimilar = internalAction({
         documentId: string;
         chunkIndex: number;
       };
-      const doc = await ctx.runQuery(internal.embeddings.getDocument, {
+      const doc = await ctx.runQuery(internal.helpers.getDocument, {
         id: payload.documentId as Id<"documents">,
       });
       if (doc && doc.userId === args.userId) {
@@ -154,38 +156,5 @@ export const searchSimilar = internalAction({
     }
 
     return chunkResults;
-  },
-});
-
-// Internal query/mutation helpers used by the actions above
-
-export const getChunk = internalQuery({
-  args: { id: v.id("chunks") },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
-  },
-});
-
-export const getDocument = internalQuery({
-  args: { id: v.id("documents") },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
-  },
-});
-
-export const updateChunkEmbedding = internalMutation({
-  args: {
-    id: v.id("chunks"),
-    embeddingStatus: v.union(v.literal("embedded"), v.literal("error")),
-    qdrantPointId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const update: Record<string, unknown> = {
-      embeddingStatus: args.embeddingStatus,
-    };
-    if (args.qdrantPointId !== undefined) {
-      update.qdrantPointId = args.qdrantPointId;
-    }
-    await ctx.db.patch(args.id, update);
   },
 });

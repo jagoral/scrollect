@@ -30,3 +30,5 @@ Software engineers and active learners who consume a lot of content but struggle
 - Write E2E tests when working on a new feature / bug fix
 - 100% test coverage is less important than test stability. If a test is hard to write and hard to maintain, skip it
 - Must use shadcn on the Frontend
+- **Always deploy after changing Convex schemas or functions**: run `cd packages/backend && npx convex dev --once` to push changes to the dev deployment
+- **Before running E2E tests**: run `kill -9 $(lsof -t -i:3001)` to free up port 3001, which the test web server needs
