@@ -177,11 +177,14 @@ Then use the `/pull-request` skill to create the PR:
 - Body: reference the issue, summarize changes, include test plan
 - The PR body should include `Closes #<issue-number>` so GitHub auto-closes the issue on merge
 
-### Step 7: Close the issue
+### Step 7: Enable auto-merge and close the issue
 
-After the PR is created:
+After the PR is created, enable auto-merge so it merges automatically once CI passes:
 
 ```bash
+# Enable auto-merge (squash) on the PR
+gh pr merge <pr-number> --auto --squash
+
 # Remove in-progress label
 gh issue edit <number> --remove-label "in-progress"
 

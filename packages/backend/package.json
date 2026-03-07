@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.10.13",
+    "@qdrant/js-client-rest": "^1.17.0",
     "better-auth": "catalog:",
     "convex": "catalog:",
     "dotenv": "catalog:",
+    "openai": "^6.27.0",
     "pdf-parse": "^2.4.5",
     "zod": "catalog:"
   },
