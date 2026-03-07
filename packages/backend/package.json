@@ -15,7 +15,7 @@
     "convex": "catalog:",
     "dotenv": "catalog:",
     "openai": "^6.27.0",
-    "pdf-parse": "^2.4.5",
+    "unpdf": "^1.4.0",
     "zod": "catalog:"
   },
   "devDependencies": {

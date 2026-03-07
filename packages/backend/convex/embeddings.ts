@@ -100,7 +100,8 @@ export const embedChunks = internalAction({
             }),
           ),
         );
-      } catch {
+      } catch (error) {
+        console.error("embedChunks error:", error);
         // Mark entire batch as error
         await Promise.all(
           batch.map((chunk) =>

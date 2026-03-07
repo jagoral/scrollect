@@ -1,0 +1,125 @@
+"use node";
+
+import type { GenericCtx } from "@convex-dev/better-auth";
+import OpenAI from "openai";
+
+import { internal } from "./_generated/api";
+import type { DataModel, Id } from "./_generated/dataModel";
+import { action } from "./_generated/server";
+import { authComponent } from "./auth";
+
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY environment variable is required");
+  }
+  return new OpenAI({ apiKey });
+}
+
+export const generate = action({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    // Get all ready documents for this user
+    const documents = await ctx.runQuery(internal.feed.listReadyDocuments, {
+      userId: user._id,
+    });
+
+    if (documents.length === 0) {
+      throw new Error("No ready documents found. Upload and process a document first.");
+    }
+
+    // Gather chunks from all ready documents
+    const allChunks: { _id: Id<"chunks">; content: string; documentId: Id<"documents"> }[] = [];
+    for (const doc of documents) {
+      const chunks = await ctx.runQuery(internal.feed.listChunksForDocument, {
+        documentId: doc._id,
+      });
+      for (const chunk of chunks) {
+        allChunks.push({
+          _id: chunk._id,
+          content: chunk.content,
+          documentId: doc._id,
+        });
+      }
+    }
+
+    if (allChunks.length === 0) {
+      throw new Error("No chunks available to generate feed from.");
+    }
+
+    // Pick up to 5 random chunks to base posts on
+    const selected = shuffle(allChunks).slice(0, 5);
+
+    const openai = getOpenAIClient();
+
+    const systemPrompt = `You are an AI learning assistant for Scrollect, a personal learning feed app.
+Your job is to transform raw text chunks from documents into engaging, bite-sized learning cards.
+
+Each card should:
+- Be concise (2-4 sentences)
+- Highlight one key insight, fact, or concept
+- Be written in a clear, engaging tone
+- Stand on its own without needing additional context
+
+Return a JSON object with a "posts" key containing an array of exactly ${selected.length} strings, one for each input chunk.`;
+
+    const userPrompt = selected
+      .map((chunk, i) => `Chunk ${i + 1}:\n${chunk.content}`)
+      .join("\n\n---\n\n");
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+    });
+
+    const raw = response.choices[0]?.message?.content ?? "{}";
+    let posts: string[];
+    try {
+      const parsed = JSON.parse(raw);
+      // Handle both direct array and wrapped object (e.g. { "posts": [...] })
+      posts = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed.posts)
+          ? parsed.posts
+          : ((Object.values(parsed).find(Array.isArray) as string[]) ?? []);
+    } catch (error) {
+      console.error("Failed to parse AI response:", raw);
+      throw new Error("Failed to parse AI response");
+    }
+
+    // Store posts in the database
+    const postIds: Id<"posts">[] = [];
+    for (let i = 0; i < posts.length; i++) {
+      const chunk = selected[i]!;
+      const content = posts[i]!;
+      const id = await ctx.runMutation(internal.feed.createPost, {
+        content,
+        sourceChunkId: chunk._id,
+        sourceDocumentId: chunk.documentId,
+        userId: user._id,
+      });
+      postIds.push(id);
+    }
+
+    return postIds;
+  },
+});
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
+  }
+  return a;
+}

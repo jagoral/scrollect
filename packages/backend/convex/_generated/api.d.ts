@@ -13,6 +13,8 @@ import type * as chunking from "../chunking.js";
 import type * as chunks from "../chunks.js";
 import type * as documents from "../documents.js";
 import type * as embeddings from "../embeddings.js";
+import type * as feed from "../feed.js";
+import type * as feedGeneration from "../feedGeneration.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
@@ -29,6 +31,8 @@ declare const fullApi: ApiFromModules<{
   chunks: typeof chunks;
   documents: typeof documents;
   embeddings: typeof embeddings;
+  feed: typeof feed;
+  feedGeneration: typeof feedGeneration;
   healthCheck: typeof healthCheck;
   helpers: typeof helpers;
   http: typeof http;

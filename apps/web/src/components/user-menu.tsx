@@ -1,5 +1,6 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
+import { LogOut, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -21,12 +22,21 @@ export default function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" />}>{user?.name}</DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-card">
+      <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <User className="h-3 w-3" />
+        </div>
+        <span className="max-w-[120px] truncate">{user?.name}</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="bg-card" align="end">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">{user?.name}</p>
+              <p className="text-xs text-muted-foreground">{user?.email}</p>
+            </div>
+          </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>{user?.email}</DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"
             onClick={() => {
@@ -39,6 +49,7 @@ export default function UserMenu() {
               });
             }}
           >
+            <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </DropdownMenuItem>
         </DropdownMenuGroup>

@@ -14,11 +14,12 @@ function testUser() {
 async function signUp(page: import("@playwright/test").Page) {
   const user = testUser();
   await page.goto("/signin");
-  await page.getByRole("button", { name: /need an account/i }).click();
+  // Switch from sign-in to sign-up form
+  await page.getByRole("button", { name: /sign up/i }).click();
   await page.getByLabel("Name").fill(user.name);
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);
-  await page.getByRole("button", { name: /sign up/i }).click();
+  await page.getByRole("button", { name: /create account/i }).click();
   await expect(page).toHaveURL(/\/library/, { timeout: 15000 });
 }
 
@@ -90,7 +91,7 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page).toHaveURL(/\/library\/.+/);
 
     // Wait for processing to complete — chunks should appear
-    await expect(page.getByText(/chunk 1|ready/i)).toBeVisible({ timeout: 90000 });
+    await expect(page.getByText("Chunk 1")).toBeVisible({ timeout: 90000 });
   });
 
   test("upload page rejects unsupported file types", async ({ page }) => {

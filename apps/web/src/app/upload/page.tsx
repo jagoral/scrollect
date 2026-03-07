@@ -2,7 +2,7 @@
 
 import { api } from "@scrollect/backend/convex/_generated/api";
 import { Authenticated, AuthLoading, Unauthenticated, useMutation } from "convex/react";
-import { Loader2, Upload } from "lucide-react";
+import { CloudUpload, FileUp, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -113,15 +113,17 @@ function UploadContent() {
   const activeUploads = uploads.filter((u) => u.status === "uploading");
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-bold">Upload Content</h1>
-      <p className="mt-2 text-muted-foreground">Add PDF or Markdown files to your library.</p>
+    <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Upload Content</h1>
+        <p className="mt-1 text-muted-foreground">Add PDF or Markdown files to your library.</p>
+      </div>
 
       <Card
-        className={`mt-6 flex min-h-[300px] cursor-pointer flex-col items-center justify-center gap-4 border-2 border-dashed p-8 transition-colors ${
+        className={`group flex min-h-[320px] cursor-pointer flex-col items-center justify-center gap-5 rounded-xl border-2 border-dashed p-8 transition-all ${
           dragOver
-            ? "border-primary bg-primary/5"
-            : "border-muted-foreground/25 hover:border-muted-foreground/50"
+            ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+            : "border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/30"
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -129,11 +131,20 @@ function UploadContent() {
         onDragLeave={handleDragLeave}
         onClick={() => fileInputRef.current?.click()}
       >
-        <Upload className="h-10 w-10 text-muted-foreground" />
+        <div
+          className={`flex h-16 w-16 items-center justify-center rounded-2xl transition-colors ${
+            dragOver
+              ? "bg-primary/15 text-primary"
+              : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+          }`}
+        >
+          <CloudUpload className="h-8 w-8" />
+        </div>
         <div className="text-center">
-          <p className="text-lg font-medium">Drag & drop files here</p>
-          <p className="text-sm text-muted-foreground">or click to choose files</p>
-          <p className="mt-2 text-xs text-muted-foreground">Accepts .pdf and .md files</p>
+          <p className="text-lg font-semibold">
+            {dragOver ? "Drop your files here" : "Drag & drop files here"}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">or click to browse your computer</p>
         </div>
         <Button
           variant="outline"
@@ -143,8 +154,10 @@ function UploadContent() {
             fileInputRef.current?.click();
           }}
         >
+          <FileUp className="mr-2 h-4 w-4" />
           Choose files
         </Button>
+        <p className="text-xs text-muted-foreground">Accepts .pdf and .md files</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -159,7 +172,7 @@ function UploadContent() {
       </Card>
 
       {activeUploads.length > 0 && (
-        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="mt-4 flex items-center gap-2 rounded-lg bg-primary/5 px-4 py-3 text-sm text-primary">
           <Loader2 className="h-4 w-4 animate-spin" />
           Uploading {activeUploads.length} file{activeUploads.length > 1 ? "s" : ""}...
         </div>
@@ -187,7 +200,7 @@ export default function UploadPage() {
       </Unauthenticated>
       <AuthLoading>
         <div className="flex flex-1 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-foreground" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
         </div>
       </AuthLoading>
     </>

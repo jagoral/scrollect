@@ -25,7 +25,7 @@ const statusConfig = {
   },
   ready: {
     label: "Ready",
-    className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
   },
   error: {
     label: "Error",
@@ -51,14 +51,14 @@ function DocumentCardSkeleton() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-5 w-5" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-5 rounded" />
           <Skeleton className="h-5 w-40" />
         </div>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-3">
-          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-5 w-20 rounded-full" />
           <Skeleton className="h-4 w-16" />
         </div>
       </CardContent>
@@ -71,12 +71,14 @@ function LibraryContent() {
 
   if (documents === undefined) {
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-8">
-        <h1 className="text-2xl font-bold">My Library</h1>
-        <p className="mt-2 text-muted-foreground">
-          Your uploaded documents and their processing status.
-        </p>
-        <div className="mt-6 grid gap-3">
+      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
+          <p className="mt-1 text-muted-foreground">
+            Your uploaded documents and their processing status.
+          </p>
+        </div>
+        <div className="grid gap-3">
           <DocumentCardSkeleton />
           <DocumentCardSkeleton />
           <DocumentCardSkeleton />
@@ -87,12 +89,14 @@ function LibraryContent() {
 
   if (documents.length === 0) {
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-8">
-        <h1 className="text-2xl font-bold">My Library</h1>
-        <div className="mt-12 flex flex-col items-center gap-4 text-center">
-          <FileText className="h-12 w-12 text-muted-foreground/50" />
+      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+        <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
+        <div className="mt-16 flex flex-col items-center gap-4 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <FileText className="h-8 w-8 text-muted-foreground" />
+          </div>
           <div>
-            <p className="text-lg font-medium">No documents yet</p>
+            <p className="text-lg font-semibold">No documents yet</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Upload your first file to get started.
             </p>
@@ -107,22 +111,30 @@ function LibraryContent() {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-bold">My Library</h1>
-      <p className="mt-2 text-muted-foreground">
-        Your uploaded documents and their processing status.
-      </p>
-      <div className="mt-6 grid gap-3">
+    <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
+          <p className="mt-1 text-muted-foreground">
+            Your uploaded documents and their processing status.
+          </p>
+        </div>
+        <Button size="sm" variant="outline" render={<Link href="/upload" />}>
+          <Upload className="mr-1.5 h-4 w-4" />
+          Upload
+        </Button>
+      </div>
+      <div className="grid gap-3">
         {documents.map((doc: Doc<"documents">) => (
           <Link
             key={doc._id}
             href={`/library/${doc._id}` as `/library/${string}`}
             className="block"
           >
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span>{fileTypeIcons[doc.fileType] ?? "\u{1F4C4}"}</span>
+            <Card className="transition-all hover:border-primary/30 hover:shadow-sm hover:shadow-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2.5 text-base">
+                  <span className="text-lg">{fileTypeIcons[doc.fileType] ?? "\u{1F4C4}"}</span>
                   <span className="truncate">{doc.title}</span>
                 </CardTitle>
               </CardHeader>
@@ -166,7 +178,7 @@ export default function LibraryPage() {
       </Unauthenticated>
       <AuthLoading>
         <div className="flex flex-1 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-foreground" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
         </div>
       </AuthLoading>
     </>

@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "scrollect",
-  description: "scrollect",
+  title: "Scrollect - AI-Powered Personal Learning Feed",
+  description: "Transform your saved content into a scrollable feed of bite-sized learning cards.",
 };
 
 export default async function RootLayout({
@@ -34,7 +34,7 @@ export default async function RootLayout({
         <Providers initialToken={token}>
           <div className="grid grid-rows-[auto_1fr] h-svh">
             <Header />
-            {children}
+            <main className="overflow-y-auto pt-6">{children}</main>
           </div>
         </Providers>
       </body>

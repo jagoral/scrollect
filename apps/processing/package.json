@@ -1,0 +1,20 @@
+{
+  "name": "@scrollect/processing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "start": "bun run dist/index.js"
+  },
+  "dependencies": {
+    "@qdrant/js-client-rest": "^1.17.0",
+    "hono": "^4.7.0",
+    "openai": "^6.27.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "catalog:"
+  }
+}

@@ -18,6 +18,14 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
 
+  posts: defineTable({
+    content: v.string(),
+    sourceChunkId: v.id("chunks"),
+    sourceDocumentId: v.id("documents"),
+    userId: v.string(),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
   chunks: defineTable({
     documentId: v.id("documents"),
     content: v.string(),
