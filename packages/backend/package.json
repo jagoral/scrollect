@@ -13,6 +13,7 @@
     "better-auth": "catalog:",
     "convex": "catalog:",
     "dotenv": "catalog:",
+    "pdf-parse": "^2.4.5",
     "zod": "catalog:"
   },
   "devDependencies": {
