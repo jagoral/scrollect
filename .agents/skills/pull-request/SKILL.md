@@ -10,6 +10,7 @@ disable-model-invocation: true
 Create a pull request for the current branch, or cherry-pick specific commits into a standalone PR.
 
 **Usage:**
+
 - `/pull-request` - PR the current branch against `main` (default)
 - `/pull-request --base main` - PR against `main`
 - `/pull-request --commit HEAD` - PR just the last commit on a new branch
@@ -28,6 +29,7 @@ Create a pull request for the current branch, or cherry-pick specific commits in
 ### 2. Determine Base Branch
 
 **Priority order:**
+
 1. Explicit argument: `--base <branch>` → use that branch
 2. No argument → default to `main`
 
@@ -61,6 +63,7 @@ When `--commit` is specified, create a new branch and cherry-pick:
 If `--branch` is provided, use that. Otherwise derive from the commit message:
 
 Parse commit message `type(scope): description` into branch name:
+
 - `docs(agents): improve changeset skill` → `docs/improve-changeset-skill`
 - `feat(cli): add indexer export` → `feat/add-indexer-export`
 - `fix(#456): cart total calculation` → `fix/456-cart-total-calculation`
@@ -89,6 +92,7 @@ git checkout {original-branch}
 ### 5. Extract GitHub Issue (if present)
 
 Parse branch name for issue number pattern:
+
 - Branch: `feat/123-description` → Issue: `#123`
 - Branch: `feature-without-issue` → No issue
 
@@ -98,19 +102,20 @@ Parse branch name for issue number pattern:
 
 **Format:** `type(scope): description`
 
-| Type | Use For |
-|------|---------|
-| `feat` | New features |
-| `fix` | Bug fixes |
-| `perf` | Performance improvements |
-| `docs` | Documentation changes |
-| `style` | Code style (formatting, no logic change) |
-| `refactor` | Code refactoring |
-| `test` | Adding/updating tests |
-| `chore` | Maintenance tasks |
-| `ci` | CI/CD changes |
+| Type       | Use For                                  |
+| ---------- | ---------------------------------------- |
+| `feat`     | New features                             |
+| `fix`      | Bug fixes                                |
+| `perf`     | Performance improvements                 |
+| `docs`     | Documentation changes                    |
+| `style`    | Code style (formatting, no logic change) |
+| `refactor` | Code refactoring                         |
+| `test`     | Adding/updating tests                    |
+| `chore`    | Maintenance tasks                        |
+| `ci`       | CI/CD changes                            |
 
 **Auto-detection:**
+
 - **Cherry-pick mode**: Check if the commit message already follows `type(scope): description` or `type: description` format. If yes, use it directly as the PR title. If not, derive a conventional commit title from the commit message (infer type from content/branch, use ticket as scope if present, use the commit subject as description).
 - **Branch mode**: Derive from branch name:
   - `feat/123-add-auth` → `feat(#123): add auth`
@@ -138,30 +143,41 @@ gh pr create \
   --body "{body from shared template}"
 ```
 
-### 9. Report Result and Cleanup
+### 9. Enable Automerge
+
+After creating the PR, enable automerge with squash strategy by default:
+
+```bash
+gh pr merge {pr-number} --auto --squash
+```
+
+### 10. Report Result and Cleanup
 
 Return the PR URL:
+
 ```
 Pull request created: https://github.com/org/repo/pull/123
+Automerge enabled (squash).
 ```
 
 If in cherry-pick mode, switch back to original branch:
+
 ```bash
 git checkout {original-branch}
 ```
 
 ## Error Handling
 
-| Error | Action |
-|-------|--------|
-| Not on a branch | Ask user to checkout a branch |
-| Base branch doesn't exist | List available branches, ask user to choose |
-| No commits ahead of base | Inform user there's nothing to PR |
-| Branch not pushed | Push automatically |
-| gh auth failed | Guide user to run `gh auth login` |
-| PR already exists for branch | Show existing PR URL |
-| Cherry-pick conflict | Abort cherry-pick, inform user of conflicts |
-| Commit hash not found | Ask user for correct hash, show recent commits |
+| Error                        | Action                                         |
+| ---------------------------- | ---------------------------------------------- |
+| Not on a branch              | Ask user to checkout a branch                  |
+| Base branch doesn't exist    | List available branches, ask user to choose    |
+| No commits ahead of base     | Inform user there's nothing to PR              |
+| Branch not pushed            | Push automatically                             |
+| gh auth failed               | Guide user to run `gh auth login`              |
+| PR already exists for branch | Show existing PR URL                           |
+| Cherry-pick conflict         | Abort cherry-pick, inform user of conflicts    |
+| Commit hash not found        | Ask user for correct hash, show recent commits |
 
 ## Notes
 
