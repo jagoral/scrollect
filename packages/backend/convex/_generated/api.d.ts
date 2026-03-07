@@ -18,8 +18,14 @@ import type * as healthCheck from "../healthCheck.js";
 import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
 import type * as parsing from "../parsing.js";
+import type * as pipeline from "../pipeline.js";
 import type * as privateData from "../privateData.js";
 import type * as processingJobs from "../processingJobs.js";
+import type * as providers_convexVectors from "../providers/convexVectors.js";
+import type * as providers_datalab from "../providers/datalab.js";
+import type * as providers_openai from "../providers/openai.js";
+import type * as providers_qdrant from "../providers/qdrant.js";
+import type * as providers_types from "../providers/types.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
@@ -34,8 +40,14 @@ declare const fullApi: ApiFromModules<{
   helpers: typeof helpers;
   http: typeof http;
   parsing: typeof parsing;
+  pipeline: typeof pipeline;
   privateData: typeof privateData;
   processingJobs: typeof processingJobs;
+  "providers/convexVectors": typeof providers_convexVectors;
+  "providers/datalab": typeof providers_datalab;
+  "providers/openai": typeof providers_openai;
+  "providers/qdrant": typeof providers_qdrant;
+  "providers/types": typeof providers_types;
 }>;
 
 /**

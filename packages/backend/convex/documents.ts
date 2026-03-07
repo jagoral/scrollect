@@ -1,8 +1,9 @@
 import type { GenericCtx } from "@convex-dev/better-auth";
 import { v } from "convex/values";
 
+import { internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 
 export const generateUploadUrl = mutation({
@@ -35,6 +36,9 @@ export const create = mutation({
       chunkCount: 0,
       userId: user._id,
       createdAt: Date.now(),
+    });
+    await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
+      documentId,
     });
     return documentId;
   },
@@ -85,6 +89,9 @@ export const updateStatus = internalMutation({
     ),
     errorMessage: v.optional(v.string()),
     chunkCount: v.optional(v.number()),
+    failedAt: v.optional(
+      v.union(v.literal("parsing"), v.literal("chunking"), v.literal("embedding")),
+    ),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -95,6 +102,47 @@ export const updateStatus = internalMutation({
     if (fields.chunkCount !== undefined) {
       update.chunkCount = fields.chunkCount;
     }
+    if (fields.failedAt !== undefined) {
+      update.failedAt = fields.failedAt;
+    }
     await ctx.db.patch(id, update);
+  },
+});
+
+export const setDatalabCheckUrl = internalMutation({
+  args: {
+    id: v.id("documents"),
+    checkUrl: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { datalabCheckUrl: args.checkUrl });
+  },
+});
+
+export const getInternal = internalQuery({
+  args: { id: v.id("documents") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
+export const retry = mutation({
+  args: { id: v.id("documents") },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+    const doc = await ctx.db.get(args.id);
+    if (!doc || doc.userId !== user._id) {
+      throw new Error("Document not found");
+    }
+    if (doc.status !== "error") {
+      throw new Error("Document is not in error state");
+    }
+    await ctx.db.patch(args.id, { errorMessage: undefined });
+    await ctx.scheduler.runAfter(0, internal.pipeline.resumeProcessing, {
+      documentId: args.id,
+    });
   },
 });

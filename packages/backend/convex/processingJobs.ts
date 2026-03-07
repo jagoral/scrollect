@@ -29,15 +29,25 @@ export const markBatchComplete = internalMutation({
     if (!job) {
       throw new Error(`Processing job ${args.id} not found`);
     }
-    if (args.failed) {
-      await ctx.db.patch(args.id, {
-        failedBatches: job.failedBatches + 1,
-      });
-    } else {
-      await ctx.db.patch(args.id, {
-        completedBatches: job.completedBatches + 1,
-      });
-    }
+    const update = args.failed
+      ? { failedBatches: job.failedBatches + 1 }
+      : { completedBatches: job.completedBatches + 1 };
+    await ctx.db.patch(args.id, update);
+    return {
+      ...job,
+      ...update,
+    };
+  },
+});
+
+export const getByDocument = internalQuery({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("processingJobs")
+      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+      .order("desc")
+      .first();
   },
 });
 
