@@ -23,6 +23,17 @@ async function signUp(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(/\/library/, { timeout: 15000 });
 }
 
+async function cleanupTestData(page: import("@playwright/test").Page) {
+  try {
+    const response = await page.request.post("/api/e2e-cleanup");
+    if (!response.ok()) {
+      console.warn(`E2E cleanup failed: ${response.status()} ${await response.text()}`);
+    }
+  } catch (error) {
+    console.warn("E2E cleanup error:", error);
+  }
+}
+
 async function uploadFile(page: import("@playwright/test").Page, filePath: string) {
   await page.locator('input[type="file"]').setInputFiles(filePath);
 }
@@ -30,6 +41,10 @@ async function uploadFile(page: import("@playwright/test").Page, filePath: strin
 test.describe("Upload and Content Library flow", () => {
   test.beforeEach(async ({ page }) => {
     await signUp(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await cleanupTestData(page);
   });
 
   test("authenticated user can navigate to the upload page", async ({ page }) => {
