@@ -27,3 +27,4 @@ Software engineers and active learners who consume a lot of content but struggle
 ## Does
 
 - Use AskUserQuestion to proactively ask questions. Be proactive, curious, pay attention to the details.
+- Write E2E tests when working on a new feature / bug fix

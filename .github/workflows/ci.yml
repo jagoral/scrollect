@@ -33,3 +33,20 @@ jobs:
         env:
           NEXT_PUBLIC_CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
           NEXT_PUBLIC_CONVEX_SITE_URL: ${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
+
+      - name: Install Playwright browsers
+        run: cd apps/e2e && npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: bun run test:e2e
+        env:
+          NEXT_PUBLIC_CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/e2e/playwright-report/
+          retention-days: 30
