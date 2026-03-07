@@ -122,12 +122,32 @@ When the team completes:
 - Check that tests pass
 - Review the changes for obvious issues
 
+### Step 5b: Ensure CI will pass
+
+Before committing, run the **exact same checks** that CI runs (see `.github/workflows/ci.yml`).
+Fix any failures before proceeding — do NOT suppress errors or skip steps.
+
 ```bash
-# Run tests to verify
-cd /Users/tomaszgoral/Desktop/playground/hackathon/scrollect
-bun run test 2>/dev/null || true
-bun run lint 2>/dev/null || true
+# 1. Lint and format (matches CI "Check (lint & format)" step)
+bun run check
+
+# If oxfmt reformatted files, stage those formatting changes
+git add -u
+
+# 2. Build all packages (matches CI "Build" step)
+bun turbo run build
+
+# 3. Run E2E tests (matches CI "Run E2E tests" step)
+bun run test:e2e
 ```
+
+If any step fails:
+
+1. **Lint errors (`oxlint`)** — fix the violations in the source files and re-run `bun run check`
+2. **Build errors** — read the error output, fix type errors or missing imports, re-run `bun turbo run build`
+3. **E2E test failures** — investigate the failing test, fix the implementation or the test, re-run `bun run test:e2e`
+
+Repeat until all three steps pass cleanly. Only then proceed to commit.
 
 ### Step 6: Commit and create the PR
 
@@ -179,7 +199,7 @@ gh issue close <number> --reason completed
 | Issue is already assigned       | Warn the user, ask if they want to take over  |
 | Branch already exists           | Ask to reuse or create a new one              |
 | `gh` not authenticated          | Guide user to `gh auth login`                 |
-| Tests fail after implementation | Report failures, attempt fixes, re-run        |
+| CI checks fail (lint/build/e2e) | Fix all failures in Step 5b before committing |
 | Team agent fails or times out   | Fall back to direct implementation            |
 | PR creation fails               | Show the error, attempt manual `gh pr create` |
 
