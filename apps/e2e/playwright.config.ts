@@ -23,7 +23,7 @@ export default defineConfig({
   webServer: {
     command: "cd ../.. && bun turbo -F @scrollect/web dev",
     url: "http://localhost:3001",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120_000,
   },
 });

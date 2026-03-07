@@ -24,7 +24,7 @@
     "dev:server": "turbo -F @scrollect/backend dev",
     "dev:setup": "turbo -F @scrollect/backend dev:setup",
     "check": "oxlint && oxfmt --write",
-    "test:e2e": "turbo -F @scrollect/e2e test"
+    "test:e2e": "turbo -F @scrollect/e2e test:e2e"
   },
   "dependencies": {
     "@scrollect/env": "workspace:*",
