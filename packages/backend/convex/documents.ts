@@ -34,7 +34,7 @@ export const create = mutation({
       storageId: args.storageId,
       status: "pending",
       chunkCount: 0,
-      userId: user.userId,
+      userId: user._id,
       createdAt: Date.now(),
     });
     await ctx.scheduler.runAfter(0, internal.processing.processDocument, {
@@ -53,7 +53,7 @@ export const list = query({
     }
     return await ctx.db
       .query("documents")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .order("desc")
       .collect();
   },
@@ -67,7 +67,7 @@ export const get = query({
       return null;
     }
     const doc = await ctx.db.get(args.id);
-    if (!doc || doc.userId !== user.userId) {
+    if (!doc || doc.userId !== user._id) {
       return null;
     }
     return doc;

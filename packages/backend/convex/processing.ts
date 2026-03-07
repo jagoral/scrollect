@@ -1,17 +1,18 @@
-import { PDFParse } from "pdf-parse";
+"use node";
+
 import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalAction } from "./_generated/server";
-import { chunkContent, chunkMarkdown } from "./parsing";
+import { chunkContent, chunkMarkdown } from "./chunking";
 
 export const processDocument = internalAction({
   args: {
     documentId: v.id("documents"),
   },
   handler: async (ctx, args) => {
-    const doc = await ctx.runQuery(internal.embeddings.getDocument, {
+    const doc = await ctx.runQuery(internal.helpers.getDocument, {
       id: args.documentId,
     });
     if (!doc) {
@@ -44,6 +45,7 @@ export const processDocument = internalAction({
         if (buffer.length === 0) {
           throw new Error("File is empty");
         }
+        const { PDFParse } = await import("pdf-parse");
         const parser = new PDFParse({ data: new Uint8Array(buffer) });
         const result = await parser.getText();
         await parser.destroy();

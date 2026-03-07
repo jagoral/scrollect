@@ -135,7 +135,14 @@ function UploadContent() {
           <p className="text-sm text-muted-foreground">or click to choose files</p>
           <p className="mt-2 text-xs text-muted-foreground">Accepts .pdf and .md files</p>
         </div>
-        <Button variant="outline" type="button" onClick={(e) => e.stopPropagation()}>
+        <Button
+          variant="outline"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            fileInputRef.current?.click();
+          }}
+        >
           Choose files
         </Button>
         <input
