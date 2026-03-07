@@ -84,8 +84,6 @@ export const updateStatus = internalMutation({
       v.literal("embedding"),
       v.literal("ready"),
       v.literal("error"),
-      v.literal("pending"),
-      v.literal("processing"),
     ),
     errorMessage: v.optional(v.string()),
     chunkCount: v.optional(v.number()),

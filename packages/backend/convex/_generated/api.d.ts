@@ -17,7 +17,6 @@ import type * as feedGeneration from "../feedGeneration.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
-import type * as parsing from "../parsing.js";
 import type * as pipeline from "../pipeline.js";
 import type * as privateData from "../privateData.js";
 import type * as processingJobs from "../processingJobs.js";
@@ -39,7 +38,6 @@ declare const fullApi: ApiFromModules<{
   healthCheck: typeof healthCheck;
   helpers: typeof helpers;
   http: typeof http;
-  parsing: typeof parsing;
   pipeline: typeof pipeline;
   privateData: typeof privateData;
   processingJobs: typeof processingJobs;

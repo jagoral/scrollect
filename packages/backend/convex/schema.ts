@@ -13,9 +13,6 @@ export default defineSchema({
       v.literal("embedding"),
       v.literal("ready"),
       v.literal("error"),
-      // Deprecated — kept for migration compatibility
-      v.literal("pending"),
-      v.literal("processing"),
     ),
     failedAt: v.optional(
       v.union(v.literal("parsing"), v.literal("chunking"), v.literal("embedding")),
@@ -47,13 +44,8 @@ export default defineSchema({
     content: v.string(),
     chunkIndex: v.number(),
     tokenCount: v.number(),
-    embedded: v.optional(v.boolean()),
+    embedded: v.boolean(),
     embeddingId: v.optional(v.string()),
-    // Deprecated fields — kept for migration compatibility
-    embeddingStatus: v.optional(
-      v.union(v.literal("pending"), v.literal("embedded"), v.literal("error")),
-    ),
-    qdrantPointId: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_documentId", ["documentId"])
