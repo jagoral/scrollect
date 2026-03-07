@@ -1,6 +1,7 @@
 import type { GenericCtx } from "@convex-dev/better-auth";
 import { v } from "convex/values";
 
+import { internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -27,7 +28,7 @@ export const create = mutation({
     if (!user) {
       throw new Error("Not authenticated");
     }
-    return await ctx.db.insert("documents", {
+    const documentId = await ctx.db.insert("documents", {
       title: args.title,
       fileType: args.fileType,
       storageId: args.storageId,
@@ -36,6 +37,10 @@ export const create = mutation({
       userId: user.userId,
       createdAt: Date.now(),
     });
+    await ctx.scheduler.runAfter(0, internal.processing.processDocument, {
+      documentId,
+    });
+    return documentId;
   },
 });
 

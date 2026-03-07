@@ -60,7 +60,7 @@ export function chunkContent(text: string): { content: string; tokenCount: numbe
   return chunks;
 }
 
-function chunkMarkdown(text: string): { content: string; tokenCount: number }[] {
+export function chunkMarkdown(text: string): { content: string; tokenCount: number }[] {
   const headingPattern = /\n(?=#{1,3} )/;
   const sections = text.split(headingPattern).filter((s) => s.trim());
 
