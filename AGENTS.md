@@ -28,3 +28,5 @@ Software engineers and active learners who consume a lot of content but struggle
 
 - Use AskUserQuestion to proactively ask questions. Be proactive, curious, pay attention to the details.
 - Write E2E tests when working on a new feature / bug fix
+- 100% test coverage is less important than test stability. If a test is hard to write and hard to maintain, skip it
+- Must use shadcn on the Frontend
