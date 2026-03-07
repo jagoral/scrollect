@@ -1,5 +1,5 @@
 {
-  "name": "docs",
+  "name": "@scrollect/docs",
   "version": "0.0.1",
   "type": "module",
   "scripts": {
