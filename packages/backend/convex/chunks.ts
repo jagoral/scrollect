@@ -42,7 +42,7 @@ export const createBatch = internalMutation({
           content: chunk.content,
           chunkIndex: index,
           tokenCount: chunk.tokenCount,
-          embeddingStatus: "pending",
+          embedded: false,
           createdAt: now,
         }),
       ),

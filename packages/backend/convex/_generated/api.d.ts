@@ -12,7 +12,6 @@ import type * as auth from "../auth.js";
 import type * as chunking from "../chunking.js";
 import type * as chunks from "../chunks.js";
 import type * as documents from "../documents.js";
-import type * as embeddings from "../embeddings.js";
 import type * as feed from "../feed.js";
 import type * as feedGeneration from "../feedGeneration.js";
 import type * as healthCheck from "../healthCheck.js";
@@ -20,8 +19,7 @@ import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
 import type * as parsing from "../parsing.js";
 import type * as privateData from "../privateData.js";
-import type * as processing from "../processing.js";
-import type * as qdrant from "../qdrant.js";
+import type * as processingJobs from "../processingJobs.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
@@ -30,7 +28,6 @@ declare const fullApi: ApiFromModules<{
   chunking: typeof chunking;
   chunks: typeof chunks;
   documents: typeof documents;
-  embeddings: typeof embeddings;
   feed: typeof feed;
   feedGeneration: typeof feedGeneration;
   healthCheck: typeof healthCheck;
@@ -38,8 +35,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   parsing: typeof parsing;
   privateData: typeof privateData;
-  processing: typeof processing;
-  qdrant: typeof qdrant;
+  processingJobs: typeof processingJobs;
 }>;
 
 /**

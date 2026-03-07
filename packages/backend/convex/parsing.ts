@@ -112,7 +112,7 @@ export const pollDatalabResult = internalAction({
 
       await ctx.runMutation(internal.documents.updateStatus, {
         id: args.documentId,
-        status: "processing",
+        status: "chunking",
         chunkCount: chunks.length,
       });
 
@@ -144,6 +144,7 @@ export const pollDatalabResult = internalAction({
   },
 });
 
+// TODO: Reimplement with new embedding provider (ADR-001 follow-up)
 export const embedAndFinalize = internalAction({
   args: {
     documentId: v.id("documents"),
@@ -151,24 +152,11 @@ export const embedAndFinalize = internalAction({
     chunkCount: v.number(),
   },
   handler: async (ctx, args) => {
-    try {
-      await ctx.runAction(internal.embeddings.embedChunks, {
-        chunkIds: args.chunkIds,
-      });
-
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: args.documentId,
-        status: "ready",
-        chunkCount: args.chunkCount,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error during embedding";
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: args.documentId,
-        status: "error",
-        errorMessage: message,
-      });
-    }
+    await ctx.runMutation(internal.documents.updateStatus, {
+      id: args.documentId,
+      status: "embedding",
+      chunkCount: args.chunkCount,
+    });
   },
 });
 
@@ -180,7 +168,7 @@ export const parseMarkdown = internalAction({
   handler: async (ctx, args) => {
     await ctx.runMutation(internal.documents.updateStatus, {
       id: args.documentId,
-      status: "processing",
+      status: "parsing",
     });
 
     try {

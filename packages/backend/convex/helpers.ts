@@ -47,20 +47,3 @@ export const scheduleEmbedChunks = internalMutation({
     });
   },
 });
-
-export const updateChunkEmbedding = internalMutation({
-  args: {
-    id: v.id("chunks"),
-    embeddingStatus: v.union(v.literal("embedded"), v.literal("error")),
-    qdrantPointId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const update: Record<string, unknown> = {
-      embeddingStatus: args.embeddingStatus,
-    };
-    if (args.qdrantPointId !== undefined) {
-      update.qdrantPointId = args.qdrantPointId;
-    }
-    await ctx.db.patch(args.id, update);
-  },
-});
