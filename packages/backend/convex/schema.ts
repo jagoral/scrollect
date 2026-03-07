@@ -49,6 +49,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_documentId", ["documentId"])
+    .index("by_documentId_chunkIndex", ["documentId", "chunkIndex"])
     .index("by_documentId_unembedded", ["documentId", "embedded"]),
 
   processingJobs: defineTable({
