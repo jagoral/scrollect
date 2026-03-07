@@ -7,6 +7,7 @@ import { internal } from "./_generated/api";
 import type { DataModel, Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 import { authComponent } from "./auth";
+import { WideEvent } from "./logging";
 
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -19,45 +20,56 @@ function getOpenAIClient(): OpenAI {
 export const generate = action({
   args: {},
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const evt = new WideEvent("feedGeneration.generate");
+    try {
+      const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
 
-    // Get all ready documents for this user
-    const documents = await ctx.runQuery(internal.feed.listReadyDocuments, {
-      userId: user._id,
-    });
+      evt.set("userId", user._id);
 
-    if (documents.length === 0) {
-      throw new Error("No ready documents found. Upload and process a document first.");
-    }
-
-    // Gather chunks from all ready documents
-    const allChunks: { _id: Id<"chunks">; content: string; documentId: Id<"documents"> }[] = [];
-    for (const doc of documents) {
-      const chunks = await ctx.runQuery(internal.feed.listChunksForDocument, {
-        documentId: doc._id,
+      // Get all ready documents for this user
+      const documents = await ctx.runQuery(internal.feed.listReadyDocuments, {
+        userId: user._id,
       });
-      for (const chunk of chunks) {
-        allChunks.push({
-          _id: chunk._id,
-          content: chunk.content,
+
+      evt.set("readyDocuments", documents.length);
+
+      if (documents.length === 0) {
+        throw new Error("No ready documents found. Upload and process a document first.");
+      }
+
+      // Gather chunks from all ready documents
+      const allChunks: { _id: Id<"chunks">; content: string; documentId: Id<"documents"> }[] = [];
+      for (const doc of documents) {
+        const chunks = await ctx.runQuery(internal.feed.listChunksForDocument, {
           documentId: doc._id,
         });
+        for (const chunk of chunks) {
+          allChunks.push({
+            _id: chunk._id,
+            content: chunk.content,
+            documentId: doc._id,
+          });
+        }
       }
-    }
 
-    if (allChunks.length === 0) {
-      throw new Error("No chunks available to generate feed from.");
-    }
+      evt.set("totalChunks", allChunks.length);
 
-    // Pick up to 5 random chunks to base posts on
-    const selected = shuffle(allChunks).slice(0, 5);
+      if (allChunks.length === 0) {
+        throw new Error("No chunks available to generate feed from.");
+      }
 
-    const openai = getOpenAIClient();
+      // Pick up to 5 random chunks to base posts on
+      const selected = shuffle(allChunks).slice(0, 5);
+      evt.set("selectedChunks", selected.length);
 
-    const systemPrompt = `You are an AI learning assistant for Scrollect, a personal learning feed app.
+      const openai = getOpenAIClient();
+      const model = "gpt-4o-mini";
+      evt.set("model", model);
+
+      const systemPrompt = `You are an AI learning assistant for Scrollect, a personal learning feed app.
 Your job is to transform raw text chunks from documents into engaging, bite-sized learning cards.
 
 Each card should:
@@ -68,50 +80,59 @@ Each card should:
 
 Return a JSON object with a "posts" key containing an array of exactly ${selected.length} strings, one for each input chunk.`;
 
-    const userPrompt = selected
-      .map((chunk, i) => `Chunk ${i + 1}:\n${chunk.content}`)
-      .join("\n\n---\n\n");
+      const userPrompt = selected
+        .map((chunk, i) => `Chunk ${i + 1}:\n${chunk.content}`)
+        .join("\n\n---\n\n");
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.7,
-      response_format: { type: "json_object" },
-    });
-
-    const raw = response.choices[0]?.message?.content ?? "{}";
-    let posts: string[];
-    try {
-      const parsed = JSON.parse(raw);
-      // Handle both direct array and wrapped object (e.g. { "posts": [...] })
-      posts = Array.isArray(parsed)
-        ? parsed
-        : Array.isArray(parsed.posts)
-          ? parsed.posts
-          : ((Object.values(parsed).find(Array.isArray) as string[]) ?? []);
-    } catch (error) {
-      console.error("Failed to parse AI response:", raw);
-      throw new Error("Failed to parse AI response");
-    }
-
-    // Store posts in the database
-    const postIds: Id<"posts">[] = [];
-    for (let i = 0; i < posts.length; i++) {
-      const chunk = selected[i]!;
-      const content = posts[i]!;
-      const id = await ctx.runMutation(internal.feed.createPost, {
-        content,
-        sourceChunkId: chunk._id,
-        sourceDocumentId: chunk.documentId,
-        userId: user._id,
+      const response = await openai.chat.completions.create({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        response_format: { type: "json_object" },
       });
-      postIds.push(id);
-    }
 
-    return postIds;
+      const raw = response.choices[0]?.message?.content ?? "{}";
+      let posts: string[];
+      try {
+        const parsed = JSON.parse(raw);
+        // Handle both direct array and wrapped object (e.g. { "posts": [...] })
+        posts = Array.isArray(parsed)
+          ? parsed
+          : Array.isArray(parsed.posts)
+            ? parsed.posts
+            : ((Object.values(parsed).find(Array.isArray) as string[]) ?? []);
+      } catch (error) {
+        evt.set("aiRawResponse", raw.substring(0, 500));
+        evt.setError(error);
+        throw new Error("Failed to parse AI response");
+      }
+
+      evt.set("postsGenerated", posts.length);
+
+      // Store posts in the database
+      const postIds: Id<"posts">[] = [];
+      for (let i = 0; i < posts.length; i++) {
+        const chunk = selected[i]!;
+        const content = posts[i]!;
+        const id = await ctx.runMutation(internal.feed.createPost, {
+          content,
+          sourceChunkId: chunk._id,
+          sourceDocumentId: chunk.documentId,
+          userId: user._id,
+        });
+        postIds.push(id);
+      }
+
+      return postIds;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
   },
 });
 
