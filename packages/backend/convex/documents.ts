@@ -5,6 +5,7 @@ import { internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { WideEvent } from "./logging";
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -24,23 +25,34 @@ export const create = mutation({
     storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) {
-      throw new Error("Not authenticated");
+    const evt = new WideEvent("documents.create");
+    evt.set({ fileType: args.fileType, title: args.title });
+    try {
+      const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+      evt.set("userId", user._id);
+      const documentId = await ctx.db.insert("documents", {
+        title: args.title,
+        fileType: args.fileType,
+        storageId: args.storageId,
+        status: "uploaded",
+        chunkCount: 0,
+        userId: user._id,
+        createdAt: Date.now(),
+      });
+      evt.set("documentId", documentId);
+      await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
+        documentId,
+      });
+      return documentId;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
     }
-    const documentId = await ctx.db.insert("documents", {
-      title: args.title,
-      fileType: args.fileType,
-      storageId: args.storageId,
-      status: "uploaded",
-      chunkCount: 0,
-      userId: user._id,
-      createdAt: Date.now(),
-    });
-    await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
-      documentId,
-    });
-    return documentId;
   },
 });
 
@@ -127,20 +139,30 @@ export const getInternal = internalQuery({
 export const retry = mutation({
   args: { id: v.id("documents") },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) {
-      throw new Error("Not authenticated");
+    const evt = new WideEvent("documents.retry");
+    evt.set("documentId", args.id);
+    try {
+      const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+      const doc = await ctx.db.get(args.id);
+      if (!doc || doc.userId !== user._id) {
+        throw new Error("Document not found");
+      }
+      if (doc.status !== "error") {
+        throw new Error("Document is not in error state");
+      }
+      evt.set({ previousStatus: doc.status, failedAt: doc.failedAt });
+      await ctx.db.patch(args.id, { errorMessage: undefined });
+      await ctx.scheduler.runAfter(0, internal.pipeline.resumeProcessing, {
+        documentId: args.id,
+      });
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
     }
-    const doc = await ctx.db.get(args.id);
-    if (!doc || doc.userId !== user._id) {
-      throw new Error("Document not found");
-    }
-    if (doc.status !== "error") {
-      throw new Error("Document is not in error state");
-    }
-    await ctx.db.patch(args.id, { errorMessage: undefined });
-    await ctx.scheduler.runAfter(0, internal.pipeline.resumeProcessing, {
-      documentId: args.id,
-    });
   },
 });

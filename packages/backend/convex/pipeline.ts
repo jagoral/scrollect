@@ -7,6 +7,7 @@ import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { internalAction } from "./_generated/server";
 import { chunkMarkdown } from "./chunking";
+import { WideEvent } from "./logging";
 import { DatalabParser } from "./providers/datalab";
 import { OpenAIEmbeddings } from "./providers/openai";
 import { QdrantVectorStore } from "./providers/qdrant";
@@ -43,21 +44,34 @@ function createVectorStore(): VectorStore {
 export const startProcessing = internalAction({
   args: { documentId: v.id("documents") },
   handler: async (ctx, { documentId }) => {
-    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-    if (!doc) throw new Error(`Document ${documentId} not found`);
+    const evt = new WideEvent("pipeline.startProcessing");
+    evt.set({ documentId });
+    try {
+      const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+      if (!doc) throw new Error(`Document ${documentId} not found`);
 
-    if (doc.fileType === "pdf") {
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "parsing",
-      });
-      await submitPdfParsingImpl(ctx, documentId, doc.storageId);
-    } else {
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "parsing",
-      });
-      await fetchAndParseMarkdownImpl(ctx, documentId, doc.storageId);
+      evt.set({ fileType: doc.fileType, userId: doc.userId });
+
+      if (doc.fileType === "pdf") {
+        evt.set("path", "pdf");
+        await ctx.runMutation(internal.documents.updateStatus, {
+          id: documentId,
+          status: "parsing",
+        });
+        await submitPdfParsingImpl(ctx, documentId, doc.storageId, evt);
+      } else {
+        evt.set("path", "markdown");
+        await ctx.runMutation(internal.documents.updateStatus, {
+          id: documentId,
+          status: "parsing",
+        });
+        await fetchAndParseMarkdownImpl(ctx, documentId, doc.storageId, evt);
+      }
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
     }
   },
 });
@@ -68,6 +82,7 @@ async function submitPdfParsingImpl(
   ctx: ActionCtx,
   documentId: Id<"documents">,
   storageId: Id<"_storage">,
+  evt: WideEvent,
 ) {
   try {
     const apiKey = process.env.DATALAB_API_KEY;
@@ -93,6 +108,7 @@ async function submitPdfParsingImpl(
       startedAt,
     });
   } catch (error) {
+    evt.setError(error);
     const message = error instanceof Error ? error.message : "PDF submission failed";
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
@@ -111,18 +127,23 @@ export const pollDatalabResult = internalAction({
     startedAt: v.number(),
   },
   handler: async (ctx, { documentId, checkUrl, attempt, startedAt }) => {
-    const elapsed = Date.now() - startedAt;
-    if (elapsed > MAX_POLL_DURATION_MS) {
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "error",
-        errorMessage: "PDF parsing timed out after 5 minutes",
-        failedAt: "parsing",
-      });
-      return;
-    }
-
+    const evt = new WideEvent("pipeline.pollDatalabResult");
+    evt.set({ documentId, attempt });
     try {
+      const elapsed = Date.now() - startedAt;
+      evt.set("elapsedMs", elapsed);
+
+      if (elapsed > MAX_POLL_DURATION_MS) {
+        evt.set("pollResult", "timeout");
+        await ctx.runMutation(internal.documents.updateStatus, {
+          id: documentId,
+          status: "error",
+          errorMessage: "PDF parsing timed out after 5 minutes",
+          failedAt: "parsing",
+        });
+        return;
+      }
+
       const apiKey = process.env.DATALAB_API_KEY;
       if (!apiKey) throw new Error("DATALAB_API_KEY environment variable is not set");
 
@@ -130,6 +151,7 @@ export const pollDatalabResult = internalAction({
       const result = await parser.poll(checkUrl);
 
       if (result.status === "complete") {
+        evt.set("pollResult", "complete");
         await ctx.scheduler.runAfter(0, internal.pipeline.chunkAndStore, {
           documentId,
           markdown: result.markdown!,
@@ -138,6 +160,7 @@ export const pollDatalabResult = internalAction({
       }
 
       if (result.status === "error") {
+        evt.set("pollResult", "error");
         await ctx.runMutation(internal.documents.updateStatus, {
           id: documentId,
           status: "error",
@@ -147,6 +170,7 @@ export const pollDatalabResult = internalAction({
         return;
       }
 
+      evt.set("pollResult", "pending");
       // Still pending — schedule next poll with exponential backoff
       const nextDelay = getPollDelay(attempt);
       await ctx.scheduler.runAfter(nextDelay, internal.pipeline.pollDatalabResult, {
@@ -156,6 +180,7 @@ export const pollDatalabResult = internalAction({
         startedAt,
       });
     } catch (error) {
+      evt.setError(error);
       const message = error instanceof Error ? error.message : "Polling failed";
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
@@ -163,6 +188,8 @@ export const pollDatalabResult = internalAction({
         errorMessage: message,
         failedAt: "parsing",
       });
+    } finally {
+      evt.emit();
     }
   },
 });
@@ -173,6 +200,7 @@ async function fetchAndParseMarkdownImpl(
   ctx: ActionCtx,
   documentId: Id<"documents">,
   storageId: Id<"_storage">,
+  evt: WideEvent,
 ) {
   try {
     const url = await ctx.storage.getUrl(storageId);
@@ -189,6 +217,7 @@ async function fetchAndParseMarkdownImpl(
       markdown: text,
     });
   } catch (error) {
+    evt.setError(error);
     const message = error instanceof Error ? error.message : "Markdown parsing failed";
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
@@ -207,6 +236,8 @@ export const chunkAndStore = internalAction({
     markdown: v.string(),
   },
   handler: async (ctx, { documentId, markdown }) => {
+    const evt = new WideEvent("pipeline.chunkAndStore");
+    evt.set({ documentId, markdownLength: markdown.length });
     try {
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
@@ -220,9 +251,10 @@ export const chunkAndStore = internalAction({
         tokenCount: c.tokenCount,
       }));
 
-      console.log(`[chunkAndStore] ${chunks.length} chunks for document ${documentId}`);
+      evt.set("chunkCount", chunks.length);
 
       const allChunkIds: Id<"chunks">[] = [];
+      let batchesStored = 0;
       for (let i = 0; i < chunks.length; i += CHUNK_STORE_BATCH_SIZE) {
         const batch = chunks.slice(i, i + CHUNK_STORE_BATCH_SIZE);
         const ids = await ctx.runMutation(internal.chunks.createBatch, {
@@ -230,7 +262,9 @@ export const chunkAndStore = internalAction({
           chunks: batch,
         });
         allChunkIds.push(...ids);
+        batchesStored++;
       }
+      evt.set("batchesStored", batchesStored);
 
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
@@ -241,6 +275,7 @@ export const chunkAndStore = internalAction({
       // Fan-out embedding batches
       await fanOutEmbedding(ctx, documentId, allChunkIds);
     } catch (error) {
+      evt.setError(error);
       const message = error instanceof Error ? error.message : "Chunking failed";
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
@@ -248,6 +283,8 @@ export const chunkAndStore = internalAction({
         errorMessage: message,
         failedAt: "chunking",
       });
+    } finally {
+      evt.emit();
     }
   },
 });
@@ -293,6 +330,8 @@ export const embedBatch = internalAction({
     retryCount: v.number(),
   },
   handler: async (ctx, { jobId, documentId, chunkIds, retryCount }) => {
+    const evt = new WideEvent("pipeline.embedBatch");
+    evt.set({ jobId, documentId, chunkCount: chunkIds.length, retryCount });
     try {
       const embedder = createEmbeddingProvider();
       const vectorStore = createVectorStore();
@@ -310,6 +349,8 @@ export const embedBatch = internalAction({
         (c): c is NonNullable<typeof c> => c !== null && !c.embedded,
       );
 
+      evt.set("validChunkCount", validChunks.length);
+
       if (validChunks.length === 0) {
         // All chunks already embedded — mark batch complete
         const job = await ctx.runMutation(internal.processingJobs.markBatchComplete, {
@@ -321,7 +362,10 @@ export const embedBatch = internalAction({
       }
 
       const texts = validChunks.map((c) => c.content);
+
+      const t0 = Date.now();
       const vectors = await embedder.embed(texts);
+      evt.set("embedDurationMs", Date.now() - t0);
 
       // Build vector points with deterministic IDs
       const points = validChunks.map((chunk, i) => ({
@@ -335,7 +379,9 @@ export const embedBatch = internalAction({
         },
       }));
 
+      const t1 = Date.now();
       await vectorStore.upsert(points);
+      evt.set("upsertDurationMs", Date.now() - t1);
 
       // Mark each chunk as embedded
       for (const chunk of validChunks) {
@@ -352,7 +398,7 @@ export const embedBatch = internalAction({
       });
       await checkCompletion(ctx, job, documentId);
     } catch (error) {
-      console.error(`[embedBatch] Error (attempt ${retryCount}):`, error);
+      evt.setError(error);
 
       if (retryCount < MAX_EMBED_RETRIES) {
         const delayMs = Math.pow(2, retryCount) * 1000;
@@ -371,6 +417,8 @@ export const embedBatch = internalAction({
         failed: true,
       });
       await checkCompletion(ctx, job, documentId);
+    } finally {
+      evt.emit();
     }
   },
 });
@@ -404,38 +452,65 @@ async function checkCompletion(
 export const resumeProcessing = internalAction({
   args: { documentId: v.id("documents") },
   handler: async (ctx, { documentId }) => {
-    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-    if (!doc) throw new Error(`Document ${documentId} not found`);
-    if (doc.status !== "error") return;
+    const evt = new WideEvent("pipeline.resumeProcessing");
+    evt.set({ documentId });
+    try {
+      const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+      if (!doc) throw new Error(`Document ${documentId} not found`);
+      if (doc.status !== "error") return;
 
-    switch (doc.failedAt) {
-      case "parsing":
-        if (doc.datalabCheckUrl) {
-          // Resume polling from saved checkpoint
-          await ctx.runMutation(internal.documents.updateStatus, {
-            id: documentId,
-            status: "parsing",
-          });
-          await ctx.scheduler.runAfter(0, internal.pipeline.pollDatalabResult, {
+      evt.set("failedAt", doc.failedAt);
+
+      switch (doc.failedAt) {
+        case "parsing":
+          if (doc.datalabCheckUrl) {
+            evt.set("resumePath", "pollDatalabResult");
+            // Resume polling from saved checkpoint
+            await ctx.runMutation(internal.documents.updateStatus, {
+              id: documentId,
+              status: "parsing",
+            });
+            await ctx.scheduler.runAfter(0, internal.pipeline.pollDatalabResult, {
+              documentId,
+              checkUrl: doc.datalabCheckUrl,
+              attempt: 0,
+              startedAt: Date.now(),
+            });
+          } else {
+            evt.set("resumePath", "startProcessing");
+            // Re-start processing from scratch
+            await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
+              documentId,
+            });
+          }
+          break;
+
+        case "chunking": {
+          const allChunks = await ctx.runQuery(internal.chunks.listByDocumentInternal, {
             documentId,
-            checkUrl: doc.datalabCheckUrl,
-            attempt: 0,
-            startedAt: Date.now(),
           });
-        } else {
-          // Re-start processing from scratch
-          await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
-            documentId,
-          });
+          if (allChunks.length > 0) {
+            evt.set("resumePath", "embedUnembeddedChunks");
+            // Chunks exist — skip to embedding
+            await ctx.runMutation(internal.documents.updateStatus, {
+              id: documentId,
+              status: "embedding",
+            });
+            await ctx.scheduler.runAfter(0, internal.pipeline.embedUnembeddedChunks, {
+              documentId,
+            });
+          } else {
+            evt.set("resumePath", "startProcessing");
+            // No chunks — re-start from scratch
+            await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
+              documentId,
+            });
+          }
+          break;
         }
-        break;
 
-      case "chunking": {
-        const allChunks = await ctx.runQuery(internal.chunks.listByDocumentInternal, {
-          documentId,
-        });
-        if (allChunks.length > 0) {
-          // Chunks exist — skip to embedding
+        case "embedding":
+          evt.set("resumePath", "embedUnembeddedChunks");
           await ctx.runMutation(internal.documents.updateStatus, {
             id: documentId,
             status: "embedding",
@@ -443,31 +518,21 @@ export const resumeProcessing = internalAction({
           await ctx.scheduler.runAfter(0, internal.pipeline.embedUnembeddedChunks, {
             documentId,
           });
-        } else {
-          // No chunks — re-start from scratch
+          break;
+
+        default:
+          evt.set("resumePath", "startProcessing");
+          // No failedAt — restart from scratch
           await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
             documentId,
           });
-        }
-        break;
+          break;
       }
-
-      case "embedding":
-        await ctx.runMutation(internal.documents.updateStatus, {
-          id: documentId,
-          status: "embedding",
-        });
-        await ctx.scheduler.runAfter(0, internal.pipeline.embedUnembeddedChunks, {
-          documentId,
-        });
-        break;
-
-      default:
-        // No failedAt — restart from scratch
-        await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
-          documentId,
-        });
-        break;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
     }
   },
 });
@@ -475,20 +540,31 @@ export const resumeProcessing = internalAction({
 export const embedUnembeddedChunks = internalAction({
   args: { documentId: v.id("documents") },
   handler: async (ctx, { documentId }) => {
-    const unembedded = await ctx.runQuery(internal.chunks.listUnembedded, {
-      documentId,
-    });
-
-    if (unembedded.length === 0) {
-      // All chunks already embedded
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "ready",
+    const evt = new WideEvent("pipeline.embedUnembeddedChunks");
+    evt.set({ documentId });
+    try {
+      const unembedded = await ctx.runQuery(internal.chunks.listUnembedded, {
+        documentId,
       });
-      return;
-    }
 
-    const chunkIds = unembedded.map((c) => c._id);
-    await fanOutEmbedding(ctx, documentId, chunkIds);
+      evt.set("unembeddedCount", unembedded.length);
+
+      if (unembedded.length === 0) {
+        // All chunks already embedded
+        await ctx.runMutation(internal.documents.updateStatus, {
+          id: documentId,
+          status: "ready",
+        });
+        return;
+      }
+
+      const chunkIds = unembedded.map((c) => c._id);
+      await fanOutEmbedding(ctx, documentId, chunkIds);
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
   },
 });
