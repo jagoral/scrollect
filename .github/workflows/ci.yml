@@ -27,3 +27,6 @@ jobs:
 
       - name: Lint, type check & build
         run: bun turbo run lint check-types build
+        env:
+          NEXT_PUBLIC_CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
