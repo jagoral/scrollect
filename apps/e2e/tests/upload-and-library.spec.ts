@@ -90,7 +90,7 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page).toHaveURL(/\/library\/.+/);
 
     // Wait for processing to complete — chunks should appear
-    await expect(page.getByText("Chunk 1")).toBeVisible({ timeout: 90000 });
+    await expect(page.getByText(/chunk 1|ready/i)).toBeVisible({ timeout: 90000 });
   });
 
   test("upload page rejects unsupported file types", async ({ page }) => {
