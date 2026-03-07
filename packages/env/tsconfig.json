@@ -1,0 +1,3 @@
+{
+  "extends": "@scrollect/config/tsconfig.base.json"
+}
