@@ -551,9 +551,13 @@ export const embedUnembeddedChunks = internalAction({
 
       if (unembedded.length === 0) {
         // All chunks already embedded
+        const allChunks = await ctx.runQuery(internal.chunks.listByDocumentInternal, {
+          documentId,
+        });
         await ctx.runMutation(internal.documents.updateStatus, {
           id: documentId,
           status: "ready",
+          chunkCount: allChunks.length,
         });
         return;
       }

@@ -40,8 +40,9 @@ export const createBatch = internalMutation({
     for (const chunk of args.chunks) {
       const existing = await ctx.db
         .query("chunks")
-        .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
-        .filter((q) => q.eq(q.field("chunkIndex"), chunk.chunkIndex))
+        .withIndex("by_documentId_chunkIndex", (q) =>
+          q.eq("documentId", args.documentId).eq("chunkIndex", chunk.chunkIndex),
+        )
         .first();
 
       if (existing) {
