@@ -1,46 +1,46 @@
 "use client";
-import { api } from "@scrollect/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
 
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
+import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { BookOpen } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
+import { Button } from "@/components/ui/button";
+
+function AuthenticatedRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/library");
+  }, [router]);
+  return null;
+}
 
 export default function Home() {
-  const healthCheck = useQuery(api.healthCheck.get);
-
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-2">
-      <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-      <div className="grid gap-6">
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-2 font-medium">API Status</h2>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-2 w-2 rounded-full ${healthCheck === "OK" ? "bg-green-500" : healthCheck === undefined ? "bg-orange-400" : "bg-red-500"}`}
-            />
-            <span className="text-sm text-muted-foreground">
-              {healthCheck === undefined
-                ? "Checking..."
-                : healthCheck === "OK"
-                  ? "Connected"
-                  : "Error"}
-            </span>
+    <>
+      <Authenticated>
+        <AuthenticatedRedirect />
+      </Authenticated>
+      <Unauthenticated>
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
+          <BookOpen className="h-16 w-16 text-muted-foreground" />
+          <div className="text-center">
+            <h1 className="text-4xl font-bold tracking-tight">Scrollect</h1>
+            <p className="mt-2 text-lg text-muted-foreground">
+              Your AI-powered personal learning feed
+            </p>
           </div>
-        </section>
-      </div>
-    </div>
+          <Button size="lg" render={<Link href="/signin" />}>
+            Sign In
+          </Button>
+        </div>
+      </Unauthenticated>
+      <AuthLoading>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-foreground" />
+        </div>
+      </AuthLoading>
+    </>
   );
 }

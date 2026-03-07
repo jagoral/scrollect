@@ -42,6 +42,7 @@ Software engineers who are active learners — they read technical books, follow
 ## MVP Scope
 
 ### Web App
+
 - User accounts and personal library
 - Add content: PDF, EPUB, YouTube URL, article URL, raw text
 - AI-generated scroll feed with mixed card types (insights, quizzes, connections, quotes)
@@ -52,10 +53,12 @@ Software engineers who are active learners — they read technical books, follow
 - Feed algorithm adapts based on interactions and tag relationships
 
 ### Browser Extension
+
 - "Send to Scrollect" button for any webpage
 - Capture tweets, articles, blog posts with one click
 
 ### Out of Scope (for MVP)
+
 - Mobile native apps
 - Social features
 - Content creation / note-taking

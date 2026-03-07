@@ -24,9 +24,11 @@ Hey everyone. Quick show of hands — who opened their phone before getting out 
 -->
 
 ---
+
 transition: fade-out
 layout: center
 class: text-center
+
 ---
 
 # Be honest.
@@ -54,8 +56,10 @@ The average person spends almost two and a half hours a day on social media. Tha
 -->
 
 ---
+
 layout: center
 class: text-center
+
 ---
 
 # And we feel great about it, right?
@@ -71,9 +75,10 @@ And we feel really good about it. Right? Totally no guilt whatsoever. [pause for
 -->
 
 ---
+
 ---
 
-# Because scrolling feels *amazing*
+# Because scrolling feels _amazing_
 
 <div class="grid grid-cols-2 gap-12 mt-8">
 <div>
@@ -84,7 +89,7 @@ And we feel really good about it. Right? Totally no guilt whatsoever. [pause for
 
 - Infinite content, zero friction
 - Variable reward schedule — literally slot machine design
-- Every scroll *might* show you something great
+- Every scroll _might_ show you something great
 - Optimized by thousands of engineers to keep you hooked
 
 </div>
@@ -96,7 +101,7 @@ And we feel really good about it. Right? Totally no guilt whatsoever. [pause for
 
 <div v-click class="mt-4">
 
-- You *know* you should be learning
+- You _know_ you should be learning
 - You bought 12 books this year, read 3
 - Your bookmarks folder has 847 unread articles
 - You watched a 4-hour system design lecture... 20 minutes of it
@@ -119,8 +124,10 @@ And that's the insight I keep coming back to. Social media absolutely nailed the
 -->
 
 ---
+
 layout: center
 class: text-center
+
 ---
 
 # Now here's the real tragedy
@@ -155,11 +162,13 @@ And it's not your fault. 70% of what you learn is gone within 24 hours. 90% with
 -->
 
 ---
+
 layout: center
 class: text-center
+
 ---
 
-# What if your scroll feed<br/>made you *smarter*?
+# What if your scroll feed<br/>made you _smarter_?
 
 <div v-click class="text-3xl mt-12">
   Same habit. Same dopamine. <span class="text-yellow-400 font-bold">Your content.</span>
@@ -178,6 +187,7 @@ Don't fight the scroll. Redirect it.
 -->
 
 ---
+
 ---
 
 # That's Scrollect.
@@ -229,6 +239,7 @@ We're still figuring out the best way to make all of this work — but the core 
 -->
 
 ---
+
 ---
 
 # Why now?
@@ -241,7 +252,7 @@ We're still figuring out the best way to make all of this work — but the core 
 
 <div v-click class="mt-4">
 
-- LLMs can actually *understand* content now
+- LLMs can actually _understand_ content now
 - AI cost dropped **100x** since 2023
 - Cross-source connections are now computationally feasible
 - **85% of devs** already use AI tools daily — the audience is ready
@@ -282,8 +293,10 @@ Two years ago, this was impossible to build. Two years from now, someone will ha
 -->
 
 ---
+
 layout: center
 class: text-center
+
 ---
 
 <div class="text-5xl font-bold leading-relaxed">

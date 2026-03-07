@@ -1,7 +1,7 @@
 {
   "name": "@scrollect/presentation",
-  "type": "module",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "slidev build",
     "dev": "slidev --open",

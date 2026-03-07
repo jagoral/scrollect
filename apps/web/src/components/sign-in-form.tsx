@@ -25,7 +25,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         },
         {
           onSuccess: () => {
-            router.push("/dashboard");
+            router.push("/library");
             toast.success("Sign in successful");
           },
           onError: (error) => {
