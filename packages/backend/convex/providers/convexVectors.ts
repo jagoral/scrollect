@@ -49,15 +49,19 @@ export class ConvexVectorStore implements VectorStore {
     filter: VectorFilter,
     topK: number,
   ): Promise<VectorSearchResult[]> {
-    const results = await this.ctx.vectorSearch("chunks", "by_embedding", {
-      vector,
-      limit: topK,
-      filter: (q: { eq: (field: string, value: string) => unknown }) =>
-        q.eq("userId", filter.userId),
-    } as never);
+    const results = await (this.ctx as ActionCtx).vectorSearch(
+      "chunks" as never,
+      "by_embedding" as never,
+      {
+        vector,
+        limit: topK,
+        filter: (q: { eq: (field: string, value: string) => unknown }) =>
+          q.eq("userId", filter.userId),
+      } as never,
+    );
 
     return (
-      results as Array<{
+      results as unknown as Array<{
         _id: string;
         _score: number;
         documentId: string;

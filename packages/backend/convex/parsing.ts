@@ -102,7 +102,10 @@ export const pollDatalabResult = internalAction({
       // Store chunks in batches to avoid mutation size limits
       const allChunkIds = [];
       for (let i = 0; i < chunks.length; i += CHUNK_BATCH_SIZE) {
-        const batch = chunks.slice(i, i + CHUNK_BATCH_SIZE);
+        const batch = chunks.slice(i, i + CHUNK_BATCH_SIZE).map((c, j) => ({
+          ...c,
+          chunkIndex: i + j,
+        }));
         const ids = await ctx.runMutation(internal.chunks.createBatch, {
           documentId: args.documentId,
           chunks: batch,
@@ -187,7 +190,8 @@ export const parseMarkdown = internalAction({
         throw new Error("File is empty");
       }
 
-      const chunks = chunkMarkdown(text);
+      const rawChunks = chunkMarkdown(text);
+      const chunks = rawChunks.map((c, i) => ({ ...c, chunkIndex: i }));
 
       await ctx.runMutation(internal.chunks.createBatch, {
         documentId: args.documentId,
