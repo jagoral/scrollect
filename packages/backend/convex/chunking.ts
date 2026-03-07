@@ -47,8 +47,8 @@ export function chunkContent(text: string): { content: string; tokenCount: numbe
       chunks.push({ content: chunkText, tokenCount: estimateTokens(chunkText) });
     }
 
+    if (end >= text.length) break;
     start = end - charOverlap;
-    if (start >= text.length) break;
   }
 
   return chunks;

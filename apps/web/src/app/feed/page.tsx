@@ -4,7 +4,8 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import { Authenticated, AuthLoading, Unauthenticated, useAction, useQuery } from "convex/react";
 
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, Sparkles, Rss } from "lucide-react";
+import Markdown from "react-markdown";
+import { FileText, Loader2, Sparkles, Rss } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -93,10 +94,21 @@ function FeedContent() {
               className="overflow-hidden border-l-4 border-l-primary/40 transition-all hover:border-l-primary hover:shadow-sm"
             >
               <CardContent className="py-5">
-                <p className="text-sm leading-relaxed">{post.content}</p>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {formatDistanceToNow(post.createdAt, { addSuffix: true })}
-                </p>
+                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed">
+                  <Markdown>{post.content}</Markdown>
+                </div>
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  {post.sourceDocumentTitle && (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        {post.sourceDocumentTitle}
+                      </span>
+                      <span>&middot;</span>
+                    </>
+                  )}
+                  <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
+                </div>
               </CardContent>
             </Card>
           ))}

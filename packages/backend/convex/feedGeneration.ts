@@ -77,6 +77,7 @@ Each card should:
 - Highlight one key insight, fact, or concept
 - Be written in a clear, engaging tone
 - Stand on its own without needing additional context
+- Use light Markdown formatting: **bold** for key terms, and occasional bullet points when listing related ideas
 
 Return a JSON object with a "posts" key containing an array of exactly ${selected.length} strings, one for each input chunk.`;
 
