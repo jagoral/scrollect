@@ -1,5 +1,4 @@
 import type { GenericCtx } from "@convex-dev/better-auth";
-import { v } from "convex/values";
 
 import type { DataModel } from "./_generated/dataModel";
 import { mutation } from "./_generated/server";
