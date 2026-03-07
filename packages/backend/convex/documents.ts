@@ -106,14 +106,16 @@ export const updateStatus = internalMutation({
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
     const update: Record<string, unknown> = { status: fields.status };
-    if (fields.errorMessage !== undefined) {
+    if (fields.status === "error") {
       update.errorMessage = fields.errorMessage;
+      update.failedAt = fields.failedAt;
+    } else {
+      // Clear error fields on non-error status transitions
+      update.errorMessage = undefined;
+      update.failedAt = undefined;
     }
     if (fields.chunkCount !== undefined) {
       update.chunkCount = fields.chunkCount;
-    }
-    if (fields.failedAt !== undefined) {
-      update.failedAt = fields.failedAt;
     }
     await ctx.db.patch(id, update);
   },

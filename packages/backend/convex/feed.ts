@@ -12,11 +12,18 @@ export const list = query({
     if (!user) {
       return [];
     }
-    return await ctx.db
+    const posts = await ctx.db
       .query("posts")
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .order("desc")
       .collect();
+
+    return Promise.all(
+      posts.map(async (post) => {
+        const doc = await ctx.db.get(post.sourceDocumentId);
+        return { ...post, sourceDocumentTitle: doc?.title ?? null };
+      }),
+    );
   },
 });
 

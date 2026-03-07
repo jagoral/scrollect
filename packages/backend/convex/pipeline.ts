@@ -6,6 +6,8 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { internalAction } from "./_generated/server";
+import { createHash } from "crypto";
+
 import { chunkMarkdown } from "./chunking";
 import { WideEvent } from "./logging";
 import { DatalabParser } from "./providers/datalab";
@@ -37,6 +39,34 @@ function createVectorStore(): VectorStore {
   if (!url || !apiKey)
     throw new Error("QDRANT_URL and QDRANT_API_KEY environment variables are required");
   return new QdrantVectorStore(url, apiKey);
+}
+
+// --- Helpers ---
+
+/** Convert a Convex document ID to a deterministic UUID for Qdrant. */
+function convexIdToUuid(id: string): string {
+  const hex = createHash("sha256").update(id).digest("hex");
+  // Format as UUID v4-shaped (set version nibble to 4, variant bits to 10xx)
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    `4${hex.slice(13, 16)}`,
+    `${((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16)}${hex.slice(17, 20)}`,
+    hex.slice(20, 32),
+  ].join("-");
+}
+
+async function storeMarkdownBlob(ctx: ActionCtx, markdown: string): Promise<Id<"_storage">> {
+  const blob = new Blob([markdown], { type: "text/markdown" });
+  return await ctx.storage.store(blob);
+}
+
+async function fetchMarkdownBlob(ctx: ActionCtx, storageId: Id<"_storage">): Promise<string> {
+  const url = await ctx.storage.getUrl(storageId);
+  if (!url) throw new Error("Markdown blob not found in storage");
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch markdown blob: ${response.statusText}`);
+  return await response.text();
 }
 
 // --- Entry Point ---
@@ -152,9 +182,10 @@ export const pollDatalabResult = internalAction({
 
       if (result.status === "complete") {
         evt.set("pollResult", "complete");
+        const markdownStorageId = await storeMarkdownBlob(ctx, result.markdown!);
         await ctx.scheduler.runAfter(0, internal.pipeline.chunkAndStore, {
           documentId,
-          markdown: result.markdown!,
+          markdownStorageId,
         });
         return;
       }
@@ -212,9 +243,10 @@ async function fetchAndParseMarkdownImpl(
     const text = await response.text();
     if (!text.trim()) throw new Error("File is empty");
 
+    const markdownStorageId = await storeMarkdownBlob(ctx, text);
     await ctx.scheduler.runAfter(0, internal.pipeline.chunkAndStore, {
       documentId,
-      markdown: text,
+      markdownStorageId,
     });
   } catch (error) {
     evt.setError(error);
@@ -233,12 +265,15 @@ async function fetchAndParseMarkdownImpl(
 export const chunkAndStore = internalAction({
   args: {
     documentId: v.id("documents"),
-    markdown: v.string(),
+    markdownStorageId: v.id("_storage"),
   },
-  handler: async (ctx, { documentId, markdown }) => {
+  handler: async (ctx, { documentId, markdownStorageId }) => {
     const evt = new WideEvent("pipeline.chunkAndStore");
-    evt.set({ documentId, markdownLength: markdown.length });
+    evt.set({ documentId, markdownStorageId });
     try {
+      const markdown = await fetchMarkdownBlob(ctx, markdownStorageId);
+      evt.set("markdownLength", markdown.length);
+
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
         status: "chunking",
@@ -367,9 +402,9 @@ export const embedBatch = internalAction({
       const vectors = await embedder.embed(texts);
       evt.set("embedDurationMs", Date.now() - t0);
 
-      // Build vector points with deterministic IDs
+      // Build vector points with deterministic UUIDs derived from chunk IDs
       const points = validChunks.map((chunk, i) => ({
-        id: chunk._id as string,
+        id: convexIdToUuid(chunk._id),
         vector: vectors[i],
         payload: {
           chunkId: chunk._id as string,
@@ -387,7 +422,7 @@ export const embedBatch = internalAction({
       for (const chunk of validChunks) {
         await ctx.runMutation(internal.chunks.markEmbedded, {
           chunkId: chunk._id,
-          embeddingId: chunk._id as string,
+          embeddingId: convexIdToUuid(chunk._id),
         });
       }
 
@@ -412,11 +447,12 @@ export const embedBatch = internalAction({
       }
 
       // Retries exhausted
+      const errorMessage = error instanceof Error ? error.message : String(error);
       const job = await ctx.runMutation(internal.processingJobs.markBatchComplete, {
         id: jobId,
         failed: true,
       });
-      await checkCompletion(ctx, job, documentId);
+      await checkCompletion(ctx, job, documentId, errorMessage);
     } finally {
       evt.emit();
     }
@@ -427,16 +463,19 @@ async function checkCompletion(
   ctx: ActionCtx,
   job: { totalBatches: number; completedBatches: number; failedBatches: number },
   documentId: Id<"documents">,
+  lastError?: string,
 ) {
   if (job.completedBatches + job.failedBatches < job.totalBatches) {
     return;
   }
 
   if (job.failedBatches > 0) {
+    const summary = `${job.failedBatches}/${job.totalBatches} embedding batches failed`;
+    const errorMessage = lastError ? `${summary}: ${lastError}` : summary;
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
       status: "error",
-      errorMessage: `${job.failedBatches}/${job.totalBatches} embedding batches failed`,
+      errorMessage,
       failedAt: "embedding",
     });
   } else {

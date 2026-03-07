@@ -19,7 +19,7 @@ export default function SignInPage() {
   const [showSignIn, setShowSignIn] = useState(true);
 
   return (
-    <>
+    <div className="flex flex-1 flex-col">
       <Authenticated>
         <AuthenticatedRedirect />
       </Authenticated>
@@ -28,6 +28,6 @@ export default function SignInPage() {
       ) : (
         <SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
       )}
-    </>
+    </div>
   );
 }

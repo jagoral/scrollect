@@ -34,7 +34,7 @@ export default async function RootLayout({
         <Providers initialToken={token}>
           <div className="grid grid-rows-[auto_1fr] h-svh">
             <Header />
-            <main className="overflow-y-auto pt-6">{children}</main>
+            <main className="flex flex-col overflow-y-auto">{children}</main>
           </div>
         </Providers>
       </body>
