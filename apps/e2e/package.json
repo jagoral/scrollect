@@ -1,0 +1,19 @@
+{
+  "name": "@scrollect/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report",
+    "test:agents:plan": "playwright test --agents plan",
+    "test:agents:generate": "playwright test --agents generate",
+    "test:agents:heal": "playwright test --agents heal",
+    "init-agents": "playwright init-agents --loop=claude"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "typescript": "catalog:"
+  }
+}
