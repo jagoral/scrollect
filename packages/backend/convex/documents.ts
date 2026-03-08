@@ -1,19 +1,15 @@
-import type { GenericCtx } from "@convex-dev/better-auth";
 import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
-import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { authComponent } from "./auth";
-import { WideEvent } from "./logging";
+import { requireAuth, optionalAuth } from "./lib/functions";
+import { WideEvent } from "./lib/logging";
+import { documentStatus, failedAtStage, fileType } from "./lib/validators";
 
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -21,17 +17,14 @@ export const generateUploadUrl = mutation({
 export const create = mutation({
   args: {
     title: v.string(),
-    fileType: v.union(v.literal("pdf"), v.literal("md")),
+    fileType,
     storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
     const evt = new WideEvent("documents.create");
     evt.set({ fileType: args.fileType, title: args.title });
     try {
-      const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
+      const user = await requireAuth(ctx);
       evt.set("userId", user._id);
       const documentId = await ctx.db.insert("documents", {
         title: args.title,
@@ -43,7 +36,7 @@ export const create = mutation({
         createdAt: Date.now(),
       });
       evt.set("documentId", documentId);
-      await ctx.scheduler.runAfter(0, internal.pipeline.startProcessing, {
+      await ctx.scheduler.runAfter(0, internal.pipeline.index.startProcessing, {
         documentId,
       });
       return documentId;
@@ -59,10 +52,8 @@ export const create = mutation({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) {
-      return [];
-    }
+    const user = await optionalAuth(ctx);
+    if (!user) return [];
     return await ctx.db
       .query("documents")
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
@@ -74,14 +65,10 @@ export const list = query({
 export const get = query({
   args: { id: v.id("documents") },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) {
-      return null;
-    }
+    const user = await optionalAuth(ctx);
+    if (!user) return null;
     const doc = await ctx.db.get(args.id);
-    if (!doc || doc.userId !== user._id) {
-      return null;
-    }
+    if (!doc || doc.userId !== user._id) return null;
     return doc;
   },
 });
@@ -89,19 +76,10 @@ export const get = query({
 export const updateStatus = internalMutation({
   args: {
     id: v.id("documents"),
-    status: v.union(
-      v.literal("uploaded"),
-      v.literal("parsing"),
-      v.literal("chunking"),
-      v.literal("embedding"),
-      v.literal("ready"),
-      v.literal("error"),
-    ),
+    status: documentStatus,
     errorMessage: v.optional(v.string()),
     chunkCount: v.optional(v.number()),
-    failedAt: v.optional(
-      v.union(v.literal("parsing"), v.literal("chunking"), v.literal("embedding")),
-    ),
+    failedAt: v.optional(failedAtStage),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -110,7 +88,6 @@ export const updateStatus = internalMutation({
       update.errorMessage = fields.errorMessage;
       update.failedAt = fields.failedAt;
     } else {
-      // Clear error fields on non-error status transitions
       update.errorMessage = undefined;
       update.failedAt = undefined;
     }
@@ -144,10 +121,7 @@ export const retry = mutation({
     const evt = new WideEvent("documents.retry");
     evt.set("documentId", args.id);
     try {
-      const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
+      const user = await requireAuth(ctx);
       const doc = await ctx.db.get(args.id);
       if (!doc || doc.userId !== user._id) {
         throw new Error("Document not found");
@@ -157,7 +131,7 @@ export const retry = mutation({
       }
       evt.set({ previousStatus: doc.status, failedAt: doc.failedAt });
       await ctx.db.patch(args.id, { errorMessage: undefined });
-      await ctx.scheduler.runAfter(0, internal.pipeline.resumeProcessing, {
+      await ctx.scheduler.runAfter(0, internal.pipeline.resume.resumeProcessing, {
         documentId: args.id,
       });
     } catch (error) {

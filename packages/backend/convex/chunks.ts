@@ -1,25 +1,27 @@
-import type { GenericCtx } from "@convex-dev/better-auth";
 import { v } from "convex/values";
 
-import type { DataModel, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
-import { authComponent } from "./auth";
+import { optionalAuth } from "./lib/functions";
 
 export const listByDocument = query({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) {
-      return [];
-    }
+    const user = await optionalAuth(ctx);
+    if (!user) return [];
     const doc = await ctx.db.get(args.documentId);
-    if (!doc || doc.userId !== user._id) {
-      return [];
-    }
+    if (!doc || doc.userId !== user._id) return [];
     return await ctx.db
       .query("chunks")
       .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
       .collect();
+  },
+});
+
+export const getInternal = internalQuery({
+  args: { id: v.id("chunks") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
   },
 });
 

@@ -1,23 +1,14 @@
-import type { GenericCtx } from "@convex-dev/better-auth";
 import { v } from "convex/values";
 
-import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
-import { authComponent } from "./auth";
+import { requireAuth } from "./lib/functions";
 
 const E2E_EMAIL_PATTERN = /^e2e-.*@test\.scrollect\.dev$/;
 
-/**
- * Deletes all data created by the current authenticated user.
- * SAFETY: Only works for users whose email matches the E2E test pattern.
- */
 export const cleanupCurrentUser = mutation({
   args: {},
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireAuth(ctx);
 
     if (!user.email || !E2E_EMAIL_PATTERN.test(user.email)) {
       throw new Error(`Cleanup refused: email "${user.email}" does not match E2E test pattern`);
@@ -173,8 +164,7 @@ export const insertSeededData = internalMutation({
 export const resetE2EAccount = mutation({
   args: {},
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuth(ctx);
 
     if (!user.email || !E2E_EMAIL_PATTERN.test(user.email)) {
       throw new Error(`Reset refused: email "${user.email}" does not match E2E test pattern`);

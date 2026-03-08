@@ -26,12 +26,12 @@ function FeedContent() {
   const noAutoGenerate = searchParams.has("noAutoGenerate");
 
   const { results, status, loadMore } = usePaginatedQuery(
-    api.feed.list,
+    api.feed.queries.list,
     {},
     { initialNumItems: 10 },
   );
-  const lastGeneratedAt = useQuery(api.feed.getLastGeneratedAt);
-  const generateFeed = useAction(api.feedGeneration.generate);
+  const lastGeneratedAt = useQuery(api.feed.queries.getLastGeneratedAt);
+  const generateFeed = useAction(api.feed.generation.generate);
 
   const { generating, error, generate } = useAutoGenerate(lastGeneratedAt, generateFeed, {
     disabled: noAutoGenerate,
