@@ -1,5 +1,3 @@
-import { Skeleton } from "@/components/ui/skeleton";
-
 export default function LibraryLoading() {
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -9,10 +7,19 @@ export default function LibraryLoading() {
           Your uploaded documents and their processing status.
         </p>
       </div>
-      <div className="grid gap-3">
-        <Skeleton className="h-[106px] w-full rounded-xl" />
-        <Skeleton className="h-[106px] w-full rounded-xl" />
-        <Skeleton className="h-[106px] w-full rounded-xl" />
+      <div className="animate-stagger-in grid gap-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-xl border p-4">
+            <div className="flex items-center gap-2.5">
+              <div className="skeleton-shimmer h-4 w-4 rounded" />
+              <div className="skeleton-shimmer h-5 w-48 rounded" />
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="skeleton-shimmer h-5 w-20 rounded-full" />
+              <div className="skeleton-shimmer h-4 w-16 rounded" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -119,9 +119,9 @@ export function UploadContent() {
       </div>
 
       <Card
-        className={`group flex min-h-[320px] cursor-pointer flex-col items-center justify-center gap-5 rounded-xl border-2 border-dashed p-8 transition-all ${
+        className={`group relative flex min-h-[320px] cursor-pointer flex-col items-center justify-center gap-5 overflow-hidden rounded-xl border-2 border-dashed p-8 transition-all ${
           dragOver
-            ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+            ? "scale-[1.01] border-primary bg-primary/5 shadow-lg shadow-primary/10"
             : "border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/30"
         }`}
         onDrop={handleDrop}
@@ -130,14 +130,23 @@ export function UploadContent() {
         onDragLeave={handleDragLeave}
         onClick={() => fileInputRef.current?.click()}
       >
+        {/* Dot grid background */}
         <div
-          className={`flex h-16 w-16 items-center justify-center rounded-2xl transition-colors ${
+          className="pointer-events-none absolute inset-0 opacity-[0.15]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, var(--color-muted-foreground) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div
+          className={`relative flex h-16 w-16 items-center justify-center rounded-2xl transition-colors ${
             dragOver
               ? "bg-primary/15 text-primary"
               : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
           }`}
         >
-          <CloudUpload className="h-8 w-8" />
+          <CloudUpload className={`h-8 w-8 ${dragOver ? "animate-bounce" : ""}`} />
         </div>
         <div className="text-center">
           <p className="text-lg font-semibold">
@@ -171,7 +180,7 @@ export function UploadContent() {
       </Card>
 
       {activeUploads.length > 0 && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-primary/5 px-4 py-3 text-sm text-primary">
+        <div className="mt-4 flex items-center gap-2 rounded-lg bg-primary/5 px-4 py-3 text-sm text-primary animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Loader2 className="h-4 w-4 animate-spin" />
           Uploading {activeUploads.length} file{activeUploads.length > 1 ? "s" : ""}...
         </div>

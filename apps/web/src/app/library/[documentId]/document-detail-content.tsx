@@ -51,15 +51,17 @@ export function DocumentDetailContent({
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
       <Link
         href="/library"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
         Back to Library
       </Link>
 
       <div className="mt-6">
         <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight">
-          <span className="text-2xl">{fileTypeIcons[document.fileType] ?? "\u{1F4C4}"}</span>
+          <span className="text-muted-foreground">
+            {fileTypeIcons[document.fileType] ?? <FileText className="h-5 w-5" />}
+          </span>
           <span>{document.title}</span>
         </h1>
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -77,7 +79,7 @@ export function DocumentDetailContent({
       </div>
 
       {document.status === "error" && document.errorMessage && (
-        <div className="mt-6 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="mt-6 rounded-lg border border-destructive/20 border-l-4 border-l-destructive bg-destructive/5 p-4 text-sm text-destructive">
           {document.errorMessage}
         </div>
       )}
@@ -99,12 +101,15 @@ export function DocumentDetailContent({
       )}
 
       {sortedChunks.length > 0 && (
-        <div className="mt-8 space-y-3">
+        <div className="animate-stagger-in mt-8 space-y-3">
           {sortedChunks.map((chunk) => (
-            <Card key={chunk._id} className="overflow-hidden border-l-4 border-l-primary/20">
+            <Card
+              key={chunk._id}
+              className="overflow-hidden border-l-4 border-l-primary/20 transition-colors hover:border-l-primary/40"
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <span className="font-mono text-sm font-medium text-muted-foreground">
                     Chunk {chunk.chunkIndex + 1}
                   </span>
                   <span className="text-xs text-muted-foreground">~{chunk.tokenCount} tokens</span>

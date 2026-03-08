@@ -128,3 +128,116 @@
     @apply font-sans;
   }
 }
+
+/* Stagger animation for list children */
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-stagger-in > * {
+  opacity: 0;
+  animation: stagger-fade-in 0.4s ease-out forwards;
+}
+.animate-stagger-in > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.animate-stagger-in > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.animate-stagger-in > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.animate-stagger-in > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+.animate-stagger-in > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.animate-stagger-in > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+.animate-stagger-in > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+.animate-stagger-in > *:nth-child(8) {
+  animation-delay: 420ms;
+}
+.animate-stagger-in > *:nth-child(9) {
+  animation-delay: 480ms;
+}
+.animate-stagger-in > *:nth-child(n + 10) {
+  animation-delay: 540ms;
+}
+
+/* Shimmer skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-muted) 25%,
+    var(--color-muted-foreground/.08) 50%,
+    var(--color-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+
+/* Hero stagger entrance */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-in > * {
+  opacity: 0;
+  animation: hero-fade-up 0.6s ease-out forwards;
+}
+.animate-hero-in > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.animate-hero-in > *:nth-child(2) {
+  animation-delay: 120ms;
+}
+.animate-hero-in > *:nth-child(3) {
+  animation-delay: 240ms;
+}
+.animate-hero-in > *:nth-child(4) {
+  animation-delay: 360ms;
+}
+.animate-hero-in > *:nth-child(5) {
+  animation-delay: 480ms;
+}
+
+/* Accessibility: disable animations for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-stagger-in > *,
+  .animate-hero-in > * {
+    opacity: 1;
+    animation: none;
+  }
+  .skeleton-shimmer {
+    animation: none;
+  }
+}

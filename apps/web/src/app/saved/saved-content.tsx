@@ -42,8 +42,8 @@ export function SavedContent() {
 
       {results.length === 0 ? (
         <div className="mt-12 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-            <Bookmark className="h-8 w-8 text-muted-foreground" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+            <Bookmark className="h-8 w-8 text-primary/70" />
           </div>
           <div>
             <p className="text-lg font-semibold">No saved posts yet</p>
@@ -53,7 +53,7 @@ export function SavedContent() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="animate-stagger-in grid gap-4">
           {results.map((bookmark) => {
             if (!bookmark.post) return null;
             return (
@@ -75,7 +75,7 @@ export function SavedContent() {
           <div ref={sentinelRef} className="h-1" />
 
           {status === "LoadingMore" && (
-            <div className="flex justify-center py-4">
+            <div className="flex justify-center py-4 animate-in fade-in duration-300">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}

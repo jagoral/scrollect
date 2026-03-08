@@ -24,8 +24,8 @@ export function LibraryContent({
       <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
         <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
         <div className="mt-16 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-            <FileText className="h-8 w-8 text-muted-foreground" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+            <FileText className="h-8 w-8 text-primary/70" />
           </div>
           <div>
             <p className="text-lg font-semibold">No documents yet</p>
@@ -56,17 +56,19 @@ export function LibraryContent({
           Upload
         </Button>
       </div>
-      <div className="grid gap-3">
+      <div className="animate-stagger-in grid gap-3">
         {documents.map((doc: Doc<"documents">) => (
           <Link
             key={doc._id}
             href={`/library/${doc._id}` as `/library/${string}`}
             className="block"
           >
-            <Card className="transition-all hover:border-primary/30 hover:shadow-sm hover:shadow-primary/5">
+            <Card className="transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2.5 text-base">
-                  <span className="text-lg">{fileTypeIcons[doc.fileType] ?? "\u{1F4C4}"}</span>
+                  {fileTypeIcons[doc.fileType] ?? (
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  )}
                   <span className="truncate">{doc.title}</span>
                 </CardTitle>
               </CardHeader>
