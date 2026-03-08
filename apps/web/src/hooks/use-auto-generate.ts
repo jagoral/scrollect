@@ -8,7 +8,7 @@ const STALE_THRESHOLD_MS = 3_600_000; // 1 hour
  */
 export function useAutoGenerate(
   lastGeneratedAt: number | null | undefined,
-  generateFeed: (args?: { count: number }) => Promise<unknown>,
+  generateFeed: (args: { count?: number }) => Promise<unknown>,
   options?: { disabled?: boolean; count?: number },
 ) {
   const [generating, setGenerating] = useState(false);
@@ -26,8 +26,7 @@ export function useAutoGenerate(
       triggered.current = true;
       setGenerating(true);
       setError(null);
-      const args = options?.count ? { count: options.count } : undefined;
-      generateFeed(args)
+      generateFeed(options?.count ? { count: options.count } : {})
         .catch((e) => {
           setError(e instanceof Error ? e.message : "Failed to generate feed");
         })
@@ -39,8 +38,7 @@ export function useAutoGenerate(
     setGenerating(true);
     setError(null);
     try {
-      const args = options?.count ? { count: options.count } : undefined;
-      await generateFeed(args);
+      await generateFeed(options?.count ? { count: options.count } : {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate feed");
     } finally {
