@@ -128,3 +128,90 @@
     @apply font-sans;
   }
 }
+
+/* ── Animation keyframes ── */
+
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ── Stagger children ── */
+
+.animate-stagger-in > * {
+  opacity: 0;
+  animation: stagger-fade-in 0.4s ease-out forwards;
+}
+
+.animate-stagger-in > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.animate-stagger-in > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.animate-stagger-in > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.animate-stagger-in > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+.animate-stagger-in > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.animate-stagger-in > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+.animate-stagger-in > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+.animate-stagger-in > *:nth-child(8) {
+  animation-delay: 420ms;
+}
+.animate-stagger-in > *:nth-child(9) {
+  animation-delay: 480ms;
+}
+.animate-stagger-in > *:nth-child(n + 10) {
+  animation-delay: 540ms;
+}
+
+/* ── Skeleton shimmer ── */
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-muted) 0%,
+    var(--color-muted-foreground, oklch(0.7 0 0)) 50%,
+    var(--color-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  opacity: 0.12;
+}
+
+/* ── Accessibility: respect reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-stagger-in > * {
+    opacity: 1;
+    animation: none;
+  }
+
+  .skeleton-shimmer {
+    animation: none;
+  }
+}

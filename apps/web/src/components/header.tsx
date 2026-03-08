@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { ScrollectLogo } from "./scrollect-logo";
 import { Button } from "./ui/button";
 import { ModeToggle } from "./mode-toggle";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
@@ -23,14 +24,16 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="z-50 border-b bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
+    <header className="z-50 border-border/50 border-b bg-background/80 shadow-[0_1px_3px_0_rgb(0_0_0/0.02)] backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
       <div className="flex flex-row items-center justify-between px-4 py-3 md:px-6">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <BookOpen className="h-4 w-4" />
-            </div>
-            Scrollect
+          <Link href="/" className="text-primary">
+            <span className="hidden md:inline">
+              <ScrollectLogo size="md" showText />
+            </span>
+            <span className="md:hidden">
+              <ScrollectLogo size="sm" showText />
+            </span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {navLinks.map(({ to, label, icon: Icon }) => (
@@ -39,10 +42,13 @@ export default function Header() {
                 variant={pathname === to ? "secondary" : "ghost"}
                 size="sm"
                 render={<Link href={to} />}
-                className={pathname === to ? "font-medium" : "text-muted-foreground"}
+                className={`relative ${pathname === to ? "font-medium" : "text-muted-foreground"}`}
               >
                 <Icon className="mr-1.5 h-4 w-4" />
                 {label}
+                {pathname === to && (
+                  <span className="absolute -bottom-3 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-primary" />
+                )}
               </Button>
             ))}
           </nav>
@@ -60,7 +66,7 @@ export default function Header() {
               </Button>
             </Unauthenticated>
             <AuthLoading>
-              <div className="h-9 w-16 animate-pulse rounded-md bg-muted" />
+              <div className="h-9 w-16 skeleton-shimmer rounded-md" />
             </AuthLoading>
           </div>
 
@@ -72,11 +78,8 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                    <BookOpen className="h-3.5 w-3.5" />
-                  </div>
-                  Scrollect
+                <SheetTitle>
+                  <ScrollectLogo size="sm" showText className="text-primary" />
                 </SheetTitle>
               </SheetHeader>
               <nav className="mt-6 flex flex-col gap-1 px-4">

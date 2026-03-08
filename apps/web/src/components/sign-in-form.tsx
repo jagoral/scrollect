@@ -1,11 +1,11 @@
 import { useForm } from "@tanstack/react-form";
-import { BookOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
+import { ScrollectLogo } from "./scrollect-logo";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -46,10 +46,10 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
 
   return (
     <div className="flex flex-1 items-center justify-center px-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <BookOpen className="h-5 w-5" />
+          <div className="mx-auto mb-2 text-primary">
+            <ScrollectLogo size="lg" />
           </div>
           <CardTitle className="text-2xl">Welcome back</CardTitle>
           <CardDescription>Sign in to your Scrollect account</CardDescription>
@@ -109,7 +109,11 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
 
             <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting] as const}>
               {([canSubmit, isSubmitting]) => (
-                <Button type="submit" className="w-full" disabled={!canSubmit || isSubmitting}>
+                <Button
+                  type="submit"
+                  className="w-full transition-transform active:scale-[0.98]"
+                  disabled={!canSubmit || isSubmitting}
+                >
                   {isSubmitting ? "Signing in..." : "Sign In"}
                 </Button>
               )}

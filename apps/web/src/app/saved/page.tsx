@@ -11,6 +11,40 @@ import { PostCard } from "@/components/post-card";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { Skeleton } from "@/components/ui/skeleton";
 
+function SavedSkeleton() {
+  return (
+    <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
+      <div className="mb-8">
+        <Skeleton className="h-8 w-20" />
+        <Skeleton className="mt-2 h-4 w-52" />
+      </div>
+      <div className="animate-stagger-in grid gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="rounded-xl border p-5">
+            <div className="flex gap-3">
+              <div className="w-1 shrink-0 rounded-full skeleton-shimmer" />
+              <div className="flex-1 space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-4 w-2/3" />
+                <div className="flex items-center gap-2 pt-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <div className="flex gap-1 pt-1">
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SavedContent() {
   const { results, status, loadMore } = usePaginatedQuery(
     api.bookmarks.listSaved,
@@ -21,19 +55,7 @@ function SavedContent() {
   const sentinelRef = useInfiniteScroll(status, loadMore);
 
   if (status === "LoadingFirstPage") {
-    return (
-      <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight">Saved</h1>
-          <p className="mt-1 text-muted-foreground">Your bookmarked learning cards.</p>
-        </div>
-        <div className="grid gap-4">
-          <Skeleton className="h-36 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
-        </div>
-      </div>
-    );
+    return <SavedSkeleton />;
   }
 
   return (
@@ -45,7 +67,7 @@ function SavedContent() {
 
       {results.length === 0 ? (
         <div className="mt-12 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-muted ring-1 ring-primary/10">
             <Bookmark className="h-8 w-8 text-muted-foreground" />
           </div>
           <div>
@@ -56,7 +78,7 @@ function SavedContent() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="animate-stagger-in grid gap-4">
           {results.map((bookmark) => {
             if (!bookmark.post) return null;
             return (
@@ -78,7 +100,7 @@ function SavedContent() {
           <div ref={sentinelRef} className="h-1" />
 
           {status === "LoadingMore" && (
-            <div className="flex justify-center py-4">
+            <div className="flex animate-in fade-in justify-center py-4">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
