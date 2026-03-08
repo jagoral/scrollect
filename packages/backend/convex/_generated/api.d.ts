@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as bookmarks from "../bookmarks.js";
 import type * as chunking from "../chunking.js";
 import type * as chunks from "../chunks.js";
 import type * as documents from "../documents.js";
@@ -27,11 +28,13 @@ import type * as providers_openai from "../providers/openai.js";
 import type * as providers_qdrant from "../providers/qdrant.js";
 import type * as providers_types from "../providers/types.js";
 import type * as testing from "../testing.js";
+import type * as testingActions from "../testingActions.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  bookmarks: typeof bookmarks;
   chunking: typeof chunking;
   chunks: typeof chunks;
   documents: typeof documents;
@@ -50,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "providers/qdrant": typeof providers_qdrant;
   "providers/types": typeof providers_types;
   testing: typeof testing;
+  testingActions: typeof testingActions;
 }>;
 
 /**

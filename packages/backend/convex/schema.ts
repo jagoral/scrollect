@@ -32,12 +32,28 @@ export default defineSchema({
     sourceDocumentId: v.id("documents"),
     userId: v.string(),
     assetStorageId: v.optional(v.id("_storage")),
-    saved: v.optional(v.boolean()),
     reaction: v.optional(v.union(v.literal("like"), v.literal("dislike"))),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  bookmarkLists: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    isDefault: v.boolean(),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_saved", ["userId", "saved"]),
+    .index("by_userId_default", ["userId", "isDefault"]),
+
+  bookmarks: defineTable({
+    userId: v.string(),
+    postId: v.id("posts"),
+    listId: v.id("bookmarkLists"),
+    createdAt: v.number(),
+  })
+    .index("by_post_and_list", ["postId", "listId"])
+    .index("by_list", ["listId"])
+    .index("by_userId_post", ["userId", "postId"]),
 
   chunks: defineTable({
     documentId: v.id("documents"),

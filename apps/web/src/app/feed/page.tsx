@@ -1,37 +1,45 @@
 "use client";
 
 import { api } from "@scrollect/backend/convex/_generated/api";
-import { Authenticated, AuthLoading, Unauthenticated, useAction, useQuery } from "convex/react";
+import {
+  Authenticated,
+  AuthLoading,
+  Unauthenticated,
+  useAction,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 
-import { formatDistanceToNow } from "date-fns";
-import Markdown from "react-markdown";
-import { FileText, Loader2, Sparkles, Rss } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { CheckCircle, Loader2, Rss, Sparkles } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 
+import { PostCard } from "@/components/post-card";
+import { useAutoGenerate } from "@/hooks/use-auto-generate";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function FeedContent() {
-  const posts = useQuery(api.feed.list);
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const count = searchParams.get("count") ? Number(searchParams.get("count")) : undefined;
+  const noAutoGenerate = searchParams.has("noAutoGenerate");
+
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.feed.list,
+    {},
+    { initialNumItems: 10 },
+  );
+  const lastGeneratedAt = useQuery(api.feed.getLastGeneratedAt);
   const generateFeed = useAction(api.feedGeneration.generate);
 
-  async function handleGenerate() {
-    setGenerating(true);
-    setError(null);
-    try {
-      await generateFeed({});
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to generate feed");
-    } finally {
-      setGenerating(false);
-    }
-  }
+  const { generating, error, generate } = useAutoGenerate(lastGeneratedAt, generateFeed, {
+    disabled: noAutoGenerate,
+    count,
+  });
+  const sentinelRef = useInfiniteScroll(status, loadMore);
 
-  if (posts === undefined) {
+  if (status === "LoadingFirstPage") {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
         <div className="mb-8">
@@ -54,7 +62,7 @@ function FeedContent() {
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
         </div>
-        <Button onClick={handleGenerate} disabled={generating} size="sm">
+        <Button onClick={generate} disabled={generating} size="sm">
           {generating ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -70,7 +78,7 @@ function FeedContent() {
         </div>
       )}
 
-      {posts.length === 0 && !generating ? (
+      {results.length === 0 && !generating ? (
         <div className="mt-12 flex flex-col items-center gap-4 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
             <Rss className="h-8 w-8 text-muted-foreground" />
@@ -81,37 +89,35 @@ function FeedContent() {
               Click &quot;Generate&quot; to create learning cards from your documents.
             </p>
           </div>
-          <Button onClick={handleGenerate} disabled={generating}>
+          <Button onClick={generate} disabled={generating}>
             <Sparkles className="mr-2 h-4 w-4" />
             Generate your first feed
           </Button>
         </div>
       ) : (
         <div className="grid gap-4">
-          {posts.map((post) => (
-            <Card
-              key={post._id}
-              className="overflow-hidden border-l-4 border-l-primary/40 transition-all hover:border-l-primary hover:shadow-sm"
-            >
-              <CardContent className="py-5">
-                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed">
-                  <Markdown>{post.content}</Markdown>
-                </div>
-                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                  {post.sourceDocumentTitle && (
-                    <>
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-3 w-3" />
-                        {post.sourceDocumentTitle}
-                      </span>
-                      <span>&middot;</span>
-                    </>
-                  )}
-                  <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
-                </div>
-              </CardContent>
-            </Card>
+          {results.map((post) => (
+            <PostCard key={post._id} post={post} />
           ))}
+
+          {/* Sentinel for infinite scroll */}
+          <div ref={sentinelRef} className="h-1" />
+
+          {status === "LoadingMore" && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {status === "Exhausted" && results.length > 0 && (
+            <div
+              data-testid="feed-end-state"
+              className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground"
+            >
+              <CheckCircle className="h-6 w-6" />
+              <p className="text-sm font-medium">You&apos;re all caught up</p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -130,7 +136,9 @@ export default function FeedPage() {
   return (
     <>
       <Authenticated>
-        <FeedContent />
+        <Suspense>
+          <FeedContent />
+        </Suspense>
       </Authenticated>
       <Unauthenticated>
         <UnauthenticatedRedirect />

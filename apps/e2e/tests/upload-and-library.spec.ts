@@ -1,44 +1,11 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-const FIXTURES_DIR = path.join(__dirname, "..", "fixtures");
-
-function testUser() {
-  return {
-    name: "E2E Tester",
-    email: `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.scrollect.dev`,
-    password: "testpassword123",
-  };
-}
-
-async function signUp(page: import("@playwright/test").Page) {
-  const user = testUser();
-  await page.goto("/signin");
-  // Switch from sign-in to sign-up form
-  await page.getByRole("button", { name: /sign up/i }).click();
-  await page.getByLabel("Name").fill(user.name);
-  await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").fill(user.password);
-  await page.getByRole("button", { name: /create account/i }).click();
-  await expect(page).toHaveURL(/\/library/, { timeout: 15000 });
-}
-
-async function cleanupTestData(page: import("@playwright/test").Page) {
-  try {
-    const response = await page.request.post("/api/e2e-cleanup");
-    if (!response.ok()) {
-      console.warn(`E2E cleanup failed: ${response.status()} ${await response.text()}`);
-    }
-  } catch (error) {
-    console.warn("E2E cleanup error:", error);
-  }
-}
-
-async function uploadFile(page: import("@playwright/test").Page, filePath: string) {
-  await page.locator('input[type="file"]').setInputFiles(filePath);
-}
+import { FIXTURES_DIR, cleanupTestData, signUp } from "./helpers";
 
 test.describe("Upload and Content Library flow", () => {
+  test.setTimeout(120000);
+
   test.beforeEach(async ({ page }) => {
     await signUp(page);
   });
@@ -48,7 +15,10 @@ test.describe("Upload and Content Library flow", () => {
   });
 
   test("authenticated user can navigate to the upload page", async ({ page }) => {
-    await page.getByRole("link", { name: /upload/i }).click();
+    await page
+      .locator("nav")
+      .getByRole("button", { name: /upload/i })
+      .click();
     await expect(page).toHaveURL(/\/upload/);
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
   });
@@ -57,17 +27,16 @@ test.describe("Upload and Content Library flow", () => {
     await page.goto("/upload");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
-    await uploadFile(page, path.join(FIXTURES_DIR, "test.md"));
+    await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
 
     // Should show success toast with link to library, or error toast
     await expect(page.getByText(/uploaded|failed/i)).toBeVisible({ timeout: 30000 });
   });
 
-  // TODO: Unskip after ADR-001 pipeline is fully implemented (processing no longer auto-triggers on upload)
-  test.skip("after upload, document appears in library with correct title", async ({ page }) => {
+  test("after upload, document appears in library with correct title", async ({ page }) => {
     await page.goto("/upload");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
-    await uploadFile(page, path.join(FIXTURES_DIR, "test.md"));
+    await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
     // Navigate to library and find the document by its card link
@@ -75,11 +44,10 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.locator("a[href^='/library/']").first()).toBeVisible({ timeout: 10000 });
   });
 
-  // TODO: Unskip after ADR-001 pipeline is fully implemented
-  test.skip("clicking a document in library navigates to detail page", async ({ page }) => {
+  test("clicking a document in library navigates to detail page", async ({ page }) => {
     await page.goto("/upload");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
-    await uploadFile(page, path.join(FIXTURES_DIR, "test.md"));
+    await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
     // Go to library and click the first document link
@@ -93,12 +61,10 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.getByText(/back to library/i)).toBeVisible();
   });
 
-  // TODO: Unskip after ADR-001 pipeline is fully implemented
-  test.skip("document detail page shows title and chunks after processing", async ({ page }) => {
-    test.setTimeout(120000);
+  test("document detail page shows title and chunks after processing", async ({ page }) => {
     await page.goto("/upload");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
-    await uploadFile(page, path.join(FIXTURES_DIR, "test.md"));
+    await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
     // Navigate to library and click the document
