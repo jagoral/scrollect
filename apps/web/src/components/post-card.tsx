@@ -2,13 +2,15 @@
 
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
+import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { Bookmark, BookmarkCheck, FileText, ThumbsDown, ThumbsUp } from "lucide-react";
 import Markdown from "react-markdown";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export interface PostCardData {
   _id: Id<"posts">;
@@ -23,86 +25,139 @@ interface PostCardProps {
   post: PostCardData;
 }
 
+/**
+ * Update a post across all cached paginated pages of the feed query.
+ * Uses getAllQueries to find every loaded page, then patches the matching post.
+ */
+function updatePostInPaginatedPages(
+  localStore: OptimisticLocalStore,
+  postId: Id<"posts">,
+  updater: (post: Record<string, unknown>) => Record<string, unknown>,
+) {
+  const allPages = localStore.getAllQueries(api.feed.queries.list);
+  for (const { args, value } of allPages) {
+    if (value === undefined) continue;
+    const hasMatch = value.page.some((p) => p._id === postId);
+    if (!hasMatch) continue;
+    localStore.setQuery(api.feed.queries.list, args, {
+      ...value,
+      page: value.page.map((p) => (p._id === postId ? { ...p, ...updater(p) } : p)),
+    });
+  }
+}
+
 export function PostCard({ post }: PostCardProps) {
-  const toggleBookmark = useMutation(api.bookmarks.toggle);
-  const setReaction = useMutation(api.feed.queries.setReaction);
+  const toggleBookmark = useMutation(api.bookmarks.toggle).withOptimisticUpdate(
+    (localStore, args) => {
+      updatePostInPaginatedPages(localStore, args.postId, (p) => ({
+        isBookmarked: !p.isBookmarked,
+      }));
+    },
+  );
+
+  const setReaction = useMutation(api.feed.queries.setReaction).withOptimisticUpdate(
+    (localStore, args) => {
+      updatePostInPaginatedPages(localStore, args.postId, () => ({
+        reaction: args.reaction === "none" ? undefined : args.reaction,
+      }));
+    },
+  );
 
   return (
-    <Card
+    <article
       data-testid="post-card"
-      className="overflow-hidden border-l-4 border-l-primary/40 transition-all hover:border-l-primary hover:shadow-sm"
+      className="group/card relative overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-foreground/[0.06] transition-all duration-300 hover:ring-foreground/[0.12] hover:shadow-md"
     >
-      <CardContent className="py-5">
-        <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed">
+      {/* Top accent gradient */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
+      <div className="px-5 pt-5 pb-4">
+        {/* Source badge */}
+        {post.sourceDocumentTitle && (
+          <div className="mb-3">
+            <Badge variant="secondary" className="gap-1.5 font-normal">
+              <FileText className="size-3 opacity-60" />
+              <span className="max-w-48 truncate">{post.sourceDocumentTitle}</span>
+            </Badge>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
           <Markdown>{post.content}</Markdown>
         </div>
-        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          {post.sourceDocumentTitle && (
-            <>
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {post.sourceDocumentTitle}
-              </span>
-              <span>&middot;</span>
-            </>
-          )}
-          <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
+
+        {/* Footer */}
+        <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
+          <time className="text-xs tracking-wide text-muted-foreground/70">
+            {formatDistanceToNow(post.createdAt, { addSuffix: true })}
+          </time>
+
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "transition-colors duration-200",
+                post.isBookmarked &&
+                  "bg-primary/10 text-primary hover:bg-primary/15 dark:bg-primary/20 dark:hover:bg-primary/25",
+              )}
+              onClick={() => toggleBookmark({ postId: post._id })}
+              data-testid="save-button"
+              aria-pressed={!!post.isBookmarked}
+              title="Save"
+            >
+              {post.isBookmarked ? (
+                <BookmarkCheck className="size-3.5" />
+              ) : (
+                <Bookmark className="size-3.5" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "transition-colors duration-200",
+                post.reaction === "like" &&
+                  "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/25",
+              )}
+              onClick={() =>
+                setReaction({
+                  postId: post._id,
+                  reaction: post.reaction === "like" ? "none" : "like",
+                })
+              }
+              data-testid="like-button"
+              aria-pressed={post.reaction === "like"}
+              title="Like"
+            >
+              <ThumbsUp className={cn("size-3.5", post.reaction === "like" && "fill-current")} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "transition-colors duration-200",
+                post.reaction === "dislike" &&
+                  "bg-red-500/10 text-red-500 hover:bg-red-500/15 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/25",
+              )}
+              onClick={() =>
+                setReaction({
+                  postId: post._id,
+                  reaction: post.reaction === "dislike" ? "none" : "dislike",
+                })
+              }
+              data-testid="dislike-button"
+              aria-pressed={post.reaction === "dislike"}
+              title="Dislike"
+            >
+              <ThumbsDown
+                className={cn("size-3.5", post.reaction === "dislike" && "fill-current")}
+              />
+            </Button>
+          </div>
         </div>
-        <div className="mt-3 flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => toggleBookmark({ postId: post._id })}
-            data-testid="save-button"
-            aria-pressed={!!post.isBookmarked}
-          >
-            {post.isBookmarked ? (
-              <BookmarkCheck className="h-4 w-4 text-primary" />
-            ) : (
-              <Bookmark className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() =>
-              setReaction({
-                postId: post._id,
-                reaction: post.reaction === "like" ? "none" : "like",
-              })
-            }
-            data-testid="like-button"
-            aria-pressed={post.reaction === "like"}
-          >
-            {post.reaction === "like" ? (
-              <ThumbsUp className="h-4 w-4 fill-current text-green-600" />
-            ) : (
-              <ThumbsUp className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() =>
-              setReaction({
-                postId: post._id,
-                reaction: post.reaction === "dislike" ? "none" : "dislike",
-              })
-            }
-            data-testid="dislike-button"
-            aria-pressed={post.reaction === "dislike"}
-          >
-            {post.reaction === "dislike" ? (
-              <ThumbsDown className="h-4 w-4 fill-current text-red-500" />
-            ) : (
-              <ThumbsDown className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }

@@ -36,7 +36,11 @@ import type * as providers_types from "../providers/types.js";
 import type * as testing from "../testing.js";
 import type * as testingActions from "../testingActions.js";
 
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
@@ -76,7 +80,10 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -86,7 +93,10 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
 
 export declare const components: {
   betterAuth: {
@@ -270,7 +280,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -298,7 +314,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -331,14 +353,26 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
                 model: "verification";
                 where?: Array<{
                   connector?: "AND" | "OR";
-                  field: "identifier" | "value" | "expiresAt" | "createdAt" | "updatedAt" | "_id";
+                  field:
+                    | "identifier"
+                    | "value"
+                    | "expiresAt"
+                    | "createdAt"
+                    | "updatedAt"
+                    | "_id";
                   operator?:
                     | "lt"
                     | "lte"
@@ -351,7 +385,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -371,7 +411,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -402,7 +448,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -434,7 +486,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -464,7 +522,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -491,7 +555,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -511,7 +581,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -531,7 +607,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               };
           onDeleteHandle?: string;
@@ -582,7 +664,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -610,7 +698,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -643,14 +737,26 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
                 model: "verification";
                 where?: Array<{
                   connector?: "AND" | "OR";
-                  field: "identifier" | "value" | "expiresAt" | "createdAt" | "updatedAt" | "_id";
+                  field:
+                    | "identifier"
+                    | "value"
+                    | "expiresAt"
+                    | "createdAt"
+                    | "updatedAt"
+                    | "_id";
                   operator?:
                     | "lt"
                     | "lte"
@@ -663,7 +769,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -683,7 +795,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -714,7 +832,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -746,7 +870,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -776,7 +906,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -803,7 +939,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -823,7 +965,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -843,7 +991,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               };
           onDeleteHandle?: string;
@@ -893,7 +1047,13 @@ export declare const components: {
               | "contains"
               | "starts_with"
               | "ends_with";
-            value: string | number | boolean | Array<string> | Array<number> | null;
+            value:
+              | string
+              | number
+              | boolean
+              | Array<string>
+              | Array<number>
+              | null;
           }>;
         },
         any
@@ -931,7 +1091,13 @@ export declare const components: {
               | "contains"
               | "starts_with"
               | "ends_with";
-            value: string | number | boolean | Array<string> | Array<number> | null;
+            value:
+              | string
+              | number
+              | boolean
+              | Array<string>
+              | Array<number>
+              | null;
           }>;
         },
         any
@@ -987,7 +1153,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1024,7 +1196,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1071,7 +1249,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1085,7 +1269,13 @@ export declare const components: {
                 };
                 where?: Array<{
                   connector?: "AND" | "OR";
-                  field: "identifier" | "value" | "expiresAt" | "createdAt" | "updatedAt" | "_id";
+                  field:
+                    | "identifier"
+                    | "value"
+                    | "expiresAt"
+                    | "createdAt"
+                    | "updatedAt"
+                    | "_id";
                   operator?:
                     | "lt"
                     | "lte"
@@ -1098,7 +1288,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1123,7 +1319,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1166,7 +1368,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1211,7 +1419,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1252,7 +1466,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1287,7 +1507,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1312,7 +1538,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1337,7 +1569,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               };
           onUpdateHandle?: string;
@@ -1403,7 +1641,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1440,7 +1684,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1487,7 +1737,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1501,7 +1757,13 @@ export declare const components: {
                 };
                 where?: Array<{
                   connector?: "AND" | "OR";
-                  field: "identifier" | "value" | "expiresAt" | "createdAt" | "updatedAt" | "_id";
+                  field:
+                    | "identifier"
+                    | "value"
+                    | "expiresAt"
+                    | "createdAt"
+                    | "updatedAt"
+                    | "_id";
                   operator?:
                     | "lt"
                     | "lte"
@@ -1514,7 +1776,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1539,7 +1807,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1582,7 +1856,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1627,7 +1907,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1668,7 +1954,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1703,7 +1995,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1728,7 +2026,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               }
             | {
@@ -1753,7 +2057,13 @@ export declare const components: {
                     | "contains"
                     | "starts_with"
                     | "ends_with";
-                  value: string | number | boolean | Array<string> | Array<number> | null;
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
                 }>;
               };
           onUpdateHandle?: string;
