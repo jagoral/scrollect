@@ -28,6 +28,7 @@ import type * as providers_openai from "../providers/openai.js";
 import type * as providers_qdrant from "../providers/qdrant.js";
 import type * as providers_types from "../providers/types.js";
 import type * as testing from "../testing.js";
+import type * as testingActions from "../testingActions.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "providers/qdrant": typeof providers_qdrant;
   "providers/types": typeof providers_types;
   testing: typeof testing;
+  testingActions: typeof testingActions;
 }>;
 
 /**

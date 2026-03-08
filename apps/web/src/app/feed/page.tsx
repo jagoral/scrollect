@@ -11,8 +11,8 @@ import {
 } from "convex/react";
 
 import { CheckCircle, Loader2, Rss, Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 
 import { PostCard } from "@/components/post-card";
 import { useAutoGenerate } from "@/hooks/use-auto-generate";
@@ -21,6 +21,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function FeedContent() {
+  const searchParams = useSearchParams();
+  const count = searchParams.get("count") ? Number(searchParams.get("count")) : undefined;
+  const noAutoGenerate = searchParams.has("noAutoGenerate");
+
   const { results, status, loadMore } = usePaginatedQuery(
     api.feed.list,
     {},
@@ -29,7 +33,10 @@ function FeedContent() {
   const lastGeneratedAt = useQuery(api.feed.getLastGeneratedAt);
   const generateFeed = useAction(api.feedGeneration.generate);
 
-  const { generating, error, generate } = useAutoGenerate(lastGeneratedAt, generateFeed);
+  const { generating, error, generate } = useAutoGenerate(lastGeneratedAt, generateFeed, {
+    disabled: noAutoGenerate,
+    count,
+  });
   const sentinelRef = useInfiniteScroll(status, loadMore);
 
   if (status === "LoadingFirstPage") {
@@ -129,7 +136,9 @@ export default function FeedPage() {
   return (
     <>
       <Authenticated>
-        <FeedContent />
+        <Suspense>
+          <FeedContent />
+        </Suspense>
       </Authenticated>
       <Unauthenticated>
         <UnauthenticatedRedirect />

@@ -2,6 +2,7 @@
 
 import type { GenericCtx } from "@convex-dev/better-auth";
 import OpenAI from "openai";
+import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import type { DataModel, Id } from "./_generated/dataModel";
@@ -18,8 +19,9 @@ function getOpenAIClient(): OpenAI {
 }
 
 export const generate = action({
-  args: {},
-  handler: async (ctx) => {
+  args: { count: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const postCount = args.count ?? 5;
     const evt = new WideEvent("feedGeneration.generate");
     try {
       const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
@@ -61,8 +63,8 @@ export const generate = action({
         throw new Error("No chunks available to generate feed from.");
       }
 
-      // Pick up to 5 random chunks to base posts on
-      const selected = shuffle(allChunks).slice(0, 5);
+      // Pick random chunks to base posts on
+      const selected = shuffle(allChunks).slice(0, postCount);
       evt.set("selectedChunks", selected.length);
 
       const openai = getOpenAIClient();

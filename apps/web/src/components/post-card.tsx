@@ -55,6 +55,7 @@ export function PostCard({ post }: PostCardProps) {
             className="h-8 w-8"
             onClick={() => toggleBookmark({ postId: post._id })}
             data-testid="save-button"
+            aria-pressed={!!post.isBookmarked}
           >
             {post.isBookmarked ? (
               <BookmarkCheck className="h-4 w-4 text-primary" />
@@ -73,6 +74,7 @@ export function PostCard({ post }: PostCardProps) {
               })
             }
             data-testid="like-button"
+            aria-pressed={post.reaction === "like"}
           >
             {post.reaction === "like" ? (
               <ThumbsUp className="h-4 w-4 fill-current text-green-600" />
@@ -91,6 +93,7 @@ export function PostCard({ post }: PostCardProps) {
               })
             }
             data-testid="dislike-button"
+            aria-pressed={post.reaction === "dislike"}
           >
             {post.reaction === "dislike" ? (
               <ThumbsDown className="h-4 w-4 fill-current text-red-500" />
