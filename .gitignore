@@ -49,3 +49,4 @@ coverage
 tmp
 temp
 settings.local.json
+.claude/prompts
