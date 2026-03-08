@@ -1,7 +1,7 @@
 "use client";
 
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
-import { Brain, Rss, Sparkles, Upload } from "lucide-react";
+import { Brain, Sparkles, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
