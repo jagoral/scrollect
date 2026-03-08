@@ -1,14 +1,13 @@
 "use node";
 
-import type { GenericCtx } from "@convex-dev/better-auth";
 import OpenAI from "openai";
 import { v } from "convex/values";
 
-import { internal } from "./_generated/api";
-import type { DataModel, Id } from "./_generated/dataModel";
-import { action } from "./_generated/server";
-import { authComponent } from "./auth";
-import { WideEvent } from "./logging";
+import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import { action } from "../_generated/server";
+import { requireAuth } from "../lib/functions";
+import { WideEvent } from "../lib/logging";
 
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -24,15 +23,11 @@ export const generate = action({
     const postCount = args.count ?? 5;
     const evt = new WideEvent("feedGeneration.generate");
     try {
-      const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
-
+      const user = await requireAuth(ctx);
       evt.set("userId", user._id);
 
       // Get all ready documents for this user
-      const documents = await ctx.runQuery(internal.feed.listReadyDocuments, {
+      const documents = await ctx.runQuery(internal.feed.queries.listReadyDocuments, {
         userId: user._id,
       });
 
@@ -45,7 +40,7 @@ export const generate = action({
       // Gather chunks from all ready documents
       const allChunks: { _id: Id<"chunks">; content: string; documentId: Id<"documents"> }[] = [];
       for (const doc of documents) {
-        const chunks = await ctx.runQuery(internal.feed.listChunksForDocument, {
+        const chunks = await ctx.runQuery(internal.feed.queries.listChunksForDocument, {
           documentId: doc._id,
         });
         for (const chunk of chunks) {
@@ -120,7 +115,7 @@ Return a JSON object with a "posts" key containing an array of exactly ${selecte
       for (let i = 0; i < posts.length; i++) {
         const chunk = selected[i]!;
         const content = posts[i]!;
-        const id = await ctx.runMutation(internal.feed.createPost, {
+        const id = await ctx.runMutation(internal.feed.queries.createPost, {
           content,
           sourceChunkId: chunk._id,
           sourceDocumentId: chunk.documentId,

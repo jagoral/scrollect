@@ -1,15 +1,14 @@
-import type { GenericCtx } from "@convex-dev/better-auth";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
-import type { DataModel } from "./_generated/dataModel";
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { authComponent } from "./auth";
+import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
+import { requireAuth, optionalAuth } from "../lib/functions";
+import { reactionInput } from "../lib/validators";
 
 export const list = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
+    const user = await optionalAuth(ctx);
     if (!user) {
       return {
         page: [],
@@ -46,11 +45,10 @@ export const list = query({
 export const setReaction = mutation({
   args: {
     postId: v.id("posts"),
-    reaction: v.union(v.literal("like"), v.literal("dislike"), v.literal("none")),
+    reaction: reactionInput,
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuth(ctx);
 
     const post = await ctx.db.get(args.postId);
     if (!post || post.userId !== user._id) {
@@ -70,7 +68,7 @@ export const setReaction = mutation({
 export const getLastGeneratedAt = query({
   args: {},
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
+    const user = await optionalAuth(ctx);
     if (!user) return null;
 
     const newest = await ctx.db

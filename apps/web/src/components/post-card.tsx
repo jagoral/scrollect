@@ -25,7 +25,7 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const toggleBookmark = useMutation(api.bookmarks.toggle);
-  const setReaction = useMutation(api.feed.setReaction);
+  const setReaction = useMutation(api.feed.queries.setReaction);
 
   return (
     <Card

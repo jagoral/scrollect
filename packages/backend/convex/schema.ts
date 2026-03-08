@@ -1,22 +1,15 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+import { documentStatus, failedAtStage, fileType, reactionType } from "./lib/validators";
+
 export default defineSchema({
   documents: defineTable({
     title: v.string(),
-    fileType: v.union(v.literal("pdf"), v.literal("md")),
+    fileType,
     storageId: v.id("_storage"),
-    status: v.union(
-      v.literal("uploaded"),
-      v.literal("parsing"),
-      v.literal("chunking"),
-      v.literal("embedding"),
-      v.literal("ready"),
-      v.literal("error"),
-    ),
-    failedAt: v.optional(
-      v.union(v.literal("parsing"), v.literal("chunking"), v.literal("embedding")),
-    ),
+    status: documentStatus,
+    failedAt: v.optional(failedAtStage),
     datalabCheckUrl: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
     chunkCount: v.number(),
@@ -32,7 +25,7 @@ export default defineSchema({
     sourceDocumentId: v.id("documents"),
     userId: v.string(),
     assetStorageId: v.optional(v.id("_storage")),
-    reaction: v.optional(v.union(v.literal("like"), v.literal("dislike"))),
+    reaction: v.optional(reactionType),
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
 

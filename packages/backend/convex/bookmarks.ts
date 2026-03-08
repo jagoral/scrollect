@@ -1,16 +1,13 @@
-import type { GenericCtx } from "@convex-dev/better-auth";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
-import type { DataModel } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
-import { authComponent } from "./auth";
+import { requireAuth, optionalAuth } from "./lib/functions";
 
 export const toggle = mutation({
   args: { postId: v.id("posts") },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuth(ctx);
 
     const post = await ctx.db.get(args.postId);
     if (!post || post.userId !== user._id) {
@@ -57,7 +54,7 @@ export const toggle = mutation({
 export const listSaved = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
+    const user = await optionalAuth(ctx);
     if (!user) {
       return {
         page: [],

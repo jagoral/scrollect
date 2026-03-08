@@ -1,19 +1,15 @@
 "use node";
 
-import type { GenericCtx } from "@convex-dev/better-auth";
-
 import { internal } from "./_generated/api";
-import type { DataModel } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-import { authComponent } from "./auth";
+import { requireAuth } from "./lib/functions";
 
 const E2E_EMAIL_PATTERN = /^e2e-.*@test\.scrollect\.dev$/;
 
 export const seedE2EData = action({
   args: {},
   handler: async (ctx): Promise<{ alreadySeeded: boolean; postCount: number }> => {
-    const user = await authComponent.safeGetAuthUser(ctx as unknown as GenericCtx<DataModel>);
-    if (!user) throw new Error("Not authenticated");
+    const user = await requireAuth(ctx);
 
     if (!user.email || !E2E_EMAIL_PATTERN.test(user.email)) {
       throw new Error(`Seed refused: email "${user.email}" does not match E2E test pattern`);
