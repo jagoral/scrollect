@@ -35,5 +35,5 @@
     "builtin": true
   },
   "globals": {},
-  "ignorePatterns": []
+  "ignorePatterns": ["packages/backend/convex/_generated/**"]
 }
