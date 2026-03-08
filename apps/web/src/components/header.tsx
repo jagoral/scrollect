@@ -1,7 +1,7 @@
 "use client";
 
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
-import { BookOpen, Menu, Rss, Upload } from "lucide-react";
+import { Bookmark, BookOpen, Menu, Rss, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -13,6 +13,7 @@ import UserMenu from "./user-menu";
 
 const navLinks = [
   { to: "/feed", label: "Feed", icon: Rss },
+  { to: "/saved", label: "Saved", icon: Bookmark },
   { to: "/library", label: "Library", icon: BookOpen },
   { to: "/upload", label: "Upload", icon: Upload },
 ] as const;

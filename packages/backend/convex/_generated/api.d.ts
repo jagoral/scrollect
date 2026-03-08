@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as bookmarks from "../bookmarks.js";
 import type * as chunking from "../chunking.js";
 import type * as chunks from "../chunks.js";
 import type * as documents from "../documents.js";
@@ -32,6 +33,7 @@ import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  bookmarks: typeof bookmarks;
   chunking: typeof chunking;
   chunks: typeof chunks;
   documents: typeof documents;

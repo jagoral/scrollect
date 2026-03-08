@@ -24,6 +24,23 @@ export const cleanupCurrentUser = mutation({
 
     const userId = user._id;
 
+    // 0. Delete all bookmarks and bookmark lists for this user
+    const bookmarks = await ctx.db
+      .query("bookmarks")
+      .withIndex("by_userId_post", (q) => q.eq("userId", userId))
+      .collect();
+    for (const bookmark of bookmarks) {
+      await ctx.db.delete(bookmark._id);
+    }
+
+    const bookmarkLists = await ctx.db
+      .query("bookmarkLists")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const list of bookmarkLists) {
+      await ctx.db.delete(list._id);
+    }
+
     // 1. Find all documents for this user
     const documents = await ctx.db
       .query("documents")
@@ -65,6 +82,13 @@ export const cleanupCurrentUser = mutation({
       await ctx.db.delete(post._id);
     }
 
-    return { deleted: { documents: documents.length, posts: posts.length } };
+    return {
+      deleted: {
+        bookmarks: bookmarks.length,
+        bookmarkLists: bookmarkLists.length,
+        documents: documents.length,
+        posts: posts.length,
+      },
+    };
   },
 });
