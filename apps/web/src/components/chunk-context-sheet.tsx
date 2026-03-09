@@ -4,9 +4,60 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { FileText, Loader2 } from "lucide-react";
+import { useState } from "react";
 import Markdown from "react-markdown";
 
 import { cn } from "@/lib/utils";
+
+const PREVIEW_LENGTH = 100;
+
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+    .replace(/\n+/g, " ")
+    .trim();
+}
+
+function ContextChunk({ content, label }: { content: string; label: "Previous" | "Next" }) {
+  const [expanded, setExpanded] = useState(false);
+  const plain = stripMarkdown(content);
+  const needsTruncation = plain.length > PREVIEW_LENGTH;
+
+  return (
+    <div className="relative mb-4 last:mb-0">
+      <div className="absolute -left-7 top-[13px] flex w-[19px] items-center justify-center">
+        <div className="size-1.5 rounded-full bg-muted-foreground/25" />
+      </div>
+      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/40">
+        {label}
+      </span>
+      <div className="rounded-lg border border-border/30 bg-muted/20 p-3">
+        {expanded ? (
+          <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed text-muted-foreground/60 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+            <Markdown>{content}</Markdown>
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed text-muted-foreground/60">
+            {needsTruncation ? `${plain.slice(0, PREVIEW_LENGTH)}...` : plain}
+          </p>
+        )}
+        {needsTruncation && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-1.5 cursor-pointer text-xs font-medium text-primary/60 transition-colors hover:text-primary/90"
+          >
+            {expanded ? "show less" : "show more"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface ChunkContextSheetContentProps {
   sourceChunkId: Id<"chunks">;
@@ -33,7 +84,7 @@ export function ChunkContextSheetContent({
   const locationLabel = sectionTitle
     ? `${sourceDocumentTitle ?? "Untitled"} · ${sectionTitle}`
     : pageNumber != null
-      ? `${sourceDocumentTitle ?? "Untitled"} · Page ~${pageNumber}`
+      ? `${sourceDocumentTitle ?? "Untitled"} · Page ${pageNumber}`
       : (sourceDocumentTitle ?? "Untitled");
 
   const hasContext = chunkContext?.previousChunk || chunkContext?.nextChunk;
@@ -65,19 +116,7 @@ export function ChunkContextSheetContent({
 
           {/* Previous chunk */}
           {chunkContext.previousChunk && (
-            <div className="relative mb-4">
-              <div className="absolute -left-7 top-[13px] flex w-[19px] items-center justify-center">
-                <div className="size-1.5 rounded-full bg-muted-foreground/25" />
-              </div>
-              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/40">
-                Previous
-              </span>
-              <div className="rounded-lg border border-border/30 bg-muted/20 p-3">
-                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed text-muted-foreground/60 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                  <Markdown>{chunkContext.previousChunk.content}</Markdown>
-                </div>
-              </div>
-            </div>
+            <ContextChunk content={chunkContext.previousChunk.content} label="Previous" />
           )}
 
           {/* Source chunk (highlighted) */}
@@ -102,19 +141,7 @@ export function ChunkContextSheetContent({
 
           {/* Next chunk */}
           {chunkContext.nextChunk && (
-            <div className="relative">
-              <div className="absolute -left-7 top-[13px] flex w-[19px] items-center justify-center">
-                <div className="size-1.5 rounded-full bg-muted-foreground/25" />
-              </div>
-              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/40">
-                Next
-              </span>
-              <div className="rounded-lg border border-border/30 bg-muted/20 p-3">
-                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed text-muted-foreground/60 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                  <Markdown>{chunkContext.nextChunk.content}</Markdown>
-                </div>
-              </div>
-            </div>
+            <ContextChunk content={chunkContext.nextChunk.content} label="Next" />
           )}
         </div>
       )}

@@ -67,7 +67,7 @@ function updatePostInPaginatedPages(
 function getSourceLabel(post: PostCardData): string {
   const title = post.sourceDocumentTitle ?? "Untitled";
   if (post.sectionTitle) return `${title} · ${post.sectionTitle}`;
-  if (post.pageNumber != null) return `${title} · Page ~${post.pageNumber}`;
+  if (post.pageNumber != null) return `${title} · Page ${post.pageNumber}`;
   return title;
 }
 
@@ -223,7 +223,7 @@ export function PostCard({ post }: PostCardProps) {
       {/* Source context sheet */}
       {hasSourceDetails && post.sourceChunkId && (
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent side="right" className="overflow-y-auto sm:max-w-lg">
+          <SheetContent side="right" className="overflow-y-auto sm:max-w-2xl">
             <SheetHeader>
               <SheetTitle>Source Context</SheetTitle>
               <SheetDescription>
