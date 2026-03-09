@@ -6,35 +6,15 @@ import { usePreloadedQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 export function DocumentDetailContent({
   preloadedDocument,
-  preloadedChunks,
-  highlightChunkIndex,
 }: {
   preloadedDocument: Preloaded<typeof api.documents.get>;
-  preloadedChunks: Preloaded<typeof api.chunks.listByDocument>;
-  highlightChunkIndex?: number | null;
 }) {
   const document = usePreloadedQuery(preloadedDocument);
-  const chunks = usePreloadedQuery(preloadedChunks);
-  const highlightRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (highlightChunkIndex != null && highlightRef.current) {
-      // Small delay to ensure the DOM has rendered
-      const timeout = setTimeout(() => {
-        highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
-      return () => clearTimeout(timeout);
-    }
-  }, [highlightChunkIndex]);
 
   if (document === null) {
     return (
@@ -60,8 +40,6 @@ export function DocumentDetailContent({
       </div>
     );
   }
-
-  const sortedChunks = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -113,52 +91,6 @@ export function DocumentDetailContent({
         <div className="mt-10 flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
           <p className="text-muted-foreground">Waiting for processing...</p>
-        </div>
-      )}
-
-      {sortedChunks.length > 0 && (
-        <div className="animate-stagger-in mt-8 space-y-3">
-          {sortedChunks.map((chunk) => {
-            const isHighlighted = highlightChunkIndex === chunk.chunkIndex;
-            return (
-              <div
-                key={chunk._id}
-                ref={isHighlighted ? highlightRef : undefined}
-                {...(isHighlighted ? { "data-testid": "highlighted-chunk" } : {})}
-              >
-                <Card
-                  data-testid={`chunk-${chunk.chunkIndex}`}
-                  className={cn(
-                    "overflow-hidden border-l-4 transition-colors",
-                    isHighlighted
-                      ? "border-l-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border-l-primary/20 hover:border-l-primary/40",
-                  )}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm font-medium text-muted-foreground">
-                        Chunk {chunk.chunkIndex + 1}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {isHighlighted && (
-                          <Badge variant="secondary" className="text-xs">
-                            Linked from feed
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          ~{chunk.tokenCount} tokens
-                        </span>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{chunk.content}</p>
-                  </CardContent>
-                </Card>
-              </div>
-            );
-          })}
         </div>
       )}
     </div>

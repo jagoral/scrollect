@@ -24,24 +24,26 @@ test.describe("Source provenance on feed cards", () => {
     await expect(sourceBadge).toContainText("E2E Seed Document");
   });
 
-  test("source badge links to document detail with chunk query param", async ({ page }) => {
+  test("source badge links to document detail page", async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/feed?noAutoGenerate");
 
     const firstCard = page.locator('[data-testid="post-card"]').first();
     await expect(firstCard).toBeVisible({ timeout: 15000 });
 
-    // The source badge should be a link (rendered as <a> via Next.js Link)
     const sourceBadge = firstCard.locator('[data-testid="source-badge"]');
     await expect(sourceBadge).toBeVisible({ timeout: 10000 });
 
-    // Verify it has an href pointing to the library detail page with a chunk param
+    // Verify it has an href pointing to the library detail page
     const href = await sourceBadge.getAttribute("href");
-    expect(href).toMatch(/\/library\/.+\?chunk=\d+/);
+    expect(href).toMatch(/\/library\/.+/);
 
     // Click the badge to navigate
     await sourceBadge.click();
-    await expect(page).toHaveURL(/\/library\/.+\?chunk=\d+/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/library\/.+/, { timeout: 15000 });
+
+    // Should show the document title on the detail page
+    await expect(page.getByText("E2E Seed Document")).toBeVisible({ timeout: 10000 });
   });
 
   test("expand button opens source context sheet", async ({ page }) => {
@@ -64,29 +66,5 @@ test.describe("Source provenance on feed cards", () => {
 
     // Sheet should contain the document title
     await expect(sourceSheet).toContainText("E2E Seed Document");
-  });
-
-  test("document detail highlights chunk from URL query param", async ({ page }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    await page.goto("/feed?noAutoGenerate");
-
-    const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
-
-    // Get the source badge href so we can navigate directly
-    const sourceBadge = firstCard.locator('[data-testid="source-badge"]');
-    await expect(sourceBadge).toBeVisible({ timeout: 10000 });
-    const href = await sourceBadge.getAttribute("href");
-    expect(href).toBeTruthy();
-
-    // Navigate to the document detail page with chunk param
-    await page.goto(href!);
-
-    // The highlighted chunk should be present
-    const highlightedChunk = page.locator('[data-testid="highlighted-chunk"]');
-    await expect(highlightedChunk).toBeVisible({ timeout: 15000 });
-
-    // The highlighted chunk should show the "Linked from feed" badge
-    await expect(highlightedChunk).toContainText("Linked from feed");
   });
 });

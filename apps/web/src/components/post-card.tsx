@@ -5,7 +5,7 @@ import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { Bookmark, BookmarkCheck, FileText, Maximize2, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Bookmark, BookmarkCheck, Maximize2, ThumbsDown, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import Markdown from "react-markdown";
@@ -90,27 +90,28 @@ export function PostCard({ post }: PostCardProps) {
     },
   );
 
-  const hasSourceDetails = post.sourceDocumentId != null && post.chunkIndex != null;
+  const hasSourceDetails = post.sourceDocumentId != null && post.sourceChunkId != null;
 
   const sourceBadge = post.sourceDocumentTitle && (
     <div className="mb-3">
-      {hasSourceDetails ? (
-        <Link
-          href={`/library/${post.sourceDocumentId}?chunk=${post.chunkIndex}`}
-          data-testid="source-badge"
-        >
+      {post.sourceDocumentId ? (
+        <Link href={`/library/${post.sourceDocumentId}`} data-testid="source-badge">
           <Badge
-            variant="secondary"
-            className="gap-1.5 font-normal hover:bg-secondary/80 transition-colors"
+            variant="outline"
+            className="gap-1.5 border-primary/15 bg-primary/[0.03] font-normal text-muted-foreground transition-all hover:border-primary/25 hover:bg-primary/[0.06]"
           >
-            <FileText className="size-3 opacity-60" />
-            <span className="max-w-48 truncate">{getSourceLabel(post)}</span>
+            <span className="size-1.5 shrink-0 rounded-full bg-primary/60" />
+            <span className="max-w-52 truncate">{getSourceLabel(post)}</span>
           </Badge>
         </Link>
       ) : (
-        <Badge variant="secondary" className="gap-1.5 font-normal" data-testid="source-badge">
-          <FileText className="size-3 opacity-60" />
-          <span className="max-w-48 truncate">{getSourceLabel(post)}</span>
+        <Badge
+          variant="outline"
+          className="gap-1.5 border-border/60 font-normal text-muted-foreground"
+          data-testid="source-badge"
+        >
+          <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+          <span className="max-w-52 truncate">{getSourceLabel(post)}</span>
         </Badge>
       )}
     </div>
@@ -120,10 +121,10 @@ export function PostCard({ post }: PostCardProps) {
     <>
       <article
         data-testid="post-card"
-        className="group/card relative overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-foreground/[0.06] transition-all duration-300 hover:ring-foreground/[0.12] hover:shadow-md"
+        className="group/card relative overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-foreground/[0.06] transition-all duration-300 hover:-translate-y-0.5 hover:ring-primary/15 hover:shadow-lg hover:shadow-primary/[0.06]"
       >
         {/* Top accent gradient */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent transition-all duration-300 group-hover/card:h-0.5 group-hover/card:via-primary/60" />
 
         <div className="px-5 pt-5 pb-4">
           {/* Source badge */}
@@ -145,7 +146,7 @@ export function PostCard({ post }: PostCardProps) {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="transition-colors duration-200"
+                  className="transition-all duration-200 active:scale-90"
                   onClick={() => setSheetOpen(true)}
                   data-testid="expand-button"
                   title="View source context"
@@ -157,7 +158,7 @@ export function PostCard({ post }: PostCardProps) {
                 variant="ghost"
                 size="icon-sm"
                 className={cn(
-                  "transition-colors duration-200",
+                  "transition-all duration-200 active:scale-90",
                   post.isBookmarked &&
                     "bg-primary/10 text-primary hover:bg-primary/15 dark:bg-primary/20 dark:hover:bg-primary/25",
                 )}
@@ -176,7 +177,7 @@ export function PostCard({ post }: PostCardProps) {
                 variant="ghost"
                 size="icon-sm"
                 className={cn(
-                  "transition-colors duration-200",
+                  "transition-all duration-200 active:scale-90",
                   post.reaction === "like" &&
                     "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/25",
                 )}
@@ -196,7 +197,7 @@ export function PostCard({ post }: PostCardProps) {
                 variant="ghost"
                 size="icon-sm"
                 className={cn(
-                  "transition-colors duration-200",
+                  "transition-all duration-200 active:scale-90",
                   post.reaction === "dislike" &&
                     "bg-red-500/10 text-red-500 hover:bg-red-500/15 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/25",
                 )}
