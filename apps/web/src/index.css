@@ -230,6 +230,23 @@
   animation-delay: 480ms;
 }
 
+/* Highlight ring pulse – single play to draw attention */
+@keyframes ring-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-primary);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.animate-ring-pulse {
+  animation: ring-pulse 1.2s ease-out 1;
+}
+
 /* Accessibility: disable animations for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-stagger-in > *,
@@ -237,7 +254,8 @@
     opacity: 1;
     animation: none;
   }
-  .skeleton-shimmer {
+  .skeleton-shimmer,
+  .animate-ring-pulse {
     animation: none;
   }
 }
