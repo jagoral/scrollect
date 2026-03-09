@@ -55,6 +55,8 @@ export default defineSchema({
     tokenCount: v.number(),
     embedded: v.boolean(),
     embeddingId: v.optional(v.string()),
+    pageNumber: v.optional(v.number()),
+    sectionTitle: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_documentId", ["documentId"])

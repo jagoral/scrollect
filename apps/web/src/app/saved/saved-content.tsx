@@ -41,13 +41,16 @@ export function SavedContent() {
       </div>
 
       {results.length === 0 ? (
-        <div className="mt-12 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
-            <Bookmark className="h-8 w-8 text-primary/70" />
+        <div className="mt-16 flex flex-col items-center gap-5 text-center">
+          <div className="relative">
+            <div className="absolute -inset-3 rounded-3xl bg-primary/[0.04]" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+              <Bookmark className="h-7 w-7 text-primary/60" />
+            </div>
           </div>
           <div>
-            <p className="text-lg font-semibold">No saved posts yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-lg font-semibold tracking-tight">No saved posts yet</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">
               Save cards from your feed to find them here.
             </p>
           </div>
@@ -66,6 +69,11 @@ export function SavedContent() {
                   createdAt: bookmark.post.createdAt,
                   reaction: bookmark.post.reaction,
                   isBookmarked: true,
+                  sourceChunkId: bookmark.post.sourceChunkId,
+                  sourceDocumentId: bookmark.post.sourceDocumentId,
+                  sectionTitle: bookmark.post.sectionTitle,
+                  pageNumber: bookmark.post.pageNumber,
+                  chunkIndex: bookmark.post.chunkIndex,
                 }}
               />
             );
@@ -81,8 +89,11 @@ export function SavedContent() {
           )}
 
           {status === "Exhausted" && results.length > 0 && (
-            <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
-              <p className="text-sm font-medium">You&apos;ve seen all your saved posts</p>
+            <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
+              <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">
+                You&apos;ve seen all your saved posts
+              </p>
             </div>
           )}
         </div>

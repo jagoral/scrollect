@@ -30,10 +30,15 @@ export const list = query({
           .query("bookmarks")
           .withIndex("by_userId_post", (q) => q.eq("userId", user._id).eq("postId", post._id))
           .first();
+        const chunk = await ctx.db.get(post.sourceChunkId);
         return {
           ...post,
           sourceDocumentTitle: doc?.title ?? null,
           isBookmarked: bookmark !== null,
+          sourceChunkId: post.sourceChunkId,
+          sectionTitle: chunk?.sectionTitle ?? null,
+          pageNumber: chunk?.pageNumber ?? null,
+          chunkIndex: chunk?.chunkIndex ?? 0,
         };
       }),
     );

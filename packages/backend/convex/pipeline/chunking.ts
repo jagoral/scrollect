@@ -33,6 +33,8 @@ export const chunkAndStore = internalAction({
         content: c.content,
         chunkIndex: i,
         tokenCount: c.tokenCount,
+        sectionTitle: c.sectionTitle,
+        pageNumber: c.pageNumber,
       }));
 
       evt.set("chunkCount", chunks.length);

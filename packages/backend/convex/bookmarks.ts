@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
+import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { requireAuth, optionalAuth } from "./lib/functions";
 
@@ -86,13 +87,31 @@ export const listSaved = query({
       result.page.map(async (bookmark) => {
         const post = await ctx.db.get(bookmark.postId);
         let sourceDocumentTitle: string | null = null;
+        let sourceChunkId: Id<"chunks"> | null = null;
+        let sectionTitle: string | null = null;
+        let pageNumber: number | null = null;
+        let chunkIndex = 0;
         if (post) {
           const doc = await ctx.db.get(post.sourceDocumentId);
           sourceDocumentTitle = doc?.title ?? null;
+          sourceChunkId = post.sourceChunkId;
+          const chunk = await ctx.db.get(post.sourceChunkId);
+          sectionTitle = chunk?.sectionTitle ?? null;
+          pageNumber = chunk?.pageNumber ?? null;
+          chunkIndex = chunk?.chunkIndex ?? 0;
         }
         return {
           ...bookmark,
-          post: post ? { ...post, sourceDocumentTitle } : null,
+          post: post
+            ? {
+                ...post,
+                sourceDocumentTitle,
+                sourceChunkId: sourceChunkId!,
+                sectionTitle,
+                pageNumber,
+                chunkIndex,
+              }
+            : null,
         };
       }),
     );

@@ -33,6 +33,8 @@ export const createBatch = internalMutation({
         content: v.string(),
         chunkIndex: v.number(),
         tokenCount: v.number(),
+        sectionTitle: v.optional(v.string()),
+        pageNumber: v.optional(v.number()),
       }),
     ),
   },
@@ -57,6 +59,8 @@ export const createBatch = internalMutation({
         content: chunk.content,
         chunkIndex: chunk.chunkIndex,
         tokenCount: chunk.tokenCount,
+        sectionTitle: chunk.sectionTitle,
+        pageNumber: chunk.pageNumber,
         embedded: false,
         createdAt: now,
       });
@@ -73,6 +77,41 @@ export const listByDocumentInternal = internalQuery({
       .query("chunks")
       .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
       .collect();
+  },
+});
+
+export const getWithContext = query({
+  args: { chunkId: v.id("chunks") },
+  handler: async (ctx, args) => {
+    const user = await optionalAuth(ctx);
+    if (!user) return null;
+
+    const chunk = await ctx.db.get(args.chunkId);
+    if (!chunk) return null;
+
+    // Verify the user owns the document this chunk belongs to
+    const doc = await ctx.db.get(chunk.documentId);
+    if (!doc || doc.userId !== user._id) return null;
+
+    const previousChunk = await ctx.db
+      .query("chunks")
+      .withIndex("by_documentId_chunkIndex", (q) =>
+        q.eq("documentId", chunk.documentId).eq("chunkIndex", chunk.chunkIndex - 1),
+      )
+      .first();
+
+    const nextChunk = await ctx.db
+      .query("chunks")
+      .withIndex("by_documentId_chunkIndex", (q) =>
+        q.eq("documentId", chunk.documentId).eq("chunkIndex", chunk.chunkIndex + 1),
+      )
+      .first();
+
+    return {
+      chunk,
+      previousChunk: previousChunk ?? null,
+      nextChunk: nextChunk ?? null,
+    };
   },
 });
 

@@ -13,6 +13,7 @@ export class DatalabParser implements PdfParser {
     formData.append("output_format", "markdown");
     formData.append("mode", "accurate");
     formData.append("disable_image_extraction", "true");
+    formData.append("paginate", "true");
 
     const response = await fetch("https://www.datalab.to/api/v1/convert", {
       method: "POST",

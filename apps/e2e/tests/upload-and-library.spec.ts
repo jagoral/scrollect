@@ -61,7 +61,7 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.getByText(/back to library/i)).toBeVisible();
   });
 
-  test("document detail page shows title and chunks after processing", async ({ page }) => {
+  test("document detail page shows title and status after processing", async ({ page }) => {
     await page.goto("/upload");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
@@ -74,8 +74,8 @@ test.describe("Upload and Content Library flow", () => {
     await docLink.click();
     await expect(page).toHaveURL(/\/library\/.+/);
 
-    // Wait for processing to complete — chunks should appear
-    await expect(page.getByText("Chunk 1")).toBeVisible({ timeout: 90000 });
+    // Wait for processing to complete — should show chunk count in metadata
+    await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 90000 });
   });
 
   test("upload page rejects unsupported file types", async ({ page }) => {

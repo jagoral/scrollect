@@ -8,17 +8,13 @@ import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export function DocumentDetailContent({
   preloadedDocument,
-  preloadedChunks,
 }: {
   preloadedDocument: Preloaded<typeof api.documents.get>;
-  preloadedChunks: Preloaded<typeof api.chunks.listByDocument>;
 }) {
   const document = usePreloadedQuery(preloadedDocument);
-  const chunks = usePreloadedQuery(preloadedChunks);
 
   if (document === null) {
     return (
@@ -44,8 +40,6 @@ export function DocumentDetailContent({
       </div>
     );
   }
-
-  const sortedChunks = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -97,29 +91,6 @@ export function DocumentDetailContent({
         <div className="mt-10 flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
           <p className="text-muted-foreground">Waiting for processing...</p>
-        </div>
-      )}
-
-      {sortedChunks.length > 0 && (
-        <div className="animate-stagger-in mt-8 space-y-3">
-          {sortedChunks.map((chunk) => (
-            <Card
-              key={chunk._id}
-              className="overflow-hidden border-l-4 border-l-primary/20 transition-colors hover:border-l-primary/40"
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm font-medium text-muted-foreground">
-                    Chunk {chunk.chunkIndex + 1}
-                  </span>
-                  <span className="text-xs text-muted-foreground">~{chunk.tokenCount} tokens</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{chunk.content}</p>
-              </CardContent>
-            </Card>
-          ))}
         </div>
       )}
     </div>

@@ -2,17 +2,29 @@ const TARGET_CHUNK_SIZE = 750;
 const CHUNK_OVERLAP = 50;
 const MIN_CHUNK_SIZE = 100;
 
+/** Marker/Datalab page delimiter: `\n\n{PAGE_NUMBER}\n` + 48 dashes + `\n\n` */
+const PAGE_DELIMITER_RE = /\n{0,2}(\d+)\n-{48}\n{0,2}/;
+
+export interface Chunk {
+  content: string;
+  tokenCount: number;
+  sectionTitle?: string;
+  pageNumber?: number;
+}
+
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-export function chunkContent(text: string): { content: string; tokenCount: number }[] {
-  const chunks: { content: string; tokenCount: number }[] = [];
+export function chunkContent(text: string, sectionTitle?: string, pageNumber?: number): Chunk[] {
+  const chunks: Chunk[] = [];
   if (!text.trim()) return chunks;
 
   const totalTokens = estimateTokens(text);
   if (totalTokens <= TARGET_CHUNK_SIZE + MIN_CHUNK_SIZE) {
-    return [{ content: text.trim(), tokenCount: estimateTokens(text.trim()) }];
+    return [
+      { content: text.trim(), tokenCount: estimateTokens(text.trim()), sectionTitle, pageNumber },
+    ];
   }
 
   const charChunkSize = TARGET_CHUNK_SIZE * 4;
@@ -44,7 +56,12 @@ export function chunkContent(text: string): { content: string; tokenCount: numbe
 
     const chunkText = text.slice(start, end).trim();
     if (chunkText.length > 0) {
-      chunks.push({ content: chunkText, tokenCount: estimateTokens(chunkText) });
+      chunks.push({
+        content: chunkText,
+        tokenCount: estimateTokens(chunkText),
+        sectionTitle,
+        pageNumber,
+      });
     }
 
     if (end >= text.length) break;
@@ -54,21 +71,68 @@ export function chunkContent(text: string): { content: string; tokenCount: numbe
   return chunks;
 }
 
-export function chunkMarkdown(text: string): { content: string; tokenCount: number }[] {
+export function chunkMarkdown(text: string): Chunk[] {
+  // Check if the text contains page delimiters from Datalab
+  if (PAGE_DELIMITER_RE.test(text)) {
+    return chunkPaginatedMarkdown(text);
+  }
+
+  return chunkSections(text);
+}
+
+/** Chunk markdown that has no page delimiters. */
+function chunkSections(text: string, pageNumber?: number): Chunk[] {
   const headingPattern = /\n(?=#{1,3} )/;
   const sections = text.split(headingPattern).filter((s) => s.trim());
 
-  const chunks: { content: string; tokenCount: number }[] = [];
+  const chunks: Chunk[] = [];
 
   for (const section of sections) {
+    const headingMatch = section.match(/^(#{1,3}) (.+)/);
+    const sectionTitle = headingMatch ? headingMatch[2].trim() : undefined;
+
     const tokens = estimateTokens(section);
     if (tokens <= TARGET_CHUNK_SIZE + MIN_CHUNK_SIZE) {
       const trimmed = section.trim();
       if (trimmed) {
-        chunks.push({ content: trimmed, tokenCount: estimateTokens(trimmed) });
+        chunks.push({
+          content: trimmed,
+          tokenCount: estimateTokens(trimmed),
+          sectionTitle,
+          pageNumber,
+        });
       }
     } else {
-      chunks.push(...chunkContent(section));
+      chunks.push(...chunkContent(section, sectionTitle, pageNumber));
+    }
+  }
+
+  return chunks;
+}
+
+/**
+ * Split paginated markdown (from Datalab with `paginate: true`) into pages,
+ * then chunk each page while preserving page numbers.
+ */
+function chunkPaginatedMarkdown(text: string): Chunk[] {
+  // Split by page delimiters, capturing the page number
+  const parts = text.split(PAGE_DELIMITER_RE);
+  // parts structure: [before_first_delimiter, page_num_1, page_1_content, page_num_2, page_2_content, ...]
+
+  const chunks: Chunk[] = [];
+
+  // Content before the first delimiter (if any) — assume page 1
+  const preamble = parts[0]?.trim();
+  if (preamble) {
+    chunks.push(...chunkSections(preamble, 1));
+  }
+
+  // Process each page
+  for (let i = 1; i < parts.length; i += 2) {
+    const pageNumber = parseInt(parts[i], 10);
+    const pageContent = parts[i + 1]?.trim();
+    if (pageContent) {
+      chunks.push(...chunkSections(pageContent, pageNumber));
     }
   }
 
