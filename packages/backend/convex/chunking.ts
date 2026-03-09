@@ -4,7 +4,6 @@ const MIN_CHUNK_SIZE = 100;
 
 /** Marker/Datalab page delimiter: `\n\n{PAGE_NUMBER}\n` + 48 dashes + `\n\n` */
 const PAGE_DELIMITER_RE = /\n{0,2}(\d+)\n-{48}\n{0,2}/;
-const PAGE_DELIMITER_RE_GLOBAL = /\n{0,2}\d+\n-{48}\n{0,2}/g;
 
 export interface Chunk {
   content: string;
