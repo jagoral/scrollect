@@ -42,8 +42,10 @@ test.describe("Feed interactions and pagination", () => {
     await saveButton.click();
     await expect(saveButton).toHaveAttribute("aria-pressed", "true", { timeout: 15000 });
 
-    // Navigate to /saved → verify card appears
-    await page.goto("/saved");
+    // Navigate to /saved via client-side navigation to keep the Convex WebSocket
+    // alive — a full page.goto() can kill the connection before the mutation flushes.
+    await page.getByRole("navigation").getByRole("button", { name: /saved/i }).click();
+    await page.waitForURL(/\/saved/);
     await expect(page.getByRole("heading", { name: /saved/i })).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible({ timeout: 15000 });
 
