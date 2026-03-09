@@ -1,6 +1,17 @@
-# scrollect
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="apps/web/src/app/scrollect-full-logo-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="apps/web/src/app/scrollect-full-logo.svg" />
+    <img src="apps/web/src/app/scrollect-full-logo.svg" alt="Scrollect" width="400" />
+  </picture>
+</p>
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines Next.js, Convex, and more.
+<p align="center">
+  <strong>AI-powered personal learning feed.</strong><br/>
+  Transform your saved content into a scrollable feed of bite-sized learning cards.
+</p>
+
+---
 
 ## Features
 

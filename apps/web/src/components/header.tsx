@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { ScrollectLogo } from "./scrollect-logo";
 import { Button } from "./ui/button";
 import { ModeToggle } from "./mode-toggle";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
@@ -23,13 +24,14 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="z-50 border-b bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
+    <header className="z-50 border-b border-border/50 bg-background/80 shadow-[0_1px_3px_0_rgb(0_0_0/0.02)] backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
       <div className="flex flex-row items-center justify-between px-4 py-3 md:px-6">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <BookOpen className="h-4 w-4" />
-            </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-lg font-bold tracking-tight text-primary"
+          >
+            <ScrollectLogo size="md" />
             Scrollect
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
@@ -39,7 +41,11 @@ export default function Header() {
                 variant={pathname === to ? "secondary" : "ghost"}
                 size="sm"
                 render={<Link href={to} />}
-                className={pathname === to ? "font-medium" : "text-muted-foreground"}
+                className={
+                  pathname === to
+                    ? "relative font-medium after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-primary"
+                    : "text-muted-foreground"
+                }
               >
                 <Icon className="mr-1.5 h-4 w-4" />
                 {label}
@@ -72,10 +78,8 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                    <BookOpen className="h-3.5 w-3.5" />
-                  </div>
+                <SheetTitle className="flex items-center gap-2 text-primary">
+                  <ScrollectLogo size="sm" />
                   Scrollect
                 </SheetTitle>
               </SheetHeader>

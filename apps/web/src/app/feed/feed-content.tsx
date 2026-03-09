@@ -72,8 +72,8 @@ function FeedContentInner() {
 
       {results.length === 0 && !generating ? (
         <div className="mt-12 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-            <Rss className="h-8 w-8 text-muted-foreground" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+            <Rss className="h-8 w-8 text-primary/70" />
           </div>
           <div>
             <p className="text-lg font-semibold">No posts yet</p>
@@ -87,7 +87,7 @@ function FeedContentInner() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="animate-stagger-in grid gap-4">
           {results.map((post) => (
             <PostCard key={post._id} post={post} />
           ))}
@@ -96,7 +96,7 @@ function FeedContentInner() {
           <div ref={sentinelRef} className="h-1" />
 
           {status === "LoadingMore" && (
-            <div className="flex justify-center py-4">
+            <div className="flex justify-center py-4 animate-in fade-in duration-300">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
@@ -106,7 +106,11 @@ function FeedContentInner() {
               data-testid="feed-end-state"
               className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground"
             >
-              <CheckCircle className="h-6 w-6" />
+              <div className="mb-2 flex items-center gap-4">
+                <div className="h-px w-16 bg-gradient-to-r from-transparent to-border" />
+                <CheckCircle className="h-5 w-5" />
+                <div className="h-px w-16 bg-gradient-to-l from-transparent to-border" />
+              </div>
               <p className="text-sm font-medium">You&apos;re all caught up</p>
             </div>
           )}
