@@ -8,13 +8,18 @@ import { DocumentDetailContent } from "./document-detail-content";
 
 export default async function DocumentDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ documentId: string }>;
+  searchParams: Promise<{ chunk?: string }>;
 }) {
   if (!(await isAuthenticated())) redirect("/signin");
 
   const { documentId } = await params;
+  const { chunk } = await searchParams;
   const id = documentId as Id<"documents">;
+
+  const highlightChunkIndex = chunk != null && !Number.isNaN(Number(chunk)) ? Number(chunk) : null;
 
   const [preloadedDocument, preloadedChunks] = await Promise.all([
     preloadAuthQuery(api.documents.get, { id }),
@@ -25,6 +30,7 @@ export default async function DocumentDetailPage({
     <DocumentDetailContent
       preloadedDocument={preloadedDocument}
       preloadedChunks={preloadedChunks}
+      highlightChunkIndex={highlightChunkIndex}
     />
   );
 }

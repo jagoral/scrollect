@@ -6,13 +6,16 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-export function chunkContent(text: string): { content: string; tokenCount: number }[] {
-  const chunks: { content: string; tokenCount: number }[] = [];
+export function chunkContent(
+  text: string,
+  sectionTitle?: string,
+): { content: string; tokenCount: number; sectionTitle?: string }[] {
+  const chunks: { content: string; tokenCount: number; sectionTitle?: string }[] = [];
   if (!text.trim()) return chunks;
 
   const totalTokens = estimateTokens(text);
   if (totalTokens <= TARGET_CHUNK_SIZE + MIN_CHUNK_SIZE) {
-    return [{ content: text.trim(), tokenCount: estimateTokens(text.trim()) }];
+    return [{ content: text.trim(), tokenCount: estimateTokens(text.trim()), sectionTitle }];
   }
 
   const charChunkSize = TARGET_CHUNK_SIZE * 4;
@@ -44,7 +47,7 @@ export function chunkContent(text: string): { content: string; tokenCount: numbe
 
     const chunkText = text.slice(start, end).trim();
     if (chunkText.length > 0) {
-      chunks.push({ content: chunkText, tokenCount: estimateTokens(chunkText) });
+      chunks.push({ content: chunkText, tokenCount: estimateTokens(chunkText), sectionTitle });
     }
 
     if (end >= text.length) break;
@@ -54,21 +57,27 @@ export function chunkContent(text: string): { content: string; tokenCount: numbe
   return chunks;
 }
 
-export function chunkMarkdown(text: string): { content: string; tokenCount: number }[] {
+export function chunkMarkdown(
+  text: string,
+): { content: string; tokenCount: number; sectionTitle?: string }[] {
   const headingPattern = /\n(?=#{1,3} )/;
   const sections = text.split(headingPattern).filter((s) => s.trim());
 
-  const chunks: { content: string; tokenCount: number }[] = [];
+  const chunks: { content: string; tokenCount: number; sectionTitle?: string }[] = [];
 
   for (const section of sections) {
+    // Extract heading from the section if it starts with one
+    const headingMatch = section.match(/^(#{1,3}) (.+)/);
+    const sectionTitle = headingMatch ? headingMatch[2].trim() : undefined;
+
     const tokens = estimateTokens(section);
     if (tokens <= TARGET_CHUNK_SIZE + MIN_CHUNK_SIZE) {
       const trimmed = section.trim();
       if (trimmed) {
-        chunks.push({ content: trimmed, tokenCount: estimateTokens(trimmed) });
+        chunks.push({ content: trimmed, tokenCount: estimateTokens(trimmed), sectionTitle });
       }
     } else {
-      chunks.push(...chunkContent(section));
+      chunks.push(...chunkContent(section, sectionTitle));
     }
   }
 

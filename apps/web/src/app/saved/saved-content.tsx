@@ -66,6 +66,11 @@ export function SavedContent() {
                   createdAt: bookmark.post.createdAt,
                   reaction: bookmark.post.reaction,
                   isBookmarked: true,
+                  sourceChunkId: bookmark.post.sourceChunkId,
+                  sourceDocumentId: bookmark.post.sourceDocumentId,
+                  sectionTitle: bookmark.post.sectionTitle,
+                  pageNumber: bookmark.post.pageNumber,
+                  chunkIndex: bookmark.post.chunkIndex,
                 }}
               />
             );
