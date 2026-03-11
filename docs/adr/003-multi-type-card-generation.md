@@ -24,9 +24,11 @@ The target card types are:
 
 ## Decisions
 
-### 1. Schema: Single `posts` table with `postType` discriminator
+### 1. Schema: Single `posts` table with discriminated union `typeData`
 
-Keep one `posts` table. Add a `postType` field as a required union discriminator and type-specific optional fields. Denormalize primary source metadata onto `posts` so the feed list query stays cheap (no extra joins for the source badge).
+Keep one `posts` table. Use a `postType` discriminator for indexing and a `typeData` discriminated union field for type-specific data. This gives each card type its own strongly-typed shape — adding a new type or variant means adding one more object to the union, not polluting shared fields.
+
+Denormalize primary source metadata onto `posts` so the feed list query stays cheap (no extra joins for the source badge).
 
 ```ts
 // lib/validators.ts
@@ -38,19 +40,42 @@ export const postType = v.union(
   v.literal("connection"),
 );
 
+export const quizVariant = v.union(
+  v.literal("reveal"),
+  v.literal("multiple-choice"),
+  v.literal("freeform"),
+);
+
+export const typeData = v.union(
+  v.object({
+    type: v.literal("insight"),
+  }),
+  v.object({
+    type: v.literal("quiz"),
+    variant: quizVariant,
+    question: v.string(),
+    answer: v.string(),
+    // multiple-choice only
+    options: v.optional(v.array(v.string())),
+    correctIndex: v.optional(v.number()),
+  }),
+  v.object({
+    type: v.literal("quote"),
+    attribution: v.optional(v.string()),
+  }),
+  v.object({
+    type: v.literal("summary"),
+  }),
+  v.object({
+    type: v.literal("connection"),
+  }),
+);
+
 // schema.ts — posts table
 posts: defineTable({
-  postType: postType,
-  content: v.string(),
-
-  // Quiz fields (phase 1: reveal-to-answer)
-  quizQuestion: v.optional(v.string()),
-  quizAnswer: v.optional(v.string()),
-  // Quiz fields (phase 2: multiple choice)
-  quizOptions: v.optional(v.array(v.string())),
-  quizCorrectIndex: v.optional(v.number()),
-  // Quote fields
-  quoteAttribution: v.optional(v.string()),
+  postType: postType, // denormalized for indexing (mirrors typeData.type)
+  content: v.string(), // main card body (markdown), shared across all types
+  typeData: typeData, // type-specific data, strongly typed per variant
 
   // Denormalized primary source (avoids join on feed list)
   primarySourceDocumentId: v.id("documents"),
@@ -67,6 +92,14 @@ posts: defineTable({
   .index("by_userId", ["userId"])
   .index("by_userId_type", ["userId", "postType"]);
 ```
+
+**Why `typeData` instead of flat optional fields:**
+
+- **Type safety** — A quiz card _must_ have `question` and `answer`. With flat optional fields, schema can't enforce this. With `typeData`, Convex validates the shape at write time.
+- **Extensibility** — Adding a freeform quiz variant, a "timeline" card with `events: v.array(...)`, or a "comparison" card with `sideA`/`sideB` — each is a self-contained object in the union. No field collision, no growing pile of unrelated optionals.
+- **Readability** — When reading a post, `post.typeData` contains exactly the fields relevant to that type. No need to mentally filter which optionals apply.
+
+**Why `postType` is duplicated alongside `typeData.type`:** Convex indexes can't reach into nested objects. To query posts by type (e.g., "all quiz cards for user X"), we need `postType` as a top-level indexed field. It always mirrors `typeData.type` — enforced at write time.
 
 Full provenance lives in a junction table, loaded only when the user opens the expand/detail sheet:
 
@@ -90,26 +123,12 @@ postSources: defineTable({
 
 #### Alternatives considered
 
-| Approach                                                 | Pros                                                     | Cons                                                                                               |
-| -------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Single table + optional fields** (chosen)              | Simple queries, Convex-native pagination, one feed query | Type-specific fields are optional (no schema enforcement per type), grows with types               |
-| **Separate tables per type** (`quizPosts`, `quotePosts`) | Strong per-type typing                                   | Can't paginate across tables in Convex. Feed query would need to merge N cursors — impractical     |
-| **Discriminated union `typeData` field**                 | Groups type-specific data, validatable at runtime        | Convex `v.union` on nested objects adds validator complexity. Harder to index type-specific fields |
-
-**Scaling threshold:** If type-specific optional fields exceed ~8, migrate to a discriminated union `typeData` field:
-
-```ts
-// Future refactor if field count grows
-typeData: v.union(
-  v.object({ type: v.literal("quiz"), quizQuestion: v.string(), quizAnswer: v.string() }),
-  v.object({ type: v.literal("quote"), quoteAttribution: v.optional(v.string()) }),
-  v.object({ type: v.literal("insight") }),
-  v.object({ type: v.literal("summary") }),
-  v.object({ type: v.literal("connection") }),
-);
-```
-
-This groups type-specific data and enables runtime validation per type. Not needed for Phase 1 (5 types, 5 optional fields).
+| Approach                                                 | Pros                                                                                  | Cons                                                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Discriminated union `typeData`** (chosen)              | Strong per-type typing, self-contained shapes, easy to extend with new types/variants | Can't index into nested fields (solved by `postType` duplication)                              |
+| **Flat optional fields**                                 | Simpler schema, fields are indexable                                                  | No per-type validation, grows unbounded with types, field collisions between types             |
+| **Separate tables per type** (`quizPosts`, `quotePosts`) | Strongest per-type typing                                                             | Can't paginate across tables in Convex. Feed query would need to merge N cursors — impractical |
+| **`v.any()` JSON blob**                                  | Maximum flexibility                                                                   | Zero type safety, no schema validation, bugs surface at runtime not write time                 |
 
 ### 2. Prompt strategy: Single call, mixed types, structured output
 
@@ -136,15 +155,26 @@ One OpenAI call per generation batch. The prompt instructs the model to produce 
     },
     {
       "type": "quiz",
-      "quizQuestion": "What happens to the learning rate when...",
-      "quizAnswer": "It decays exponentially because...",
+      "variant": "reveal",
+      "question": "What happens to the learning rate when...",
+      "answer": "It decays exponentially because...",
       "content": "The learning rate schedule determines...",
       "sourceChunkIndices": [0, 2]
     },
     {
+      "type": "quiz",
+      "variant": "multiple-choice",
+      "question": "Which regularization technique randomly disables neurons?",
+      "answer": "Dropout",
+      "options": ["L2 regularization", "Dropout", "Batch normalization", "Early stopping"],
+      "correctIndex": 1,
+      "content": "Regularization prevents overfitting by...",
+      "sourceChunkIndices": [2]
+    },
+    {
       "type": "quote",
       "content": "> \"The best way to predict the future is to invent it.\"",
-      "quoteAttribution": "Alan Kay, in Chapter 3",
+      "attribution": "Alan Kay, in Chapter 3",
       "sourceChunkIndices": [1]
     },
     {
@@ -161,6 +191,8 @@ One OpenAI call per generation batch. The prompt instructs the model to produce 
 }
 ```
 
+The AI output maps directly to `typeData`: each card's type-specific fields become the `typeData` object, and `content` stays as the shared top-level field.
+
 Each card includes `sourceChunkIndices` — an array of indices referencing the input chunks. This enables multi-chunk provenance.
 
 **Token budget:** Average chunk ~200 tokens. With 10 chunks: ~2,000 input tokens + ~500 system prompt = ~2,500 prompt tokens. Output: ~12 cards at ~80 tokens each = ~960 completion tokens. Well within gpt-4o-mini limits (128k context, 16k output). Guard: if total input tokens exceed 8,000, split into multiple calls.
@@ -169,13 +201,15 @@ Each card includes `sourceChunkIndices` — an array of indices referencing the 
 
 Generated cards are validated before storage. Invalid cards are dropped (not retried individually):
 
-| Condition                                                                 | Action                  |
-| ------------------------------------------------------------------------- | ----------------------- |
-| Missing required type-specific fields (e.g., quiz without `quizQuestion`) | Drop card, log warning  |
-| `sourceChunkIndices` empty or contains out-of-range indices               | Drop card, log warning  |
-| Summary card with < 2 source chunks                                       | Downgrade to insight    |
-| Connection card with all sources from same document                       | Downgrade to summary    |
-| > 50% of cards in batch dropped                                           | Retry entire batch once |
+| Condition                                                                         | Action                  |
+| --------------------------------------------------------------------------------- | ----------------------- |
+| Missing required type-specific fields (e.g., quiz without `question` or `answer`) | Drop card, log warning  |
+| Quiz with `variant: "multiple-choice"` but missing `options` or `correctIndex`    | Drop card, log warning  |
+| `sourceChunkIndices` empty or contains out-of-range indices                       | Drop card, log warning  |
+| Summary card with < 2 source chunks                                               | Downgrade to insight    |
+| Connection card with all sources from same document                               | Downgrade to summary    |
+| Unknown `type` or `variant` value                                                 | Drop card, log warning  |
+| > 50% of cards in batch dropped                                                   | Retry entire batch once |
 
 **Feature flag:** An environment variable `MULTI_TYPE_GENERATION=true|false` controls whether the new multi-type prompt or the legacy single-type prompt is used. Enables instant rollback without code deploy if card quality is poor in production.
 
@@ -255,18 +289,24 @@ For multi-chunk cards (summaries, connections), the most representative chunk is
 
 This keeps feed list reads at the same cost as today (N+1 per post: post + bookmark check) while supporting full transparency on expand.
 
-### 6. Type extensibility: Adding a new card type
+### 6. Type extensibility
 
-Full steps to add a card type (e.g., "analogy", "timeline"):
+**Adding a new card type** (e.g., "timeline"):
 
-1. **Add to `postType` union** in `lib/validators.ts`.
-2. **Add optional type-specific fields** to `posts` table (if any).
-3. **Update the generation prompt** to include the new type's description and output shape.
-4. **Update the response parser** to handle the new type's fields and validation rules.
-5. **Add frontend card component** with type-specific rendering.
-6. **If the type needs a different chunk selection strategy** (e.g., a "timeline" card needs ordered chunks from one document), add a selection strategy in the generation action.
+1. **Add to `postType` union** and **add a new object to `typeData` union** in `lib/validators.ts`. The new object defines exactly the fields this type needs — no impact on other types.
+2. **Update the generation prompt** to describe the new type and its expected JSON output.
+3. **Update the response parser** to map the new type's AI output to its `typeData` shape + add validation rules.
+4. **Add frontend card component** with type-specific rendering.
+5. **If the type needs a different chunk selection strategy** (e.g., ordered chunks from one document), add a selection strategy in the generation action.
 
-Existing posts are unaffected — they retain their type. New types appear only in new generation runs.
+**Adding a variant to an existing type** (e.g., freeform quiz):
+
+1. **Add to the variant union** inside the existing `typeData` object (e.g., add `v.literal("freeform")` to `quizVariant`).
+2. **Add any new fields** needed by the variant (e.g., `rubric: v.optional(v.string())` for evaluating freeform answers).
+3. **Update prompt and parser** to handle the new variant.
+4. **Update frontend** to render the variant differently.
+
+No migration needed in either case — existing posts retain their `typeData` shape unchanged.
 
 **Constraint enforcement:** Some card types have implicit constraints not enforced by schema:
 
@@ -282,12 +322,12 @@ Since we're in prototype phase, this is a clean-slate schema change — no migra
 **Changes to `posts` table:**
 
 - Remove: `sourceChunkId`, `sourceDocumentId`
-- Add: `postType`, `quizQuestion`, `quizAnswer`, `quizOptions`, `quizCorrectIndex`, `quoteAttribution`, `primarySourceDocumentId`, `primarySourceDocumentTitle`, `primarySourceChunkId`, `primarySourceSectionTitle`, `primarySourcePageNumber`
+- Add: `postType` (top-level, for indexing), `typeData` (discriminated union with per-type fields), `primarySourceDocumentId`, `primarySourceDocumentTitle`, `primarySourceChunkId`, `primarySourceSectionTitle`, `primarySourcePageNumber`
 - Add index: `by_userId_type`
 
 **New table:** `postSources` (with indexes `by_postId`, `by_chunkId`, `by_documentId`, `by_userId`)
 
-**Updated write path:** `createPost` mutation writes `postType` and all denormalized primary source fields. Generation action inserts `postSources` rows after creating each post.
+**Updated write path:** `createPost` mutation writes `postType`, `typeData`, and all denormalized primary source fields. `postType` must always equal `typeData.type` — enforced at write time. Generation action inserts `postSources` rows after creating each post.
 
 ## Prototype Results
 
@@ -318,13 +358,13 @@ A standalone prototype script (`spikes/multi-type-generation/prototype.ts`) vali
 
 ### Issue scope: 3 implementation issues
 
-**Issue A: Schema + postType discriminator**
+**Issue A: Schema + typeData discriminated union**
 
-- Apply new `posts` schema with `postType` and denormalized primary source fields
+- Apply new `posts` schema with `postType`, `typeData`, and denormalized primary source fields
 - Create `postSources` junction table
 - Update `createPost` mutation, `feed.list` query, `bookmarks.listSaved` query
 - Delete existing posts (prototype phase — clean slate)
-- **Acceptance criteria:** New posts created with `postType`. Feed list reads primary source from denormalized fields. `postSources` populated on generation.
+- **Acceptance criteria:** New posts created with `typeData` matching their type. Convex rejects malformed `typeData` at write time. Feed list reads primary source from denormalized fields. `postSources` populated on generation.
 
 **Issue B: Multi-type generation pipeline**
 
@@ -346,9 +386,10 @@ A standalone prototype script (`spikes/multi-type-generation/prototype.ts`) vali
 
 ## Consequences
 
-- **Schema complexity**: One new table (`postSources`), several optional fields and denormalized source fields on `posts`. Moderate increase, but the junction table pattern is already established with bookmarks.
+- **Schema complexity**: One new table (`postSources`), a discriminated union `typeData` field, and denormalized source fields on `posts`. Moderate increase, but the junction table pattern is already established with bookmarks.
+- **Type safety**: The `typeData` discriminated union enforces per-type field requirements at write time. A quiz card _cannot_ be stored without `question` and `answer` — Convex schema validation rejects it. This is a significant improvement over flat optional fields.
 - **Query cost (feed list)**: Same as today — denormalized primary source fields eliminate the extra join. Full provenance (all sources) loaded lazily on expand only.
 - **Query cost (dedup)**: One `by_userId` index query on `postSources` + batch `db.get()` for postType resolution per generation run. Acceptable for action context.
 - **Generation latency**: Unchanged — still one OpenAI call per batch. Post-generation validation adds negligible overhead.
 - **Prompt engineering**: The multi-type prompt is more complex and will need iteration. Feature flag enables instant rollback if quality is poor.
-- **Type safety gap**: Type-specific fields are optional at schema level — a quiz card could theoretically be stored without `quizQuestion`. Post-generation validation catches this at write time. If field count grows beyond ~8, migrate to discriminated union `typeData` field.
+- **Extensibility**: Adding a new card type or quiz variant is a localized change — add to the union, update prompt, add frontend component. No existing types are affected. No migration needed.
