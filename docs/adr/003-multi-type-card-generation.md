@@ -14,13 +14,13 @@ The feed currently generates a single card type: insight cards. Each generation 
 
 The target card types are:
 
-| Type           | Description                                                     | Chunk cardinality               |
-| -------------- | --------------------------------------------------------------- | ------------------------------- |
-| **Insight**    | Key concept, fact, or takeaway                                  | 1+ chunks                       |
-| **Quiz**       | Reveal-to-answer flashcard (phase 1), multiple choice (phase 2) | 1+ chunks                       |
-| **Quote**      | Notable passage with attribution                                | 1 chunk                         |
-| **Summary**    | Condensed overview of a section or topic                        | 2-5 chunks                      |
-| **Connection** | Links concepts across different documents                       | 2-3 chunks, different documents |
+| Type           | Description                                                     | Chunk cardinality                           |
+| -------------- | --------------------------------------------------------------- | ------------------------------------------- |
+| **Insight**    | Key concept, fact, or takeaway                                  | 1+ chunks                                   |
+| **Quiz**       | Reveal-to-answer flashcard (phase 1), multiple choice (phase 2) | 1+ chunks                                   |
+| **Quote**      | Notable passage with attribution                                | 1 chunk                                     |
+| **Summary**    | Condensed overview of a section or topic                        | 2-5 chunks                                  |
+| **Connection** | Links concepts across different sections or documents           | 2-3 chunks, different sections or documents |
 
 ## Decisions
 
@@ -99,7 +99,9 @@ posts: defineTable({
 - **Extensibility** — Adding a freeform quiz variant, a "timeline" card with `events: v.array(...)`, or a "comparison" card with `sideA`/`sideB` — each is a self-contained object in the union. No field collision, no growing pile of unrelated optionals.
 - **Readability** — When reading a post, `post.typeData` contains exactly the fields relevant to that type. No need to mentally filter which optionals apply.
 
-**Why `postType` is duplicated alongside `typeData.type`:** Convex indexes can't reach into nested objects. To query posts by type (e.g., "all quiz cards for user X"), we need `postType` as a top-level indexed field. It always mirrors `typeData.type` — enforced at write time.
+**Why `postType` is duplicated alongside `typeData.type`:** Convex indexes can't reach into nested objects. To query posts by type (e.g., "all quiz cards for user X"), we need `postType` as a top-level indexed field. It always mirrors `typeData.type`.
+
+**Invariant enforcement:** All writes to `posts` must go through a single canonical `insertPost` internal mutation that asserts `postType === typeData.type` before inserting. No other code path should write to `posts` directly. This prevents drift between the two fields across future code paths (bulk import, migration scripts, admin tools).
 
 Full provenance lives in a junction table, loaded only when the user opens the expand/detail sheet:
 
@@ -116,8 +118,11 @@ postSources: defineTable({
   .index("by_postId", ["postId"])
   .index("by_chunkId", ["chunkId"])
   .index("by_documentId", ["documentId"])
-  .index("by_userId", ["userId"]);
+  .index("by_userId", ["userId"])
+  .index("by_userId_createdAt", ["userId", "createdAt"]);
 ```
+
+The `by_userId_createdAt` compound index enables windowed dedup queries (e.g., only check against cards from the last 90 days), preventing unbounded growth as users accumulate thousands of posts.
 
 **Note on type-aware dedup:** `postType` lives on `posts`, not `postSources`. To check which card types a chunk has already produced, query `postSources.by_chunkId` → fetch each linked post → read `postType`. This is an application-level join, not an index join. The `by_userId` index on `postSources` enables the batch optimization (fetch all sources for a user at once, build an in-memory map keyed by chunkId → set of postTypes).
 
@@ -195,23 +200,29 @@ The AI output maps directly to `typeData`: each card's type-specific fields beco
 
 Each card includes `sourceChunkIndices` — an array of indices referencing the input chunks. This enables multi-chunk provenance.
 
-**Token budget:** Average chunk ~200 tokens. With 10 chunks: ~2,000 input tokens + ~500 system prompt = ~2,500 prompt tokens. Output: ~12 cards at ~80 tokens each = ~960 completion tokens. Well within gpt-4o-mini limits (128k context, 16k output). Guard: if total input tokens exceed 8,000, split into multiple calls.
+**Token budget:** Average chunk ~200 tokens. With 10 chunks: ~2,000 input tokens + ~500 system prompt = ~2,500 prompt tokens. Output: quiz cards with multiple-choice average ~120-150 tokens (higher than simple insights at ~70). Conservative estimate for 12 mixed cards: ~1,500-2,000 completion tokens. Well within gpt-4o-mini limits (128k context, 16k output). Guard: if total input tokens exceed 8,000, split into multiple calls.
+
+**Retry and error handling:** The single OpenAI call is a single point of failure — network errors, rate limits, or truncated JSON lose the entire batch.
+
+- **Retry policy:** Exponential backoff with max 2 retries (delays: 2s, 4s). Applies to network errors, rate limits (429), and server errors (5xx).
+- **Partial recovery:** If JSON parsing fails, attempt to salvage any valid cards from a partial response before retrying.
+- **Latency budget:** Prototype showed 9.5s for 5 chunks. With 10 chunks and quiz variants, expect p50 ~12s, p95 ~20s, p99 ~30s. Generation runs in a Convex action (no user-facing timeout), so this is acceptable.
 
 **Post-generation validation:**
 
 Generated cards are validated before storage. Invalid cards are dropped (not retried individually):
 
-| Condition                                                                         | Action                  |
-| --------------------------------------------------------------------------------- | ----------------------- |
-| Missing required type-specific fields (e.g., quiz without `question` or `answer`) | Drop card, log warning  |
-| Quiz with `variant: "multiple-choice"` but missing `options` or `correctIndex`    | Drop card, log warning  |
-| `sourceChunkIndices` empty or contains out-of-range indices                       | Drop card, log warning  |
-| Summary card with < 2 source chunks                                               | Downgrade to insight    |
-| Connection card with all sources from same document                               | Downgrade to summary    |
-| Unknown `type` or `variant` value                                                 | Drop card, log warning  |
-| > 50% of cards in batch dropped                                                   | Retry entire batch once |
+| Condition                                                                         | Action                                                                                      |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Missing required type-specific fields (e.g., quiz without `question` or `answer`) | Drop card, log warning                                                                      |
+| Quiz with `variant: "multiple-choice"` but missing `options` or `correctIndex`    | Drop card, log warning                                                                      |
+| `sourceChunkIndices` empty or contains out-of-range indices                       | Drop card, log warning                                                                      |
+| Summary card with < 2 source chunks                                               | Drop card, log warning (don't downgrade — summary-style language reads oddly as an insight) |
+| Connection card with all sources from same section/document                       | Drop card, log warning                                                                      |
+| Unknown `type` or `variant` value                                                 | Drop card, log warning                                                                      |
+| > 50% of cards in batch dropped                                                   | Retry entire batch once                                                                     |
 
-**Feature flag:** An environment variable `MULTI_TYPE_GENERATION=true|false` controls whether the new multi-type prompt or the legacy single-type prompt is used. Enables instant rollback without code deploy if card quality is poor in production.
+**Feature flag:** An environment variable `MULTI_TYPE_GENERATION=true|false` controls whether the new multi-type prompt or the legacy single-type prompt is used. Enables instant rollback without code deploy if card quality is poor in production. This is environment-level for Phase 1. Future: move to a per-user flag in the database for A/B testing and gradual rollout.
 
 ### 3. Deduplication: Type-aware usage-weighted sampling
 
@@ -219,19 +230,23 @@ Hard-excluding used chunks would exhaust source material too fast — especially
 
 **Strategy: Type-aware usage-weighted sampling**
 
-1. Before generation, batch-fetch all `postSources` for the user via `postSources.by_userId` index.
+1. Before generation, batch-fetch recent `postSources` for the user via `postSources.by_userId_createdAt` index (windowed to last 90 days — older cards are unlikely to cause meaningful duplicates).
 2. Build an in-memory map: `chunkId → Set<postType>` (by joining each postSource's `postId` to `posts` to read `postType`).
-3. Compute a weight for each chunk considering type coverage:
+3. Compute a weight for each chunk:
    ```
    typesUsed = number of distinct postTypes this chunk has contributed to
    totalUsage = total number of cards this chunk appears in
-   weight = 1 / (1 + totalUsage) * (1 + (TARGET_TYPES - typesUsed) * TYPE_BONUS)
+   weight = base_weight
+     * recency_boost(document)
+     * (1 / (1 + totalUsage))
+     * (1 + (TARGET_TYPES - typesUsed) * TYPE_BONUS)
    ```
-   Where `TARGET_TYPES = 5` and `TYPE_BONUS = 0.3`. Chunks with unused type potential get a boost.
+   Where `TARGET_TYPES = 5`, `TYPE_BONUS = 0.3`, and `recency_boost` gives 2x weight to chunks from documents uploaded in the last 48 hours (tapering linearly to 1x over 7 days). This solves the cold-start problem — fresh chunks dominate early runs, ensuring users see cards from newly uploaded content quickly.
 4. Use weighted random sampling to select chunks for the batch.
-5. Pass type coverage info to the prompt: "Chunk 3 already has insight and quiz cards — prefer other types."
+5. **Guarantee cross-document/section representation:** When the user has multiple documents, always include at least 2 chunks from different documents in every batch. This is a hard constraint, not a weight — connection cards can't be produced otherwise.
+6. Pass type coverage info to the prompt: "Chunk 3 already has insight and quiz cards — prefer other types."
 
-**Multi-chunk dedup:** For summary and connection cards, add a post-storage check: after generation, before inserting, check if a card with the same `postType` and overlapping `sourceChunkIndices` (Jaccard similarity > 0.5) already exists for this user. If so, drop the duplicate.
+**Multi-chunk dedup:** For summary and connection cards, check for overlapping source chunks before inserting. Comparison is bounded to cards of the same `postType` created in the last 30 days (not all-time) to avoid O(n²) growth. Exact dedup: store a chunk signature hash (sorted chunk IDs, hashed) on each post for O(1) exact-match lookups. Jaccard similarity (> 0.5) is reserved for a future periodic background cleanup job, not the hot write path.
 
 **Why not hard exclusion:**
 
@@ -239,7 +254,7 @@ Hard-excluding used chunks would exhaust source material too fast — especially
 - The same chunk can legitimately produce a great insight AND a great quiz — these serve different learning purposes.
 - Weighted sampling naturally balances novelty vs. reuse without a cliff edge.
 
-**Convex cost:** One indexed query on `postSources.by_userId` to fetch all sources for the user, then batch `db.get()` calls to resolve `postType` from linked posts. For a user with 200 posts and 400 postSource rows: 1 index query + ~200 `db.get()` calls (deduplicated by postId). Built as an in-memory map once per generation run.
+**Convex cost:** One indexed query on `postSources.by_userId_createdAt` (windowed to 90 days) to fetch recent sources, then batch `db.get()` calls to resolve `postType` from linked posts. For a user with 200 recent posts: 1 index query + ~200 `db.get()` calls (deduplicated by postId). Built as an in-memory map once per generation run. The 90-day window caps read cost even for power users with thousands of lifetime posts.
 
 **Known limitation:** Chunk-ID dedup does not catch semantically similar content from different chunks (e.g., a concept explained in both an introduction and a summary chapter). Embeddings-based semantic dedup is deferred to a future ADR — the existing Qdrant infrastructure could support it.
 
@@ -270,6 +285,8 @@ These ratios would be injected into the prompt: "Aim for approximately 40% insig
 - The model can assess which chunks suit which card types better than a fixed ratio.
 - Fixed ratios can force awkward fits (e.g., demanding a quiz from a chunk that's pure narrative).
 - Starting with AI decisions lets us collect data on natural type distributions before tuning.
+
+**Prompt evolution:** The single prompt carries significant cognitive load — 5+ type definitions, JSON structure, coverage hints, and variety guidance. Phase 1 ships this as a single call. Phase 2 should consider a two-pass approach: (1) a lightweight "planner" call that assigns types to chunks, (2) a "generator" call that produces cards given the plan. This reduces per-call complexity and improves reliability. For Phase 1, add prompt regression tests: a suite of 10-15 representative chunk sets with expected type distributions, run as part of CI against prompt changes.
 
 ### 5. Provenance: Primary + supporting with flexible UI
 
@@ -310,7 +327,7 @@ No migration needed in either case — existing posts retain their `typeData` sh
 
 **Constraint enforcement:** Some card types have implicit constraints not enforced by schema:
 
-- Connection cards must reference chunks from different documents.
+- Connection cards must reference chunks from different sections or documents (a user with 1 book should still get connections across chapters).
 - Summary cards must reference 2+ chunks.
 
 These are enforced by post-generation validation (Section 2), not by schema constraints.
@@ -327,7 +344,9 @@ Since we're in prototype phase, this is a clean-slate schema change — no migra
 
 **New table:** `postSources` (with indexes `by_postId`, `by_chunkId`, `by_documentId`, `by_userId`)
 
-**Updated write path:** `createPost` mutation writes `postType`, `typeData`, and all denormalized primary source fields. `postType` must always equal `typeData.type` — enforced at write time. Generation action inserts `postSources` rows after creating each post.
+**New field on `posts`:** `sourceChunkHash: v.optional(v.string())` — a SHA256 hash of sorted source chunk IDs, used for O(1) exact-match multi-chunk dedup. Set for summary and connection cards.
+
+**Updated write path:** All writes go through a canonical `insertPost` internal mutation that: (1) asserts `postType === typeData.type`, (2) computes `sourceChunkHash` for multi-chunk cards, (3) inserts the post, (4) inserts `postSources` rows. No other code path writes to `posts` directly.
 
 ## Prototype Results
 
@@ -384,12 +403,59 @@ A standalone prototype script (`spikes/multi-type-generation/prototype.ts`) vali
 
 ### Recommended order: A → B → C (with B and C parallelizable after A)
 
+## Future: Feed Ordering and Engagement
+
+The generation pipeline produces cards, but the **ordering** of cards in the feed is equally important for engagement. These rules are frontend/query concerns, not generation, but the architecture must not prevent them.
+
+**Phase 1 rules:**
+
+- **Hook card first:** The most interactive card in each batch (quiz or connection, never a plain insight) should be placed first. Duolingo always starts a session with something interactive.
+- **No consecutive same-type:** Never show 2 cards of the same `postType` in a row. Even with 5 types, random ordering can produce 3 insights consecutively — the user's brain pattern-matches "more of the same" and bounces.
+- **Freshness badge:** Cards from documents uploaded in the last 48 hours get a visual "New" indicator. Users want to see that uploading content produces immediate results.
+
+**Phase 2: Adaptive difficulty**
+
+Track quiz accuracy per user. If they're getting 90%+ correct, the content is too easy — shift toward harder synthesis cards (connections, summaries). Below 50%, shift toward foundational (insights, quotes). This is Duolingo's adaptive difficulty mechanic and the strongest retention signal.
+
+## Future: Learning Loop and Active Card Types
+
+The current 5 types are all **presentation formats** — they differ in how content looks. The `typeData` union is designed to grow toward **active learning** card types:
+
+| Type                  | Description                                                                        | Why                                                         |
+| --------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Spaced Repetition** | Re-surface liked cards at increasing intervals (1d, 3d, 7d, 14d)                   | #1 retention mechanic from Anki/Duolingo                    |
+| **Apply**             | "How would you use [concept] in your current project?" — freeform, no right answer | Bridges knowing and doing                                   |
+| **Contradiction**     | "In Doc A, author argues X. In Doc B, author argues Y."                            | Forces critical thinking — unique to multi-document systems |
+| **Fill-in-the-blank** | Key sentence with a critical term removed                                          | More active than reading, lower friction than freeform quiz |
+| **Micro-challenge**   | "In 2 sentences, explain [concept] to a junior developer"                          | Feynman technique as a card                                 |
+
+None of these require schema changes — each is a new `typeData` union member.
+
+**Quality feedback loop:** The `reaction` field on posts is a start, but reactions should feed back into generation:
+
+- Thumbs-down on quiz cards → reduce quiz frequency for that user/topic
+- Thumbs-up on connections → increase cross-document synthesis
+- Track quiz answer correctness when freeform quizzes ship → spaced repetition integration
+
+Hook points for this feedback are: the dedup weight formula (reaction signals per chunk) and the generation prompt (user preference hints). The architecture supports this without changes — reactions are already stored and queryable.
+
+## Success Metrics
+
+| Metric                     | Definition                                       | Target                                 |
+| -------------------------- | ------------------------------------------------ | -------------------------------------- |
+| **Cards per session**      | Avg cards viewed before closing                  | > 8                                    |
+| **Type engagement ratio**  | Reaction rate per card type                      | Identify which types users love/ignore |
+| **Return rate**            | % of users who open the feed again within 48h    | > 40%                                  |
+| **Quiz attempt rate**      | % of quiz cards where user taps to reveal/answer | > 60%                                  |
+| **Upload-to-card latency** | Time from document upload to first card in feed  | < 5 minutes                            |
+| **Dedup effectiveness**    | % of users reporting "I've seen this before"     | < 10%                                  |
+
 ## Consequences
 
 - **Schema complexity**: One new table (`postSources`), a discriminated union `typeData` field, and denormalized source fields on `posts`. Moderate increase, but the junction table pattern is already established with bookmarks.
-- **Type safety**: The `typeData` discriminated union enforces per-type field requirements at write time. A quiz card _cannot_ be stored without `question` and `answer` — Convex schema validation rejects it. This is a significant improvement over flat optional fields.
+- **Type safety**: The `typeData` discriminated union enforces per-type field requirements at write time. A quiz card _cannot_ be stored without `question` and `answer` — Convex schema validation rejects it.
 - **Query cost (feed list)**: Same as today — denormalized primary source fields eliminate the extra join. Full provenance (all sources) loaded lazily on expand only.
-- **Query cost (dedup)**: One `by_userId` index query on `postSources` + batch `db.get()` for postType resolution per generation run. Acceptable for action context.
-- **Generation latency**: Unchanged — still one OpenAI call per batch. Post-generation validation adds negligible overhead.
-- **Prompt engineering**: The multi-type prompt is more complex and will need iteration. Feature flag enables instant rollback if quality is poor.
-- **Extensibility**: Adding a new card type or quiz variant is a localized change — add to the union, update prompt, add frontend component. No existing types are affected. No migration needed.
+- **Query cost (dedup)**: One windowed index query on `postSources.by_userId_createdAt` + batch `db.get()` for postType resolution per generation run. Capped by 90-day window.
+- **Generation resilience**: Retry policy with exponential backoff. Partial JSON recovery. Feature flag for instant rollback.
+- **Prompt engineering**: The multi-type prompt is complex. Prompt regression tests in CI catch quality regressions. Two-pass architecture planned for Phase 2.
+- **Extensibility**: Adding a new card type or quiz variant is a localized change — add to the union, update prompt, add frontend component. No existing types are affected. Active learning types (spaced repetition, apply, contradiction) fit naturally into the `typeData` union.
