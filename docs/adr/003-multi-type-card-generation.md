@@ -14,13 +14,13 @@ The feed currently generates a single card type: insight cards. Each generation 
 
 The target card types are:
 
-| Type           | Description                                                     | Chunk cardinality                           |
-| -------------- | --------------------------------------------------------------- | ------------------------------------------- |
-| **Insight**    | Key concept, fact, or takeaway                                  | 1+ chunks                                   |
-| **Quiz**       | Reveal-to-answer flashcard (phase 1), multiple choice (phase 2) | 1+ chunks                                   |
-| **Quote**      | Notable passage with attribution                                | 1 chunk                                     |
-| **Summary**    | Condensed overview of a section or topic                        | 2-5 chunks                                  |
-| **Connection** | Links concepts across different sections or documents           | 2-3 chunks, different sections or documents |
+| Type           | Description                                                     | Chunk cardinality                                    |
+| -------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| **Insight**    | Key concept, fact, or takeaway                                  | 1+ chunks                                            |
+| **Quiz**       | Reveal-to-answer flashcard (phase 1), multiple choice (phase 2) | 1+ chunks                                            |
+| **Quote**      | Notable passage with attribution                                | 1 chunk                                              |
+| **Summary**    | Condensed overview of a section or topic                        | 2-5 chunks                                           |
+| **Connection** | Links concepts across different sections or documents           | 2-3 chunks, different `sectionTitle` or `documentId` |
 
 ## Decisions
 
@@ -83,6 +83,9 @@ posts: defineTable({
   primarySourceChunkId: v.id("chunks"),
   primarySourceSectionTitle: v.optional(v.string()),
   primarySourcePageNumber: v.optional(v.number()),
+
+  // Multi-chunk dedup: SHA256 hash of sorted source chunk IDs (set for summary/connection)
+  sourceChunkHash: v.optional(v.string()),
 
   userId: v.string(),
   assetStorageId: v.optional(v.id("_storage")),
@@ -327,7 +330,7 @@ No migration needed in either case — existing posts retain their `typeData` sh
 
 **Constraint enforcement:** Some card types have implicit constraints not enforced by schema:
 
-- Connection cards must reference chunks from different sections or documents (a user with 1 book should still get connections across chapters).
+- Connection cards must reference chunks with different `sectionTitle` values or different `documentId`s (a user with 1 book should still get connections across chapters). Concretely: at least 2 source chunks must differ on `sectionTitle` or `documentId`.
 - Summary cards must reference 2+ chunks.
 
 These are enforced by post-generation validation (Section 2), not by schema constraints.
@@ -363,7 +366,7 @@ A standalone prototype script (`spikes/multi-type-generation/prototype.ts`) vali
 - **Quiz structure correct:** quizQuestion, quizAnswer, content all populated
 - **Quote attribution correct:** extracted "Geoffrey Hinton" from inline citation
 
-**One issue found:** The summary card referenced only 1 chunk instead of the required 2+. The model treated a self-contained chunk as sufficient for a summary. Fix: post-generation validation downgrades single-chunk summaries to insights (see Section 2).
+**One issue found:** The summary card referenced only 1 chunk instead of the required 2+. The model treated a self-contained chunk as sufficient for a summary. Fix: post-generation validation drops single-chunk summaries (see Section 2) — the model will produce a natural insight from that chunk in the next batch.
 
 **Key takeaways:**
 
@@ -405,13 +408,13 @@ A standalone prototype script (`spikes/multi-type-generation/prototype.ts`) vali
 
 ## Future: Feed Ordering and Engagement
 
-The generation pipeline produces cards, but the **ordering** of cards in the feed is equally important for engagement. These rules are frontend/query concerns, not generation, but the architecture must not prevent them.
+The generation pipeline produces cards, but the **ordering** of cards in the feed is equally important for engagement. These rules split across two layers:
 
 **Phase 1 rules:**
 
-- **Hook card first:** The most interactive card in each batch (quiz or connection, never a plain insight) should be placed first. Duolingo always starts a session with something interactive.
-- **No consecutive same-type:** Never show 2 cards of the same `postType` in a row. Even with 5 types, random ordering can produce 3 insights consecutively — the user's brain pattern-matches "more of the same" and bounces.
-- **Freshness badge:** Cards from documents uploaded in the last 48 hours get a visual "New" indicator. Users want to see that uploading content produces immediate results.
+- **Hook card first** _(query-level)_: The `feed.list` query sorts the first card in each generation batch by an engagement priority (`quiz` > `connection` > `quote` > `summary` > `insight`). This requires a `batchId` or `generationRunId` field on posts to group cards from the same batch.
+- **No consecutive same-type** _(client-side)_: The frontend interleaves cards by `postType` before rendering. This is a display concern, not a query concern — the paginated query returns cards in `createdAt` order, and the client reorders within each page. Simpler to implement and avoids complicating the Convex query.
+- **Freshness badge** _(client-side)_: Cards where `primarySourceDocumentId` points to a document with `createdAt` within the last 48 hours get a visual "New" indicator. Resolved by comparing against document metadata already available in the denormalized fields.
 
 **Phase 2: Adaptive difficulty**
 
@@ -441,9 +444,11 @@ Hook points for this feedback are: the dedup weight formula (reaction signals pe
 
 ## Success Metrics
 
+A **session** is defined as a continuous feed viewing period — starts when the feed page mounts, ends when the user navigates away or the app is backgrounded for > 5 minutes.
+
 | Metric                     | Definition                                       | Target                                 |
 | -------------------------- | ------------------------------------------------ | -------------------------------------- |
-| **Cards per session**      | Avg cards viewed before closing                  | > 8                                    |
+| **Cards per session**      | Avg cards scrolled into view per session         | > 8                                    |
 | **Type engagement ratio**  | Reaction rate per card type                      | Identify which types users love/ignore |
 | **Return rate**            | % of users who open the feed again within 48h    | > 40%                                  |
 | **Quiz attempt rate**      | % of quiz cards where user taps to reveal/answer | > 60%                                  |
