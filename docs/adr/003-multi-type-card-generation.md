@@ -219,6 +219,7 @@ Generated cards are validated before storage. Invalid cards are dropped (not ret
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | Missing required type-specific fields (e.g., quiz without `question` or `answer`) | Drop card, log warning                                                                      |
 | Quiz with `variant: "multiple-choice"` but missing `options` or `correctIndex`    | Drop card, log warning                                                                      |
+| Quiz where `answer` string appears verbatim in `question`                         | Drop card, log warning (trivially obvious — zero API cost to detect)                        |
 | `sourceChunkIndices` empty or contains out-of-range indices                       | Drop card, log warning                                                                      |
 | Summary card with < 2 source chunks                                               | Drop card, log warning (don't downgrade — summary-style language reads oddly as an insight) |
 | Connection card with all sources from same section/document                       | Drop card, log warning                                                                      |
@@ -259,6 +260,14 @@ Hard-excluding used chunks would exhaust source material too fast — especially
 
 **Convex cost:** One indexed query on `postSources.by_userId_createdAt` (windowed to 90 days) to fetch recent sources, then batch `db.get()` calls to resolve `postType` from linked posts. For a user with 200 recent posts: 1 index query + ~200 `db.get()` calls (deduplicated by postId). Built as an in-memory map once per generation run. The 90-day window caps read cost even for power users with thousands of lifetime posts.
 
+**Saturation threshold:** When > 80% of a user's chunks have been used across all card types, the library is exhausted. The generation pipeline should:
+
+1. Show the user a message: "You've explored most of [Document Title]. Upload more content for fresh cards."
+2. Shift toward re-surfacing high-engagement cards (liked/bookmarked) rather than generating from exhausted material.
+3. Optionally generate "deeper" synthesis cards (connections across previously uncombined chunks).
+
+Without this, the Nth generation run from a small library produces noticeably worse cards and the user blames the product. The saturation ratio is computed as `usedChunks / totalChunks` per document during the chunk selection phase.
+
 **Known limitation:** Chunk-ID dedup does not catch semantically similar content from different chunks (e.g., a concept explained in both an introduction and a summary chapter). Embeddings-based semantic dedup is deferred to a future ADR — the existing Qdrant infrastructure could support it.
 
 ### 4. Feed mixing: AI-decided, configurable later
@@ -289,7 +298,12 @@ These ratios would be injected into the prompt: "Aim for approximately 40% insig
 - Fixed ratios can force awkward fits (e.g., demanding a quiz from a chunk that's pure narrative).
 - Starting with AI decisions lets us collect data on natural type distributions before tuning.
 
-**Prompt evolution:** The single prompt carries significant cognitive load — 5+ type definitions, JSON structure, coverage hints, and variety guidance. Phase 1 ships this as a single call. Phase 2 should consider a two-pass approach: (1) a lightweight "planner" call that assigns types to chunks, (2) a "generator" call that produces cards given the plan. This reduces per-call complexity and improves reliability. For Phase 1, add prompt regression tests: a suite of 10-15 representative chunk sets with expected type distributions, run as part of CI against prompt changes.
+**Prompt quality guidance:**
+
+- **Connection specificity:** The prompt must instruct: "Connection cards must name at least one specific concept from each source and describe the relationship (contrast, extension, analogy, dependency)." A connection that says "Both chapters discuss machine learning" is structurally valid but useless. Bad connections are the most visible quality failure — users will perceive them as AI slop.
+- **Quote content-sensitivity:** Quotes work well for books with strong authorial voice (philosophy, memoir) but poorly for technical documentation where no single sentence stands alone. Phase 2 should add a `contentStyle` hint at the document level (derived during summarization, see #54) to suppress quote generation for technical/academic content.
+
+**Prompt evolution:** The single prompt carries significant cognitive load — 5+ type definitions, JSON structure, coverage hints, and variety guidance. Phase 1 ships this as a single call. If the >50% drop rate (batch retry trigger) fires more than once per 100 generation runs, that's the signal to ship two-pass: (1) a lightweight "planner" call that assigns types to chunks, (2) a "generator" call that produces cards given the plan. This is Phase 1.5, not a distant future optimization. For Phase 1, add prompt regression tests: a suite of 10-15 representative chunk sets with expected type distributions, run as part of CI against prompt changes.
 
 ### 5. Provenance: Primary + supporting with flexible UI
 
@@ -395,7 +409,7 @@ A standalone prototype script (`spikes/multi-type-generation/prototype.ts`) vali
 - Type-aware usage-weighted chunk sampling (dedup)
 - Feature flag (`MULTI_TYPE_GENERATION`) for rollback
 - Store results with `postType`, denormalized primary source, and `postSources`
-- **Acceptance criteria:** Generation produces at least 3 different card types. Dedup reduces repeat chunks across runs. Multi-chunk cards (summary, connection) appear when sufficient chunks exist. Invalid cards are dropped per validation rules.
+- **Acceptance criteria:** Generation produces at least 3 different card types. Dedup reduces repeat chunks across runs. Multi-chunk cards (summary, connection) appear when sufficient chunks exist. Invalid cards are dropped per validation rules. First document processing triggers automatic generation if user has zero posts (the highest-leverage retention moment — the user just invested effort uploading and needs an immediate payoff).
 
 **Issue C: Frontend card type rendering**
 
@@ -446,14 +460,15 @@ Hook points for this feedback are: the dedup weight formula (reaction signals pe
 
 A **session** is defined as a continuous feed viewing period — starts when the feed page mounts, ends when the user navigates away or the app is backgrounded for > 5 minutes.
 
-| Metric                     | Definition                                       | Target                                 |
-| -------------------------- | ------------------------------------------------ | -------------------------------------- |
-| **Cards per session**      | Avg cards scrolled into view per session         | > 8                                    |
-| **Type engagement ratio**  | Reaction rate per card type                      | Identify which types users love/ignore |
-| **Return rate**            | % of users who open the feed again within 48h    | > 40%                                  |
-| **Quiz attempt rate**      | % of quiz cards where user taps to reveal/answer | > 60%                                  |
-| **Upload-to-card latency** | Time from document upload to first card in feed  | < 5 minutes                            |
-| **Dedup effectiveness**    | % of users reporting "I've seen this before"     | < 10%                                  |
+| Metric                     | Definition                                                  | Target                                               |
+| -------------------------- | ----------------------------------------------------------- | ---------------------------------------------------- |
+| **Cards per session**      | Avg cards scrolled into view per session                    | > 8                                                  |
+| **Type engagement ratio**  | Reaction rate per card type                                 | Identify which types users love/ignore               |
+| **Return rate**            | % of users who open the feed again within 48h               | > 40%                                                |
+| **Quiz attempt rate**      | % of quiz cards where user taps to reveal/answer            | > 60%                                                |
+| **Upload-to-card latency** | Time from document upload to first card in feed             | < 5 minutes                                          |
+| **Dedup effectiveness**    | % of users reporting "I've seen this before"                | < 10%                                                |
+| **First-batch diversity**  | Distinct `postType` values in user's first generation batch | >= 3 types (also serves as prompt regression signal) |
 
 ## Consequences
 
