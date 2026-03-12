@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { requireAuth, optionalAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
-import { documentStatus, failedAtStage, fileType } from "./lib/validators";
+import { documentStatus, failedAtStage, fileType, urlFileType } from "./lib/validators";
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -46,6 +46,97 @@ export const create = mutation({
     } finally {
       evt.emit();
     }
+  },
+});
+
+export const createFromUrl = mutation({
+  args: {
+    url: v.string(),
+    fileType: urlFileType,
+    title: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const evt = new WideEvent("documents.createFromUrl");
+    evt.set({ fileType: args.fileType, url: args.url });
+    try {
+      const parsed = new URL(args.url);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        throw new Error("Only HTTP and HTTPS URLs are supported");
+      }
+      if (
+        parsed.hostname === "localhost" ||
+        parsed.hostname.startsWith("127.") ||
+        parsed.hostname === "[::1]"
+      ) {
+        throw new Error("Local URLs are not allowed");
+      }
+
+      const user = await requireAuth(ctx);
+      evt.set("userId", user._id);
+      const documentId = await ctx.db.insert("documents", {
+        title: args.title ?? args.url,
+        fileType: args.fileType,
+        sourceUrl: args.url,
+        status: "uploaded",
+        chunkCount: 0,
+        userId: user._id,
+        createdAt: Date.now(),
+      });
+      evt.set("documentId", documentId);
+      await ctx.scheduler.runAfter(0, internal.pipeline.index.startProcessing, {
+        documentId,
+      });
+      return documentId;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
+  },
+});
+
+export const createFromText = mutation({
+  args: {
+    title: v.string(),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const evt = new WideEvent("documents.createFromText");
+    evt.set({ title: args.title });
+    try {
+      const user = await requireAuth(ctx);
+      evt.set("userId", user._id);
+      const documentId = await ctx.db.insert("documents", {
+        title: args.title,
+        fileType: "text",
+        storageId: args.storageId,
+        status: "uploaded",
+        chunkCount: 0,
+        userId: user._id,
+        createdAt: Date.now(),
+      });
+      evt.set("documentId", documentId);
+      await ctx.scheduler.runAfter(0, internal.pipeline.index.startProcessing, {
+        documentId,
+      });
+      return documentId;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
+  },
+});
+
+export const updateTitle = internalMutation({
+  args: {
+    id: v.id("documents"),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { title: args.title });
   },
 });
 

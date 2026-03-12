@@ -8,8 +8,6 @@ import { WideEvent } from "../lib/logging";
 
 import { fanOutEmbedding } from "./embedding";
 
-// --- Resumability ---
-
 export const resumeProcessing = internalAction({
   args: { documentId: v.id("documents") },
   handler: async (ctx, { documentId }) => {

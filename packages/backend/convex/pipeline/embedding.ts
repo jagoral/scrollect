@@ -16,8 +16,6 @@ import {
   MAX_EMBED_RETRIES,
 } from "./helpers";
 
-// --- Embedding ---
-
 export async function fanOutEmbedding(
   ctx: ActionCtx,
   documentId: Id<"documents">,

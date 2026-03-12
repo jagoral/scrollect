@@ -4,9 +4,12 @@ import { createHash } from "crypto";
 
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import { MarkdownNewArticleExtractor } from "../providers/markdownNew";
 import { OpenAIEmbeddings } from "../providers/openai";
 import { QdrantVectorStore } from "../providers/qdrant";
-import type { EmbeddingProvider, VectorStore } from "../providers/types";
+import { StubArticleExtractor, StubYouTubeExtractor } from "../providers/stubs";
+import type { ContentExtractor, EmbeddingProvider, VectorStore } from "../providers/types";
+import { YouTubeTranscriptExtractor } from "../providers/youtube";
 
 export const CHUNK_STORE_BATCH_SIZE = 50;
 export const EMBED_BATCH_SIZE = 100;
@@ -32,6 +35,17 @@ export function createVectorStore(): VectorStore {
   if (!url || !apiKey)
     throw new Error("QDRANT_URL and QDRANT_API_KEY environment variables are required");
   return new QdrantVectorStore(url, apiKey);
+}
+
+export function createArticleExtractor(): ContentExtractor {
+  if (process.env.USE_STUB_EXTRACTORS === "true") return new StubArticleExtractor();
+  return new MarkdownNewArticleExtractor();
+}
+
+export function createYouTubeExtractor(): ContentExtractor {
+  if (process.env.USE_STUB_EXTRACTORS === "true") return new StubYouTubeExtractor();
+  const apifyApiToken = process.env.APIFY_API_TOKEN ?? undefined;
+  return new YouTubeTranscriptExtractor({ apifyApiToken });
 }
 
 /** Convert a Convex document ID to a deterministic UUID for Qdrant. */

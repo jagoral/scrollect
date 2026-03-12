@@ -23,7 +23,13 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
       dependencies: ["setup"],
-      testIgnore: /global-setup\.ts/,
+      testIgnore: [/global-setup\.ts/, /\.slow\.spec\.ts/],
+    },
+    {
+      name: "slow",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+      testMatch: /\.slow\.spec\.ts/,
     },
   ],
 
