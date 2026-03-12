@@ -38,7 +38,9 @@ jobs:
           echo "$DEPLOY_OUTPUT"
           CLEAN_OUTPUT=$(echo "$DEPLOY_OUTPUT" | sed 's/\x1b\[[0-9;]*m//g')
           PREVIEW_URL=$(echo "$CLEAN_OUTPUT" | grep -oE 'https://[^ ]+\.convex\.cloud' | head -1)
+          PREVIEW_SITE_URL=$(echo "$PREVIEW_URL" | sed 's/\.convex\.cloud/.convex.site/')
           echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "preview_site_url=$PREVIEW_SITE_URL" >> "$GITHUB_OUTPUT"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
 
@@ -62,6 +64,7 @@ jobs:
         run: bun turbo run build
         env:
           NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Install Playwright browsers
         run: cd apps/e2e && npx playwright install chromium --with-deps
@@ -70,6 +73,7 @@ jobs:
         run: bun run test:e2e
         env:
           NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
@@ -105,7 +109,9 @@ jobs:
           echo "$DEPLOY_OUTPUT"
           CLEAN_OUTPUT=$(echo "$DEPLOY_OUTPUT" | sed 's/\x1b\[[0-9;]*m//g')
           PREVIEW_URL=$(echo "$CLEAN_OUTPUT" | grep -oE 'https://[^ ]+\.convex\.cloud' | head -1)
+          PREVIEW_SITE_URL=$(echo "$PREVIEW_URL" | sed 's/\.convex\.cloud/.convex.site/')
           echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "preview_site_url=$PREVIEW_SITE_URL" >> "$GITHUB_OUTPUT"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
 
@@ -130,6 +136,7 @@ jobs:
         run: bun turbo run build
         env:
           NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Install Playwright browsers
         run: cd apps/e2e && npx playwright install chromium --with-deps
@@ -138,6 +145,7 @@ jobs:
         run: cd apps/e2e && npx playwright test --project=slow
         env:
           NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Upload slow test report
         uses: actions/upload-artifact@v4
