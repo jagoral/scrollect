@@ -1,6 +1,14 @@
 import { v } from "convex/values";
 
-export const fileType = v.union(v.literal("pdf"), v.literal("md"));
+export const fileType = v.union(
+  v.literal("pdf"),
+  v.literal("md"),
+  v.literal("article"),
+  v.literal("youtube"),
+  v.literal("text"),
+);
+
+export const urlFileType = v.union(v.literal("article"), v.literal("youtube"));
 
 export const documentStatus = v.union(
   v.literal("uploaded"),

@@ -33,3 +33,7 @@ Software engineers and active learners who consume a lot of content but struggle
 - **Always deploy after changing Convex schemas or functions**: run `cd packages/backend && npx convex dev --once` to push changes to the dev deployment
 - **Before running E2E tests**: run `kill -9 $(lsof -t -i:3001)` to free up port 3001, which the test web server needs
 - **Split large components**: Extract reusable logic into custom hooks (`hooks/`) and shared UI into dedicated component files. Keep page components thin — they compose hooks and components, not raw logic
+
+## DON'T
+
+- Don't add code separators in the code. No "// --- Section ---", instead try to better structure the code and files so such comments won't be necessary.

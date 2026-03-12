@@ -57,8 +57,10 @@ export const cleanupCurrentUser = mutation({
         await ctx.db.delete(job._id);
       }
 
-      // Delete the stored file
-      await ctx.storage.delete(doc.storageId);
+      // Delete the stored file (URL-based documents have no storageId)
+      if (doc.storageId) {
+        await ctx.storage.delete(doc.storageId);
+      }
       await ctx.db.delete(doc._id);
     }
 

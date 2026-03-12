@@ -1,4 +1,16 @@
-// --- PDF Parser ---
+export interface ExtractResult {
+  /** Extracted content as markdown. */
+  markdown: string;
+  /** Title auto-extracted from the source. */
+  title?: string;
+  /** Structured metadata (timestamps, segments, etc.) */
+  metadata?: Record<string, unknown>;
+}
+
+export interface ContentExtractor {
+  /** Extract markdown content from a URL. */
+  extract(url: string): Promise<ExtractResult>;
+}
 
 export interface PollResult {
   status: "pending" | "complete" | "error";
@@ -14,8 +26,6 @@ export interface PdfParser {
   poll(checkUrl: string): Promise<PollResult>;
 }
 
-// --- Embedding Provider ---
-
 export interface EmbeddingProvider {
   /** The dimensionality of the embedding vectors. */
   readonly dimensions: number;
@@ -23,8 +33,6 @@ export interface EmbeddingProvider {
   /** Generate embeddings for a batch of texts. Returns one vector per input text. */
   embed(texts: string[]): Promise<number[][]>;
 }
-
-// --- Vector Store ---
 
 export interface VectorPoint {
   /** Deterministic ID derived from chunk ID for idempotent upserts. */

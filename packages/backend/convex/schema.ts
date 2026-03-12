@@ -7,7 +7,8 @@ export default defineSchema({
   documents: defineTable({
     title: v.string(),
     fileType,
-    storageId: v.id("_storage"),
+    storageId: v.optional(v.id("_storage")),
+    sourceUrl: v.optional(v.string()),
     status: documentStatus,
     failedAt: v.optional(failedAtStage),
     datalabCheckUrl: v.optional(v.string()),

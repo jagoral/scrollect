@@ -16,8 +16,6 @@ import {
   storeMarkdownBlob,
 } from "./helpers";
 
-// --- PDF Parsing ---
-
 export async function submitPdfParsingImpl(
   ctx: ActionCtx,
   documentId: Id<"documents">,
@@ -138,8 +136,6 @@ export const pollDatalabResult = internalAction({
     }
   },
 });
-
-// --- Markdown Parsing ---
 
 export async function fetchAndParseMarkdownImpl(
   ctx: ActionCtx,
