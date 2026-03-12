@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
+import type { PostType, TypeData } from "./lib/validators";
 
 const E2E_EMAIL_PATTERN = /^e2e-.*@test\.scrollect\.dev$/;
 
@@ -64,12 +65,19 @@ export const cleanupCurrentUser = mutation({
       await ctx.db.delete(doc._id);
     }
 
-    // 3. Delete all posts for this user
+    // 3. Delete all posts and postSources for this user
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
     for (const post of posts) {
+      const sources = await ctx.db
+        .query("postSources")
+        .withIndex("by_postId", (q) => q.eq("postId", post._id))
+        .collect();
+      for (const source of sources) {
+        await ctx.db.delete(source._id);
+      }
       if (post.assetStorageId) {
         await ctx.storage.delete(post.assetStorageId);
       }
@@ -107,7 +115,7 @@ export const insertSeededData = internalMutation({
     const { userId, storageId } = args;
     const now = Date.now();
 
-    // Create document
+    // Create first document
     const documentId = await ctx.db.insert("documents", {
       title: "E2E Seed Document",
       fileType: "md",
@@ -118,7 +126,7 @@ export const insertSeededData = internalMutation({
       createdAt: now,
     });
 
-    // Create 3 chunks
+    // Create 3 chunks for first document
     const chunkContents = [
       "Lorem ipsum is a placeholder text commonly used in the printing and typesetting industry. It has been the industry standard dummy text since the 1500s.",
       "Good UX design focuses on reducing cognitive load by breaking complex information into digestible chunks. Users process information better in smaller pieces.",
@@ -138,24 +146,173 @@ export const insertSeededData = internalMutation({
       chunkIds.push(chunkId);
     }
 
-    // Create 5 posts
-    const postContents = [
-      "**Key Insight:** Lorem ipsum is a placeholder text commonly used in design.",
-      "**Design Principle:** Good UX reduces cognitive load with digestible chunks.",
-      "**Software Pattern:** The observer pattern establishes one-to-many dependencies.",
-      "**Learning Tip:** Spaced repetition improves long-term memory retention.",
-      "**Architecture:** Event-driven systems decouple producers from consumers.",
+    // Create second document (for connection card) — no storageId (simulates URL-based doc)
+    const documentId2 = await ctx.db.insert("documents", {
+      title: "E2E Seed Document 2",
+      fileType: "article",
+      sourceUrl: "https://example.com/e2e-seed-2",
+      status: "ready",
+      chunkCount: 2,
+      userId,
+      createdAt: now - 1000,
+    });
+
+    const chunkIds2 = [];
+    const chunkContents2 = [
+      "Event-driven architecture decouples components by using events as the primary communication mechanism between services.",
+      "Microservices communicate through message queues, enabling independent deployment and scaling of each service.",
+    ];
+    for (let i = 0; i < chunkContents2.length; i++) {
+      const chunkId = await ctx.db.insert("chunks", {
+        documentId: documentId2,
+        content: chunkContents2[i]!,
+        chunkIndex: i,
+        tokenCount: 50,
+        embedded: true,
+        createdAt: now - 1000,
+      });
+      chunkIds2.push(chunkId);
+    }
+
+    // Create 7 posts covering all card types
+    const postDefs: Array<{
+      content: string;
+      postType: PostType;
+      typeData: TypeData;
+      docId: typeof documentId;
+      docTitle: string;
+      chunkId: (typeof chunkIds)[0];
+      extraSources?: Array<{ chunkId: (typeof chunkIds)[0]; documentId: typeof documentId }>;
+    }> = [
+      {
+        content: "**Key Insight:** Lorem ipsum is a placeholder text commonly used in design.",
+        postType: "insight",
+        typeData: { type: "insight" },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[0]!,
+      },
+      {
+        content: "**Design Principle:** Good UX reduces cognitive load with digestible chunks.",
+        postType: "quiz",
+        typeData: {
+          type: "quiz",
+          variant: "multiple_choice",
+          question: "What does good UX design focus on?",
+          options: [
+            "Reducing cognitive load",
+            "Adding more features",
+            "Using bright colors",
+            "Complex navigation",
+          ],
+          correctIndex: 0,
+          explanation:
+            "Good UX design focuses on reducing cognitive load by breaking complex information into digestible chunks.",
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[1]!,
+      },
+      {
+        content: "The observer pattern notifies dependents when state changes.",
+        postType: "quiz",
+        typeData: {
+          type: "quiz",
+          variant: "true_false",
+          question:
+            "True or false: The observer pattern establishes a many-to-many dependency between objects.",
+          options: ["True", "False"],
+          correctIndex: 1,
+          explanation:
+            "The observer pattern establishes a one-to-many dependency, not many-to-many.",
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[2]!,
+      },
+      {
+        content: "**Software Pattern:** The observer pattern establishes one-to-many dependencies.",
+        postType: "quote",
+        typeData: {
+          type: "quote",
+          quotedText: "The observer pattern establishes a one-to-many dependency between objects.",
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[2]!,
+      },
+      {
+        content: "**Learning Tip:** Spaced repetition improves long-term memory retention.",
+        postType: "summary",
+        typeData: {
+          type: "summary",
+          bulletPoints: [
+            "Spaced repetition improves retention",
+            "Active recall strengthens memory",
+          ],
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[0]!,
+        extraSources: [{ chunkId: chunkIds[1]!, documentId }],
+      },
+      {
+        content:
+          "Both documents discuss patterns of decoupling: the observer pattern separates subject from observers, while event-driven architecture separates producers from consumers.",
+        postType: "connection",
+        typeData: {
+          type: "connection",
+          sourceATitleHint: "E2E Seed Document",
+          sourceBTitleHint: "E2E Seed Document 2",
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[2]!,
+        extraSources: [{ chunkId: chunkIds2[0]!, documentId: documentId2 }],
+      },
+      {
+        content: "**Architecture:** Event-driven systems decouple producers from consumers.",
+        postType: "insight",
+        typeData: { type: "insight" },
+        docId: documentId2,
+        docTitle: "E2E Seed Document 2",
+        chunkId: chunkIds2[0]!,
+      },
     ];
 
     let postCount = 0;
-    for (const content of postContents) {
-      await ctx.db.insert("posts", {
-        content,
-        sourceChunkId: chunkIds[postCount % chunkIds.length]!,
-        sourceDocumentId: documentId,
+    for (const def of postDefs) {
+      const createdAt = now - (postDefs.length - postCount) * 1000;
+      const chunkHash = `seed-hash-${postCount}`;
+      const postId = await ctx.db.insert("posts", {
+        content: def.content,
+        postType: def.postType,
+        typeData: def.typeData,
+        primarySourceDocumentId: def.docId,
+        primarySourceDocumentTitle: def.docTitle,
+        primarySourceChunkId: def.chunkId,
+        sourceChunkHash: chunkHash,
         userId,
-        createdAt: now - (postContents.length - postCount) * 1000,
+        createdAt,
       });
+      await ctx.db.insert("postSources", {
+        postId,
+        chunkId: def.chunkId,
+        documentId: def.docId,
+        userId,
+        createdAt,
+      });
+      if (def.extraSources) {
+        for (const extra of def.extraSources) {
+          await ctx.db.insert("postSources", {
+            postId,
+            chunkId: extra.chunkId,
+            documentId: extra.documentId,
+            userId,
+            createdAt,
+          });
+        }
+      }
       postCount++;
     }
 

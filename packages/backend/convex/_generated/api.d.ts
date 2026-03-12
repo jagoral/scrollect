@@ -15,6 +15,8 @@ import type * as chunks from "../chunks.js";
 import type * as documents from "../documents.js";
 import type * as feed_generation from "../feed/generation.js";
 import type * as feed_queries from "../feed/queries.js";
+import type * as feed_sampling from "../feed/sampling.js";
+import type * as feed_validation from "../feed/validation.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as lib_functions from "../lib/functions.js";
@@ -58,6 +60,8 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   "feed/generation": typeof feed_generation;
   "feed/queries": typeof feed_queries;
+  "feed/sampling": typeof feed_sampling;
+  "feed/validation": typeof feed_validation;
   healthCheck: typeof healthCheck;
   http: typeof http;
   "lib/functions": typeof lib_functions;
