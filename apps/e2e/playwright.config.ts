@@ -20,10 +20,27 @@ export default defineConfig({
       testMatch: /global-setup\.ts/,
     },
     {
+      name: "seeded",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+      testMatch: [
+        /feed-interactions\.spec\.ts/,
+        /multi-type-cards\.spec\.ts/,
+        /source-provenance\.spec\.ts/,
+      ],
+      fullyParallel: false,
+    },
+    {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
       dependencies: ["setup"],
-      testIgnore: [/global-setup\.ts/, /\.slow\.spec\.ts/],
+      testIgnore: [
+        /global-setup\.ts/,
+        /\.slow\.spec\.ts/,
+        /feed-interactions\.spec\.ts/,
+        /multi-type-cards\.spec\.ts/,
+        /source-provenance\.spec\.ts/,
+      ],
     },
     {
       name: "slow",

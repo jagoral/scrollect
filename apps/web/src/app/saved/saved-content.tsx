@@ -63,17 +63,8 @@ export function SavedContent() {
               <PostCard
                 key={bookmark._id}
                 post={{
-                  _id: bookmark.post._id,
-                  content: bookmark.post.content,
-                  sourceDocumentTitle: bookmark.post.sourceDocumentTitle,
-                  createdAt: bookmark.post.createdAt,
-                  reaction: bookmark.post.reaction,
+                  ...bookmark.post,
                   isBookmarked: true,
-                  sourceChunkId: bookmark.post.sourceChunkId,
-                  sourceDocumentId: bookmark.post.sourceDocumentId,
-                  sectionTitle: bookmark.post.sectionTitle,
-                  pageNumber: bookmark.post.pageNumber,
-                  chunkIndex: bookmark.post.chunkIndex,
                 }}
               />
             );

@@ -1,7 +1,14 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-import { documentStatus, failedAtStage, fileType, reactionType } from "./lib/validators";
+import {
+  documentStatus,
+  failedAtStage,
+  fileType,
+  postType,
+  reactionType,
+  typeData,
+} from "./lib/validators";
 
 export default defineSchema({
   documents: defineTable({
@@ -18,17 +25,41 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_userId_status", ["userId", "status"]),
 
   posts: defineTable({
     content: v.string(),
-    sourceChunkId: v.id("chunks"),
-    sourceDocumentId: v.id("documents"),
+    postType,
+    typeData,
+    primarySourceDocumentId: v.id("documents"),
+    primarySourceDocumentTitle: v.string(),
+    primarySourceChunkId: v.id("chunks"),
+    primarySourceSectionTitle: v.optional(v.string()),
+    primarySourcePageNumber: v.optional(v.number()),
+    sourceChunkHash: v.string(),
     userId: v.string(),
     assetStorageId: v.optional(v.id("_storage")),
     reaction: v.optional(reactionType),
     createdAt: v.number(),
-  }).index("by_userId", ["userId"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_type", ["userId", "postType"])
+    .index("by_userId_createdAt", ["userId", "createdAt"])
+    .index("by_userId_sourceChunkHash", ["userId", "sourceChunkHash"]),
+
+  postSources: defineTable({
+    postId: v.id("posts"),
+    chunkId: v.id("chunks"),
+    documentId: v.id("documents"),
+    userId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_postId", ["postId"])
+    .index("by_chunkId", ["chunkId"])
+    .index("by_documentId", ["documentId"])
+    .index("by_userId", ["userId"])
+    .index("by_userId_createdAt", ["userId", "createdAt"]),
 
   bookmarkLists: defineTable({
     userId: v.string(),

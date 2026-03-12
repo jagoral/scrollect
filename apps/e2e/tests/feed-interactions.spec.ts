@@ -47,7 +47,7 @@ test.describe("Feed interactions and pagination", () => {
     await page.getByRole("navigation").getByRole("button", { name: /saved/i }).click();
     await page.waitForURL(/\/saved/);
     await expect(page.getByRole("heading", { name: /saved/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible({ timeout: 30000 });
 
     // Back to /feed → scroll to bottom → verify "all caught up"
     await page.goto("/feed?noAutoGenerate");

@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=setup --project=seeded --project=chromium",
+    "test:e2e:slow": "playwright test --project=setup --project=slow",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",

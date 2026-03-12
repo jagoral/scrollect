@@ -1,8 +1,6 @@
 import { test as setup, expect } from "@playwright/test";
 
-import { SEEDED_USER, seedTestData } from "./helpers";
-
-const AUTH_FILE = "tests/.auth/seeded-user.json";
+import { SEEDED_USER, cleanupTestData, seedTestData } from "./helpers";
 
 setup("create and seed E2E account", async ({ page }) => {
   // Try sign-in first (account may exist from previous run)
@@ -31,9 +29,7 @@ setup("create and seed E2E account", async ({ page }) => {
     await expect(page).toHaveURL(/\/(library|feed)/, { timeout: 15000 });
   }
 
-  // Seed test data (idempotent)
+  // Clean up stale data from previous schema, then re-seed
+  await cleanupTestData(page);
   await seedTestData(page);
-
-  // Save auth state
-  await page.context().storageState({ path: AUTH_FILE });
 });
