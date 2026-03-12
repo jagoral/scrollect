@@ -27,6 +27,7 @@ export default defineConfig({
         /feed-interactions\.spec\.ts/,
         /multi-type-cards\.spec\.ts/,
         /source-provenance\.spec\.ts/,
+        /tagging\.spec\.ts/,
       ],
       fullyParallel: false,
     },
@@ -40,6 +41,7 @@ export default defineConfig({
         /feed-interactions\.spec\.ts/,
         /multi-type-cards\.spec\.ts/,
         /source-provenance\.spec\.ts/,
+        /tagging\.spec\.ts/,
       ],
     },
     {

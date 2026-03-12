@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { ChunkContextSheetContent } from "@/components/chunk-context-sheet";
+import { TagList } from "@/components/tags";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,6 +76,8 @@ interface CardShellProps {
 export function CardShell({ post, children, accentClassName, quizVariant }: CardShellProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  const tags = post.tags ?? [];
+
   const toggleBookmark = useMutation(api.bookmarks.toggle).withOptimisticUpdate(
     (localStore, args) => {
       updatePostInPaginatedPages(localStore, args.postId, (p) => ({
@@ -108,6 +111,12 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
 
         <div className="px-5 pt-5 pb-4">
           {children}
+
+          {tags.length > 0 && (
+            <div className="mt-2">
+              <TagList tags={tags} maxVisible={3} size="sm" />
+            </div>
+          )}
 
           <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
             <time className="text-xs tracking-wide text-muted-foreground/70">

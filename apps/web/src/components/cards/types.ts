@@ -39,6 +39,12 @@ export type TypeData =
   | SummaryTypeData
   | ConnectionTypeData;
 
+export interface PostCardTag {
+  tagId: string;
+  tagName: string;
+  source: "ai" | "manual";
+}
+
 export interface PostCardData {
   _id: Id<"posts">;
   content: string;
@@ -53,4 +59,5 @@ export interface PostCardData {
   reaction?: "like" | "dislike" | null;
   isBookmarked?: boolean;
   chunkIndex?: number;
+  tags?: PostCardTag[];
 }

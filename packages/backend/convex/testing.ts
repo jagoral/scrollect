@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
 import type { PostType, TypeData } from "./lib/validators";
+import { normalizeTagName } from "./tags";
 
 const E2E_EMAIL_PATTERN = /^e2e-.*@test\.scrollect\.dev$/;
 
@@ -34,6 +35,15 @@ export const cleanupCurrentUser = mutation({
       await ctx.db.delete(list._id);
     }
 
+    // 0b. Delete all tags for this user
+    const tags = await ctx.db
+      .query("tags")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const tag of tags) {
+      await ctx.db.delete(tag._id);
+    }
+
     // 1. Find all documents for this user
     const documents = await ctx.db
       .query("documents")
@@ -58,9 +68,12 @@ export const cleanupCurrentUser = mutation({
         await ctx.db.delete(job._id);
       }
 
-      // Delete the stored file (URL-based documents have no storageId)
       if (doc.storageId) {
-        await ctx.storage.delete(doc.storageId);
+        try {
+          await ctx.storage.delete(doc.storageId);
+        } catch {
+          // Storage ID may be stale from a previous deployment
+        }
       }
       await ctx.db.delete(doc._id);
     }
@@ -79,7 +92,11 @@ export const cleanupCurrentUser = mutation({
         await ctx.db.delete(source._id);
       }
       if (post.assetStorageId) {
-        await ctx.storage.delete(post.assetStorageId);
+        try {
+          await ctx.storage.delete(post.assetStorageId);
+        } catch {
+          // Storage ID may be stale from a previous deployment
+        }
       }
       await ctx.db.delete(post._id);
     }
@@ -88,6 +105,7 @@ export const cleanupCurrentUser = mutation({
       deleted: {
         bookmarks: bookmarks.length,
         bookmarkLists: bookmarkLists.length,
+        tags: tags.length,
         documents: documents.length,
         posts: posts.length,
       },
@@ -172,6 +190,35 @@ export const insertSeededData = internalMutation({
         createdAt: now - 1000,
       });
       chunkIds2.push(chunkId);
+    }
+
+    // Create AI-suggested tags for both documents
+    const seedTags = [
+      { name: "Design Patterns", docs: [documentId, documentId2] },
+      { name: "UX Design", docs: [documentId] },
+      { name: "Software Architecture", docs: [documentId, documentId2] },
+      { name: "Event-Driven Systems", docs: [documentId2] },
+      { name: "Microservices", docs: [documentId2] },
+    ];
+
+    for (const seedTag of seedTags) {
+      const normalized = normalizeTagName(seedTag.name);
+      const tagId = await ctx.db.insert("tags", {
+        name: seedTag.name,
+        normalizedName: normalized,
+        userId,
+        createdAt: now,
+      });
+      for (const docId of seedTag.docs) {
+        const doc = await ctx.db.get(docId);
+        if (!doc) continue;
+        const existingTagIds = doc.tagIds ?? [];
+        const existingSources = doc.tagSources ?? [];
+        await ctx.db.patch(docId, {
+          tagIds: [...existingTagIds, tagId],
+          tagSources: [...existingSources, "ai" as const],
+        });
+      }
     }
 
     // Create 7 posts covering all card types
@@ -356,6 +403,24 @@ export const resetE2EAccount = mutation({
       .collect();
     for (const list of bookmarkLists) {
       await ctx.db.delete(list._id);
+    }
+
+    // Delete all tags and clear tagIds/tagSources from documents
+    const userTags = await ctx.db
+      .query("tags")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const tag of userTags) {
+      await ctx.db.delete(tag._id);
+    }
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const doc of documents) {
+      if (doc.tagIds && doc.tagIds.length > 0) {
+        await ctx.db.patch(doc._id, { tagIds: [], tagSources: [] });
+      }
     }
 
     // Update newest post's createdAt to prevent auto-generate trigger
