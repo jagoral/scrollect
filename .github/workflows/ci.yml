@@ -70,7 +70,8 @@ jobs:
         run: cd apps/e2e && npx playwright install chromium --with-deps
 
       - name: Run E2E tests (fast)
-        run: bun run test:e2e
+        working-directory: apps/e2e
+        run: npx playwright test --project=setup --project=seeded --project=chromium
         env:
           NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}

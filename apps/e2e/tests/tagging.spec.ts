@@ -35,12 +35,11 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
   test("document detail page shows AI-suggested tags with sparkle indicator", async ({ page }) => {
     await navigateToFirstDocument(page);
 
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
-    });
-
-    const aiTag = page.locator('[data-tag-source="ai"]').first();
-    await expect(aiTag).toBeVisible({ timeout: 15000 });
+    // First test after global setup may hit a cold Convex connection — use generous timeout
+    const aiTag = page
+      .locator('[data-testid="document-tag-section"] [data-tag-source="ai"]')
+      .first();
+    await expect(aiTag).toBeVisible({ timeout: 30000 });
   });
 
   // AI vs manual visual distinction
