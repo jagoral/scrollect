@@ -78,7 +78,7 @@ export async function signUp(page: Page): Promise<{ email: string }> {
   const user = testUser();
   await page.goto("/signin");
   await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(3000);
   await page.getByRole("button", { name: /sign up/i }).click();
   await page.getByLabel("Name").fill(user.name);
   await page.getByLabel("Email").fill(user.email);
@@ -91,7 +91,7 @@ export async function signUp(page: Page): Promise<{ email: string }> {
 export async function signIn(page: Page, email: string, password: string) {
   await page.goto("/signin");
   await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(3000);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page
