@@ -45,7 +45,7 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
     await reseedAccount();
   });
 
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async () => {
     await reseedAccount();
   });
 
@@ -90,7 +90,7 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
 test.describe("Tagging — document detail: manual operations (seeded account)", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async () => {
     await reseedAccount();
   });
 
@@ -319,7 +319,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 test.describe("Tagging — library filtering (seeded account)", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async () => {
     await reseedAccount();
   });
 
@@ -380,7 +380,7 @@ test.describe("Tagging — library filtering (seeded account)", () => {
 test.describe("Tagging — feed cards (seeded account)", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async () => {
     await reseedAccount();
   });
 
