@@ -26,37 +26,12 @@ setup("create and seed E2E account", async ({ page }) => {
   if (!succeeded) {
     await page.goto("/signin");
     await page.waitForLoadState("networkidle");
-    // Listen for all Set-Cookie headers to detect cookie clearing
-    page.on("response", async (response) => {
-      const headers = await response.allHeaders();
-      if (headers["set-cookie"]) {
-        console.log(
-          `[E2E DEBUG] ${response.url()} Set-Cookie: ${headers["set-cookie"].substring(0, 200)}`,
-        );
-      }
-    });
-
     await page.getByRole("button", { name: /sign up/i }).click();
     await page.getByLabel("Name").fill(SEEDED_USER.name);
     await page.getByLabel("Email").fill(SEEDED_USER.email);
     await page.getByLabel("Password").fill(SEEDED_USER.password);
     await page.getByRole("button", { name: /create account/i }).click();
     await expect(page).toHaveURL(/\/(library|feed)/, { timeout: 15000 });
-
-    // Debug: check cookies after the page load
-    const cookiesAfterNav = await page.context().cookies();
-    console.log(
-      `[E2E DEBUG] Cookies after navigation: ${JSON.stringify(cookiesAfterNav.map((c) => c.name))}`,
-    );
-
-    // Debug: check if fetch includes cookies
-    const fetchDebug = await page.evaluate(async () => {
-      const res = await fetch("/api/e2e-seed", { method: "POST", credentials: "same-origin" });
-      return { status: res.status, body: await res.text() };
-    });
-    console.log(
-      `[E2E DEBUG] Direct fetch seed result: ${fetchDebug.status} ${fetchDebug.body.substring(0, 200)}`,
-    );
   }
 
   // Clean up stale data from previous schema, then re-seed
