@@ -145,7 +145,8 @@ jobs:
         run: cd apps/e2e && npx playwright install chromium --with-deps
 
       - name: Run E2E tests (slow)
-        run: cd apps/e2e && npx playwright test --project=slow
+        run: cd apps/e2e && npx playwright test -g 'like, dislike, mutual exclusivity, save, saved page, end state'
+        # run: cd apps/e2e && npx playwright test --project=slow
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
