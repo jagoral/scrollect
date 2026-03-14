@@ -18,7 +18,33 @@ export function testUser() {
   };
 }
 
-export async function signUp(page: Page) {
+async function convexE2ERequest(
+  urlPath: string,
+  email: string,
+): Promise<{ ok: boolean; status: number; body: string }> {
+  const siteUrl = process.env.VITE_CONVEX_SITE_URL;
+  if (!siteUrl) {
+    throw new Error("VITE_CONVEX_SITE_URL is not set");
+  }
+  const secret = process.env.E2E_TEST_SECRET;
+  if (!secret) {
+    throw new Error("E2E_TEST_SECRET is not set");
+  }
+
+  const res = await fetch(`${siteUrl}${urlPath}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-e2e-secret": secret,
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const body = await res.text();
+  return { ok: res.ok, status: res.status, body };
+}
+
+export async function signUp(page: Page): Promise<{ email: string }> {
   const user = testUser();
   await page.goto("/signin");
   await page.waitForLoadState("networkidle");
@@ -28,6 +54,7 @@ export async function signUp(page: Page) {
   await page.getByLabel("Password").fill(user.password);
   await page.getByRole("button", { name: /create account/i }).click();
   await expect(page).toHaveURL(/\/library/, { timeout: 15000 });
+  return { email: user.email };
 }
 
 export async function signIn(page: Page, email: string, password: string) {
@@ -42,28 +69,17 @@ export async function signIn(page: Page, email: string, password: string) {
   await page.waitForURL(/\/(library|feed)/, { timeout: 15000 });
 }
 
-async function postFromBrowser(
-  page: Page,
-  path: string,
-): Promise<{ ok: boolean; status: number; body: string }> {
-  return page.evaluate(async (url) => {
-    const res = await fetch(url, { method: "POST" });
-    const body = await res.text();
-    return { ok: res.ok, status: res.status, body };
-  }, path);
-}
-
-export async function seedTestData(page: Page) {
-  const { ok, status, body } = await postFromBrowser(page, "/api/e2e-seed");
+export async function seedTestData(email: string) {
+  const { ok, status, body } = await convexE2ERequest("/api/e2e-seed", email);
   if (!ok) {
     throw new Error(`E2E seed failed: ${status} ${body}`);
   }
   return JSON.parse(body);
 }
 
-export async function resetTestData(page: Page) {
+export async function resetTestData(email: string) {
   try {
-    const { ok, status, body } = await postFromBrowser(page, "/api/e2e-reset");
+    const { ok, status, body } = await convexE2ERequest("/api/e2e-reset", email);
     if (!ok) {
       console.warn(`E2E reset failed: ${status} ${body}`);
     }
@@ -72,9 +88,9 @@ export async function resetTestData(page: Page) {
   }
 }
 
-export async function cleanupTestData(page: Page) {
+export async function cleanupTestData(email: string) {
   try {
-    const { ok, status, body } = await postFromBrowser(page, "/api/e2e-cleanup");
+    const { ok, status, body } = await convexE2ERequest("/api/e2e-cleanup", email);
     if (!ok) {
       console.warn(`E2E cleanup failed: ${status} ${body}`);
     }

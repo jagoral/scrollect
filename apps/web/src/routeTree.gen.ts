@@ -12,9 +12,6 @@ import { Route as rootRouteImport } from "./routes/__root";
 import { Route as SigninRouteImport } from "./routes/signin";
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
 import { Route as IndexRouteImport } from "./routes/index";
-import { Route as ApiE2eSeedRouteImport } from "./routes/api/e2e-seed";
-import { Route as ApiE2eResetRouteImport } from "./routes/api/e2e-reset";
-import { Route as ApiE2eCleanupRouteImport } from "./routes/api/e2e-cleanup";
 import { Route as AuthenticatedUploadRouteImport } from "./routes/_authenticated/upload";
 import { Route as AuthenticatedSavedRouteImport } from "./routes/_authenticated/saved";
 import { Route as AuthenticatedFeedRouteImport } from "./routes/_authenticated/feed";
@@ -34,21 +31,6 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiE2eSeedRoute = ApiE2eSeedRouteImport.update({
-  id: "/api/e2e-seed",
-  path: "/api/e2e-seed",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiE2eResetRoute = ApiE2eResetRouteImport.update({
-  id: "/api/e2e-reset",
-  path: "/api/e2e-reset",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiE2eCleanupRoute = ApiE2eCleanupRouteImport.update({
-  id: "/api/e2e-cleanup",
-  path: "/api/e2e-cleanup",
   getParentRoute: () => rootRouteImport,
 } as any);
 const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
@@ -88,9 +70,6 @@ export interface FileRoutesByFullPath {
   "/feed": typeof AuthenticatedFeedRoute;
   "/saved": typeof AuthenticatedSavedRoute;
   "/upload": typeof AuthenticatedUploadRoute;
-  "/api/e2e-cleanup": typeof ApiE2eCleanupRoute;
-  "/api/e2e-reset": typeof ApiE2eResetRoute;
-  "/api/e2e-seed": typeof ApiE2eSeedRoute;
   "/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
   "/library/": typeof AuthenticatedLibraryIndexRoute;
@@ -101,9 +80,6 @@ export interface FileRoutesByTo {
   "/feed": typeof AuthenticatedFeedRoute;
   "/saved": typeof AuthenticatedSavedRoute;
   "/upload": typeof AuthenticatedUploadRoute;
-  "/api/e2e-cleanup": typeof ApiE2eCleanupRoute;
-  "/api/e2e-reset": typeof ApiE2eResetRoute;
-  "/api/e2e-seed": typeof ApiE2eSeedRoute;
   "/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
   "/library": typeof AuthenticatedLibraryIndexRoute;
@@ -116,9 +92,6 @@ export interface FileRoutesById {
   "/_authenticated/feed": typeof AuthenticatedFeedRoute;
   "/_authenticated/saved": typeof AuthenticatedSavedRoute;
   "/_authenticated/upload": typeof AuthenticatedUploadRoute;
-  "/api/e2e-cleanup": typeof ApiE2eCleanupRoute;
-  "/api/e2e-reset": typeof ApiE2eResetRoute;
-  "/api/e2e-seed": typeof ApiE2eSeedRoute;
   "/_authenticated/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
   "/_authenticated/library/": typeof AuthenticatedLibraryIndexRoute;
@@ -131,9 +104,6 @@ export interface FileRouteTypes {
     | "/feed"
     | "/saved"
     | "/upload"
-    | "/api/e2e-cleanup"
-    | "/api/e2e-reset"
-    | "/api/e2e-seed"
     | "/library/$documentId"
     | "/api/auth/$"
     | "/library/";
@@ -144,9 +114,6 @@ export interface FileRouteTypes {
     | "/feed"
     | "/saved"
     | "/upload"
-    | "/api/e2e-cleanup"
-    | "/api/e2e-reset"
-    | "/api/e2e-seed"
     | "/library/$documentId"
     | "/api/auth/$"
     | "/library";
@@ -158,9 +125,6 @@ export interface FileRouteTypes {
     | "/_authenticated/feed"
     | "/_authenticated/saved"
     | "/_authenticated/upload"
-    | "/api/e2e-cleanup"
-    | "/api/e2e-reset"
-    | "/api/e2e-seed"
     | "/_authenticated/library/$documentId"
     | "/api/auth/$"
     | "/_authenticated/library/";
@@ -170,9 +134,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
   SigninRoute: typeof SigninRoute;
-  ApiE2eCleanupRoute: typeof ApiE2eCleanupRoute;
-  ApiE2eResetRoute: typeof ApiE2eResetRoute;
-  ApiE2eSeedRoute: typeof ApiE2eSeedRoute;
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
 }
 
@@ -197,27 +158,6 @@ declare module "@tanstack/react-router" {
       path: "/";
       fullPath: "/";
       preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/e2e-seed": {
-      id: "/api/e2e-seed";
-      path: "/api/e2e-seed";
-      fullPath: "/api/e2e-seed";
-      preLoaderRoute: typeof ApiE2eSeedRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/e2e-reset": {
-      id: "/api/e2e-reset";
-      path: "/api/e2e-reset";
-      fullPath: "/api/e2e-reset";
-      preLoaderRoute: typeof ApiE2eResetRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/e2e-cleanup": {
-      id: "/api/e2e-cleanup";
-      path: "/api/e2e-cleanup";
-      fullPath: "/api/e2e-cleanup";
-      preLoaderRoute: typeof ApiE2eCleanupRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/_authenticated/upload": {
@@ -289,9 +229,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   SigninRoute: SigninRoute,
-  ApiE2eCleanupRoute: ApiE2eCleanupRoute,
-  ApiE2eResetRoute: ApiE2eResetRoute,
-  ApiE2eSeedRoute: ApiE2eSeedRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 };
 export const routeTree = rootRouteImport

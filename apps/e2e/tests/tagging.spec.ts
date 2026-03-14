@@ -32,9 +32,9 @@ async function navigateToFirstDocument(page: import("@playwright/test").Page) {
   await goToFirstDocument(page);
 }
 
-async function reseedAccount(page: import("@playwright/test").Page) {
-  await cleanupTestData(page);
-  await seedTestData(page);
+async function reseedAccount() {
+  await cleanupTestData(SEEDED_USER.email);
+  await seedTestData(SEEDED_USER.email);
 }
 
 test.describe("Tagging — document detail: AI tags (seeded account)", () => {
@@ -42,11 +42,11 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
 
   test.beforeEach(async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    await reseedAccount(page);
+    await reseedAccount();
   });
 
   test.afterEach(async ({ page }) => {
-    await reseedAccount(page);
+    await reseedAccount();
   });
 
   // P0-5: Ready documents show tag chips with AI indicator for AI-sourced tags
@@ -91,7 +91,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
   test.setTimeout(60000);
 
   test.afterEach(async ({ page }) => {
-    await reseedAccount(page);
+    await reseedAccount();
   });
 
   // P0-7: Combobox "Create '{name}'" option creates new tag and applies it
@@ -320,7 +320,7 @@ test.describe("Tagging — library filtering (seeded account)", () => {
   test.setTimeout(60000);
 
   test.afterEach(async ({ page }) => {
-    await reseedAccount(page);
+    await reseedAccount();
   });
 
   // P0-10: Library page tag filter bar with AND logic, clear-all button
@@ -381,7 +381,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
   test.setTimeout(60000);
 
   test.afterEach(async ({ page }) => {
-    await reseedAccount(page);
+    await reseedAccount();
   });
 
   // P0-12: Feed cards show up to 3 tags from source document + "+N" overflow
@@ -449,12 +449,15 @@ test.describe("Tagging — feed cards (seeded account)", () => {
 test.describe("Tagging — AI auto-suggest (ephemeral account)", () => {
   test.setTimeout(120000);
 
+  let ephemeralEmail: string;
+
   test.beforeEach(async ({ page }) => {
-    await signUp(page);
+    const { email } = await signUp(page);
+    ephemeralEmail = email;
   });
 
-  test.afterEach(async ({ page }) => {
-    await cleanupTestData(page);
+  test.afterEach(async () => {
+    await cleanupTestData(ephemeralEmail);
   });
 
   // P0-3: AI auto-suggests 3-5 tags when document reaches "ready" status

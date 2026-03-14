@@ -35,6 +35,6 @@ setup("create and seed E2E account", async ({ page }) => {
   }
 
   // Clean up stale data from previous schema, then re-seed
-  await cleanupTestData(page);
-  await seedTestData(page);
+  await cleanupTestData(SEEDED_USER.email);
+  await seedTestData(SEEDED_USER.email);
 });

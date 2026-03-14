@@ -5,8 +5,8 @@ import { SEEDED_USER, resetTestData, signIn } from "./helpers";
 test.describe("Source provenance on feed cards", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
-    await resetTestData(page);
+  test.afterEach(async () => {
+    await resetTestData(SEEDED_USER.email);
   });
 
   test("source badge displays on feed cards with document info", async ({ page }) => {

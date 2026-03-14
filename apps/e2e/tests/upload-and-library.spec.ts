@@ -6,12 +6,15 @@ import { FIXTURES_DIR, cleanupTestData, signUp } from "./helpers";
 test.describe("Upload and Content Library flow", () => {
   test.setTimeout(120000);
 
+  let ephemeralEmail: string;
+
   test.beforeEach(async ({ page }) => {
-    await signUp(page);
+    const { email } = await signUp(page);
+    ephemeralEmail = email;
   });
 
-  test.afterEach(async ({ page }) => {
-    await cleanupTestData(page);
+  test.afterEach(async () => {
+    await cleanupTestData(ephemeralEmail);
   });
 
   test("authenticated user can navigate to the upload page", async ({ page }) => {

@@ -13,12 +13,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("upload page renders three tabs with Upload File selected by default", async ({
@@ -87,12 +90,15 @@ test.describe(
     ],
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test(
@@ -167,12 +173,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     const youtubeUrls = [
@@ -218,12 +227,15 @@ test.describe(
     ],
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test(
@@ -320,12 +332,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("submitting title and text body creates a document in the library", async ({ page }) => {
@@ -366,12 +381,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("Add to Library button is disabled when title is empty", async ({ page }) => {
@@ -422,12 +440,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("file upload still works on the Upload File tab after tab refactor", async ({ page }) => {
@@ -473,12 +494,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("URL tab shows spinner and disables input during processing", async ({ page }) => {
@@ -531,12 +555,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("URL tab success toast contains library link", async ({ page }) => {
@@ -582,12 +609,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("URL-sourced document can be viewed in library and detail page without errors", async ({

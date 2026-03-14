@@ -1,11 +1,174 @@
 import { v } from "convex/values";
+import type { GenericMutationCtx } from "convex/server";
 
+import { components } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
 import type { PostType, TypeData } from "./lib/validators";
 import { normalizeTagName } from "./tags";
 
 const E2E_EMAIL_PATTERN = /^e2e-.*@test\.scrollect\.dev$/;
+
+type MutationCtx = GenericMutationCtx<DataModel>;
+
+export const findUserByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "user",
+      where: [{ field: "email", value: args.email }],
+    });
+    return user as { _id: string; email: string; name: string } | null;
+  },
+});
+
+async function cleanupUserData(ctx: MutationCtx, userId: string) {
+  const bookmarks = await ctx.db
+    .query("bookmarks")
+    .withIndex("by_userId_post", (q) => q.eq("userId", userId))
+    .collect();
+  for (const bookmark of bookmarks) {
+    await ctx.db.delete(bookmark._id);
+  }
+
+  const bookmarkLists = await ctx.db
+    .query("bookmarkLists")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const list of bookmarkLists) {
+    await ctx.db.delete(list._id);
+  }
+
+  const tags = await ctx.db
+    .query("tags")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const tag of tags) {
+    await ctx.db.delete(tag._id);
+  }
+
+  const documents = await ctx.db
+    .query("documents")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+
+  for (const doc of documents) {
+    const chunks = await ctx.db
+      .query("chunks")
+      .withIndex("by_documentId", (q) => q.eq("documentId", doc._id))
+      .collect();
+    for (const chunk of chunks) {
+      await ctx.db.delete(chunk._id);
+    }
+
+    const jobs = await ctx.db
+      .query("processingJobs")
+      .withIndex("by_documentId", (q) => q.eq("documentId", doc._id))
+      .collect();
+    for (const job of jobs) {
+      await ctx.db.delete(job._id);
+    }
+
+    if (doc.storageId) {
+      try {
+        await ctx.storage.delete(doc.storageId);
+      } catch {
+        // Storage ID may be stale from a previous deployment
+      }
+    }
+    await ctx.db.delete(doc._id);
+  }
+
+  const posts = await ctx.db
+    .query("posts")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const post of posts) {
+    const sources = await ctx.db
+      .query("postSources")
+      .withIndex("by_postId", (q) => q.eq("postId", post._id))
+      .collect();
+    for (const source of sources) {
+      await ctx.db.delete(source._id);
+    }
+    if (post.assetStorageId) {
+      try {
+        await ctx.storage.delete(post.assetStorageId);
+      } catch {
+        // Storage ID may be stale from a previous deployment
+      }
+    }
+    await ctx.db.delete(post._id);
+  }
+
+  return {
+    deleted: {
+      bookmarks: bookmarks.length,
+      bookmarkLists: bookmarkLists.length,
+      tags: tags.length,
+      documents: documents.length,
+      posts: posts.length,
+    },
+  };
+}
+
+async function resetUserData(ctx: MutationCtx, userId: string) {
+  const posts = await ctx.db
+    .query("posts")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const post of posts) {
+    await ctx.db.patch(post._id, { reaction: undefined });
+  }
+
+  const bookmarks = await ctx.db
+    .query("bookmarks")
+    .withIndex("by_userId_post", (q) => q.eq("userId", userId))
+    .collect();
+  for (const bookmark of bookmarks) {
+    await ctx.db.delete(bookmark._id);
+  }
+
+  const bookmarkLists = await ctx.db
+    .query("bookmarkLists")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const list of bookmarkLists) {
+    await ctx.db.delete(list._id);
+  }
+
+  const userTags = await ctx.db
+    .query("tags")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const tag of userTags) {
+    await ctx.db.delete(tag._id);
+  }
+  const documents = await ctx.db
+    .query("documents")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const doc of documents) {
+    if (doc.tagIds && doc.tagIds.length > 0) {
+      await ctx.db.patch(doc._id, { tagIds: [], tagSources: [] });
+    }
+  }
+
+  if (posts.length > 0) {
+    const newestPost = posts.reduce((newest, post) =>
+      post.createdAt > newest.createdAt ? post : newest,
+    );
+    await ctx.db.patch(newestPost._id, { createdAt: Date.now() });
+  }
+
+  return { reset: true };
+}
+
+export const cleanupByUserId = internalMutation({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => cleanupUserData(ctx, args.userId),
+});
 
 export const cleanupCurrentUser = mutation({
   args: {},
@@ -16,100 +179,7 @@ export const cleanupCurrentUser = mutation({
       throw new Error(`Cleanup refused: email "${user.email}" does not match E2E test pattern`);
     }
 
-    const userId = user._id;
-
-    // 0. Delete all bookmarks and bookmark lists for this user
-    const bookmarks = await ctx.db
-      .query("bookmarks")
-      .withIndex("by_userId_post", (q) => q.eq("userId", userId))
-      .collect();
-    for (const bookmark of bookmarks) {
-      await ctx.db.delete(bookmark._id);
-    }
-
-    const bookmarkLists = await ctx.db
-      .query("bookmarkLists")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-    for (const list of bookmarkLists) {
-      await ctx.db.delete(list._id);
-    }
-
-    // 0b. Delete all tags for this user
-    const tags = await ctx.db
-      .query("tags")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-    for (const tag of tags) {
-      await ctx.db.delete(tag._id);
-    }
-
-    // 1. Find all documents for this user
-    const documents = await ctx.db
-      .query("documents")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-
-    // 2. For each document, delete chunks, processingJobs, and storage
-    for (const doc of documents) {
-      const chunks = await ctx.db
-        .query("chunks")
-        .withIndex("by_documentId", (q) => q.eq("documentId", doc._id))
-        .collect();
-      for (const chunk of chunks) {
-        await ctx.db.delete(chunk._id);
-      }
-
-      const jobs = await ctx.db
-        .query("processingJobs")
-        .withIndex("by_documentId", (q) => q.eq("documentId", doc._id))
-        .collect();
-      for (const job of jobs) {
-        await ctx.db.delete(job._id);
-      }
-
-      if (doc.storageId) {
-        try {
-          await ctx.storage.delete(doc.storageId);
-        } catch {
-          // Storage ID may be stale from a previous deployment
-        }
-      }
-      await ctx.db.delete(doc._id);
-    }
-
-    // 3. Delete all posts and postSources for this user
-    const posts = await ctx.db
-      .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-    for (const post of posts) {
-      const sources = await ctx.db
-        .query("postSources")
-        .withIndex("by_postId", (q) => q.eq("postId", post._id))
-        .collect();
-      for (const source of sources) {
-        await ctx.db.delete(source._id);
-      }
-      if (post.assetStorageId) {
-        try {
-          await ctx.storage.delete(post.assetStorageId);
-        } catch {
-          // Storage ID may be stale from a previous deployment
-        }
-      }
-      await ctx.db.delete(post._id);
-    }
-
-    return {
-      deleted: {
-        bookmarks: bookmarks.length,
-        bookmarkLists: bookmarkLists.length,
-        tags: tags.length,
-        documents: documents.length,
-        posts: posts.length,
-      },
-    };
+    return await cleanupUserData(ctx, user._id);
   },
 });
 
@@ -367,6 +437,11 @@ export const insertSeededData = internalMutation({
   },
 });
 
+export const resetByUserId = internalMutation({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => resetUserData(ctx, args.userId),
+});
+
 export const resetE2EAccount = mutation({
   args: {},
   handler: async (ctx) => {
@@ -376,61 +451,6 @@ export const resetE2EAccount = mutation({
       throw new Error(`Reset refused: email "${user.email}" does not match E2E test pattern`);
     }
 
-    const userId = user._id;
-
-    // Clear all reactions on posts
-    const posts = await ctx.db
-      .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-    for (const post of posts) {
-      await ctx.db.patch(post._id, { reaction: undefined });
-    }
-
-    // Delete all bookmarks
-    const bookmarks = await ctx.db
-      .query("bookmarks")
-      .withIndex("by_userId_post", (q) => q.eq("userId", userId))
-      .collect();
-    for (const bookmark of bookmarks) {
-      await ctx.db.delete(bookmark._id);
-    }
-
-    // Delete all bookmark lists
-    const bookmarkLists = await ctx.db
-      .query("bookmarkLists")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-    for (const list of bookmarkLists) {
-      await ctx.db.delete(list._id);
-    }
-
-    // Delete all tags and clear tagIds/tagSources from documents
-    const userTags = await ctx.db
-      .query("tags")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-    for (const tag of userTags) {
-      await ctx.db.delete(tag._id);
-    }
-    const documents = await ctx.db
-      .query("documents")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-    for (const doc of documents) {
-      if (doc.tagIds && doc.tagIds.length > 0) {
-        await ctx.db.patch(doc._id, { tagIds: [], tagSources: [] });
-      }
-    }
-
-    // Update newest post's createdAt to prevent auto-generate trigger
-    if (posts.length > 0) {
-      const newestPost = posts.reduce((newest, post) =>
-        post.createdAt > newest.createdAt ? post : newest,
-      );
-      await ctx.db.patch(newestPost._id, { createdAt: Date.now() });
-    }
-
-    return { reset: true };
+    return await resetUserData(ctx, user._id);
   },
 });

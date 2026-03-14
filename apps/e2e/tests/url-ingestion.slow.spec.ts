@@ -33,12 +33,15 @@ test.describe(
   () => {
     test.slow();
 
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("real article extraction processes URL to ready status with chunks", async ({ page }) => {
@@ -84,12 +87,15 @@ test.describe(
   () => {
     test.slow();
 
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("real YouTube extraction processes video to ready status with chunks", async ({

@@ -5,8 +5,8 @@ import { SEEDED_USER, resetTestData, signIn } from "./helpers";
 test.describe("Feed interactions and pagination", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
-    await resetTestData(page);
+  test.afterEach(async () => {
+    await resetTestData(SEEDED_USER.email);
   });
 
   test("feed card interactions: like, dislike, mutual exclusivity, save, saved page, end state", async ({

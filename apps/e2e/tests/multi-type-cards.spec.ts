@@ -18,8 +18,8 @@ test.describe("Multi-type card rendering", () => {
     await expect(page.locator(CARD).first()).toBeVisible({ timeout: 15000 });
   });
 
-  test.afterEach(async ({ page }) => {
-    await resetTestData(page);
+  test.afterEach(async () => {
+    await resetTestData(SEEDED_USER.email);
   });
 
   test("feed contains all 5 card types", async ({ page }) => {
@@ -75,8 +75,8 @@ test.describe("Quiz card interactions", () => {
     await expect(page.locator(CARD).first()).toBeVisible({ timeout: 15000 });
   });
 
-  test.afterEach(async ({ page }) => {
-    await resetTestData(page);
+  test.afterEach(async () => {
+    await resetTestData(SEEDED_USER.email);
   });
 
   test("reveal quiz: answer hidden until tap", async ({ page }) => {
@@ -133,8 +133,8 @@ test.describe("Source provenance", () => {
     await expect(page.locator(CARD).first()).toBeVisible({ timeout: 15000 });
   });
 
-  test.afterEach(async ({ page }) => {
-    await resetTestData(page);
+  test.afterEach(async () => {
+    await resetTestData(SEEDED_USER.email);
   });
 
   test("every card has a source badge", async ({ page }) => {
