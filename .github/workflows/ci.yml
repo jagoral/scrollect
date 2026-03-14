@@ -72,7 +72,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run app
-        working-directory: apps/e2e
+        working-directory: apps/web
         run: bun run start &
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
