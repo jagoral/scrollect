@@ -27,6 +27,7 @@ setup("create and seed E2E account", async ({ page }) => {
     await page.goto("/signin");
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /sign up/i }).click();
+    await page.getByLabel("Name").waitFor({ state: "visible", timeout: 5000 });
     await page.getByLabel("Name").fill(SEEDED_USER.name);
     await page.getByLabel("Email").fill(SEEDED_USER.email);
     await page.getByLabel("Password").fill(SEEDED_USER.password);
