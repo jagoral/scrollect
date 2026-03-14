@@ -41,17 +41,12 @@ setup("create and seed E2E account", async ({ page }) => {
     // Log auth response details for debugging
     try {
       const authResponse = await authResponsePromise;
-      const setCookieHeaders = authResponse
-        .headersArray()
-        .filter((h) => h.name.toLowerCase() === "set-cookie");
+      const allHeaders = await authResponse.allHeaders();
       console.log(`[E2E DEBUG] Auth response: ${authResponse.status()} ${authResponse.url()}`);
-      console.log(`[E2E DEBUG] Set-Cookie headers count: ${setCookieHeaders.length}`);
-      for (const h of setCookieHeaders) {
-        console.log(`[E2E DEBUG] Set-Cookie: ${h.value.substring(0, 80)}...`);
-      }
+      console.log(`[E2E DEBUG] All response headers: ${JSON.stringify(allHeaders)}`);
       const cookies = await page.context().cookies();
       console.log(
-        `[E2E DEBUG] Browser cookies: ${JSON.stringify(cookies.map((c) => ({ name: c.name, domain: c.domain, secure: c.secure, path: c.path })))}`,
+        `[E2E DEBUG] Browser cookies: ${JSON.stringify(cookies.map((c) => ({ name: c.name, domain: c.domain, secure: c.secure, path: c.path, httpOnly: c.httpOnly })))}`,
       );
     } catch (e) {
       console.log(`[E2E DEBUG] Failed to capture auth response: ${e}`);
