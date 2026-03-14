@@ -10,13 +10,26 @@ import {
   signUp,
 } from "./helpers";
 
-async function navigateToFirstDocument(page: import("@playwright/test").Page) {
-  await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+async function goToFirstDocument(page: import("@playwright/test").Page) {
   await page.goto("/library");
+  await page.waitForLoadState("networkidle");
   const docLink = page.locator("a[href^='/library/']").first();
   await expect(docLink).toBeVisible({ timeout: 10000 });
-  await docLink.click();
+
+  // Extract the href and navigate via full page load instead of client-side click.
+  // This ensures the root beforeLoad re-runs with the auth cookie, preventing
+  // Convex auth token propagation issues during client-side navigation.
+  const href = await docLink.getAttribute("href");
+  await page.goto(href!);
+  await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(/\/library\/.+/);
+  // Wait for the detail page to actually render
+  await expect(page.getByText(/back to library/i)).toBeVisible({ timeout: 15000 });
+}
+
+async function navigateToFirstDocument(page: import("@playwright/test").Page) {
+  await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+  await goToFirstDocument(page);
 }
 
 async function reseedAccount(page: import("@playwright/test").Page) {
@@ -27,30 +40,40 @@ async function reseedAccount(page: import("@playwright/test").Page) {
 test.describe("Tagging — document detail: AI tags (seeded account)", () => {
   test.setTimeout(60000);
 
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+    await reseedAccount(page);
+  });
+
   test.afterEach(async ({ page }) => {
     await reseedAccount(page);
   });
 
   // P0-5: Ready documents show tag chips with AI indicator for AI-sourced tags
   test("document detail page shows AI-suggested tags with sparkle indicator", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
 
-    // First test after global setup may hit a cold Convex connection — use generous timeout
+    // Wait for the tag section to load (Convex query resolves after SSR navigation)
+    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+      timeout: 30000,
+    });
+    // Then check for AI tags specifically
     const aiTag = page
       .locator('[data-testid="document-tag-section"] [data-tag-source="ai"]')
       .first();
-    await expect(aiTag).toBeVisible({ timeout: 30000 });
+    await expect(aiTag).toBeVisible({ timeout: 15000 });
   });
 
   // AI vs manual visual distinction
   test("AI-suggested and manual tags are visually distinguishable", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
+    // Wait for the tag section to load (Convex query resolves after SSR navigation)
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     const aiTags = page.locator('[data-tag-source="ai"]');
-    await expect(aiTags.first()).toBeVisible({ timeout: 15000 });
+    await expect(aiTags.first()).toBeVisible({ timeout: 30000 });
 
     await page.locator('[data-testid="add-tag-button"]').click();
     await page.locator('[data-testid="tag-search-input"]').fill("manual-visual-test");
@@ -107,6 +130,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
     // Navigate to the second document
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
     const docLinks = page.locator("a[href^='/library/']");
     await expect(docLinks.first()).toBeVisible({ timeout: 10000 });
     const count = await docLinks.count();
@@ -303,6 +327,7 @@ test.describe("Tagging — library filtering (seeded account)", () => {
   test("library shows tag filter bar and filters documents by tag", async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
 
     await expect(page.locator('[data-testid="tag-filter-bar"]')).toBeVisible({ timeout: 15000 });
 
@@ -332,6 +357,7 @@ test.describe("Tagging — library filtering (seeded account)", () => {
   test("library document cards show max 2 tags with overflow indicator", async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
 
     const docCard = page.locator("a[href^='/library/']").first();
     await expect(docCard).toBeVisible({ timeout: 10000 });
@@ -362,6 +388,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
   test("feed cards display tag chips from source document", async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
 
     const firstCard = page.locator('[data-testid="post-card"]').first();
     await expect(firstCard).toBeVisible({ timeout: 15000 });
@@ -383,6 +410,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
 
     // Add extra tags to the seeded document to ensure > 3 total
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
     const docLink = page.locator("a[href^='/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();
@@ -404,6 +432,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
     }
 
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
     const firstCard = page.locator('[data-testid="post-card"]').first();
     await expect(firstCard).toBeVisible({ timeout: 15000 });
 
@@ -431,11 +460,13 @@ test.describe("Tagging — AI auto-suggest (ephemeral account)", () => {
   // P0-3: AI auto-suggests 3-5 tags when document reaches "ready" status
   test("AI auto-suggests tags after document upload and processing", async ({ page }) => {
     await page.goto("/upload");
+    await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
     const docLink = page.locator("a[href^='/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();

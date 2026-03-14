@@ -18,7 +18,7 @@ Software engineers and active learners who consume a lot of content but struggle
 ## Tech stack
 
 - **Monorepo**: Turborepo + Bun
-- **Web app**: Next.js (`apps/web`)
+- **Web app**: TanStack Start (`apps/web`)
 - **Docs**: Starlight (`apps/docs`)
 - **Presentation**: Slidev (`apps/presentation`)
 - **Backend**: Convex (`packages/backend`)

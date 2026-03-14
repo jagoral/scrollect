@@ -14,6 +14,7 @@ test.describe("Feed interactions and pagination", () => {
   }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
 
     // Verify cards visible with all 3 buttons
     const firstCard = page.locator('[data-testid="post-card"]').first();
@@ -51,6 +52,7 @@ test.describe("Feed interactions and pagination", () => {
 
     // Back to /feed → scroll to bottom → verify "all caught up"
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
     await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible({ timeout: 15000 });
 
     for (let i = 0; i < 10; i++) {

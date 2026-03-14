@@ -1,7 +1,7 @@
+import { useNavigate } from "@tanstack/react-router";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { LogOut, User } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 
 export default function UserMenu() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useQuery(api.auth.getCurrentUser);
 
   return (
@@ -43,7 +43,7 @@ export default function UserMenu() {
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
-                    router.push("/");
+                    navigate({ to: "/" });
                   },
                 },
               });

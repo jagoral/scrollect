@@ -5,6 +5,7 @@ import { SEEDED_USER, cleanupTestData, seedTestData } from "./helpers";
 setup("create and seed E2E account", async ({ page }) => {
   // Try sign-in first (account may exist from previous run)
   await page.goto("/signin");
+  await page.waitForLoadState("networkidle");
   await page.getByLabel("Email").fill(SEEDED_USER.email);
   await page.getByLabel("Password").fill(SEEDED_USER.password);
   await page
@@ -24,6 +25,7 @@ setup("create and seed E2E account", async ({ page }) => {
   // If sign-in failed, sign up instead
   if (!succeeded) {
     await page.goto("/signin");
+    await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /sign up/i }).click();
     await page.getByLabel("Name").fill(SEEDED_USER.name);
     await page.getByLabel("Email").fill(SEEDED_USER.email);

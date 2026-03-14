@@ -1,5 +1,3 @@
-"use client";
-
 import Markdown from "react-markdown";
 
 import { CardShell, SourceBadge } from "./card-shell";

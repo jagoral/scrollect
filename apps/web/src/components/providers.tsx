@@ -1,5 +1,3 @@
-"use client";
-
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { env } from "@scrollect/env/web";
 import { ConvexReactClient } from "convex/react";
@@ -9,7 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { ThemeProvider } from "./theme-provider";
 import { Toaster } from "./ui/sonner";
 
-const convex = new ConvexReactClient(env.NEXT_PUBLIC_CONVEX_URL);
+const convex = new ConvexReactClient(env.VITE_CONVEX_URL);
 
 export default function Providers({
   children,

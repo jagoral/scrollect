@@ -14,6 +14,7 @@ test.describe("Multi-type card rendering", () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(CARD).first()).toBeVisible({ timeout: 15000 });
   });
 
@@ -70,6 +71,7 @@ test.describe("Quiz card interactions", () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(CARD).first()).toBeVisible({ timeout: 15000 });
   });
 
@@ -127,6 +129,7 @@ test.describe("Source provenance", () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
     await expect(page.locator(CARD).first()).toBeVisible({ timeout: 15000 });
   });
 

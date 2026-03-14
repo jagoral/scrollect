@@ -63,8 +63,8 @@ jobs:
       - name: Build
         run: bun turbo run build
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Install Playwright browsers
         run: cd apps/e2e && npx playwright install chromium --with-deps
@@ -73,8 +73,8 @@ jobs:
         working-directory: apps/e2e
         run: npx playwright test --project=setup --project=seeded --project=chromium
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
@@ -136,8 +136,8 @@ jobs:
       - name: Build
         run: bun turbo run build
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Install Playwright browsers
         run: cd apps/e2e && npx playwright install chromium --with-deps
@@ -145,8 +145,8 @@ jobs:
       - name: Run E2E tests (slow)
         run: cd apps/e2e && npx playwright test --project=slow
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Upload slow test report
         uses: actions/upload-artifact@v4
