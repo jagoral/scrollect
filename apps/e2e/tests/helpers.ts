@@ -42,19 +42,30 @@ export async function signIn(page: Page, email: string, password: string) {
   await page.waitForURL(/\/(library|feed)/, { timeout: 15000 });
 }
 
+async function postFromBrowser(
+  page: Page,
+  path: string,
+): Promise<{ ok: boolean; status: number; body: string }> {
+  return page.evaluate(async (url) => {
+    const res = await fetch(url, { method: "POST" });
+    const body = await res.text();
+    return { ok: res.ok, status: res.status, body };
+  }, path);
+}
+
 export async function seedTestData(page: Page) {
-  const response = await page.request.post("/api/e2e-seed");
-  if (!response.ok()) {
-    throw new Error(`E2E seed failed: ${response.status()} ${await response.text()}`);
+  const { ok, status, body } = await postFromBrowser(page, "/api/e2e-seed");
+  if (!ok) {
+    throw new Error(`E2E seed failed: ${status} ${body}`);
   }
-  return response.json();
+  return JSON.parse(body);
 }
 
 export async function resetTestData(page: Page) {
   try {
-    const response = await page.request.post("/api/e2e-reset");
-    if (!response.ok()) {
-      console.warn(`E2E reset failed: ${response.status()} ${await response.text()}`);
+    const { ok, status, body } = await postFromBrowser(page, "/api/e2e-reset");
+    if (!ok) {
+      console.warn(`E2E reset failed: ${status} ${body}`);
     }
   } catch (error) {
     console.warn("E2E reset error:", error);
@@ -63,9 +74,9 @@ export async function resetTestData(page: Page) {
 
 export async function cleanupTestData(page: Page) {
   try {
-    const response = await page.request.post("/api/e2e-cleanup");
-    if (!response.ok()) {
-      console.warn(`E2E cleanup failed: ${response.status()} ${await response.text()}`);
+    const { ok, status, body } = await postFromBrowser(page, "/api/e2e-cleanup");
+    if (!ok) {
+      console.warn(`E2E cleanup failed: ${status} ${body}`);
     }
   } catch (error) {
     console.warn("E2E cleanup error:", error);

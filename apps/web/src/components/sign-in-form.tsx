@@ -1,5 +1,4 @@
 import { useForm } from "@tanstack/react-form";
-import { useNavigate, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -12,9 +11,6 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
 export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
-  const router = useRouter();
-  const navigate = useNavigate();
-
   const form = useForm({
     defaultValues: {
       email: "",
@@ -27,10 +23,8 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
           password: value.password,
         },
         {
-          onSuccess: async () => {
-            await router.invalidate();
-            await navigate({ to: "/library" });
-            toast.success("Sign in successful");
+          onSuccess: () => {
+            window.location.href = "/library";
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
