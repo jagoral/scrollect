@@ -15,7 +15,7 @@ test.describe("Source provenance on feed cards", () => {
     await page.waitForLoadState("networkidle");
 
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
+    await expect(firstCard).toBeVisible();
 
     // Source badge should be visible on the card
     const sourceBadge = firstCard.locator('[data-testid="source-badge"]');
@@ -31,7 +31,7 @@ test.describe("Source provenance on feed cards", () => {
     await page.waitForLoadState("networkidle");
 
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
+    await expect(firstCard).toBeVisible();
 
     const sourceBadge = firstCard.locator('[data-testid="source-badge"]');
     await expect(sourceBadge).toBeVisible({ timeout: 10000 });
@@ -45,7 +45,7 @@ test.describe("Source provenance on feed cards", () => {
     await expect(page).toHaveURL(/\/library\/.+/, { timeout: 15000 });
 
     // Wait for the detail page to actually render (TanStack Router pending state)
-    await expect(page.getByText(/back to library/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/back to library/i)).toBeVisible();
 
     // Should show the document title on the detail page
     await expect(page.locator("h1").getByText("E2E Seed Document")).toBeVisible({ timeout: 10000 });
@@ -57,7 +57,7 @@ test.describe("Source provenance on feed cards", () => {
     await page.waitForLoadState("networkidle");
 
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
+    await expect(firstCard).toBeVisible();
 
     // Expand button should be visible
     const expandButton = firstCard.locator('[data-testid="expand-button"]');

@@ -24,7 +24,7 @@ async function goToFirstDocument(page: import("@playwright/test").Page) {
   await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(/\/library\/.+/);
   // Wait for the detail page to actually render
-  await expect(page.getByText(/back to library/i)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/back to library/i)).toBeVisible();
 }
 
 async function navigateToFirstDocument(page: import("@playwright/test").Page) {
@@ -333,7 +333,7 @@ test.describe("Tagging — library filtering (seeded account)", () => {
     await page.goto("/library");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator('[data-testid="tag-filter-bar"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="tag-filter-bar"]')).toBeVisible();
 
     // Use button inside the filter bar to avoid matching the bar itself
     const filterButtons = page.locator(
@@ -395,7 +395,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
     await page.waitForLoadState("networkidle");
 
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
+    await expect(firstCard).toBeVisible();
 
     const tagList = firstCard.locator('[data-testid="tag-list"]');
     await expect(tagList).toBeVisible({ timeout: 10000 });
@@ -438,7 +438,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
     await page.goto("/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
+    await expect(firstCard).toBeVisible();
 
     const tagList = firstCard.locator('[data-testid="tag-list"]');
     await expect(tagList).toBeVisible({ timeout: 10000 });

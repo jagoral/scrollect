@@ -18,7 +18,7 @@ test.describe("Feed interactions and pagination", () => {
 
     // Verify cards visible with all 3 buttons
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
+    await expect(firstCard).toBeVisible();
     await expect(firstCard.locator('[data-testid="save-button"]')).toBeVisible();
     await expect(firstCard.locator('[data-testid="like-button"]')).toBeVisible();
     await expect(firstCard.locator('[data-testid="dislike-button"]')).toBeVisible();
@@ -47,13 +47,13 @@ test.describe("Feed interactions and pagination", () => {
     // alive — a full page.goto() can kill the connection before the mutation flushes.
     await page.getByRole("navigation").getByRole("button", { name: /saved/i }).click();
     await page.waitForURL(/\/saved/);
-    await expect(page.getByRole("heading", { name: /saved/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: /saved/i })).toBeVisible();
     await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible({ timeout: 30000 });
 
     // Back to /feed → scroll to bottom → verify "all caught up"
     await page.goto("/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
 
     for (let i = 0; i < 10; i++) {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
