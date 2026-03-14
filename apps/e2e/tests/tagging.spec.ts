@@ -41,8 +41,12 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+    // Reseed BEFORE signIn so the Convex client connects after data is already
+    // in the database. This avoids a race where the client subscribes, receives
+    // the cleanup (empty state), and the tag queries resolve with [] before the
+    // seed data arrives.
     await reseedAccount();
+    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
   });
 
   test.afterEach(async () => {
@@ -53,26 +57,20 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
   test("document detail page shows AI-suggested tags with sparkle indicator", async ({ page }) => {
     await goToFirstDocument(page);
 
-    // Wait for the tag section to load (Convex query resolves after SSR navigation)
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 30000,
-    });
-    // Then check for AI tags specifically
+    // Wait directly for AI tags (combines tag section load + AI tag visibility
+    // into one assertion so we don't "lock in" an intermediate empty state)
     const aiTag = page
       .locator('[data-testid="document-tag-section"] [data-tag-source="ai"]')
       .first();
-    await expect(aiTag).toBeVisible({ timeout: 15000 });
+    await expect(aiTag).toBeVisible({ timeout: 30000 });
   });
 
   // AI vs manual visual distinction
   test("AI-suggested and manual tags are visually distinguishable", async ({ page }) => {
     await goToFirstDocument(page);
-    // Wait for the tag section to load (Convex query resolves after SSR navigation)
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 30000,
-    });
 
-    const aiTags = page.locator('[data-tag-source="ai"]');
+    // Wait directly for AI tags within the tag section
+    const aiTags = page.locator('[data-testid="document-tag-section"] [data-tag-source="ai"]');
     await expect(aiTags.first()).toBeVisible({ timeout: 30000 });
 
     await page.locator('[data-testid="add-tag-button"]').click();
@@ -128,7 +126,8 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
       timeout: 10000,
     });
 
-    // Navigate to the second document
+    // Navigate to the second document via full page load (same pattern as goToFirstDocument)
+    // to ensure Convex auth token propagation
     await page.goto("/library");
     await page.waitForLoadState("networkidle");
     const docLinks = page.locator("a[href^='/library/']");
@@ -136,7 +135,9 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
     const count = await docLinks.count();
     expect(count).toBeGreaterThan(1);
 
-    await docLinks.nth(1).click();
+    const secondHref = await docLinks.nth(1).getAttribute("href");
+    await page.goto(secondHref!);
+    await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/library\/.+/);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
@@ -256,6 +257,9 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
       await expect(page.locator(`[data-testid="tag-badge-limit-test-tag-${i}"]`)).toBeVisible({
         timeout: 10000,
       });
+      // Wait for the popover to close before the next iteration — Convex subscription
+      // updates can re-render the combobox mid-interaction, detaching DOM elements
+      await expect(page.locator('[data-testid="tag-search-input"]')).not.toBeVisible();
     }
 
     await expect(page.locator('[data-testid="add-tag-button"]')).not.toBeVisible();

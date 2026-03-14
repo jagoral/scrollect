@@ -56,9 +56,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const { initialToken, convexClient, queryClient } = Route.useRouteContext();
+  const { initialToken, convexClient } = Route.useRouteContext();
   return (
-    <Providers initialToken={initialToken} convexClient={convexClient} queryClient={queryClient}>
+    <Providers initialToken={initialToken} convexClient={convexClient}>
       <div className="grid grid-rows-[auto_1fr] h-svh">
         <Header />
         <main className="flex flex-col overflow-y-auto">

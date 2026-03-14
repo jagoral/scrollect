@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 export default defineConfig({
   testDir: "./tests",
@@ -11,7 +15,6 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3001",
     trace: "on-first-retry",
-    reducedMotion: "reduce",
   },
 
   projects: [
@@ -56,6 +59,5 @@ export default defineConfig({
     command: "bun run --cwd ../web dev",
     url: "http://localhost:3001",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
   },
 });

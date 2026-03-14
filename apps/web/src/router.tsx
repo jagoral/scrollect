@@ -2,6 +2,7 @@ import { ConvexQueryClient } from "@convex-dev/react-query";
 import { env } from "@scrollect/env/web";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
+import { routerWithQueryClient } from "@tanstack/react-router-with-query";
 import { ConvexReactClient } from "convex/react";
 
 import { DefaultCatchBoundary } from "./components/default-catch-boundary";
@@ -24,6 +25,7 @@ export function getRouter() {
   const router = createRouter({
     routeTree,
     defaultPreload: "intent",
+    defaultPreloadStaleTime: 0,
     scrollRestoration: true,
     defaultPendingMs: 200,
     defaultPendingMinMs: 200,
@@ -32,7 +34,7 @@ export function getRouter() {
     context: { queryClient, convexClient, convexQueryClient },
   });
 
-  return router;
+  return routerWithQueryClient(router, queryClient);
 }
 
 declare module "@tanstack/react-router" {
