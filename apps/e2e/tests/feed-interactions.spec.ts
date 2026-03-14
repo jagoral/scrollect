@@ -1,9 +1,13 @@
 import { test, expect } from "@playwright/test";
 
-import { SEEDED_USER, resetTestData, signIn } from "./helpers";
+import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
 
 test.describe("Feed interactions and pagination", () => {
   test.setTimeout(60000);
+
+  test.beforeEach(async ({ page }) => {
+    await signInToSeededFeed(page);
+  });
 
   test.afterEach(async () => {
     await resetTestData(SEEDED_USER.email);
@@ -12,13 +16,7 @@ test.describe("Feed interactions and pagination", () => {
   test("feed card interactions: like, dislike, mutual exclusivity, save, saved page, end state", async ({
     page,
   }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    await page.goto("/feed?noAutoGenerate");
-    await page.waitForLoadState("networkidle");
-
-    // Verify cards visible with all 3 buttons
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible();
     await expect(firstCard.locator('[data-testid="save-button"]')).toBeVisible();
     await expect(firstCard.locator('[data-testid="like-button"]')).toBeVisible();
     await expect(firstCard.locator('[data-testid="dislike-button"]')).toBeVisible();
