@@ -28,6 +28,10 @@ export const failedAtStage = v.union(
 
 export const reactionType = v.union(v.literal("like"), v.literal("dislike"));
 
+export const tagSource = v.union(v.literal("ai"), v.literal("manual"));
+
+export type TagSource = Infer<typeof tagSource>;
+
 export const reactionInput = v.union(v.literal("like"), v.literal("dislike"), v.literal("none"));
 
 export const postType = v.union(

@@ -173,5 +173,8 @@ async function checkCompletion(
       id: documentId,
       status: "ready",
     });
+    await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, {
+      documentId,
+    });
   }
 }

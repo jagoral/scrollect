@@ -29,6 +29,7 @@ import type * as pipeline_helpers from "../pipeline/helpers.js";
 import type * as pipeline_index from "../pipeline/index.js";
 import type * as pipeline_parsing from "../pipeline/parsing.js";
 import type * as pipeline_resume from "../pipeline/resume.js";
+import type * as pipeline_tagging from "../pipeline/tagging.js";
 import type * as privateData from "../privateData.js";
 import type * as processingJobs from "../processingJobs.js";
 import type * as providers_convexVectors from "../providers/convexVectors.js";
@@ -43,6 +44,7 @@ import type * as providers_youtube_apify from "../providers/youtube/apify.js";
 import type * as providers_youtube_captions from "../providers/youtube/captions.js";
 import type * as providers_youtube_index from "../providers/youtube/index.js";
 import type * as providers_youtube_utils from "../providers/youtube/utils.js";
+import type * as tags from "../tags.js";
 import type * as testing from "../testing.js";
 import type * as testingActions from "../testingActions.js";
 
@@ -74,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   "pipeline/index": typeof pipeline_index;
   "pipeline/parsing": typeof pipeline_parsing;
   "pipeline/resume": typeof pipeline_resume;
+  "pipeline/tagging": typeof pipeline_tagging;
   privateData: typeof privateData;
   processingJobs: typeof processingJobs;
   "providers/convexVectors": typeof providers_convexVectors;
@@ -88,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "providers/youtube/captions": typeof providers_youtube_captions;
   "providers/youtube/index": typeof providers_youtube_index;
   "providers/youtube/utils": typeof providers_youtube_utils;
+  tags: typeof tags;
   testing: typeof testing;
   testingActions: typeof testingActions;
 }>;

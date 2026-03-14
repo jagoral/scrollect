@@ -7,6 +7,7 @@ import {
   fileType,
   postType,
   reactionType,
+  tagSource,
   typeData,
 } from "./lib/validators";
 
@@ -21,6 +22,8 @@ export default defineSchema({
     datalabCheckUrl: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
     chunkCount: v.number(),
+    tagIds: v.optional(v.array(v.id("tags"))),
+    tagSources: v.optional(v.array(tagSource)),
     userId: v.string(),
     createdAt: v.number(),
   })
@@ -103,4 +106,13 @@ export default defineSchema({
     retryCount: v.number(),
     createdAt: v.number(),
   }).index("by_documentId", ["documentId"]),
+
+  tags: defineTable({
+    name: v.string(),
+    normalizedName: v.string(),
+    userId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_normalizedName", ["userId", "normalizedName"]),
 });

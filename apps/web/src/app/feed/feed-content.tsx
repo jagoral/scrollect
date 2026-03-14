@@ -1,11 +1,13 @@
 "use client";
 
 import { api } from "@scrollect/backend/convex/_generated/api";
+import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { useAction, usePaginatedQuery, useQuery } from "convex/react";
 import { CheckCircle, Loader2, Rss, Sparkles } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 
+import type { PostCardTag } from "@/components/cards/types";
 import { PostCard } from "@/components/post-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +32,37 @@ function FeedContentInner() {
     count,
   });
   const sentinelRef = useInfiniteScroll(status, loadMore);
+
+  const uniqueDocumentIds = useMemo(
+    () => [...new Set(results.map((p) => p.primarySourceDocumentId))] as Id<"documents">[],
+    [results],
+  );
+
+  const tagsBatch = useQuery(
+    api.tags.getDocumentTagsBatch,
+    results.length > 0 ? { documentIds: uniqueDocumentIds } : "skip",
+  );
+
+  const tagsByDocId = useMemo(() => {
+    const map = new Map<string, PostCardTag[]>();
+    if (!tagsBatch) return map;
+    for (const [docId, raw] of Object.entries(tagsBatch)) {
+      map.set(
+        docId,
+        raw.map((t) => ({ tagId: t._id, tagName: t.name, source: t.source })),
+      );
+    }
+    return map;
+  }, [tagsBatch]);
+
+  const enrichedResults = useMemo(
+    () =>
+      results.map((post) => ({
+        ...post,
+        tags: tagsByDocId.get(post.primarySourceDocumentId) ?? [],
+      })),
+    [results, tagsByDocId],
+  );
 
   if (status === "LoadingFirstPage") {
     return (
@@ -70,7 +103,7 @@ function FeedContentInner() {
         </div>
       )}
 
-      {results.length === 0 && !generating ? (
+      {enrichedResults.length === 0 && !generating ? (
         <div className="mt-12 flex flex-col items-center gap-4 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
             <Rss className="h-8 w-8 text-primary/70" />
@@ -88,11 +121,10 @@ function FeedContentInner() {
         </div>
       ) : (
         <div className="animate-stagger-in grid gap-4">
-          {results.map((post) => (
+          {enrichedResults.map((post) => (
             <PostCard key={post._id} post={post} />
           ))}
 
-          {/* Sentinel for infinite scroll */}
           <div ref={sentinelRef} className="h-1" />
 
           {status === "LoadingMore" && (
@@ -101,7 +133,7 @@ function FeedContentInner() {
             </div>
           )}
 
-          {status === "Exhausted" && results.length > 0 && (
+          {status === "Exhausted" && enrichedResults.length > 0 && (
             <div
               data-testid="feed-end-state"
               className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground"

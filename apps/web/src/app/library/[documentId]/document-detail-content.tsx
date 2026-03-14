@@ -8,6 +8,7 @@ import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
+import { DocumentTagSection } from "@/components/tags/document-tag-section";
 
 export function DocumentDetailContent({
   preloadedDocument,
@@ -71,6 +72,8 @@ export function DocumentDetailContent({
           )}
         </div>
       </div>
+
+      {document.status === "ready" && <DocumentTagSection documentId={document._id} />}
 
       {document.status === "error" && document.errorMessage && (
         <div className="mt-6 rounded-lg border border-destructive/20 border-l-4 border-l-destructive bg-destructive/5 p-4 text-sm text-destructive">
