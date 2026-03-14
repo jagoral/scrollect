@@ -1,12 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useAction, usePaginatedQuery, useQuery } from "convex/react";
+import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useAction, usePaginatedQuery } from "convex/react";
 import { CheckCircle, Loader2, Rss, Sparkles } from "lucide-react";
 import { Suspense, useMemo } from "react";
 
-import type { PostCardTag } from "@/components/cards/types";
 import { PostCard } from "@/components/post-card";
+import { buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAutoGenerate } from "@/hooks/use-auto-generate";
@@ -18,6 +20,9 @@ type FeedSearch = {
 };
 
 export const Route = createFileRoute("/_authenticated/feed")({
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(convexQuery(api.feed.queries.getLastGeneratedAt, {}));
+  },
   head: () => ({
     meta: [{ title: "Feed | Scrollect" }],
   }),
@@ -47,7 +52,9 @@ function FeedContentInner() {
     {},
     { initialNumItems: 10 },
   );
-  const lastGeneratedAt = useQuery(api.feed.queries.getLastGeneratedAt);
+  const { data: lastGeneratedAt } = useSuspenseQuery(
+    convexQuery(api.feed.queries.getLastGeneratedAt, {}),
+  );
   const generateFeed = useAction(api.feed.generation.generate);
 
   const { generating, error, generate } = useAutoGenerate(lastGeneratedAt, generateFeed, {
@@ -61,22 +68,14 @@ function FeedContentInner() {
     [results],
   );
 
-  const tagsBatch = useQuery(
-    api.tags.getDocumentTagsBatch,
-    results.length > 0 ? { documentIds: uniqueDocumentIds } : "skip",
-  );
+  const { data: tagsBatch } = useQuery({
+    ...convexQuery(
+      api.tags.getDocumentTagsBatch,
+      results.length > 0 ? { documentIds: uniqueDocumentIds } : "skip",
+    ),
+  });
 
-  const tagsByDocId = useMemo(() => {
-    const map = new Map<string, PostCardTag[]>();
-    if (!tagsBatch) return map;
-    for (const [docId, raw] of Object.entries(tagsBatch)) {
-      map.set(
-        docId,
-        raw.map((t) => ({ tagId: t._id, tagName: t.name, source: t.source })),
-      );
-    }
-    return map;
-  }, [tagsBatch]);
+  const tagsByDocId = useMemo(() => buildTagMap(tagsBatch), [tagsBatch]);
 
   const enrichedResults = useMemo(
     () =>

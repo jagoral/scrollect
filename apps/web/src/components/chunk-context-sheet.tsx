@@ -1,6 +1,7 @@
+import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { FileText, Loader2 } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
@@ -126,12 +127,13 @@ export function ChunkContextSheetContent({
   isOpen,
   postType,
 }: ChunkContextSheetContentProps) {
-  const chunkContext = useQuery(
-    api.chunks.getWithContext,
-    isOpen ? { chunkId: sourceChunkId } : "skip",
-  );
+  const { data: chunkContext } = useQuery({
+    ...convexQuery(api.chunks.getWithContext, isOpen ? { chunkId: sourceChunkId } : "skip"),
+  });
 
-  const postSources = useQuery(api.feed.queries.listSourcesByPostId, isOpen ? { postId } : "skip");
+  const { data: postSources } = useQuery({
+    ...convexQuery(api.feed.queries.listSourcesByPostId, isOpen ? { postId } : "skip"),
+  });
 
   const locationLabel = getLocationLabel(sourceDocumentTitle, sectionTitle, pageNumber);
   const hasContext = chunkContext?.previousChunk || chunkContext?.nextChunk;

@@ -1,19 +1,24 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Doc, Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { FileText, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
-import { TagFilterBar, TagList } from "@/components/tags";
-import type { DocumentTag } from "@/components/tags";
+import { TagFilterBar, TagList, buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/library/")({
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(convexQuery(api.documents.list, {})),
+      context.queryClient.ensureQueryData(convexQuery(api.tags.listUserTags, {})),
+    ]);
+  },
   head: () => ({
     meta: [{ title: "Library | Scrollect" }],
   }),
@@ -21,40 +26,9 @@ export const Route = createFileRoute("/_authenticated/library/")({
 });
 
 function LibraryPage() {
-  const documents = useQuery(api.documents.list);
-
-  if (documents === undefined) {
-    return <LibraryLoading />;
-  }
+  const { data: documents } = useSuspenseQuery(convexQuery(api.documents.list, {}));
 
   return <LibraryContent documents={documents} />;
-}
-
-function LibraryLoading() {
-  return (
-    <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
-        <p className="mt-1 text-muted-foreground">
-          Your uploaded documents and their processing status.
-        </p>
-      </div>
-      <div className="animate-stagger-in grid gap-3">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-xl border p-4">
-            <div className="flex items-center gap-2.5">
-              <Skeleton className="h-4 w-4" />
-              <Skeleton className="h-5 w-48" />
-            </div>
-            <div className="mt-3 flex items-center gap-3">
-              <Skeleton className="h-5 w-20 rounded-full" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
@@ -62,25 +36,15 @@ function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
 
   const documentIds = useMemo(() => documents.map((d) => d._id as Id<"documents">), [documents]);
 
-  const allUserTags = useQuery(api.tags.listUserTags);
-  const tagsBatch = useQuery(api.tags.getDocumentTagsBatch, { documentIds });
+  const { data: allUserTags } = useQuery(convexQuery(api.tags.listUserTags, {}));
+  const { data: tagsBatch } = useQuery(convexQuery(api.tags.getDocumentTagsBatch, { documentIds }));
 
   const tagOptions = useMemo(
     () => (allUserTags ?? []).map((t) => ({ _id: t._id, name: t.name })),
     [allUserTags],
   );
 
-  const docTagMap = useMemo(() => {
-    const map = new Map<string, DocumentTag[]>();
-    if (!tagsBatch) return map;
-    for (const [docId, raw] of Object.entries(tagsBatch)) {
-      map.set(
-        docId,
-        raw.map((t) => ({ tagId: t._id, tagName: t.name, source: t.source })),
-      );
-    }
-    return map;
-  }, [tagsBatch]);
+  const docTagMap = useMemo(() => buildTagMap(tagsBatch), [tagsBatch]);
 
   const filteredDocuments = useMemo(() => {
     if (selectedTags.size === 0) return documents;

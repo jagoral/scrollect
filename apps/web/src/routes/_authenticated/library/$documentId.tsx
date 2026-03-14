@@ -1,54 +1,43 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
+import { NotFound } from "@/components/not-found";
 import { DocumentTagSection } from "@/components/tags/document-tag-section";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/library/$documentId")({
-  head: () => ({
-    meta: [{ title: "Document | Scrollect" }],
+  loader: async ({ params: { documentId }, context }) => {
+    const data = await context.queryClient.ensureQueryData(
+      convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
+    );
+    if (!data) throw notFound();
+    return { title: data.title };
+  },
+  head: ({ loaderData }) => ({
+    meta: [
+      {
+        title: loaderData?.title ? `${loaderData.title} | Scrollect` : "Document | Scrollect",
+      },
+    ],
   }),
+  notFoundComponent: () => (
+    <NotFound>This document doesn&apos;t exist or you don&apos;t have access to it.</NotFound>
+  ),
   component: DocumentDetailPage,
 });
 
 function DocumentDetailPage() {
   const { documentId } = Route.useParams();
-  const id = documentId as Id<"documents">;
-  const document = useQuery(api.documents.get, { id });
+  const { data: document } = useSuspenseQuery(
+    convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
+  );
 
-  if (document === undefined) {
-    return <DocumentDetailLoading />;
-  }
-
-  if (document === null) {
-    return (
-      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
-        <Link
-          to="/library"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Library
-        </Link>
-        <div className="mt-16 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-            <FileText className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold">Document not found</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              This document doesn&apos;t exist or you don&apos;t have access to it.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!document) throw notFound();
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -104,22 +93,6 @@ function DocumentDetailPage() {
           <p className="text-muted-foreground">Waiting for processing...</p>
         </div>
       )}
-    </div>
-  );
-}
-
-function DocumentDetailLoading() {
-  return (
-    <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
-      <Skeleton className="h-4 w-28" />
-      <div className="mt-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="mt-3 flex items-center gap-3">
-          <Skeleton className="h-5 w-20 rounded-full" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-      </div>
     </div>
   );
 }

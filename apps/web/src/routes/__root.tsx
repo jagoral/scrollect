@@ -1,16 +1,24 @@
 /// <reference types="vite/client" />
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
-import type { ErrorComponentProps } from "@tanstack/react-router";
+import type { ConvexQueryClient } from "@convex-dev/react-query";
+import type { QueryClient } from "@tanstack/react-query";
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import type { ConvexReactClient } from "convex/react";
 
 import appCss from "@/index.css?url";
-import Providers from "@/components/providers";
 import Header from "@/components/header";
-import { Button } from "@/components/ui/button";
+import Providers from "@/components/providers";
 import { getSession } from "@/lib/auth-server";
 
-export const Route = createRootRoute({
-  beforeLoad: async () => {
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient;
+  convexClient: ConvexReactClient;
+  convexQueryClient: ConvexQueryClient;
+}>()({
+  beforeLoad: async ({ context }) => {
     const initialToken = await getSession();
+    if (initialToken) {
+      context.convexQueryClient.serverHttpClient?.setAuth(initialToken);
+    }
     return { initialToken };
   },
   head: () => ({
@@ -29,8 +37,6 @@ export const Route = createRootRoute({
       { rel: "icon", href: "/icon.svg" },
     ],
   }),
-  errorComponent: ErrorComponent,
-  notFoundComponent: NotFoundComponent,
   shellComponent: RootDocument,
   component: RootComponent,
 });
@@ -50,9 +56,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const { initialToken } = Route.useRouteContext();
+  const { initialToken, convexClient, queryClient } = Route.useRouteContext();
   return (
-    <Providers initialToken={initialToken}>
+    <Providers initialToken={initialToken} convexClient={convexClient} queryClient={queryClient}>
       <div className="grid grid-rows-[auto_1fr] h-svh">
         <Header />
         <main className="flex flex-col overflow-y-auto">
@@ -60,34 +66,5 @@ function RootComponent() {
         </main>
       </div>
     </Providers>
-  );
-}
-
-function ErrorComponent({ error, reset }: ErrorComponentProps) {
-  return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
-      <h1 className="text-2xl font-bold">Something went wrong</h1>
-      <p className="text-muted-foreground">{error.message}</p>
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={reset}>
-          Try again
-        </Button>
-        <Button variant="default" render={<a href="/" />}>
-          Go home
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function NotFoundComponent() {
-  return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
-      <h1 className="text-2xl font-bold">Page not found</h1>
-      <p className="text-muted-foreground">The page you&apos;re looking for doesn&apos;t exist.</p>
-      <Button variant="default" render={<a href="/" />}>
-        Go home
-      </Button>
-    </div>
   );
 }

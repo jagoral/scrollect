@@ -10,6 +10,23 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/library" });
     }
   },
+  head: () => ({
+    meta: [
+      { title: "Scrollect - AI-Powered Personal Learning Feed" },
+      {
+        name: "description",
+        content:
+          "Transform your saved content into a scrollable feed of bite-sized learning cards — like social media, but built from your own knowledge.",
+      },
+      { property: "og:title", content: "Scrollect - AI-Powered Personal Learning Feed" },
+      {
+        property: "og:description",
+        content:
+          "Transform your saved content into a scrollable feed of bite-sized learning cards — like social media, but built from your own knowledge.",
+      },
+      { property: "og:type", content: "website" },
+    ],
+  }),
   component: HomePage,
 });
 
