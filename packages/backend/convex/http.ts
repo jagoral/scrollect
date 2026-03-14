@@ -31,7 +31,9 @@ async function resolveUserId(
   return user._id as string;
 }
 
-if (process.env.NODE_ENV !== "production") {
+// E2E test routes — always registered but check for test email pattern at runtime.
+// Only emails matching e2e-*@test.scrollect.dev are accepted.
+{
   http.route({
     path: "/api/e2e-seed",
     method: "POST",
