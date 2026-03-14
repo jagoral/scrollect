@@ -71,10 +71,7 @@ jobs:
 
       - name: Run E2E tests (fast)
         working-directory: apps/e2e
-        run: |
-          cd ../web && PORT=3001 node .output/server/index.mjs &
-          npx wait-on http://localhost:3001 --timeout 30000
-          npx playwright test --project=setup --project=seeded --project=chromium
+        run: npx playwright test --project=setup --project=seeded --project=chromium
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
@@ -146,10 +143,7 @@ jobs:
         run: cd apps/e2e && npx playwright install chromium --with-deps
 
       - name: Run E2E tests (slow)
-        run: |
-          cd apps/web && PORT=3001 node .output/server/index.mjs &
-          cd apps/e2e && npx wait-on http://localhost:3001 --timeout 30000
-          cd apps/e2e && npx playwright test --project=slow
+        run: cd apps/e2e && npx playwright test --project=slow
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}

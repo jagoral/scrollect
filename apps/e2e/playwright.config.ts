@@ -51,4 +51,11 @@ export default defineConfig({
       testMatch: /\.slow\.spec\.ts/,
     },
   ],
+
+  webServer: {
+    command: "bun run --cwd ../web dev",
+    url: "http://localhost:3001",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
 });
