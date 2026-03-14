@@ -33,7 +33,10 @@ export async function signIn(page: Page, email: string, password: string) {
   await page.goto("/signin");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: /sign in$/i }).click();
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: /sign in$/i })
+    .click();
   await page.waitForURL(/\/(library|feed)/, { timeout: 15000 });
 }
 

@@ -7,7 +7,10 @@ setup("create and seed E2E account", async ({ page }) => {
   await page.goto("/signin");
   await page.getByLabel("Email").fill(SEEDED_USER.email);
   await page.getByLabel("Password").fill(SEEDED_USER.password);
-  await page.getByRole("button", { name: /sign in$/i }).click();
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: /sign in$/i })
+    .click();
 
   // Wait for either successful redirect or error toast
   const succeeded = await Promise.race([

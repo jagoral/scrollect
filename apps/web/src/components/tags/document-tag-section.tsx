@@ -48,7 +48,7 @@ export function DocumentTagSection({ documentId }: DocumentTagSectionProps) {
       localStore.setQuery(
         api.tags.getDocumentTags,
         { documentId: args.documentId },
-        current.filter((t) => t._id !== args.tagId),
+        current.filter((t) => t._id !== args.tagId && t.name !== args.tagName),
       );
     },
   );
@@ -74,7 +74,7 @@ export function DocumentTagSection({ documentId }: DocumentTagSectionProps) {
   };
 
   const handleRemoveTag = (tag: DocumentTag) => {
-    removeTag({ documentId, tagId: tag.tagId as Id<"tags"> }).catch(() => {
+    removeTag({ documentId, tagId: tag.tagId as Id<"tags">, tagName: tag.tagName }).catch(() => {
       toast.error("Failed to remove tag");
     });
   };

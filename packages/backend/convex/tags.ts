@@ -240,6 +240,7 @@ export const removeTagFromDocument = mutation({
   args: {
     documentId: v.id("documents"),
     tagId: v.id("tags"),
+    tagName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
@@ -253,7 +254,22 @@ export const removeTagFromDocument = mutation({
     const sources = doc.tagSources ?? [];
     assertTagParity(args.documentId, tagIds, sources);
 
-    const idx = tagIds.indexOf(args.tagId);
+    let idx = tagIds.indexOf(args.tagId);
+
+    // Fallback: if the tagId wasn't found (e.g. optimistic ID), look up by name
+    if (idx === -1 && args.tagName) {
+      const normalized = normalizeTagName(args.tagName);
+      const tag = await ctx.db
+        .query("tags")
+        .withIndex("by_userId_normalizedName", (q) =>
+          q.eq("userId", user._id).eq("normalizedName", normalized),
+        )
+        .first();
+      if (tag) {
+        idx = tagIds.indexOf(tag._id);
+      }
+    }
+
     if (idx === -1) return;
 
     const newTagIds = [...tagIds];

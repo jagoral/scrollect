@@ -148,6 +148,9 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
       timeout: 10000,
     });
 
+    // Wait for server to confirm the add (replace optimistic data with real IDs)
+    await page.waitForTimeout(2000);
+
     // Remove it
     await page.locator('[data-testid="tag-remove-removable-tag"]').click();
     await expect(page.locator('[data-testid="tag-badge-removable-tag"]')).not.toBeVisible({
