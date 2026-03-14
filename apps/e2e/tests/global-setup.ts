@@ -26,8 +26,11 @@ setup("create and seed E2E account", async ({ page }) => {
   if (!succeeded) {
     await page.goto("/signin");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /sign up/i }).click();
-    await page.getByLabel("Name").waitFor({ state: "visible", timeout: 5000 });
+    // Retry clicking "Sign up" until the form appears (handles React hydration delay)
+    await expect(async () => {
+      await page.getByRole("button", { name: /sign up/i }).click();
+      await expect(page.getByLabel("Name")).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 15000 });
     await page.getByLabel("Name").fill(SEEDED_USER.name);
     await page.getByLabel("Email").fill(SEEDED_USER.email);
     await page.getByLabel("Password").fill(SEEDED_USER.password);
