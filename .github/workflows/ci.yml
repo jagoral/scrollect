@@ -53,14 +53,12 @@ jobs:
           npx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --preview-name "e2e-${{ github.run_id }}"
           npx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "e2e-${{ github.run_id }}"
           npx convex env set SITE_URL http://localhost:3001 --preview-name "e2e-${{ github.run_id }}"
-          npx convex env set E2E_TEST_SECRET "$E2E_TEST_SECRET" --preview-name "e2e-${{ github.run_id }}"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           QDRANT_URL: ${{ vars.QDRANT_URL }}
           QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          E2E_TEST_SECRET: ${{ secrets.E2E_TEST_SECRET }}
 
       - name: Build
         run: bun turbo run build
@@ -77,7 +75,6 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
-          E2E_TEST_SECRET: ${{ secrets.E2E_TEST_SECRET }}
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
@@ -128,7 +125,6 @@ jobs:
           npx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "e2e-slow-${{ github.run_id }}"
           npx convex env set DATALAB_API_KEY "$DATALAB_API_KEY" --preview-name "e2e-slow-${{ github.run_id }}"
           npx convex env set SITE_URL http://localhost:3001 --preview-name "e2e-slow-${{ github.run_id }}"
-          npx convex env set E2E_TEST_SECRET "$E2E_TEST_SECRET" --preview-name "e2e-slow-${{ github.run_id }}"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -136,7 +132,6 @@ jobs:
           QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           DATALAB_API_KEY: ${{ secrets.DATALAB_API_KEY }}
-          E2E_TEST_SECRET: ${{ secrets.E2E_TEST_SECRET }}
 
       - name: Build
         run: bun turbo run build
@@ -152,7 +147,6 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
-          E2E_TEST_SECRET: ${{ secrets.E2E_TEST_SECRET }}
 
       - name: Upload slow test report
         uses: actions/upload-artifact@v4

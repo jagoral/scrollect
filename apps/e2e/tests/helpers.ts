@@ -26,17 +26,10 @@ async function convexE2ERequest(
   if (!siteUrl) {
     throw new Error("VITE_CONVEX_SITE_URL is not set");
   }
-  const secret = process.env.E2E_TEST_SECRET;
-  if (!secret) {
-    throw new Error("E2E_TEST_SECRET is not set");
-  }
 
   const res = await fetch(`${siteUrl}${urlPath}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-e2e-secret": secret,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
 
