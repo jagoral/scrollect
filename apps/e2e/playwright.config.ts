@@ -10,7 +10,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? [["github"], ["line"]] : "html",
+  reporter: process.env.CI
+    ? [["github"], ["line"], ["html", { outputFolder: "playwright-report", open: "never" }]]
+    : "html",
 
   use: {
     baseURL: "http://localhost:3000",
