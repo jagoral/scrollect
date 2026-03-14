@@ -24,27 +24,10 @@ setup("create and seed E2E account", async ({ page }) => {
 
   // If sign-in failed, sign up instead
   if (!succeeded) {
-    // Capture browser errors to diagnose hydration failures
-    const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
-    page.on("console", (msg) => {
-      if (msg.type() === "error") errors.push(`[console] ${msg.text()}`);
-    });
-
     await page.goto("/signin");
     await page.waitForLoadState("networkidle");
-    // Retry clicking "Sign up" until the form appears (handles React hydration delay)
-    await expect(async () => {
-      await page.getByRole("button", { name: /sign up/i }).click();
-      await expect(page.getByLabel("Name")).toBeVisible({ timeout: 1000 });
-    })
-      .toPass({ timeout: 15000 })
-      .catch((e) => {
-        if (errors.length > 0) {
-          console.log(`[E2E DEBUG] Browser errors:\n${errors.join("\n")}`);
-        }
-        throw e;
-      });
+    await page.getByRole("button", { name: /sign up/i }).click();
+    await page.getByLabel("Name").waitFor({ state: "visible", timeout: 15000 });
     await page.getByLabel("Name").fill(SEEDED_USER.name);
     await page.getByLabel("Email").fill(SEEDED_USER.email);
     await page.getByLabel("Password").fill(SEEDED_USER.password);
