@@ -68,7 +68,15 @@ jobs:
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Install Playwright browsers
-        run: cd apps/e2e && npx playwright install chromium --with-deps
+        working-directory: apps/e2e
+        run: npx playwright install chromium --with-deps
+
+      - name: Run app
+        working-directory: apps/e2e
+        run: bun run start &
+        env:
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Run E2E tests (fast)
         working-directory: apps/e2e
