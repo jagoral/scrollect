@@ -6,6 +6,11 @@ export const { handler, getToken, fetchAuthQuery, fetchAuthMutation, fetchAuthAc
   convexBetterAuthReactStart({
     convexUrl: env.VITE_CONVEX_URL,
     convexSiteUrl: env.VITE_CONVEX_SITE_URL,
+    jwtCache: {
+      enabled: true,
+      isAuthError: (error: unknown) =>
+        error instanceof Error && error.message.includes("Not authenticated"),
+    },
   });
 
 export const getSession = createServerFn({ method: "GET" }).handler(async () => {

@@ -53,6 +53,7 @@ jobs:
           npx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --preview-name "e2e-${{ github.run_id }}"
           npx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "e2e-${{ github.run_id }}"
           npx convex env set SITE_URL http://localhost:3001 --preview-name "e2e-${{ github.run_id }}"
+          npx convex env set NODE_ENV development --preview-name "e2e-${{ github.run_id }}"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -125,6 +126,7 @@ jobs:
           npx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "e2e-slow-${{ github.run_id }}"
           npx convex env set DATALAB_API_KEY "$DATALAB_API_KEY" --preview-name "e2e-slow-${{ github.run_id }}"
           npx convex env set SITE_URL http://localhost:3001 --preview-name "e2e-slow-${{ github.run_id }}"
+          npx convex env set NODE_ENV development --preview-name "e2e-slow-${{ github.run_id }}"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

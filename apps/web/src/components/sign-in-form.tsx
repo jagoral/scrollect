@@ -1,5 +1,4 @@
 import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -12,8 +11,6 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
 export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
-  const navigate = useNavigate();
-
   const form = useForm({
     defaultValues: {
       email: "",
@@ -27,7 +24,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         },
         {
           onSuccess: () => {
-            navigate({ to: "/library" });
+            window.location.href = "/library";
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
