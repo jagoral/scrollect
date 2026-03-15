@@ -80,7 +80,7 @@ jobs:
 
       - name: Run E2E tests (fast)
         working-directory: apps/e2e
-        run: npx playwright test --project=setup --project=seeded --project=chromium -g "feed contains all 5 card types"
+        run: npx playwright test --project=setup --project=seeded --project=chromium
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
