@@ -16,6 +16,11 @@
       "cache": false,
       "persistent": true
     },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["convex/**/*.ts", "tests/**/*.ts"],
+      "outputs": []
+    },
     "test:e2e": {
       "cache": false
     }

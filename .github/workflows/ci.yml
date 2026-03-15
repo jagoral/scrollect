@@ -30,6 +30,9 @@ jobs:
       - name: Check (lint & format)
         run: bun run check
 
+      - name: Unit tests
+        run: bun turbo run test
+
       - name: Deploy to Convex preview
         id: convex-preview
         run: |

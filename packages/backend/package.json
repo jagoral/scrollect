@@ -6,7 +6,8 @@
   "author": "",
   "scripts": {
     "dev": "convex dev",
-    "dev:setup": "convex dev --configure --until-success"
+    "dev:setup": "convex dev --configure --until-success",
+    "test": "bun test tests/"
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.10.13",
