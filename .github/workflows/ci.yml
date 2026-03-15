@@ -35,15 +35,9 @@ jobs:
 
       - name: Deploy to Convex preview
         id: convex-preview
-        run: |
-          cd packages/backend
-          DEPLOY_OUTPUT=$(npx convex deploy --preview-create "e2e-${{ github.run_id }}" 2>&1)
-          echo "$DEPLOY_OUTPUT"
-          CLEAN_OUTPUT=$(echo "$DEPLOY_OUTPUT" | sed 's/\x1b\[[0-9;]*m//g')
-          PREVIEW_URL=$(echo "$CLEAN_OUTPUT" | grep -oE 'https://[^ ]+\.convex\.cloud' | head -1)
-          PREVIEW_SITE_URL=$(echo "$PREVIEW_URL" | sed 's/\.convex\.cloud/.convex.site/')
-          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
-          echo "preview_site_url=$PREVIEW_SITE_URL" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/deploy-convex-preview
+        with:
+          preview-name: e2e-${{ github.run_id }}
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
 
@@ -116,15 +110,9 @@ jobs:
 
       - name: Deploy to Convex preview
         id: convex-preview
-        run: |
-          cd packages/backend
-          DEPLOY_OUTPUT=$(npx convex deploy --preview-create "e2e-slow-${{ github.run_id }}" 2>&1)
-          echo "$DEPLOY_OUTPUT"
-          CLEAN_OUTPUT=$(echo "$DEPLOY_OUTPUT" | sed 's/\x1b\[[0-9;]*m//g')
-          PREVIEW_URL=$(echo "$CLEAN_OUTPUT" | grep -oE 'https://[^ ]+\.convex\.cloud' | head -1)
-          PREVIEW_SITE_URL=$(echo "$PREVIEW_URL" | sed 's/\.convex\.cloud/.convex.site/')
-          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
-          echo "preview_site_url=$PREVIEW_SITE_URL" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/deploy-convex-preview
+        with:
+          preview-name: e2e-slow-${{ github.run_id }}
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
 
@@ -153,10 +141,11 @@ jobs:
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Install Playwright browsers
-        run: cd apps/e2e && npx playwright install chromium --with-deps
+        working-directory: apps/e2e
+        run: npx playwright install chromium --with-deps
 
       - name: Run app
-        working-directory: apps/e2e
+        working-directory: apps/web
         run: bun run start &
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}

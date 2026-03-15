@@ -1,0 +1,43 @@
+name: Deploy Convex Preview
+description: Deploy to a Convex preview environment and output URLs
+
+inputs:
+  preview-name:
+    description: Preview deployment name (e.g. "e2e-12345")
+    required: true
+
+outputs:
+  preview_url:
+    description: The Convex .cloud URL for the preview deployment
+    value: ${{ steps.deploy.outputs.preview_url }}
+  preview_site_url:
+    description: The Convex .site URL for the preview deployment
+    value: ${{ steps.deploy.outputs.preview_site_url }}
+
+runs:
+  using: composite
+  steps:
+    - id: deploy
+      shell: bash
+      working-directory: packages/backend
+      run: |
+        DEPLOY_LOG=$(mktemp)
+        trap 'rm -f "$DEPLOY_LOG"' EXIT
+        set +e
+        npx convex deploy --preview-create "${{ inputs.preview-name }}" 2>&1 | tee "$DEPLOY_LOG"
+        DEPLOY_EXIT_CODE=${PIPESTATUS[0]}
+        set -e
+
+        if [ "$DEPLOY_EXIT_CODE" -ne 0 ]; then
+          echo "Convex preview deployment failed."
+          exit "$DEPLOY_EXIT_CODE"
+        fi
+
+        PREVIEW_URL=$(sed 's/\x1b\[[0-9;]*m//g' "$DEPLOY_LOG" | grep -oE 'https://[^ ]+\.convex\.cloud' | head -1)
+        if [ -z "$PREVIEW_URL" ]; then
+          echo "ERROR: Could not extract preview URL from deploy output"
+          exit 1
+        fi
+        PREVIEW_SITE_URL=$(printf '%s\n' "$PREVIEW_URL" | sed 's/\.convex\.cloud/.convex.site/')
+        echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+        echo "preview_site_url=$PREVIEW_SITE_URL" >> "$GITHUB_OUTPUT"

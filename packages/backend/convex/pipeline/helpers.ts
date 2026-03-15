@@ -4,8 +4,9 @@ import { createHash } from "crypto";
 
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import { getAI } from "../providers/ai";
 import { MarkdownNewArticleExtractor } from "../providers/markdownNew";
-import { OpenAIEmbeddings } from "../providers/openai";
+import { AiSdkEmbeddings } from "../providers/embeddings";
 import { QdrantSummaryStore, QdrantVectorStore } from "../providers/qdrant";
 import { StubArticleExtractor, StubYouTubeExtractor } from "../providers/stubs";
 import type {
@@ -29,24 +30,24 @@ export function getPollDelay(attempt: number): number {
 }
 
 export function createEmbeddingProvider(): EmbeddingProvider {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY environment variable is not set");
-  return new OpenAIEmbeddings(apiKey);
+  return new AiSdkEmbeddings(getAI().embeddingModel("default"));
 }
 
-export function createVectorStore(): VectorStore {
+function getQdrantConfig(): { url: string; apiKey: string } {
   const url = process.env.QDRANT_URL;
   const apiKey = process.env.QDRANT_API_KEY;
   if (!url || !apiKey)
     throw new Error("QDRANT_URL and QDRANT_API_KEY environment variables are required");
+  return { url, apiKey };
+}
+
+export function createVectorStore(): VectorStore {
+  const { url, apiKey } = getQdrantConfig();
   return new QdrantVectorStore(url, apiKey);
 }
 
 export function createSummaryVectorStore(): SummaryVectorStore {
-  const url = process.env.QDRANT_URL;
-  const apiKey = process.env.QDRANT_API_KEY;
-  if (!url || !apiKey)
-    throw new Error("QDRANT_URL and QDRANT_API_KEY environment variables are required");
+  const { url, apiKey } = getQdrantConfig();
   return new QdrantSummaryStore(url, apiKey);
 }
 

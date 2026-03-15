@@ -1,7 +1,8 @@
 "use node";
 
-import type OpenAI from "openai";
+import { generateText, Output } from "ai";
 import { v } from "convex/values";
+import { z } from "zod";
 
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -10,7 +11,7 @@ import { action } from "../_generated/server";
 import { requireAuth } from "../lib/functions";
 import type { TypeData } from "../lib/validators";
 import { WideEvent } from "../lib/logging";
-import { callOpenAIWithRetry, getOpenAIClient } from "../lib/openai";
+import { getAI } from "../providers/ai";
 import { createEmbeddingProvider, createSummaryVectorStore } from "../pipeline/helpers";
 import type {
   ChunkInfo,
@@ -80,6 +81,22 @@ Each card should:
 Return a JSON object with a "posts" key containing an array of exactly ${chunkCount} strings, one for each input chunk.`;
 }
 
+const cardsResponseSchema = z.object({
+  cards: z.array(
+    z
+      .object({
+        type: z.string(),
+        content: z.string(),
+        sourceChunkIndices: z.array(z.number()),
+      })
+      .passthrough(),
+  ),
+});
+
+const postsResponseSchema = z.object({
+  posts: z.array(z.string()),
+});
+
 export const generate = action({
   args: { count: v.optional(v.number()) },
   handler: async (ctx, args): Promise<Id<"posts">[]> => {
@@ -109,22 +126,22 @@ export const generate = action({
       const docMap = new Map<string, string>(documents.map((d) => [d._id, d.title]));
       const docCreatedAtMap = new Map<string, number>(documents.map((d) => [d._id, d.createdAt]));
 
-      const allChunks: ChunkInfo[] = [];
-      for (const doc of documents) {
-        const chunks = await ctx.runQuery(internal.feed.queries.listChunksForDocument, {
-          documentId: doc._id,
-        });
-        for (const chunk of chunks) {
-          allChunks.push({
+      const chunkArrays = await Promise.all(
+        documents.map(async (doc) => {
+          const chunks = await ctx.runQuery(internal.feed.queries.listChunksForDocument, {
+            documentId: doc._id,
+          });
+          return chunks.map((chunk) => ({
             _id: chunk._id,
             content: chunk.content,
             documentId: doc._id,
             documentTitle: doc.title,
             sectionTitle: chunk.sectionTitle,
             pageNumber: chunk.pageNumber,
-          });
-        }
-      }
+          }));
+        }),
+      );
+      const allChunks: ChunkInfo[] = chunkArrays.flat();
 
       evt.set("totalChunks", allChunks.length);
 
@@ -132,20 +149,23 @@ export const generate = action({
         throw new Error("No chunks available to generate feed from.");
       }
 
-      const recentSources: PostSourceRecord[] = await ctx.runQuery(
-        internal.feed.queries.listRecentPostSources,
-        { userId: user._id, sinceTs: now - NINETY_DAYS_MS },
-      );
-
-      const recentPosts: { _id: Id<"posts">; postType: string }[] = await ctx.runQuery(
-        internal.feed.queries.listRecentPosts,
-        {
+      const [recentSources, recentPosts, recentHashList] = await Promise.all([
+        ctx.runQuery(internal.feed.queries.listRecentPostSources, {
           userId: user._id,
           sinceTs: now - NINETY_DAYS_MS,
-        },
-      );
+        }) as Promise<PostSourceRecord[]>,
+        ctx.runQuery(internal.feed.queries.listRecentPosts, {
+          userId: user._id,
+          sinceTs: now - NINETY_DAYS_MS,
+        }) as Promise<{ _id: Id<"posts">; postType: string }[]>,
+        ctx.runQuery(internal.feed.queries.listRecentChunkHashes, {
+          userId: user._id,
+          sinceTs: now - THIRTY_DAYS_MS,
+        }),
+      ]);
 
       const chunkUsageMap = buildChunkUsageMap(recentSources, recentPosts);
+      const recentHashes = new Set(recentHashList);
 
       const usedChunkCount = chunkUsageMap.size;
       const saturationRatio = allChunks.length > 0 ? usedChunkCount / allChunks.length : 0;
@@ -153,13 +173,6 @@ export const generate = action({
       if (saturationRatio > SATURATION_THRESHOLD) {
         evt.set("saturationWarning", true);
       }
-
-      const recentHashes = new Set(
-        await ctx.runQuery(internal.feed.queries.listRecentChunkHashes, {
-          userId: user._id,
-          sinceTs: now - THIRTY_DAYS_MS,
-        }),
-      );
 
       const sampleSize = Math.max(cardCount * 2, 10);
 
@@ -172,22 +185,23 @@ export const generate = action({
           summaryEmbeddingId: d.summaryEmbeddingId!,
         }));
 
-      const allSectionSummaries: SectionSummaryInfo[] = [];
-      for (const doc of documents) {
-        if (!doc.summary) continue;
-        const sections = await ctx.runQuery(internal.feed.queries.listSectionSummaries, {
-          documentId: doc._id,
-        });
-        for (const s of sections) {
-          allSectionSummaries.push({
-            documentId: doc._id as string,
-            sectionTitle: s.sectionTitle,
-            summary: s.summary,
-            chunkStartIndex: s.chunkStartIndex,
-            chunkEndIndex: s.chunkEndIndex,
-          });
-        }
-      }
+      const sectionArrays = await Promise.all(
+        documents
+          .filter((doc) => doc.summary)
+          .map(async (doc) => {
+            const sections = await ctx.runQuery(internal.feed.queries.listSectionSummaries, {
+              documentId: doc._id,
+            });
+            return sections.map((s) => ({
+              documentId: doc._id as string,
+              sectionTitle: s.sectionTitle,
+              summary: s.summary,
+              chunkStartIndex: s.chunkStartIndex,
+              chunkEndIndex: s.chunkEndIndex,
+            }));
+          }),
+      );
+      const allSectionSummaries: SectionSummaryInfo[] = sectionArrays.flat();
 
       evt.set("docSummaries", docSummaries.length);
       evt.set("sectionSummaries", allSectionSummaries.length);
@@ -221,15 +235,11 @@ export const generate = action({
       }
       evt.set("selectedChunks", selected.length);
 
-      const openai = getOpenAIClient();
-      const model = "gpt-4o-mini";
-      evt.set("model", model);
+      evt.set("model", "fast");
 
       if (!useMultiType) {
         return await generateLegacy({
           ctx,
-          openai,
-          model,
           selected,
           documents,
           userId: user._id,
@@ -260,24 +270,16 @@ export const generate = action({
 
       while (validCards.length < cardCount && generationAttempts <= maxBatchRetries) {
         generationAttempts++;
-        const raw = await callOpenAIWithRetry({
-          openai,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          model,
-          evt,
+        const { output } = await generateText({
+          model: getAI().languageModel("fast"),
+          output: Output.object({ schema: cardsResponseSchema }),
+          system: systemPrompt,
+          prompt: userPrompt,
+          temperature: 0.7,
+          maxRetries: 2,
         });
 
-        let cards: RawCard[];
-        try {
-          const parsed = JSON.parse(raw);
-          cards = Array.isArray(parsed) ? parsed : (parsed.cards ?? []);
-        } catch {
-          evt.set("parseError", raw.substring(0, 500));
-          continue;
-        }
+        const cards = (output?.cards ?? []) as RawCard[];
 
         const validated: { card: RawCard; chunks: ChunkInfo[] }[] = [];
         const dropped: string[] = [];
@@ -347,7 +349,6 @@ export const generate = action({
   },
 });
 
-// Only valid after validateCard — assumes all type-specific fields are present.
 function buildTypeData(card: RawCard): TypeData {
   switch (card.type) {
     case "insight":
@@ -383,8 +384,6 @@ function buildTypeData(card: RawCard): TypeData {
 
 type LegacyGenerateArgs = {
   ctx: ActionCtx;
-  openai: OpenAI;
-  model: string;
   selected: ChunkInfo[];
   documents: { _id: Id<"documents">; title: string }[];
   userId: string;
@@ -393,34 +392,23 @@ type LegacyGenerateArgs = {
 };
 
 async function generateLegacy(args: LegacyGenerateArgs): Promise<Id<"posts">[]> {
-  const { ctx, openai, model, selected, documents, userId, cardCount, evt } = args;
+  const { ctx, selected, documents, userId, cardCount, evt } = args;
   const systemPrompt = buildLegacyPrompt(Math.min(selected.length, cardCount));
   const subset = selected.slice(0, cardCount);
   const userPrompt = subset
     .map((chunk, i) => `Chunk ${i + 1}:\n${chunk.content}`)
     .join("\n\n---\n\n");
 
-  const raw = await callOpenAIWithRetry({
-    openai,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    model,
-    evt,
+  const { output } = await generateText({
+    model: getAI().languageModel("fast"),
+    output: Output.object({ schema: postsResponseSchema }),
+    system: systemPrompt,
+    prompt: userPrompt,
+    temperature: 0.7,
+    maxRetries: 2,
   });
 
-  let posts: string[];
-  try {
-    const parsed = JSON.parse(raw);
-    posts = Array.isArray(parsed)
-      ? parsed
-      : Array.isArray(parsed.posts)
-        ? parsed.posts
-        : ((Object.values(parsed).find(Array.isArray) as string[]) ?? []);
-  } catch {
-    throw new Error("Failed to parse AI response");
-  }
+  const posts = output?.posts ?? [];
 
   evt.set("postsGenerated", posts.length);
 
