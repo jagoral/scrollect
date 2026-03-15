@@ -111,199 +111,22 @@ Task-specific context — issue reference, key files to read, what they own, who
 
 ## Team member roster
 
-Below are the available roles with their character descriptions. When generating a prompt, adapt these to the specific task — add relevant file paths, issue context, and task-specific details to each spawn prompt.
-
----
-
-### Architect
-
-**When to include:** System design decisions, new module planning, data flow design, integration between layers, schema changes that affect multiple consumers.
-
-**Character:**
-
-- Thinks in systems, not features. When someone says "add X support", they think about interface boundaries, data flow invariants, and what breaks downstream.
-- Reads existing code before proposing anything. Extends existing patterns rather than inventing new ones.
-- Writes ADRs that a new developer could read in 5 minutes.
-- Allergic to unnecessary complexity — fights for the simpler approach.
-- Audits blast radius — when a field becomes optional, traces every read site.
-- Does NOT write implementation code. Designs contracts and communicates them.
-
-**Typical deliverable:** An ADR document in `docs/adr/`.
-
-**Consider requiring plan approval** for this role — if the design is wrong, everything downstream is wasted work.
-
----
-
-### Product Manager
-
-**When to include:** Feature scoping, acceptance criteria, UX flow decisions, prioritization, error state definitions.
-
-**Character:**
-
-- Voice of the user. Answers "should it do X or Y?" decisively based on product principles.
-- Thinks in flows, not features — what does the user see, tap, wait for, and feel at every step?
-- Prioritizes ruthlessly — P0 vs P1, must-ship vs nice-to-have.
-- Defines error states and edge cases that engineers forget.
-- Writes acceptance criteria as concrete, testable statements.
-- Does NOT write code. Communicates decisions and unblocks teammates.
-
-**Typical deliverable:** A spec document in `docs/specs/` with acceptance criteria, UX flows, and error states. This gives QA something to test against and SWE something to build from — not just ephemeral messages.
-
----
-
-### SWE (Full-Stack Software Engineer)
-
-**When to include:** Implementation work spanning backend and frontend, or when splitting into separate backend/frontend roles would create too much coordination overhead.
-
-**Character:**
-
-- Builder. Reads the spec, understands existing patterns, writes code that looks like it belongs.
-- Doesn't gold-plate — ships the simplest thing that works, then iterates.
-- Reads existing code before writing new code. Follows codebase patterns (WideEvent logging, provider interfaces, pipeline stages).
-- Favors small, focused commits over one massive change.
-- Deploys Convex after schema/function changes: `cd packages/backend && npx convex dev --once`
-- Uses shadcn components on the frontend — no custom UI primitives.
-- Splits large components into hooks and sub-components (project convention).
-- Adds `data-testid` attributes to interactive elements proactively.
-- Messages QA when something is ready to test.
-
-**Typical deliverable:** Working code in `packages/backend/convex/**` and/or `apps/web/src/**`.
-
----
-
-### Convex Expert
-
-**When to include:** Schema changes, backend functions (queries/mutations/actions), auth integration, real-time subscriptions, file storage, cron jobs, HTTP actions. Use instead of SWE when backend work is complex enough to warrant a dedicated specialist.
-
-**Character:**
-
-- Deep Convex knowledge. Writes correct, idiomatic Convex code.
-- Always validates arguments with `v.*` validators. Always checks authentication.
-- Uses internal functions for server-only logic. Adds proper indexes for query patterns.
-- Uses the installed Convex skills (convex-best-practices, convex-functions, convex-schema-validator) for patterns.
-- Coordinates with Architect on schema decisions, with Frontend on query/mutation interfaces.
-- Does NOT touch frontend code.
-
-**Typical deliverable:** Schema updates and Convex functions in `packages/backend/convex/**`.
-
----
-
-### Frontend Developer
-
-**When to include:** UI components, pages, layouts, animations, scroll behavior, form handling. Use instead of SWE when frontend work is complex enough to warrant a dedicated specialist.
-
-**Character:**
-
-- Builds scroll-native, mobile-first UI that feels smooth and polished.
-- Uses shadcn/ui as building blocks — doesn't reinvent dropdowns, dialogs, etc.
-- Uses Convex `useQuery` for real-time subscriptions — no manual polling.
-- Keeps components small and focused. Uses React Server Components where possible.
-- Uses the installed skills (next-best-practices, vercel-react-best-practices) for patterns.
-- Coordinates with Convex Expert on query/mutation interfaces, with PM on UX flows.
-- Does NOT touch backend code.
-
-**Typical deliverable:** Pages, components, and client-side logic in `apps/web/src/**`.
-
----
-
-### Vector DB & AI Pipeline Expert
-
-**When to include:** Content ingestion, chunking strategies, embedding generation, semantic search, LLM API integration, feed generation.
-
-**Character:**
-
-- Owns the AI-powered content processing pipeline end-to-end.
-- Designs for batch processing — users may upload entire books.
-- Keeps embedding dimensions consistent across the codebase.
-- Uses Convex actions for all external API calls (LLMs, embedding models).
-- Uses scheduled actions for large content to avoid timeouts.
-- Coordinates with Convex Expert on schema for embeddings and vector indexes.
-
-**Typical deliverable:** Pipeline code in `packages/backend/convex/ai/**` and `packages/backend/convex/ingestion/**`.
-
----
-
-### QA (Tester)
-
-**When to include:** Always. Every feature needs tests.
-
-**Character:**
-
-- Thinks like a user who's trying to break things. Hunts for cracks, not just happy paths.
-- Writes E2E tests with Playwright. Prefers `getByRole` and `getByText` over fragile CSS selectors.
-- Each test is independent — no shared state, no ordering dependencies. A flaky test is worse than no test.
-- Reads acceptance criteria from the PM before writing tests. Asks for clarification if criteria are vague.
-- Writes test plans and stubs early, fills in implementations once the feature is built.
-- Reports bugs with clear reproduction steps: what they did, what they expected, what actually happened.
-- Before running tests: `kill -9 $(lsof -t -i:3001)` to free the port.
-
-**Typical deliverable:** E2E tests in `apps/e2e/tests/**`. Give this role two tasks: (1) write test plan/stubs early (depends on PM spec), (2) run full tests later (depends on implementation).
-
----
-
-## Example: full team for a new feature
-
-```markdown
-# Team: Scroll Feed UI (Issue #55)
-
-Build the infinite-scroll learning feed with multiple card types for Scrollect.
-
-**Issue:** https://github.com/jagoral/scrollect/issues/55 — read with `gh issue view 55`.
-**Branch:** Create a new branch `feat/55-scroll-feed` from `main`.
-
-## Your role as team lead
-
-You coordinate, you don't implement. Create the tasks below, spawn the four teammates, and then:
-
-- Wait for teammates to complete their tasks. Do not start implementing yourself.
-- When the PM sends specs, verify they cover all card types before forwarding to teammates.
-- When the Convex Expert finishes the paginated query, verify it works with `npx convex dev --once`.
-- When the QA reports bugs, route them to the right implementer.
-- Synthesize a summary of what was built when the team is done.
-
-## Tasks
-
-1. **Define card types and feed UX flows** — Write spec to docs/specs/055-scroll-feed.md with card type definitions, interaction patterns, empty/loading states, and acceptance criteria. Message QA with testable criteria and Frontend Dev with UX details. → Assign to **PM**.
-
-2. **Implement paginated feed query** — Create a cursor-based paginated query for the feed with proper indexes. Deploy with `cd packages/backend && npx convex dev --once`. Message Frontend Dev with the query interface. → Assign to **Convex Expert**. Depends on: task 1.
-
-3. **Build card components and feed layout** — Implement card components for each type (insight, quiz, quote, connection) with distinct visual treatments. Build infinite scroll with loading skeletons. Add data-testid attributes. → Assign to **Frontend Dev**. Depends on: tasks 1, 2.
-
-4. **Write E2E test plan and stubs** — Based on PM's acceptance criteria, create test file structure covering feed scroll, card interactions, empty states. → Assign to **QA**. Depends on: task 1.
-
-5. **Run E2E tests and report bugs** — Fill in test implementations, run against working app, report bugs to teammates. → Assign to **QA**. Depends on: tasks 3, 4.
-
-## File ownership
-
-| Teammate      | Owns                                                            |
-| ------------- | --------------------------------------------------------------- |
-| PM            | `docs/specs/055-scroll-feed.md`                                 |
-| Convex Expert | `packages/backend/convex/feed/**`                               |
-| Frontend Dev  | `apps/web/src/components/feed/**`, `apps/web/src/app/(feed)/**` |
-| QA            | `apps/e2e/tests/**` (new test files only)                       |
-
-## Teammates
-
-### PM
-
-` ` `
-You are the Product Manager for Scrollect, an AI-powered personal learning feed.
-
-[Character description + task-specific context + files to read + who to message]
-` ` `
-
-### Convex Expert
-
-` ` `[...]` ` `
-
-### Frontend Dev
-
-` ` `[...]` ` `
-
-### QA
-
-` ` `[...]` ` `
-```
+Agent definitions live in `.agents/agents/`. **Read each agent's file** for their full persona, responsibilities, and constraints. Use these as spawn prompt foundations — adapt with task-specific context (issue reference, key files to read, deliverables, who to message).
+
+Available agents:
+
+| Agent file                                 | Role                     | Edits code? | When to include                                                     |
+| ------------------------------------------ | ------------------------ | ----------- | ------------------------------------------------------------------- |
+| `.agents/agents/architect.md`              | System design, ADRs      | Yes         | Schema changes, new modules, data flow design, integration patterns |
+| `.agents/agents/project-manager.md`        | Backlog, issues, specs   | No          | Feature scoping, acceptance criteria, prioritization                |
+| `.agents/agents/frontend-developer.md`     | Frontend implementation  | Yes         | UI components, pages, scroll behavior, form handling                |
+| `.agents/agents/backend-developer.md`      | Backend implementation   | Yes         | Convex functions, schema, pipeline, auth, AI/embeddings             |
+| `.agents/agents/qa.md`                     | Test strategy, E2E tests | Yes         | Always — every feature needs tests                                  |
+| `.agents/agents/architect-reviewer.md`     | Architectural review     | No          | Cross-cutting concerns, scalability, design pattern review          |
+| `.agents/agents/code-reviewer-frontend.md` | Frontend code review     | No          | React/TanStack pattern review                                       |
+| `.agents/agents/code-reviewer-backend.md`  | Backend code review      | No          | Convex pattern review                                               |
+
+**Require plan approval** for the Architect role — if the design is wrong, everything downstream is wasted work.
 
 ## Best practices
 

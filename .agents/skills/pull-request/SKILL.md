@@ -126,13 +126,25 @@ Parse branch name for issue number pattern:
 
 Ask user to confirm or modify the generated title.
 
-### 7. Push Branch
+### 7. Code Review Gate
+
+**Before pushing or creating the PR, run the code-review skill to catch issues early.**
+
+1. Invoke the `/code-review` skill against the changes that will be included in the PR (`git diff origin/{base}...HEAD`).
+2. Review all feedback returned by the reviewer agent(s).
+3. **Implement all changes** raised in the feedback — critical, important, AND suggestions. Fix every item, don't skip any.
+4. Commit the fixes (use a `refactor:` or `fix:` conventional commit as appropriate).
+5. If changes were made, re-run `/code-review` to verify all feedback has been addressed. Repeat until the review passes clean.
+
+Only proceed to step 8 once the code review raises no further issues.
+
+### 8. Push Branch
 
 ```bash
 git push -u origin {branch}
 ```
 
-### 8. Create Pull Request
+### 9. Create Pull Request
 
 Use the PR template from `.github/PULL_REQUEST_TEMPLATE.md` for the body structure.
 
@@ -143,7 +155,7 @@ gh pr create \
   --body "{body from shared template}"
 ```
 
-### 9. Enable Automerge
+### 10. Enable Automerge
 
 After creating the PR, enable automerge with squash strategy by default:
 
@@ -151,7 +163,7 @@ After creating the PR, enable automerge with squash strategy by default:
 gh pr merge {pr-number} --auto --squash
 ```
 
-### 10. Report Result and Cleanup
+### 11. Report Result and Cleanup
 
 Return the PR URL:
 
@@ -182,4 +194,4 @@ git checkout {original-branch}
 ## Notes
 
 - Default base branch is `main`, customizable via `--base`
-- Do not modify any files or make commits (except cherry-pick in cherry-pick mode)
+- Do not modify any files or make commits except during cherry-pick mode and the code review gate (step 7)
