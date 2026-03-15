@@ -30,6 +30,7 @@ export default defineConfig({
       dependencies: ["setup"],
       testMatch: [
         /feed-interactions\.spec\.ts/,
+        /feed-interleaving\.spec\.ts/,
         /freshness\.spec\.ts/,
         /multi-type-cards\.spec\.ts/,
         /source-provenance\.spec\.ts/,
@@ -45,6 +46,7 @@ export default defineConfig({
         /global-setup\.ts/,
         /\.slow\.spec\.ts/,
         /feed-interactions\.spec\.ts/,
+        /feed-interleaving\.spec\.ts/,
         /freshness\.spec\.ts/,
         /multi-type-cards\.spec\.ts/,
         /source-provenance\.spec\.ts/,

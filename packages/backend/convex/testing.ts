@@ -291,7 +291,12 @@ export const insertSeededData = internalMutation({
       }
     }
 
-    // Create 7 posts covering all card types
+    // Create 7 posts covering all card types.
+    // Insertion order is reversed from desired feed display order because
+    // the feed query sorts by DESC _creationTime (last inserted = first shown).
+    // The order simulates interleaving output: hook card (quiz) first in feed,
+    // no two consecutive cards share the same type.
+    // Feed display order: quiz(MC), insight, quiz(TF), connection, insight, quote, summary
     const postDefs: Array<{
       content: string;
       postType: PostType;
@@ -301,6 +306,71 @@ export const insertSeededData = internalMutation({
       chunkId: (typeof chunkIds)[0];
       extraSources?: Array<{ chunkId: (typeof chunkIds)[0]; documentId: typeof documentId }>;
     }> = [
+      {
+        content: "**Learning Tip:** Spaced repetition improves long-term memory retention.",
+        postType: "summary",
+        typeData: {
+          type: "summary",
+          bulletPoints: [
+            "Spaced repetition improves retention",
+            "Active recall strengthens memory",
+          ],
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[0]!,
+        extraSources: [{ chunkId: chunkIds[1]!, documentId }],
+      },
+      {
+        content: "**Software Pattern:** The observer pattern establishes one-to-many dependencies.",
+        postType: "quote",
+        typeData: {
+          type: "quote",
+          quotedText: "The observer pattern establishes a one-to-many dependency between objects.",
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[2]!,
+      },
+      {
+        content: "**Architecture:** Event-driven systems decouple producers from consumers.",
+        postType: "insight",
+        typeData: { type: "insight" },
+        docId: documentId2,
+        docTitle: "E2E Seed Document 2",
+        chunkId: chunkIds2[0]!,
+      },
+      {
+        content:
+          "Both documents discuss patterns of decoupling: the observer pattern separates subject from observers, while event-driven architecture separates producers from consumers.",
+        postType: "connection",
+        typeData: {
+          type: "connection",
+          sourceATitleHint: "E2E Seed Document",
+          sourceBTitleHint: "E2E Seed Document 2",
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[2]!,
+        extraSources: [{ chunkId: chunkIds2[0]!, documentId: documentId2 }],
+      },
+      {
+        content: "The observer pattern notifies dependents when state changes.",
+        postType: "quiz",
+        typeData: {
+          type: "quiz",
+          variant: "true_false",
+          question:
+            "True or false: The observer pattern establishes a many-to-many dependency between objects.",
+          options: ["True", "False"],
+          correctIndex: 1,
+          explanation:
+            "The observer pattern establishes a one-to-many dependency, not many-to-many.",
+        },
+        docId: documentId,
+        docTitle: "E2E Seed Document",
+        chunkId: chunkIds[2]!,
+      },
       {
         content: "**Key Insight:** Lorem ipsum is a placeholder text commonly used in design.",
         postType: "insight",
@@ -329,71 +399,6 @@ export const insertSeededData = internalMutation({
         docId: documentId,
         docTitle: "E2E Seed Document",
         chunkId: chunkIds[1]!,
-      },
-      {
-        content: "The observer pattern notifies dependents when state changes.",
-        postType: "quiz",
-        typeData: {
-          type: "quiz",
-          variant: "true_false",
-          question:
-            "True or false: The observer pattern establishes a many-to-many dependency between objects.",
-          options: ["True", "False"],
-          correctIndex: 1,
-          explanation:
-            "The observer pattern establishes a one-to-many dependency, not many-to-many.",
-        },
-        docId: documentId,
-        docTitle: "E2E Seed Document",
-        chunkId: chunkIds[2]!,
-      },
-      {
-        content: "**Software Pattern:** The observer pattern establishes one-to-many dependencies.",
-        postType: "quote",
-        typeData: {
-          type: "quote",
-          quotedText: "The observer pattern establishes a one-to-many dependency between objects.",
-        },
-        docId: documentId,
-        docTitle: "E2E Seed Document",
-        chunkId: chunkIds[2]!,
-      },
-      {
-        content: "**Learning Tip:** Spaced repetition improves long-term memory retention.",
-        postType: "summary",
-        typeData: {
-          type: "summary",
-          bulletPoints: [
-            "Spaced repetition improves retention",
-            "Active recall strengthens memory",
-          ],
-        },
-        docId: documentId,
-        docTitle: "E2E Seed Document",
-        chunkId: chunkIds[0]!,
-        extraSources: [{ chunkId: chunkIds[1]!, documentId }],
-      },
-      {
-        content:
-          "Both documents discuss patterns of decoupling: the observer pattern separates subject from observers, while event-driven architecture separates producers from consumers.",
-        postType: "connection",
-        typeData: {
-          type: "connection",
-          sourceATitleHint: "E2E Seed Document",
-          sourceBTitleHint: "E2E Seed Document 2",
-        },
-        docId: documentId,
-        docTitle: "E2E Seed Document",
-        chunkId: chunkIds[2]!,
-        extraSources: [{ chunkId: chunkIds2[0]!, documentId: documentId2 }],
-      },
-      {
-        content: "**Architecture:** Event-driven systems decouple producers from consumers.",
-        postType: "insight",
-        typeData: { type: "insight" },
-        docId: documentId2,
-        docTitle: "E2E Seed Document 2",
-        chunkId: chunkIds2[0]!,
       },
     ];
 
