@@ -149,6 +149,27 @@ If any step fails:
 
 Repeat until all three steps pass cleanly. Only then proceed to commit.
 
+### Step 5c: Code Review Gate
+
+**Before committing, run code review on ALL changed files. Every finding must be fixed.**
+
+1. Spawn specialized reviewer agents in parallel:
+   - `code-reviewer-backend` for any changes in `packages/backend/`
+   - `code-reviewer-frontend` for any changes in `apps/web/`
+   - `architect-reviewer` if the change spans multiple layers or introduces new patterns
+
+2. Collect ALL findings from every reviewer — critical, high, medium, AND low severity.
+
+3. **Fix every finding.** Do not skip items based on severity. Low-severity issues (accessibility,
+   naming, comments) are just as required as critical ones. The goal is a clean review pass.
+
+4. After fixing, re-run the CI checks from Step 5b (lint, build, E2E tests) to ensure fixes
+   don't introduce regressions.
+
+5. Re-run the reviewers on the updated code. Repeat until all reviewers return zero findings.
+
+Only proceed to Step 6 once both CI and code review pass clean.
+
 ### Step 6: Commit and create the PR
 
 Stage and commit all changes with a conventional commit message derived from the issue:

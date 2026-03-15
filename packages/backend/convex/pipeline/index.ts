@@ -17,6 +17,7 @@ export const startProcessing = internalAction({
     try {
       const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
       if (!doc) throw new Error(`Document ${documentId} not found`);
+      if (doc.status === "deleting") return;
 
       evt.set({ fileType: doc.fileType, userId: doc.userId });
 

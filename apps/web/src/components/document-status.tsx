@@ -34,6 +34,11 @@ export const statusConfig = {
     className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
     dotClassName: "bg-emerald-500",
   },
+  deleting: {
+    label: "Deleting",
+    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    dotClassName: "bg-red-500 animate-pulse",
+  },
   error: {
     label: "Error",
     className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",

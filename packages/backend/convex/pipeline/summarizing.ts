@@ -107,6 +107,7 @@ export const summarizeDocument = internalAction({
     try {
       const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
       if (!doc) throw new Error(`Document ${documentId} not found`);
+      if (doc.status === "deleting") return;
       evt.set("userId", doc.userId);
 
       const allChunks = await ctx.runQuery(internal.chunks.listByDocumentInternal, {
