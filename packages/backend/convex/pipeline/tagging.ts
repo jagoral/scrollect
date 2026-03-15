@@ -7,7 +7,7 @@ import { z } from "zod";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { ai } from "../providers/ai";
+import { getAI } from "../providers/ai";
 
 const MAX_SAMPLE_CHUNKS = 5;
 const MAX_CHUNK_CHARS = 1500;
@@ -82,7 +82,7 @@ export const autoSuggest = internalAction({
         .join("\n\n---\n\n");
 
       const { output } = await generateText({
-        model: ai.languageModel("fast"),
+        model: getAI().languageModel("fast"),
         output: Output.object({ schema: tagSchema }),
         system: buildTagSuggestionPrompt(),
         prompt: userPrompt,

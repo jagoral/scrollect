@@ -9,7 +9,7 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { ai } from "../providers/ai";
+import { getAI } from "../providers/ai";
 
 import { convexIdToUuid, createEmbeddingProvider, createSummaryVectorStore } from "./helpers";
 import {
@@ -55,7 +55,7 @@ async function generateSectionSummary(group: {
   const combinedText = truncateSectionText(group.chunks, MAX_SECTION_CHUNKS_CHARS);
 
   const { output } = await generateText({
-    model: ai.languageModel("fast"),
+    model: getAI().languageModel("fast"),
     output: Output.object({ schema: summarySchema }),
     system: buildSectionSummaryPrompt(),
     prompt: `Section: "${group.sectionTitle}"\n\n${combinedText}`,
@@ -78,7 +78,7 @@ async function generateDocumentSummary(args: DocSummaryArgs): Promise<string> {
     .join("\n\n---\n\n");
 
   const { output } = await generateText({
-    model: ai.languageModel("fast"),
+    model: getAI().languageModel("fast"),
     output: Output.object({ schema: summarySchema }),
     system: buildDocumentSummaryPrompt(),
     prompt: `Document: "${documentTitle}"\n\n${userContent}`,

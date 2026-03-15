@@ -11,7 +11,7 @@ import { action } from "../_generated/server";
 import { requireAuth } from "../lib/functions";
 import type { TypeData } from "../lib/validators";
 import { WideEvent } from "../lib/logging";
-import { ai } from "../providers/ai";
+import { getAI } from "../providers/ai";
 import { createEmbeddingProvider, createSummaryVectorStore } from "../pipeline/helpers";
 import type {
   ChunkInfo,
@@ -271,7 +271,7 @@ export const generate = action({
       while (validCards.length < cardCount && generationAttempts <= maxBatchRetries) {
         generationAttempts++;
         const { output } = await generateText({
-          model: ai.languageModel("fast"),
+          model: getAI().languageModel("fast"),
           output: Output.object({ schema: cardsResponseSchema }),
           system: systemPrompt,
           prompt: userPrompt,
@@ -400,7 +400,7 @@ async function generateLegacy(args: LegacyGenerateArgs): Promise<Id<"posts">[]> 
     .join("\n\n---\n\n");
 
   const { output } = await generateText({
-    model: ai.languageModel("fast"),
+    model: getAI().languageModel("fast"),
     output: Output.object({ schema: postsResponseSchema }),
     system: systemPrompt,
     prompt: userPrompt,

@@ -4,7 +4,7 @@ import { createHash } from "crypto";
 
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import { ai } from "../providers/ai";
+import { getAI } from "../providers/ai";
 import { MarkdownNewArticleExtractor } from "../providers/markdownNew";
 import { AiSdkEmbeddings } from "../providers/embeddings";
 import { QdrantSummaryStore, QdrantVectorStore } from "../providers/qdrant";
@@ -30,7 +30,7 @@ export function getPollDelay(attempt: number): number {
 }
 
 export function createEmbeddingProvider(): EmbeddingProvider {
-  return new AiSdkEmbeddings(ai.embeddingModel("default"));
+  return new AiSdkEmbeddings(getAI().embeddingModel("default"));
 }
 
 function getQdrantConfig(): { url: string; apiKey: string } {

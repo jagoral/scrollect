@@ -115,7 +115,6 @@ jobs:
           preview-name: e2e-slow-${{ github.run_id }}
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Set preview env vars (real extractors)
         run: |
