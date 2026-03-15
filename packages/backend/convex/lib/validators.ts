@@ -18,6 +18,7 @@ export const documentStatus = v.union(
   v.literal("embedding"),
   v.literal("summarizing"),
   v.literal("ready"),
+  v.literal("deleting"),
   v.literal("error"),
 );
 

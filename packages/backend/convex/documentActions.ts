@@ -31,6 +31,11 @@ export const deleteDocument = action({
         throw new Error("Document not found");
       }
 
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: args.documentId,
+        status: "deleting",
+      });
+
       const summaryVectorIds = [
         ...data.sectionSummaryEmbeddingIds,
         ...(data.document.summaryEmbeddingId ? [data.document.summaryEmbeddingId] : []),
@@ -49,9 +54,30 @@ export const deleteDocument = action({
         summaryVectorStore.delete(summaryVectorIds),
       ]);
 
-      await ctx.runMutation(internal.documents.cascadeDelete, {
+      const postResult = await ctx.runMutation(internal.documents.cascadeDeletePosts, {
         documentId: args.documentId,
         userId: user._id,
+      });
+
+      const chunkResult = await ctx.runMutation(
+        internal.documents.cascadeDeleteChunksAndSummaries,
+        { documentId: args.documentId },
+      );
+
+      const docResult = await ctx.runMutation(internal.documents.cascadeDeleteDocument, {
+        documentId: args.documentId,
+      });
+
+      evt.set({
+        deleted: {
+          posts: postResult.deletedPosts,
+          postSources: postResult.deletedPostSources,
+          bookmarks: postResult.deletedBookmarks,
+          chunks: chunkResult.deletedChunks,
+          sectionSummaries: chunkResult.deletedSectionSummaries,
+          processingJobs: chunkResult.deletedProcessingJobs,
+          orphanedTags: docResult.deletedOrphanedTags,
+        },
       });
     } catch (error) {
       evt.setError(error);

@@ -40,14 +40,10 @@ test.describe("Document deletion", () => {
 
     await page.getByRole("button", { name: /delete document/i }).click();
 
-    await expect(page.getByRole("heading", { name: /delete document/i })).toBeVisible({
-      timeout: 5000,
-    });
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: /^delete$/i })
-      .click();
+    await dialog.getByRole("button", { name: /^delete$/i }).click();
 
     await expect(page).toHaveURL(/\/library\/?$/, { timeout: 30000 });
     await page.waitForLoadState("networkidle");
