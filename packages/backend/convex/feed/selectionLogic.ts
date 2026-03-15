@@ -43,10 +43,11 @@ export type RankArgs = {
   usageMap: Map<string, UsageInfo>;
   count: number;
   allChunksForDiversity?: ChunkLike[];
+  randomFn?: () => number;
 };
 
 export function rankByUsage(args: RankArgs): ChunkLike[] {
-  const { chunks, usageMap, count, allChunksForDiversity } = args;
+  const { chunks, usageMap, count, allChunksForDiversity, randomFn = Math.random } = args;
 
   const weighted = chunks.map((chunk) => {
     const usage = usageMap.get(chunk._id);
@@ -74,8 +75,7 @@ export function rankByUsage(args: RankArgs): ChunkLike[] {
       (c) => !seen.has(c._id) && c.documentId !== result[0]!.documentId,
     );
     if (otherDocChunks.length > 0) {
-      result[result.length - 1] =
-        otherDocChunks[Math.floor(Math.random() * otherDocChunks.length)]!;
+      result[result.length - 1] = otherDocChunks[Math.floor(randomFn() * otherDocChunks.length)]!;
     }
   }
 

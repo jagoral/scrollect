@@ -1,6 +1,6 @@
 "use node";
 
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
@@ -10,6 +10,7 @@ import { action } from "../_generated/server";
 import { requireAuth } from "../lib/functions";
 import type { TypeData } from "../lib/validators";
 import { WideEvent } from "../lib/logging";
+import { callOpenAIWithRetry, getOpenAIClient } from "../lib/openai";
 import { createEmbeddingProvider, createSummaryVectorStore } from "../pipeline/helpers";
 import type {
   ChunkInfo,
@@ -28,19 +29,9 @@ import { buildSummaryContext } from "./selectionLogic";
 import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
 
-const MAX_GENERATION_RETRIES = 2;
-const RETRY_BASE_DELAY_MS = 2000;
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const SATURATION_THRESHOLD = 0.8;
-
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY environment variable is required");
-  }
-  return new OpenAI({ apiKey });
-}
 
 function buildMultiTypePrompt(chunkCount: number, cardCount: number): string {
   return `You are an AI learning assistant for Scrollect, a personal learning feed app.
@@ -87,45 +78,6 @@ Each card should:
 - Use light Markdown formatting: **bold** for key terms, and occasional bullet points when listing related ideas
 
 Return a JSON object with a "posts" key containing an array of exactly ${chunkCount} strings, one for each input chunk.`;
-}
-
-type RetryCallArgs = {
-  openai: OpenAI;
-  messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
-  model: string;
-  evt: WideEvent;
-};
-
-async function callWithRetry(args: RetryCallArgs): Promise<string> {
-  const { openai, messages, model, evt } = args;
-  for (let attempt = 0; attempt <= MAX_GENERATION_RETRIES; attempt++) {
-    try {
-      const response = await openai.chat.completions.create({
-        model,
-        messages,
-        temperature: 0.7,
-        response_format: { type: "json_object" },
-      });
-      return response.choices[0]?.message?.content ?? "{}";
-    } catch (error: unknown) {
-      const status = (error as { status?: number }).status ?? 0;
-      const isRetryable =
-        error instanceof Error &&
-        (error.message.includes("rate_limit") ||
-          error.message.includes("timeout") ||
-          status === 429 ||
-          status >= 500);
-
-      if (!isRetryable || attempt === MAX_GENERATION_RETRIES) {
-        throw error;
-      }
-
-      const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
-      evt.set(`retry_${attempt}`, delay);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error("Exhausted retries");
 }
 
 export const generate = action({
@@ -247,7 +199,6 @@ export const generate = action({
         selected = await semanticSelect({
           allChunks,
           docSummaries,
-          sectionSummaries: allSectionSummaries,
           chunkUsageMap,
           count: sampleSize,
           userId: user._id,
@@ -309,7 +260,7 @@ export const generate = action({
 
       while (validCards.length < cardCount && generationAttempts <= maxBatchRetries) {
         generationAttempts++;
-        const raw = await callWithRetry({
+        const raw = await callOpenAIWithRetry({
           openai,
           messages: [
             { role: "system", content: systemPrompt },
@@ -343,7 +294,7 @@ export const generate = action({
         evt.set(`attempt_${generationAttempts}_valid`, validated.length);
         evt.set(`attempt_${generationAttempts}_dropped`, dropped.length);
 
-        if (validated.length > 0 && dropped.length / cards.length <= 0.5) {
+        if (validated.length > 0 && cards.length > 0 && dropped.length / cards.length <= 0.5) {
           validCards = validated;
           break;
         }
@@ -449,7 +400,7 @@ async function generateLegacy(args: LegacyGenerateArgs): Promise<Id<"posts">[]> 
     .map((chunk, i) => `Chunk ${i + 1}:\n${chunk.content}`)
     .join("\n\n---\n\n");
 
-  const raw = await callWithRetry({
+  const raw = await callOpenAIWithRetry({
     openai,
     messages: [
       { role: "system", content: systemPrompt },

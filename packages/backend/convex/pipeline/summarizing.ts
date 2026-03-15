@@ -1,6 +1,6 @@
 "use node";
 
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
@@ -8,6 +8,7 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
+import { callOpenAIWithRetry, getOpenAIClient } from "../lib/openai";
 
 import { convexIdToUuid, createEmbeddingProvider, createSummaryVectorStore } from "./helpers";
 import {
@@ -18,14 +19,6 @@ import {
 
 const SUMMARIZE_MODEL = "gpt-4o-mini";
 const MAX_SECTION_CHUNKS_CHARS = 8000;
-const MAX_RETRIES = 2;
-const RETRY_BASE_DELAY_MS = 2000;
-
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY environment variable is required");
-  return new OpenAI({ apiKey });
-}
 
 function buildSectionSummaryPrompt(): string {
   return `You are a summarization assistant for a personal learning app.
@@ -53,60 +46,38 @@ Rules:
 Return a JSON object: { "summary": "..." }`;
 }
 
-async function callWithRetry(
-  openai: OpenAI,
-  messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-  evt: WideEvent,
-): Promise<string> {
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const response = await openai.chat.completions.create({
-        model: SUMMARIZE_MODEL,
-        messages,
-        temperature: 0.3,
-        response_format: { type: "json_object" },
-      });
-      return response.choices[0]?.message?.content ?? "{}";
-    } catch (error: unknown) {
-      const status = (error as { status?: number }).status ?? 0;
-      const isRetryable =
-        error instanceof Error &&
-        (error.message.includes("rate_limit") ||
-          error.message.includes("timeout") ||
-          status === 429 ||
-          status >= 500);
+type SectionSummaryArgs = {
+  openai: OpenAI;
+  group: { sectionTitle: string; chunks: Array<{ content: string }> };
+  evt: WideEvent;
+};
 
-      if (!isRetryable || attempt === MAX_RETRIES) throw error;
-
-      const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
-      evt.set(`retry_${attempt}`, delay);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error("Exhausted retries");
-}
-
-async function generateSectionSummary(
-  openai: OpenAI,
-  group: { sectionTitle: string; chunks: Array<{ content: string }> },
-  evt: WideEvent,
-): Promise<string> {
+async function generateSectionSummary(args: SectionSummaryArgs): Promise<string> {
+  const { openai, group, evt } = args;
   const combinedText = truncateSectionText(group.chunks, MAX_SECTION_CHUNKS_CHARS);
 
-  const raw = await callWithRetry(
+  const raw = await callOpenAIWithRetry({
     openai,
-    [
+    messages: [
       { role: "system", content: buildSectionSummaryPrompt() },
       {
         role: "user",
         content: `Section: "${group.sectionTitle}"\n\n${combinedText}`,
       },
     ],
+    model: SUMMARIZE_MODEL,
+    temperature: 0.3,
     evt,
-  );
+  });
 
-  const parsed = JSON.parse(raw);
-  return typeof parsed.summary === "string" ? parsed.summary : "";
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed.summary === "string" ? parsed.summary : "";
+  } catch (error) {
+    evt.set("sectionParseError", raw.substring(0, 500));
+    evt.set("sectionParseErrorMessage", error instanceof Error ? error.message : String(error));
+    return "";
+  }
 }
 
 type DocSummaryArgs = {
@@ -122,20 +93,28 @@ async function generateDocumentSummary(args: DocSummaryArgs): Promise<string> {
     .map((s) => `Section "${s.sectionTitle}":\n${s.summary}`)
     .join("\n\n---\n\n");
 
-  const raw = await callWithRetry(
+  const raw = await callOpenAIWithRetry({
     openai,
-    [
+    messages: [
       { role: "system", content: buildDocumentSummaryPrompt() },
       {
         role: "user",
         content: `Document: "${documentTitle}"\n\n${userContent}`,
       },
     ],
+    model: SUMMARIZE_MODEL,
+    temperature: 0.3,
     evt,
-  );
+  });
 
-  const parsed = JSON.parse(raw);
-  return typeof parsed.summary === "string" ? parsed.summary : "";
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed.summary === "string" ? parsed.summary : "";
+  } catch (error) {
+    evt.set("docParseError", raw.substring(0, 500));
+    evt.set("docParseErrorMessage", error instanceof Error ? error.message : String(error));
+    return "";
+  }
 }
 
 export async function resumeSummarizing(ctx: ActionCtx, documentId: Id<"documents">) {
@@ -188,7 +167,7 @@ export const summarizeDocument = internalAction({
       }> = [];
 
       for (const group of groups) {
-        const summary = await generateSectionSummary(openai, group, evt);
+        const summary = await generateSectionSummary({ openai, group, evt });
         if (!summary) continue;
 
         const indices = group.chunks.map((c) => c.chunkIndex);
@@ -201,6 +180,15 @@ export const summarizeDocument = internalAction({
       }
 
       evt.set("sectionSummariesGenerated", sectionResults.length);
+
+      if (sectionResults.length === 0) {
+        await ctx.runMutation(internal.documents.updateStatus, {
+          id: documentId,
+          status: "ready",
+        });
+        await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
+        return;
+      }
 
       const docSummary = await generateDocumentSummary({
         openai,
@@ -223,8 +211,15 @@ export const summarizeDocument = internalAction({
           idToUuid: convexIdToUuid,
         });
 
-      await summaryStore.upsert([docPoint, ...sectionPoints]);
-      evt.set("vectorsUpserted", 1 + sectionPoints.length);
+      const oldSections = await ctx.runQuery(internal.sectionSummaries.listByDocument, {
+        documentId,
+      });
+      const staleVectorIds = oldSections.map((s) => s.embeddingId);
+      if (doc.summaryEmbeddingId) {
+        staleVectorIds.push(doc.summaryEmbeddingId);
+      }
+      await summaryStore.delete(staleVectorIds);
+      evt.set("staleVectorsDeleted", staleVectorIds.length);
 
       await ctx.runMutation(internal.sectionSummaries.deleteByDocument, { documentId });
       await ctx.runMutation(internal.sectionSummaries.createBatch, {
@@ -238,6 +233,9 @@ export const summarizeDocument = internalAction({
         summary: docSummary,
         summaryEmbeddingId: docEmbeddingId,
       });
+
+      await summaryStore.upsert([docPoint, ...sectionPoints]);
+      evt.set("vectorsUpserted", 1 + sectionPoints.length);
 
       await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
     } catch (error) {

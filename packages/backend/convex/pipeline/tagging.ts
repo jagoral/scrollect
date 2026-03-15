@@ -1,25 +1,17 @@
 "use node";
 
-import OpenAI from "openai";
 import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
+import { getOpenAIClient } from "../lib/openai";
 
 const TAG_SUGGEST_MODEL = "gpt-4o-mini";
 const MAX_SAMPLE_CHUNKS = 5;
 const MAX_RETRIES = 2;
 const RETRY_BASE_DELAY_MS = 2000;
 const MAX_CHUNK_CHARS = 1500;
-
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY environment variable is required");
-  }
-  return new OpenAI({ apiKey });
-}
 
 function buildTagSuggestionPrompt(): string {
   return `You are a topic classifier for a personal learning app.

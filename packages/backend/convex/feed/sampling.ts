@@ -1,22 +1,17 @@
 import { ALL_POST_TYPES } from "../lib/validators";
 import type { EmbeddingProvider, SummaryVectorStore } from "../providers/types";
 
+import type { ChunkLike, UsageInfo } from "./selectionLogic";
 import { filterChunksBySemantic, rankByUsage } from "./selectionLogic";
+
+export type ChunkInfo = ChunkLike;
+export type ChunkUsage = UsageInfo;
 
 const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SEMANTIC_TOP_DOCS = 5;
 const SEMANTIC_TOP_SECTIONS = 8;
-
-export type ChunkInfo = {
-  _id: string;
-  content: string;
-  documentId: string;
-  documentTitle: string;
-  sectionTitle?: string;
-  pageNumber?: number;
-};
 
 export type DocumentSummaryInfo = {
   documentId: string;
@@ -31,11 +26,6 @@ export type SectionSummaryInfo = {
   summary: string;
   chunkStartIndex: number;
   chunkEndIndex: number;
-};
-
-export type ChunkUsage = {
-  types: Set<string>;
-  totalCount: number;
 };
 
 export type PostSourceRecord = {
@@ -78,10 +68,11 @@ export type WeightedSampleArgs = {
   docCreatedAtMap: Map<string, number>;
   count: number;
   now: number;
+  randomFn?: () => number;
 };
 
 export function weightedSample(args: WeightedSampleArgs): ChunkInfo[] {
-  const { chunks, chunkUsageMap, docCreatedAtMap, count, now } = args;
+  const { chunks, chunkUsageMap, docCreatedAtMap, count, now, randomFn = Math.random } = args;
   const base = 1.0;
   const weights = chunks.map((chunk) => {
     const usage = chunkUsageMap.get(chunk._id);
@@ -102,7 +93,7 @@ export function weightedSample(args: WeightedSampleArgs): ChunkInfo[] {
     const totalWeight = weights.reduce((sum, w, i) => (usedIndices.has(i) ? sum : sum + w), 0);
     if (totalWeight <= 0) break;
 
-    let rand = Math.random() * totalWeight;
+    let rand = randomFn() * totalWeight;
     let chosenIdx = -1;
     for (let i = 0; i < weights.length; i++) {
       if (usedIndices.has(i)) continue;
@@ -138,7 +129,7 @@ export function weightedSample(args: WeightedSampleArgs): ChunkInfo[] {
     );
     if (otherDocChunks.length > 0) {
       selected[selected.length - 1] =
-        otherDocChunks[Math.floor(Math.random() * otherDocChunks.length)]!;
+        otherDocChunks[Math.floor(randomFn() * otherDocChunks.length)]!;
     }
   }
 
@@ -170,22 +161,31 @@ export function shuffle<T>(arr: T[]): T[] {
 export type SemanticSelectArgs = {
   allChunks: ChunkInfo[];
   docSummaries: DocumentSummaryInfo[];
-  sectionSummaries: SectionSummaryInfo[];
   chunkUsageMap: Map<string, ChunkUsage>;
   count: number;
   userId: string;
   embedder: EmbeddingProvider;
   summaryStore: SummaryVectorStore;
+  randomFn?: () => number;
 };
 
 export async function semanticSelect(args: SemanticSelectArgs): Promise<ChunkInfo[]> {
-  const { allChunks, docSummaries, chunkUsageMap, count, userId, embedder, summaryStore } = args;
+  const {
+    allChunks,
+    docSummaries,
+    chunkUsageMap,
+    count,
+    userId,
+    embedder,
+    summaryStore,
+    randomFn = Math.random,
+  } = args;
 
   if (docSummaries.length === 0) {
     return shuffle(allChunks).slice(0, count);
   }
 
-  const seedDoc = docSummaries[Math.floor(Math.random() * docSummaries.length)]!;
+  const seedDoc = docSummaries[Math.floor(randomFn() * docSummaries.length)]!;
   const seedVectors = await embedder.embed([seedDoc.summary]);
   const seedVector = seedVectors[0]!;
 

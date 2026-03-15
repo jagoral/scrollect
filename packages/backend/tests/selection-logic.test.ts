@@ -67,6 +67,28 @@ describe("filterChunksBySemantic", () => {
     expect(result).toHaveLength(2);
     expect(result.every((c) => c.documentId === "d1")).toBe(true);
   });
+
+  test("empty allChunks returns empty", () => {
+    const result = filterChunksBySemantic({
+      allChunks: [],
+      selectedDocIds: new Set(["d1"]),
+      selectedSections: new Set(),
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  test("empty selectedDocIds returns empty", () => {
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+
+    const result = filterChunksBySemantic({
+      allChunks: chunks,
+      selectedDocIds: new Set(),
+      selectedSections: new Set(),
+    });
+
+    expect(result).toEqual([]);
+  });
 });
 
 describe("rankByUsage", () => {
@@ -111,6 +133,14 @@ describe("rankByUsage", () => {
 
     const ids = result.map((c) => c._id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  test("with empty usageMap preserves insertion order", () => {
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2"), chunk("c3", "d3")];
+
+    const result = rankByUsage({ chunks, usageMap: new Map(), count: 3 });
+
+    expect(result.map((c) => c._id)).toEqual(["c1", "c2", "c3"]);
   });
 });
 
@@ -161,5 +191,28 @@ describe("buildSummaryContext", () => {
 
     expect(result).toContain("Document context");
     expect(result).not.toContain("Section context");
+  });
+
+  test("multiple matching documents with sections", () => {
+    const result = buildSummaryContext({
+      docSummaries: [
+        { documentId: "d1", documentTitle: "Doc 1", summary: "s1" },
+        { documentId: "d2", documentTitle: "Doc 2", summary: "s2" },
+      ],
+      sectionSummaries: [
+        { documentId: "d1", sectionTitle: "Intro", summary: "intro1" },
+        { documentId: "d2", sectionTitle: "Methods", summary: "methods2" },
+      ],
+      selectedDocIds: new Set(["d1", "d2"]),
+    });
+
+    expect(result).toContain("Doc 1");
+    expect(result).toContain("s1");
+    expect(result).toContain("Doc 2");
+    expect(result).toContain("s2");
+    expect(result).toContain("Intro");
+    expect(result).toContain("intro1");
+    expect(result).toContain("Methods");
+    expect(result).toContain("methods2");
   });
 });

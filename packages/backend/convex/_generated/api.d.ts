@@ -22,6 +22,7 @@ import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_logging from "../lib/logging.js";
+import type * as lib_openai from "../lib/openai.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as pipeline_chunking from "../pipeline/chunking.js";
 import type * as pipeline_embedding from "../pipeline/embedding.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/functions": typeof lib_functions;
   "lib/logging": typeof lib_logging;
+  "lib/openai": typeof lib_openai;
   "lib/validators": typeof lib_validators;
   "pipeline/chunking": typeof pipeline_chunking;
   "pipeline/embedding": typeof pipeline_embedding;
