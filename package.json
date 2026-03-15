@@ -27,6 +27,7 @@
     "test:e2e": "turbo -F @scrollect/e2e test:e2e"
   },
   "dependencies": {
+    "@convex-dev/react-query": "^0.1.0",
     "@scrollect/env": "workspace:*",
     "convex": "^1.33.1",
     "dotenv": "catalog:",

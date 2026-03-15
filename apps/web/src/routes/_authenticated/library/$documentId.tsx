@@ -2,13 +2,27 @@ import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { Link, createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
 import { NotFound } from "@/components/not-found";
 import { DocumentTagSection } from "@/components/tags/document-tag-section";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/library/$documentId")({
   loader: async ({ params: { documentId }, context }) => {
@@ -36,8 +50,25 @@ function DocumentDetailPage() {
   const { data: document } = useSuspenseQuery(
     convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
   );
+  const navigate = useNavigate();
+  const deleteDocument = useAction(api.documentActions.deleteDocument);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!document) throw notFound();
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteDocument({ documentId: document._id });
+      setDeleteDialogOpen(false);
+      toast.success("Document deleted");
+      await navigate({ to: "/library" });
+    } catch {
+      toast.error("Failed to delete document");
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -67,6 +98,52 @@ function DocumentDetailPage() {
               {document.chunkCount} chunk{document.chunkCount !== 1 ? "s" : ""}
             </span>
           )}
+          <Dialog
+            open={deleteDialogOpen}
+            onOpenChange={(open) => {
+              if (!isDeleting) setDeleteDialogOpen(open);
+            }}
+          >
+            <DialogTrigger
+              render={
+                <Button variant="destructive" size="sm" data-testid="delete-document-button" />
+              }
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete document
+            </DialogTrigger>
+            <DialogContent showCloseButton={!isDeleting}>
+              <DialogHeader>
+                <DialogTitle>Delete document</DialogTitle>
+                <DialogDescription>
+                  Delete &ldquo;{document.title}&rdquo;? This will remove the document and all
+                  generated cards. This cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose
+                  render={
+                    <Button
+                      variant="outline"
+                      disabled={isDeleting}
+                      data-testid="cancel-delete-button"
+                    />
+                  }
+                >
+                  Cancel
+                </DialogClose>
+                <Button
+                  variant="destructive"
+                  disabled={isDeleting}
+                  onClick={handleDelete}
+                  data-testid="confirm-delete-button"
+                >
+                  {isDeleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Delete
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
