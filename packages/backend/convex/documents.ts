@@ -214,6 +214,177 @@ export const getInternal = internalQuery({
   },
 });
 
+export const getDocumentDeletionData = internalQuery({
+  args: { documentId: v.id("documents") },
+  returns: v.union(
+    v.object({
+      document: v.object({
+        _id: v.id("documents"),
+        userId: v.string(),
+        storageId: v.optional(v.id("_storage")),
+        summaryEmbeddingId: v.optional(v.string()),
+      }),
+      chunkEmbeddingIds: v.array(v.string()),
+      sectionSummaryEmbeddingIds: v.array(v.string()),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const document = await ctx.db.get(args.documentId);
+    if (!document) return null;
+
+    const chunks = await ctx.db
+      .query("chunks")
+      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+      .collect();
+
+    const chunkEmbeddingIds = chunks
+      .map((c) => c.embeddingId)
+      .filter((id): id is string => id !== undefined);
+
+    const sectionSummaries = await ctx.db
+      .query("sectionSummaries")
+      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+      .collect();
+
+    const sectionSummaryEmbeddingIds = sectionSummaries.map((s) => s.embeddingId);
+
+    return {
+      document: {
+        _id: document._id,
+        userId: document.userId,
+        storageId: document.storageId,
+        summaryEmbeddingId: document.summaryEmbeddingId,
+      },
+      chunkEmbeddingIds,
+      sectionSummaryEmbeddingIds,
+    };
+  },
+});
+
+export const cascadeDelete = internalMutation({
+  args: {
+    documentId: v.id("documents"),
+    userId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const evt = new WideEvent("documents.cascadeDelete");
+    evt.set({ documentId: args.documentId });
+
+    try {
+      const postSources = await ctx.db
+        .query("postSources")
+        .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+        .collect();
+
+      const postIds = [...new Set(postSources.map((ps) => ps.postId))];
+
+      for (const ps of postSources) {
+        await ctx.db.delete(ps._id);
+      }
+
+      let deletedPosts = 0;
+      let deletedBookmarks = 0;
+      let deletedPostSources = postSources.length;
+
+      for (const postId of postIds) {
+        const post = await ctx.db.get(postId);
+        if (!post) continue;
+
+        if (post.primarySourceDocumentId === args.documentId) {
+          const remainingPostSources = await ctx.db
+            .query("postSources")
+            .withIndex("by_postId", (q) => q.eq("postId", postId))
+            .collect();
+
+          for (const rps of remainingPostSources) {
+            await ctx.db.delete(rps._id);
+            deletedPostSources++;
+          }
+
+          const bookmarks = await ctx.db
+            .query("bookmarks")
+            .withIndex("by_userId_post", (q) => q.eq("userId", args.userId).eq("postId", postId))
+            .collect();
+
+          for (const bookmark of bookmarks) {
+            await ctx.db.delete(bookmark._id);
+            deletedBookmarks++;
+          }
+
+          if (post.assetStorageId) {
+            try {
+              await ctx.storage.delete(post.assetStorageId);
+            } catch {
+              // Storage file may already be deleted
+            }
+          }
+
+          await ctx.db.delete(postId);
+          deletedPosts++;
+        }
+      }
+
+      const chunks = await ctx.db
+        .query("chunks")
+        .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+        .collect();
+
+      for (const chunk of chunks) {
+        await ctx.db.delete(chunk._id);
+      }
+
+      const sectionSummaries = await ctx.db
+        .query("sectionSummaries")
+        .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+        .collect();
+
+      for (const ss of sectionSummaries) {
+        await ctx.db.delete(ss._id);
+      }
+
+      const processingJobs = await ctx.db
+        .query("processingJobs")
+        .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+        .collect();
+
+      for (const job of processingJobs) {
+        await ctx.db.delete(job._id);
+      }
+
+      const document = await ctx.db.get(args.documentId);
+      if (document?.storageId) {
+        try {
+          await ctx.storage.delete(document.storageId);
+        } catch {
+          // Storage file may already be deleted
+        }
+      }
+
+      await ctx.db.delete(args.documentId);
+
+      evt.set({
+        deleted: {
+          posts: deletedPosts,
+          postSources: deletedPostSources,
+          bookmarks: deletedBookmarks,
+          chunks: chunks.length,
+          sectionSummaries: sectionSummaries.length,
+          processingJobs: processingJobs.length,
+        },
+      });
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
+
+    return null;
+  },
+});
+
 export const retry = mutation({
   args: { id: v.id("documents") },
   handler: async (ctx, args) => {

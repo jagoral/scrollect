@@ -5,6 +5,7 @@
     "": {
       "name": "scrollect",
       "dependencies": {
+        "@convex-dev/react-query": "^0.1.0",
         "@scrollect/env": "workspace:*",
         "convex": "^1.33.1",
         "dotenv": "catalog:",
@@ -106,7 +107,7 @@
         "@convex-dev/better-auth": "^0.10.13",
         "ai": "^6.0.116",
         "better-auth": "catalog:",
-        "convex": "^1.33.1",
+        "convex": "catalog:",
         "dotenv": "catalog:",
         "unpdf": "^1.4.0",
         "zod": "catalog:",
