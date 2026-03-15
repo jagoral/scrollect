@@ -171,6 +171,8 @@ export const updateStatus = internalMutation({
     errorMessage: v.optional(v.string()),
     chunkCount: v.optional(v.number()),
     failedAt: v.optional(failedAtStage),
+    summary: v.optional(v.string()),
+    summaryEmbeddingId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -184,6 +186,12 @@ export const updateStatus = internalMutation({
     }
     if (fields.chunkCount !== undefined) {
       update.chunkCount = fields.chunkCount;
+    }
+    if (fields.summary !== undefined) {
+      update.summary = fields.summary;
+    }
+    if (fields.summaryEmbeddingId !== undefined) {
+      update.summaryEmbeddingId = fields.summaryEmbeddingId;
     }
     await ctx.db.patch(id, update);
   },

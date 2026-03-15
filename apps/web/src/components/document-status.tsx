@@ -24,6 +24,11 @@ export const statusConfig = {
     className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
     dotClassName: "bg-blue-500 animate-pulse",
   },
+  summarizing: {
+    label: "Summarizing",
+    className: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400",
+    dotClassName: "bg-violet-500 animate-pulse",
+  },
   ready: {
     label: "Ready",
     className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",

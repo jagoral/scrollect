@@ -10,8 +10,21 @@ import { action } from "../_generated/server";
 import { requireAuth } from "../lib/functions";
 import type { TypeData } from "../lib/validators";
 import { WideEvent } from "../lib/logging";
-import type { ChunkInfo, PostSourceRecord } from "./sampling";
-import { buildChunkUsageMap, buildTypeCoverageHint, shuffle, weightedSample } from "./sampling";
+import { createEmbeddingProvider, createSummaryVectorStore } from "../pipeline/helpers";
+import type {
+  ChunkInfo,
+  DocumentSummaryInfo,
+  PostSourceRecord,
+  SectionSummaryInfo,
+} from "./sampling";
+import {
+  buildChunkUsageMap,
+  buildTypeCoverageHint,
+  semanticSelect,
+  shuffle,
+  weightedSample,
+} from "./sampling";
+import { buildSummaryContext } from "./selectionLogic";
 import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
 
@@ -76,12 +89,15 @@ Each card should:
 Return a JSON object with a "posts" key containing an array of exactly ${chunkCount} strings, one for each input chunk.`;
 }
 
-async function callWithRetry(
-  openai: OpenAI,
-  messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-  model: string,
-  evt: WideEvent,
-): Promise<string> {
+type RetryCallArgs = {
+  openai: OpenAI;
+  messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+  model: string;
+  evt: WideEvent;
+};
+
+async function callWithRetry(args: RetryCallArgs): Promise<string> {
+  const { openai, messages, model, evt } = args;
   for (let attempt = 0; attempt <= MAX_GENERATION_RETRIES; attempt++) {
     try {
       const response = await openai.chat.completions.create({
@@ -124,8 +140,13 @@ export const generate = action({
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
 
-      const documents: { _id: Id<"documents">; title: string; createdAt: number }[] =
-        await ctx.runQuery(internal.feed.queries.listReadyDocuments, { userId: user._id });
+      const documents: {
+        _id: Id<"documents">;
+        title: string;
+        createdAt: number;
+        summary?: string;
+        summaryEmbeddingId?: string;
+      }[] = await ctx.runQuery(internal.feed.queries.listReadyDocuments, { userId: user._id });
       evt.set("readyDocuments", documents.length);
 
       if (documents.length === 0) {
@@ -189,9 +210,64 @@ export const generate = action({
       );
 
       const sampleSize = Math.max(cardCount * 2, 10);
-      const selected = useMultiType
-        ? weightedSample(allChunks, chunkUsageMap, docCreatedAtMap, sampleSize, now)
-        : shuffle(allChunks).slice(0, sampleSize);
+
+      const docSummaries: DocumentSummaryInfo[] = documents
+        .filter((d) => d.summary && d.summaryEmbeddingId)
+        .map((d) => ({
+          documentId: d._id as string,
+          documentTitle: d.title,
+          summary: d.summary!,
+          summaryEmbeddingId: d.summaryEmbeddingId!,
+        }));
+
+      const allSectionSummaries: SectionSummaryInfo[] = [];
+      for (const doc of documents) {
+        if (!doc.summary) continue;
+        const sections = await ctx.runQuery(internal.feed.queries.listSectionSummaries, {
+          documentId: doc._id,
+        });
+        for (const s of sections) {
+          allSectionSummaries.push({
+            documentId: doc._id as string,
+            sectionTitle: s.sectionTitle,
+            summary: s.summary,
+            chunkStartIndex: s.chunkStartIndex,
+            chunkEndIndex: s.chunkEndIndex,
+          });
+        }
+      }
+
+      evt.set("docSummaries", docSummaries.length);
+      evt.set("sectionSummaries", allSectionSummaries.length);
+
+      let selected: ChunkInfo[];
+      if (useMultiType && docSummaries.length > 0) {
+        const embedder = createEmbeddingProvider();
+        const summaryStore = createSummaryVectorStore();
+        selected = await semanticSelect({
+          allChunks,
+          docSummaries,
+          sectionSummaries: allSectionSummaries,
+          chunkUsageMap,
+          count: sampleSize,
+          userId: user._id,
+          embedder,
+          summaryStore,
+        });
+        evt.set("selectionMethod", "semantic");
+      } else if (useMultiType) {
+        selected = weightedSample({
+          chunks: allChunks,
+          chunkUsageMap,
+          docCreatedAtMap,
+          count: sampleSize,
+          now,
+        });
+        evt.set("selectionMethod", "weighted");
+      } else {
+        selected = shuffle(allChunks).slice(0, sampleSize);
+        evt.set("selectionMethod", "random");
+      }
       evt.set("selectedChunks", selected.length);
 
       const openai = getOpenAIClient();
@@ -199,23 +275,33 @@ export const generate = action({
       evt.set("model", model);
 
       if (!useMultiType) {
-        return await generateLegacy(
+        return await generateLegacy({
           ctx,
           openai,
           model,
           selected,
           documents,
-          user._id,
+          userId: user._id,
           cardCount,
           evt,
-        );
+        });
       }
 
       const typeCoverageHint = buildTypeCoverageHint(chunkUsageMap);
       const systemPrompt = buildMultiTypePrompt(selected.length, cardCount) + typeCoverageHint;
-      const userPrompt = selected
-        .map((chunk, i) => `Chunk ${i} (from "${chunk.documentTitle}"):\n${chunk.content}`)
-        .join("\n\n---\n\n");
+
+      const selectedDocIds = new Set(selected.map((c) => c.documentId));
+      const summaryContext = buildSummaryContext({
+        docSummaries,
+        sectionSummaries: allSectionSummaries,
+        selectedDocIds,
+      });
+
+      const userPrompt =
+        summaryContext +
+        selected
+          .map((chunk, i) => `Chunk ${i} (from "${chunk.documentTitle}"):\n${chunk.content}`)
+          .join("\n\n---\n\n");
 
       let validCards: { card: RawCard; chunks: ChunkInfo[] }[] = [];
       let generationAttempts = 0;
@@ -223,15 +309,15 @@ export const generate = action({
 
       while (validCards.length < cardCount && generationAttempts <= maxBatchRetries) {
         generationAttempts++;
-        const raw = await callWithRetry(
+        const raw = await callWithRetry({
           openai,
-          [
+          messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
           model,
           evt,
-        );
+        });
 
         let cards: RawCard[];
         try {
@@ -344,31 +430,34 @@ function buildTypeData(card: RawCard): TypeData {
   }
 }
 
-async function generateLegacy(
-  ctx: ActionCtx,
-  openai: OpenAI,
-  model: string,
-  selected: ChunkInfo[],
-  documents: { _id: Id<"documents">; title: string }[],
-  userId: string,
-  cardCount: number,
-  evt: WideEvent,
-): Promise<Id<"posts">[]> {
+type LegacyGenerateArgs = {
+  ctx: ActionCtx;
+  openai: OpenAI;
+  model: string;
+  selected: ChunkInfo[];
+  documents: { _id: Id<"documents">; title: string }[];
+  userId: string;
+  cardCount: number;
+  evt: WideEvent;
+};
+
+async function generateLegacy(args: LegacyGenerateArgs): Promise<Id<"posts">[]> {
+  const { ctx, openai, model, selected, documents, userId, cardCount, evt } = args;
   const systemPrompt = buildLegacyPrompt(Math.min(selected.length, cardCount));
   const subset = selected.slice(0, cardCount);
   const userPrompt = subset
     .map((chunk, i) => `Chunk ${i + 1}:\n${chunk.content}`)
     .join("\n\n---\n\n");
 
-  const raw = await callWithRetry(
+  const raw = await callWithRetry({
     openai,
-    [
+    messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
     model,
     evt,
-  );
+  });
 
   let posts: string[];
   try {

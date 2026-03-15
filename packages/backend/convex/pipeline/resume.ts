@@ -7,6 +7,7 @@ import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 
 import { fanOutEmbedding } from "./embedding";
+import { resumeSummarizing } from "./summarizing";
 
 export const resumeProcessing = internalAction({
   args: { documentId: v.id("documents") },
@@ -77,6 +78,11 @@ export const resumeProcessing = internalAction({
           await ctx.scheduler.runAfter(0, internal.pipeline.resume.embedUnembeddedChunks, {
             documentId,
           });
+          break;
+
+        case "summarizing":
+          evt.set("resumePath", "resumeSummarizing");
+          await resumeSummarizing(ctx, documentId);
           break;
 
         default:
