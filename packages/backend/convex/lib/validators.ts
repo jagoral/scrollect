@@ -16,6 +16,7 @@ export const documentStatus = v.union(
   v.literal("parsing"),
   v.literal("chunking"),
   v.literal("embedding"),
+  v.literal("summarizing"),
   v.literal("ready"),
   v.literal("error"),
 );
@@ -24,6 +25,7 @@ export const failedAtStage = v.union(
   v.literal("parsing"),
   v.literal("chunking"),
   v.literal("embedding"),
+  v.literal("summarizing"),
 );
 
 export const reactionType = v.union(v.literal("like"), v.literal("dislike"));

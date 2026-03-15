@@ -80,7 +80,8 @@ function DocumentDetailPage() {
 
       {(document.status === "parsing" ||
         document.status === "chunking" ||
-        document.status === "embedding") && (
+        document.status === "embedding" ||
+        document.status === "summarizing") && (
         <div className="mt-10 flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Processing your document...</p>

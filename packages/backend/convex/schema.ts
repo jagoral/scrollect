@@ -22,6 +22,8 @@ export default defineSchema({
     datalabCheckUrl: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
     chunkCount: v.number(),
+    summary: v.optional(v.string()),
+    summaryEmbeddingId: v.optional(v.string()),
     tagIds: v.optional(v.array(v.id("tags"))),
     tagSources: v.optional(v.array(tagSource)),
     userId: v.string(),
@@ -104,6 +106,16 @@ export default defineSchema({
     completedBatches: v.number(),
     failedBatches: v.number(),
     retryCount: v.number(),
+    createdAt: v.number(),
+  }).index("by_documentId", ["documentId"]),
+
+  sectionSummaries: defineTable({
+    documentId: v.id("documents"),
+    sectionTitle: v.string(),
+    summary: v.string(),
+    embeddingId: v.string(),
+    chunkStartIndex: v.number(),
+    chunkEndIndex: v.number(),
     createdAt: v.number(),
   }).index("by_documentId", ["documentId"]),
 

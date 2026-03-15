@@ -46,6 +46,17 @@ export interface VectorPoint {
   };
 }
 
+export interface SummaryVectorPoint {
+  id: string;
+  vector: number[];
+  payload: {
+    documentId: string;
+    userId: string;
+    summaryType: "document" | "section";
+    sectionTitle?: string;
+  };
+}
+
 export interface VectorFilter {
   userId: string;
 }
@@ -54,6 +65,12 @@ export interface VectorSearchResult {
   id: string;
   score: number;
   payload: VectorPoint["payload"];
+}
+
+export interface SummarySearchResult {
+  id: string;
+  score: number;
+  payload: SummaryVectorPoint["payload"];
 }
 
 export interface VectorStore {
@@ -67,5 +84,23 @@ export interface VectorStore {
   search(vector: number[], filter: VectorFilter, topK: number): Promise<VectorSearchResult[]>;
 
   /** Delete vectors by ID. */
+  delete(ids: string[]): Promise<void>;
+}
+
+export interface SummaryVectorStore {
+  /** Ensure the summary collection exists. Idempotent. */
+  ensureCollection(): Promise<void>;
+
+  /** Upsert summary vectors. */
+  upsert(points: SummaryVectorPoint[]): Promise<void>;
+
+  /** Search summary vectors, optionally filtering by summaryType. */
+  search(
+    vector: number[],
+    filter: VectorFilter & { summaryType?: "document" | "section"; documentIds?: string[] },
+    topK: number,
+  ): Promise<SummarySearchResult[]>;
+
+  /** Delete summary vectors by ID. */
   delete(ids: string[]): Promise<void>;
 }

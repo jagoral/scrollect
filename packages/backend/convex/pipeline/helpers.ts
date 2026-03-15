@@ -6,9 +6,14 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { MarkdownNewArticleExtractor } from "../providers/markdownNew";
 import { OpenAIEmbeddings } from "../providers/openai";
-import { QdrantVectorStore } from "../providers/qdrant";
+import { QdrantSummaryStore, QdrantVectorStore } from "../providers/qdrant";
 import { StubArticleExtractor, StubYouTubeExtractor } from "../providers/stubs";
-import type { ContentExtractor, EmbeddingProvider, VectorStore } from "../providers/types";
+import type {
+  ContentExtractor,
+  EmbeddingProvider,
+  SummaryVectorStore,
+  VectorStore,
+} from "../providers/types";
 import { YouTubeTranscriptExtractor } from "../providers/youtube";
 
 export const CHUNK_STORE_BATCH_SIZE = 50;
@@ -35,6 +40,14 @@ export function createVectorStore(): VectorStore {
   if (!url || !apiKey)
     throw new Error("QDRANT_URL and QDRANT_API_KEY environment variables are required");
   return new QdrantVectorStore(url, apiKey);
+}
+
+export function createSummaryVectorStore(): SummaryVectorStore {
+  const url = process.env.QDRANT_URL;
+  const apiKey = process.env.QDRANT_API_KEY;
+  if (!url || !apiKey)
+    throw new Error("QDRANT_URL and QDRANT_API_KEY environment variables are required");
+  return new QdrantSummaryStore(url, apiKey);
 }
 
 export function createArticleExtractor(): ContentExtractor {

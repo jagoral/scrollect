@@ -171,9 +171,9 @@ async function checkCompletion(
   } else {
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
-      status: "ready",
+      status: "summarizing",
     });
-    await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, {
+    await ctx.scheduler.runAfter(0, internal.pipeline.summarizing.summarizeDocument, {
       documentId,
     });
   }

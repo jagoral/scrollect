@@ -139,6 +139,16 @@ export const listChunksForDocument = internalQuery({
   },
 });
 
+export const listSectionSummaries = internalQuery({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("sectionSummaries")
+      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+      .collect();
+  },
+});
+
 export const listRecentPostSources = internalQuery({
   args: { userId: v.string(), sinceTs: v.number() },
   handler: async (ctx, args) => {
