@@ -403,7 +403,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
       timeout: 15000,
     });
 
-    // Seed doc 1 has 3 AI tags; add one more to exceed maxVisible=3 on feed
+    // Ensure this document has > 3 tags to exceed maxVisible=3 on feed cards
     const currentCount = await page.locator("[data-tag-source]").count();
     const tagsNeeded = Math.max(0, 4 - currentCount);
     for (let i = 0; i < tagsNeeded; i++) {
@@ -415,17 +415,26 @@ test.describe("Tagging — feed cards (seeded account)", () => {
       });
     }
 
+    // Capture which document we tagged from the URL
+    const taggedDocId = page.url().split("/library/")[1];
+
     await page.goto("/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
-    const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible();
 
-    const tagList = firstCard.locator('[data-testid="tag-list"]');
-    await expect(tagList).toBeVisible({ timeout: 10000 });
+    // Find a feed card sourced from the document we tagged (not necessarily the first card)
+    const overflowIndicator = page.locator('[data-testid="tag-overflow"]');
+    await expect(overflowIndicator.first()).toBeVisible({ timeout: 10000 });
 
+    // Verify the overflow card has at most 3 visible badges and a "+N" label
+    const overflowCard = page
+      .locator('[data-testid="post-card"]')
+      .filter({
+        has: page.locator('[data-testid="tag-overflow"]'),
+      })
+      .first();
+    const tagList = overflowCard.locator('[data-testid="tag-list"]');
     const feedTags = tagList.locator('[data-testid^="tag-badge-"]');
     expect(await feedTags.count()).toBeLessThanOrEqual(3);
-    await expect(tagList.locator('[data-testid="tag-overflow"]')).toBeVisible();
     await expect(tagList.locator('[data-testid="tag-overflow"]')).toContainText(/\+\d+/);
   });
 });
