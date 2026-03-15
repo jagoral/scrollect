@@ -61,6 +61,11 @@ export interface VectorFilter {
   userId: string;
 }
 
+export interface SummaryVectorFilter extends VectorFilter {
+  summaryType?: "document" | "section";
+  documentIds?: string[];
+}
+
 export interface VectorSearchResult {
   id: string;
   score: number;
@@ -97,7 +102,7 @@ export interface SummaryVectorStore {
   /** Search summary vectors, optionally filtering by summaryType. */
   search(
     vector: number[],
-    filter: VectorFilter & { summaryType?: "document" | "section"; documentIds?: string[] },
+    filter: SummaryVectorFilter,
     topK: number,
   ): Promise<SummarySearchResult[]>;
 

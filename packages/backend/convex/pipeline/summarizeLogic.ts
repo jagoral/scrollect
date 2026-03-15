@@ -1,3 +1,5 @@
+import type { SummaryVectorPoint } from "../providers/types";
+
 export type ChunkGroup<T> = {
   sectionTitle: string;
   chunks: T[];
@@ -54,16 +56,7 @@ export type SummaryPointsInput = {
   idToUuid: (seed: string) => string;
 };
 
-export type SummaryVectorPointOutput = {
-  id: string;
-  vector: number[];
-  payload: {
-    documentId: string;
-    userId: string;
-    summaryType: "document" | "section";
-    sectionTitle?: string;
-  };
-};
+export type SummaryVectorPointOutput = SummaryVectorPoint;
 
 export type SectionDbRecord = {
   sectionTitle: string;
@@ -80,6 +73,11 @@ export function buildSummaryVectorPoints(input: SummaryPointsInput): {
   sectionDbRecords: SectionDbRecord[];
 } {
   const { documentId, userId, sectionResults, vectors, idToUuid } = input;
+
+  const expectedVectors = 1 + sectionResults.length;
+  if (vectors.length !== expectedVectors) {
+    throw new Error(`Expected ${expectedVectors} vectors, got ${vectors.length}`);
+  }
 
   const docEmbeddingId = idToUuid(`summary:doc:${documentId}`);
   const docPoint: SummaryVectorPointOutput = {

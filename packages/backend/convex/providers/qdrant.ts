@@ -1,5 +1,6 @@
 import type {
   SummarySearchResult,
+  SummaryVectorFilter,
   SummaryVectorPoint,
   SummaryVectorStore,
   VectorFilter,
@@ -11,25 +12,24 @@ import type {
 const COLLECTION_NAME = "scrollect_chunks";
 const SUMMARY_COLLECTION_NAME = "scrollect_summaries";
 
-/**
- * Qdrant vector store implementation.
- *
- * Uses the Qdrant REST API directly (no SDK dependency) to keep the provider
- * lightweight and compatible with Convex's action runtime.
- */
-export class QdrantVectorStore implements VectorStore {
-  private url: string;
-  private apiKey: string;
-  private vectorSize: number;
+type QdrantHttpClientConfig = {
+  url: string;
+  apiKey: string;
+  vectorSize?: number;
+};
 
-  constructor(url: string, apiKey: string, vectorSize: number = 1536) {
-    // Strip trailing slash for consistent URL construction
-    this.url = url.replace(/\/+$/, "");
-    this.apiKey = apiKey;
-    this.vectorSize = vectorSize;
+class QdrantHttpClient {
+  readonly url: string;
+  readonly apiKey: string;
+  readonly vectorSize: number;
+
+  constructor(config: QdrantHttpClientConfig) {
+    this.url = config.url.replace(/\/+$/, "");
+    this.apiKey = config.apiKey;
+    this.vectorSize = config.vectorSize ?? 1536;
   }
 
-  private async request(path: string, options: RequestInit = {}): Promise<unknown> {
+  async request(path: string, options: RequestInit = {}): Promise<unknown> {
     const response = await fetch(`${this.url}${path}`, {
       ...options,
       headers: {
@@ -49,25 +49,53 @@ export class QdrantVectorStore implements VectorStore {
     return response.json();
   }
 
-  async ensureCollection(): Promise<void> {
+  async ensureCollection(collectionName: string): Promise<void> {
     const data = (await this.request("/collections")) as {
       result: { collections: Array<{ name: string }> };
     };
-    const exists = data.result.collections.some((c) => c.name === COLLECTION_NAME);
-    if (!exists) {
-      await this.request(`/collections/${COLLECTION_NAME}`, {
+    const exists = data.result.collections.some((c) => c.name === collectionName);
+    if (exists) return;
+
+    try {
+      await this.request(`/collections/${collectionName}`, {
         method: "PUT",
         body: JSON.stringify({
           vectors: { size: this.vectorSize, distance: "Cosine" },
         }),
       });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const isAlreadyExists = /40[09]/.test(message) || /already exists/i.test(message);
+      if (!isAlreadyExists) throw error;
     }
+  }
+}
+
+/**
+ * Qdrant vector store implementation.
+ *
+ * Uses the Qdrant REST API directly (no SDK dependency) to keep the provider
+ * lightweight and compatible with Convex's action runtime.
+ */
+export class QdrantVectorStore implements VectorStore {
+  private client: QdrantHttpClient;
+  private collectionReady = false;
+
+  constructor(url: string, apiKey: string, vectorSize: number = 1536) {
+    this.client = new QdrantHttpClient({ url, apiKey, vectorSize });
+  }
+
+  async ensureCollection(): Promise<void> {
+    if (this.collectionReady) return;
+    await this.client.ensureCollection(COLLECTION_NAME);
+    this.collectionReady = true;
   }
 
   async upsert(points: VectorPoint[]): Promise<void> {
     if (points.length === 0) return;
 
-    await this.request(`/collections/${COLLECTION_NAME}/points?wait=true`, {
+    await this.ensureCollection();
+    await this.client.request(`/collections/${COLLECTION_NAME}/points?wait=true`, {
       method: "PUT",
       body: JSON.stringify({
         points: points.map((p) => ({
@@ -84,7 +112,7 @@ export class QdrantVectorStore implements VectorStore {
     filter: VectorFilter,
     topK: number,
   ): Promise<VectorSearchResult[]> {
-    const data = (await this.request(`/collections/${COLLECTION_NAME}/points/search`, {
+    const data = (await this.client.request(`/collections/${COLLECTION_NAME}/points/search`, {
       method: "POST",
       body: JSON.stringify({
         vector,
@@ -106,7 +134,7 @@ export class QdrantVectorStore implements VectorStore {
   async delete(ids: string[]): Promise<void> {
     if (ids.length === 0) return;
 
-    await this.request(`/collections/${COLLECTION_NAME}/points/delete?wait=true`, {
+    await this.client.request(`/collections/${COLLECTION_NAME}/points/delete?wait=true`, {
       method: "POST",
       body: JSON.stringify({ points: ids }),
     });
@@ -114,56 +142,24 @@ export class QdrantVectorStore implements VectorStore {
 }
 
 export class QdrantSummaryStore implements SummaryVectorStore {
-  private url: string;
-  private apiKey: string;
-  private vectorSize: number;
+  private client: QdrantHttpClient;
+  private collectionReady = false;
 
   constructor(url: string, apiKey: string, vectorSize: number = 1536) {
-    this.url = url.replace(/\/+$/, "");
-    this.apiKey = apiKey;
-    this.vectorSize = vectorSize;
-  }
-
-  private async request(path: string, options: RequestInit = {}): Promise<unknown> {
-    const response = await fetch(`${this.url}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": this.apiKey,
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        `Qdrant ${options.method ?? "GET"} ${path} failed: ${response.status} ${body}`,
-      );
-    }
-
-    return response.json();
+    this.client = new QdrantHttpClient({ url, apiKey, vectorSize });
   }
 
   async ensureCollection(): Promise<void> {
-    const data = (await this.request("/collections")) as {
-      result: { collections: Array<{ name: string }> };
-    };
-    const exists = data.result.collections.some((c) => c.name === SUMMARY_COLLECTION_NAME);
-    if (!exists) {
-      await this.request(`/collections/${SUMMARY_COLLECTION_NAME}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          vectors: { size: this.vectorSize, distance: "Cosine" },
-        }),
-      });
-    }
+    if (this.collectionReady) return;
+    await this.client.ensureCollection(SUMMARY_COLLECTION_NAME);
+    this.collectionReady = true;
   }
 
   async upsert(points: SummaryVectorPoint[]): Promise<void> {
     if (points.length === 0) return;
 
     await this.ensureCollection();
-    await this.request(`/collections/${SUMMARY_COLLECTION_NAME}/points?wait=true`, {
+    await this.client.request(`/collections/${SUMMARY_COLLECTION_NAME}/points?wait=true`, {
       method: "PUT",
       body: JSON.stringify({
         points: points.map((p) => ({
@@ -177,7 +173,7 @@ export class QdrantSummaryStore implements SummaryVectorStore {
 
   async search(
     vector: number[],
-    filter: VectorFilter & { summaryType?: "document" | "section"; documentIds?: string[] },
+    filter: SummaryVectorFilter,
     topK: number,
   ): Promise<SummarySearchResult[]> {
     const must: Array<Record<string, unknown>> = [
@@ -190,15 +186,18 @@ export class QdrantSummaryStore implements SummaryVectorStore {
       must.push({ key: "documentId", match: { any: filter.documentIds } });
     }
 
-    const data = (await this.request(`/collections/${SUMMARY_COLLECTION_NAME}/points/search`, {
-      method: "POST",
-      body: JSON.stringify({
-        vector,
-        limit: topK,
-        filter: { must },
-        with_payload: true,
-      }),
-    })) as {
+    const data = (await this.client.request(
+      `/collections/${SUMMARY_COLLECTION_NAME}/points/search`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          vector,
+          limit: topK,
+          filter: { must },
+          with_payload: true,
+        }),
+      },
+    )) as {
       result: Array<{ id: string; score: number; payload: SummaryVectorPoint["payload"] }>;
     };
 
@@ -212,7 +211,7 @@ export class QdrantSummaryStore implements SummaryVectorStore {
   async delete(ids: string[]): Promise<void> {
     if (ids.length === 0) return;
 
-    await this.request(`/collections/${SUMMARY_COLLECTION_NAME}/points/delete?wait=true`, {
+    await this.client.request(`/collections/${SUMMARY_COLLECTION_NAME}/points/delete?wait=true`, {
       method: "POST",
       body: JSON.stringify({ points: ids }),
     });

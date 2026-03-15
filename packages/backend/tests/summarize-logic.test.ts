@@ -65,6 +65,12 @@ describe("truncateSectionText", () => {
   test("returns empty string for empty input", () => {
     expect(truncateSectionText([], 100)).toBe("");
   });
+
+  test("first chunk larger than maxChars is still returned", () => {
+    const chunks = [{ content: "a".repeat(200) }, { content: "short" }];
+    const result = truncateSectionText(chunks, 50);
+    expect(result).toBe("a".repeat(200));
+  });
 });
 
 describe("buildSummaryVectorPoints", () => {
@@ -114,5 +120,23 @@ describe("buildSummaryVectorPoints", () => {
     expect(result.sectionDbRecords[1]!.sectionTitle).toBe("B");
     expect(result.sectionDbRecords[1]!.chunkEndIndex).toBe(5);
     expect(result.sectionDbRecords[0]!.embeddingId).toBeTruthy();
+  });
+
+  test("zero sections returns empty section arrays with correct docPoint", () => {
+    const result = buildSummaryVectorPoints({
+      documentId: "doc1",
+      userId: "user1",
+      docSummary: "doc summary",
+      sectionResults: [],
+      vectors: [[0.1, 0.2]],
+      idToUuid: fakeIdToUuid,
+    });
+
+    expect(result.sectionPoints).toEqual([]);
+    expect(result.sectionDbRecords).toEqual([]);
+    expect(result.docPoint.payload.summaryType).toBe("document");
+    expect(result.docPoint.payload.documentId).toBe("doc1");
+    expect(result.docPoint.payload.userId).toBe("user1");
+    expect(result.docPoint.vector).toEqual([0.1, 0.2]);
   });
 });
