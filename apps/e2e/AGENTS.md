@@ -67,7 +67,6 @@ test.afterEach(async () => {
 - **Navigation links are `role="button"` not `role="link"`** — the header uses shadcn `Button` with `render={<Link>}`, which produces button-role elements. Use `getByRole("button")` to find nav links
 - **Always clean up** — use `afterEach` with `cleanupTestData` (ephemeral) or `resetTestData` (seeded)
 - **Don't rely on timing** — use `await expect(...).toBeVisible({ timeout })` instead of `waitForTimeout`
-- **Port 3001 must be free** — run `kill -9 $(lsof -t -i:3001)` before tests if the dev server crashed
 - **Toast text must match source code exactly** — the upload page uses Sonner toasts. URL tab shows "Submitted for processing." with a library link; text tab shows "Added **{title}**." with a library link. Use `[data-sonner-toast]` selector for toast elements.
 - **`getByText` can match multiple elements** — if test content contains words like "processing", a `getByText(/processing/i)` may match both the button and the content. Target specific elements with `data-testid` or `locator().toContainText()`.
 - **URL extraction is asynchronous** — `createFromUrl` succeeds synchronously (creates document record), extraction happens in the pipeline. Unreachable URLs get a neutral success toast; the error surfaces as `status="error"` in the library later. See the skipped P0-8 test.
