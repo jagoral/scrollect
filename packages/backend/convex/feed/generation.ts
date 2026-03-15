@@ -26,6 +26,7 @@ import {
   shuffle,
   weightedSample,
 } from "./sampling";
+import { interleaveCards } from "./interleaving";
 import { buildSummaryContext } from "./selectionLogic";
 import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
@@ -310,10 +311,10 @@ export const generate = action({
 
       evt.set("finalCardCount", validCards.length);
 
-      const postIds: Id<"posts">[] = [];
       let dedupSkipped = 0;
-      for (const { card, chunks: cardChunks } of validCards.slice(0, cardCount)) {
-        const candidateHash = cardChunks
+      const dedupedCards: { card: RawCard; chunks: ChunkInfo[] }[] = [];
+      for (const entry of validCards.slice(0, cardCount)) {
+        const candidateHash = entry.chunks
           .map((c) => c._id)
           .sort()
           .join("+");
@@ -322,7 +323,24 @@ export const generate = action({
           continue;
         }
         recentHashes.add(candidateHash);
+        dedupedCards.push(entry);
+      }
+      evt.set("dedupSkipped", dedupSkipped);
 
+      const interleaved = interleaveCards({
+        cards: dedupedCards,
+        getType: (entry) => entry.card.type,
+      });
+      evt.set("interleavedCount", interleaved.length);
+
+      // Insert in reverse so the first interleaved card (hook) is inserted last,
+      // giving it the highest _creationTime. The feed query uses by_userId DESC,
+      // so higher _creationTime = appears first. Do NOT replace with Promise.all
+      // as that would lose deterministic ordering.
+      const reversed = [...interleaved].reverse();
+
+      const postIds: Id<"posts">[] = [];
+      for (const { card, chunks: cardChunks } of reversed) {
         const primaryChunk = cardChunks[0]!;
         const id = await ctx.runMutation(internal.feed.queries.insertPost, {
           content: card.content,
@@ -339,7 +357,7 @@ export const generate = action({
         });
         postIds.push(id);
       }
-      evt.set("dedupSkipped", dedupSkipped);
+      postIds.reverse();
 
       return postIds;
     } catch (error) {

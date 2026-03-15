@@ -16,6 +16,7 @@ import type * as documentActions from "../documentActions.js";
 import type * as documents from "../documents.js";
 import type * as feed_constants from "../feed/constants.js";
 import type * as feed_generation from "../feed/generation.js";
+import type * as feed_interleaving from "../feed/interleaving.js";
 import type * as feed_queries from "../feed/queries.js";
 import type * as feed_sampling from "../feed/sampling.js";
 import type * as feed_selectionLogic from "../feed/selectionLogic.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   "feed/constants": typeof feed_constants;
   "feed/generation": typeof feed_generation;
+  "feed/interleaving": typeof feed_interleaving;
   "feed/queries": typeof feed_queries;
   "feed/sampling": typeof feed_sampling;
   "feed/selectionLogic": typeof feed_selectionLogic;
