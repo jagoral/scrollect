@@ -1,17 +1,18 @@
 "use node";
 
+import { generateText, Output } from "ai";
 import { v } from "convex/values";
+import { z } from "zod";
 
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { getOpenAIClient } from "../lib/openai";
+import { ai } from "../providers/ai";
 
-const TAG_SUGGEST_MODEL = "gpt-4o-mini";
 const MAX_SAMPLE_CHUNKS = 5;
-const MAX_RETRIES = 2;
-const RETRY_BASE_DELAY_MS = 2000;
 const MAX_CHUNK_CHARS = 1500;
+
+const tagSchema = z.object({ tags: z.array(z.string()) });
 
 function buildTagSuggestionPrompt(): string {
   return `You are a topic classifier for a personal learning app.
@@ -80,44 +81,16 @@ export const autoSuggest = internalAction({
         })
         .join("\n\n---\n\n");
 
-      const openai = getOpenAIClient();
-      let tagNames: string[] = [];
+      const { output } = await generateText({
+        model: ai.languageModel("fast"),
+        output: Output.object({ schema: tagSchema }),
+        system: buildTagSuggestionPrompt(),
+        prompt: userPrompt,
+        temperature: 0.3,
+        maxRetries: 2,
+      });
 
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        try {
-          const response = await openai.chat.completions.create({
-            model: TAG_SUGGEST_MODEL,
-            messages: [
-              { role: "system", content: buildTagSuggestionPrompt() },
-              { role: "user", content: userPrompt },
-            ],
-            temperature: 0.3,
-            response_format: { type: "json_object" },
-          });
-
-          const raw = response.choices[0]?.message?.content ?? "{}";
-          const parsed = JSON.parse(raw);
-          tagNames = Array.isArray(parsed.tags) ? parsed.tags : [];
-          break;
-        } catch (error: unknown) {
-          const status = (error as { status?: number }).status ?? 0;
-          const isRetryable =
-            error instanceof Error &&
-            (error.message.includes("rate_limit") ||
-              error.message.includes("timeout") ||
-              status === 429 ||
-              status >= 500);
-
-          if (!isRetryable || attempt === MAX_RETRIES) {
-            throw error;
-          }
-
-          const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
-          evt.set(`retry_${attempt}`, delay);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
-
+      const tagNames = output?.tags ?? [];
       evt.set("suggestedTags", tagNames.length);
 
       const validTags = tagNames

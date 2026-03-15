@@ -1,14 +1,15 @@
 "use node";
 
-import type OpenAI from "openai";
+import { generateText, Output } from "ai";
 import { v } from "convex/values";
+import { z } from "zod";
 
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { callOpenAIWithRetry, getOpenAIClient } from "../lib/openai";
+import { ai } from "../providers/ai";
 
 import { convexIdToUuid, createEmbeddingProvider, createSummaryVectorStore } from "./helpers";
 import {
@@ -17,8 +18,9 @@ import {
   truncateSectionText,
 } from "./summarizeLogic";
 
-const SUMMARIZE_MODEL = "gpt-4o-mini";
 const MAX_SECTION_CHUNKS_CHARS = 8000;
+
+const summarySchema = z.object({ summary: z.string() });
 
 function buildSectionSummaryPrompt(): string {
   return `You are a summarization assistant for a personal learning app.
@@ -46,75 +48,45 @@ Rules:
 Return a JSON object: { "summary": "..." }`;
 }
 
-type SectionSummaryArgs = {
-  openai: OpenAI;
-  group: { sectionTitle: string; chunks: Array<{ content: string }> };
-  evt: WideEvent;
-};
-
-async function generateSectionSummary(args: SectionSummaryArgs): Promise<string> {
-  const { openai, group, evt } = args;
+async function generateSectionSummary(group: {
+  sectionTitle: string;
+  chunks: Array<{ content: string }>;
+}): Promise<string> {
   const combinedText = truncateSectionText(group.chunks, MAX_SECTION_CHUNKS_CHARS);
 
-  const raw = await callOpenAIWithRetry({
-    openai,
-    messages: [
-      { role: "system", content: buildSectionSummaryPrompt() },
-      {
-        role: "user",
-        content: `Section: "${group.sectionTitle}"\n\n${combinedText}`,
-      },
-    ],
-    model: SUMMARIZE_MODEL,
+  const { output } = await generateText({
+    model: ai.languageModel("fast"),
+    output: Output.object({ schema: summarySchema }),
+    system: buildSectionSummaryPrompt(),
+    prompt: `Section: "${group.sectionTitle}"\n\n${combinedText}`,
     temperature: 0.3,
-    evt,
+    maxRetries: 2,
   });
 
-  try {
-    const parsed = JSON.parse(raw);
-    return typeof parsed.summary === "string" ? parsed.summary : "";
-  } catch (error) {
-    evt.set("sectionParseError", raw.substring(0, 500));
-    evt.set("sectionParseErrorMessage", error instanceof Error ? error.message : String(error));
-    return "";
-  }
+  return output?.summary ?? "";
 }
 
 type DocSummaryArgs = {
-  openai: OpenAI;
   sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
   documentTitle: string;
-  evt: WideEvent;
 };
 
 async function generateDocumentSummary(args: DocSummaryArgs): Promise<string> {
-  const { openai, sectionSummaries, documentTitle, evt } = args;
+  const { sectionSummaries, documentTitle } = args;
   const userContent = sectionSummaries
     .map((s) => `Section "${s.sectionTitle}":\n${s.summary}`)
     .join("\n\n---\n\n");
 
-  const raw = await callOpenAIWithRetry({
-    openai,
-    messages: [
-      { role: "system", content: buildDocumentSummaryPrompt() },
-      {
-        role: "user",
-        content: `Document: "${documentTitle}"\n\n${userContent}`,
-      },
-    ],
-    model: SUMMARIZE_MODEL,
+  const { output } = await generateText({
+    model: ai.languageModel("fast"),
+    output: Output.object({ schema: summarySchema }),
+    system: buildDocumentSummaryPrompt(),
+    prompt: `Document: "${documentTitle}"\n\n${userContent}`,
     temperature: 0.3,
-    evt,
+    maxRetries: 2,
   });
 
-  try {
-    const parsed = JSON.parse(raw);
-    return typeof parsed.summary === "string" ? parsed.summary : "";
-  } catch (error) {
-    evt.set("docParseError", raw.substring(0, 500));
-    evt.set("docParseErrorMessage", error instanceof Error ? error.message : String(error));
-    return "";
-  }
+  return output?.summary ?? "";
 }
 
 export async function resumeSummarizing(ctx: ActionCtx, documentId: Id<"documents">) {
@@ -155,29 +127,26 @@ export const summarizeDocument = internalAction({
       const groups = groupChunksBySection(sortedChunks);
       evt.set("sectionGroups", groups.length);
 
-      const openai = getOpenAIClient();
       const embedder = createEmbeddingProvider();
       const summaryStore = createSummaryVectorStore();
 
-      const sectionResults: Array<{
-        sectionTitle: string;
-        summary: string;
-        chunkStartIndex: number;
-        chunkEndIndex: number;
-      }> = [];
+      const sectionCandidates = await Promise.all(
+        groups.map(async (group) => {
+          const summary = await generateSectionSummary(group);
+          if (!summary) return null;
 
-      for (const group of groups) {
-        const summary = await generateSectionSummary({ openai, group, evt });
-        if (!summary) continue;
-
-        const indices = group.chunks.map((c) => c.chunkIndex);
-        sectionResults.push({
-          sectionTitle: group.sectionTitle,
-          summary,
-          chunkStartIndex: Math.min(...indices),
-          chunkEndIndex: Math.max(...indices),
-        });
-      }
+          const indices = group.chunks.map((c) => c.chunkIndex);
+          return {
+            sectionTitle: group.sectionTitle,
+            summary,
+            chunkStartIndex: Math.min(...indices),
+            chunkEndIndex: Math.max(...indices),
+          };
+        }),
+      );
+      const sectionResults = sectionCandidates.filter(
+        (r): r is NonNullable<typeof r> => r !== null,
+      );
 
       evt.set("sectionSummariesGenerated", sectionResults.length);
 
@@ -191,10 +160,8 @@ export const summarizeDocument = internalAction({
       }
 
       const docSummary = await generateDocumentSummary({
-        openai,
         sectionSummaries: sectionResults,
         documentTitle: doc.title,
-        evt,
       });
       evt.set("docSummaryLength", docSummary.length);
 
