@@ -1,8 +1,8 @@
-"use client";
-
+import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { Tag } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,8 +15,8 @@ interface DocumentTagSectionProps {
 }
 
 export function DocumentTagSection({ documentId }: DocumentTagSectionProps) {
-  const documentTags = useQuery(api.tags.getDocumentTags, { documentId });
-  const allUserTags = useQuery(api.tags.listUserTags);
+  const { data: documentTags } = useQuery(convexQuery(api.tags.getDocumentTags, { documentId }));
+  const { data: allUserTags } = useQuery(convexQuery(api.tags.listUserTags, {}));
 
   const addTag = useMutation(api.tags.addTagToDocument).withOptimisticUpdate((localStore, args) => {
     const current = localStore.getQuery(api.tags.getDocumentTags, {

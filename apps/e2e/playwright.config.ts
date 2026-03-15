@@ -1,17 +1,22 @@
 import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({ path: path.resolve(__dirname, ".env"), quiet: true });
 
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? "github" : "html",
+  reporter: process.env.CI
+    ? [["github"], ["line"], ["html", { outputFolder: "playwright-report", open: "never" }]]
+    : "html",
 
   use: {
-    baseURL: "http://localhost:3001",
-    trace: "on-first-retry",
-    reducedMotion: "reduce",
+    baseURL: "http://localhost:3000",
+    trace: "on",
   },
 
   projects: [
@@ -51,11 +56,4 @@ export default defineConfig({
       testMatch: /\.slow\.spec\.ts/,
     },
   ],
-
-  webServer: {
-    command: "bun run --cwd ../web dev",
-    url: "http://localhost:3001",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
 });

@@ -1,5 +1,3 @@
-"use client";
-
 import { CardShell, SourceBadge } from "./card-shell";
 import type { PostCardData, QuoteTypeData } from "./types";
 

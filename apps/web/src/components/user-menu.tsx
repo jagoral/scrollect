@@ -1,7 +1,8 @@
+import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { LogOut, User } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import {
   DropdownMenu,
@@ -17,8 +18,8 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 
 export default function UserMenu() {
-  const router = useRouter();
-  const user = useQuery(api.auth.getCurrentUser);
+  const navigate = useNavigate();
+  const { data: user } = useQuery(convexQuery(api.auth.getCurrentUser, {}));
 
   return (
     <DropdownMenu>
@@ -43,7 +44,7 @@ export default function UserMenu() {
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
-                    router.push("/");
+                    navigate({ to: "/" });
                   },
                 },
               });

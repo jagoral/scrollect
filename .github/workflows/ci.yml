@@ -52,7 +52,8 @@ jobs:
           npx convex env set QDRANT_URL "$QDRANT_URL" --preview-name "e2e-${{ github.run_id }}"
           npx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --preview-name "e2e-${{ github.run_id }}"
           npx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "e2e-${{ github.run_id }}"
-          npx convex env set SITE_URL http://localhost:3001 --preview-name "e2e-${{ github.run_id }}"
+          npx convex env set SITE_URL http://localhost:3000 --preview-name "e2e-${{ github.run_id }}"
+          # NODE_ENV not needed — E2E routes are guarded by email pattern instead "e2e-${{ github.run_id }}"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -63,18 +64,26 @@ jobs:
       - name: Build
         run: bun turbo run build
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Install Playwright browsers
-        run: cd apps/e2e && npx playwright install chromium --with-deps
+        working-directory: apps/e2e
+        run: npx playwright install chromium --with-deps
+
+      - name: Run app
+        working-directory: apps/web
+        run: bun run start &
+        env:
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Run E2E tests (fast)
         working-directory: apps/e2e
         run: npx playwright test --project=setup --project=seeded --project=chromium
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
@@ -124,7 +133,8 @@ jobs:
           npx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --preview-name "e2e-slow-${{ github.run_id }}"
           npx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "e2e-slow-${{ github.run_id }}"
           npx convex env set DATALAB_API_KEY "$DATALAB_API_KEY" --preview-name "e2e-slow-${{ github.run_id }}"
-          npx convex env set SITE_URL http://localhost:3001 --preview-name "e2e-slow-${{ github.run_id }}"
+          npx convex env set SITE_URL http://localhost:3000 --preview-name "e2e-slow-${{ github.run_id }}"
+          # NODE_ENV not needed — E2E routes are guarded by email pattern instead "e2e-slow-${{ github.run_id }}"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -136,17 +146,22 @@ jobs:
       - name: Build
         run: bun turbo run build
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
 
       - name: Install Playwright browsers
         run: cd apps/e2e && npx playwright install chromium --with-deps
 
-      - name: Run E2E tests (slow)
-        run: cd apps/e2e && npx playwright test --project=slow
+      - name: Run app
+        working-directory: apps/e2e
+        run: bun run start &
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
+          VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+
+      - name: Run E2E tests (slow)
+        working-directory: apps/e2e
+        run: npx playwright test --project=slow
 
       - name: Upload slow test report
         uses: actions/upload-artifact@v4

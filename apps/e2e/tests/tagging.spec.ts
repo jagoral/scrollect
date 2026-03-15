@@ -5,37 +5,34 @@ import {
   FIXTURES_DIR,
   SEEDED_USER,
   cleanupTestData,
-  seedTestData,
+  goToFirstDocument,
+  reseedAccount,
   signIn,
   signUp,
 } from "./helpers";
 
-async function navigateToFirstDocument(page: import("@playwright/test").Page) {
-  await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-  await page.goto("/library");
-  const docLink = page.locator("a[href^='/library/']").first();
-  await expect(docLink).toBeVisible({ timeout: 10000 });
-  await docLink.click();
-  await expect(page).toHaveURL(/\/library\/.+/);
-}
-
-async function reseedAccount(page: import("@playwright/test").Page) {
-  await cleanupTestData(page);
-  await seedTestData(page);
-}
-
 test.describe("Tagging — document detail: AI tags (seeded account)", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
-    await reseedAccount(page);
+  test.beforeEach(async ({ page }) => {
+    // Reseed BEFORE signIn so the Convex client connects after data is already
+    // in the database. This avoids a race where the client subscribes, receives
+    // the cleanup (empty state), and the tag queries resolve with [] before the
+    // seed data arrives.
+    await reseedAccount();
+    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+  });
+
+  test.afterEach(async () => {
+    await reseedAccount();
   });
 
   // P0-5: Ready documents show tag chips with AI indicator for AI-sourced tags
   test("document detail page shows AI-suggested tags with sparkle indicator", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
 
-    // First test after global setup may hit a cold Convex connection — use generous timeout
+    // Wait directly for AI tags (combines tag section load + AI tag visibility
+    // into one assertion so we don't "lock in" an intermediate empty state)
     const aiTag = page
       .locator('[data-testid="document-tag-section"] [data-tag-source="ai"]')
       .first();
@@ -44,13 +41,11 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
 
   // AI vs manual visual distinction
   test("AI-suggested and manual tags are visually distinguishable", async ({ page }) => {
-    await navigateToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
-    });
+    await goToFirstDocument(page);
 
-    const aiTags = page.locator('[data-tag-source="ai"]');
-    await expect(aiTags.first()).toBeVisible({ timeout: 15000 });
+    // Wait directly for AI tags within the tag section
+    const aiTags = page.locator('[data-testid="document-tag-section"] [data-tag-source="ai"]');
+    await expect(aiTags.first()).toBeVisible({ timeout: 30000 });
 
     await page.locator('[data-testid="add-tag-button"]').click();
     await page.locator('[data-testid="tag-search-input"]').fill("manual-visual-test");
@@ -67,13 +62,17 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
 test.describe("Tagging — document detail: manual operations (seeded account)", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
-    await reseedAccount(page);
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+  });
+
+  test.afterEach(async () => {
+    await reseedAccount();
   });
 
   // P0-7: Combobox "Create '{name}'" option creates new tag and applies it
   test("user can create a new tag via combobox", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -92,7 +91,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
   // P0-6: Combobox lets user add existing tags with source "manual"
   test("user can add an existing tag via combobox", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -105,14 +104,18 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
       timeout: 10000,
     });
 
-    // Navigate to the second document
+    // Navigate to the second document via full page load (same pattern as goToFirstDocument)
+    // to ensure Convex auth token propagation
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
     const docLinks = page.locator("a[href^='/library/']");
     await expect(docLinks.first()).toBeVisible({ timeout: 10000 });
     const count = await docLinks.count();
     expect(count).toBeGreaterThan(1);
 
-    await docLinks.nth(1).click();
+    const secondHref = await docLinks.nth(1).getAttribute("href");
+    await page.goto(secondHref!);
+    await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/library\/.+/);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
@@ -134,7 +137,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
   // P0-8: "x" on chip removes tag-document association (tag itself persists for reuse)
   test("user can remove a tag via the x button and tag persists for reuse", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -166,7 +169,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
   // P0-13: Tag combobox autocomplete filters in real-time, excludes already-applied tags
   test("combobox autocomplete filters in real-time and excludes applied tags", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -193,7 +196,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
   // P0-15: Near-duplicate tags handled silently (case normalization)
   test("tag normalization: case-insensitive dedup on creation", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -217,7 +220,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
   // P0-9: Max 20 tags per document enforced
   test("shows limit message when document has 20 tags", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -232,6 +235,9 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
       await expect(page.locator(`[data-testid="tag-badge-limit-test-tag-${i}"]`)).toBeVisible({
         timeout: 10000,
       });
+      // Wait for the popover to close before the next iteration — Convex subscription
+      // updates can re-render the combobox mid-interaction, detaching DOM elements
+      await expect(page.locator('[data-testid="tag-search-input"]')).not.toBeVisible();
     }
 
     await expect(page.locator('[data-testid="add-tag-button"]')).not.toBeVisible();
@@ -243,7 +249,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
   // P0-14: Empty state — combobox with no matching tags shows only "Create" option
   test("combobox shows only create option when no tags match", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -257,7 +263,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
   // Edge case: empty/whitespace-only tag name rejected
   test("empty or whitespace-only tag name does not show create option", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -272,7 +278,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 
   // Edge case: tag name > 50 chars rejected (client-side + backend)
   test("tag name exceeding 50 characters shows error and hides create option", async ({ page }) => {
-    await navigateToFirstDocument(page);
+    await goToFirstDocument(page);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -295,16 +301,20 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
 test.describe("Tagging — library filtering (seeded account)", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
-    await reseedAccount(page);
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+  });
+
+  test.afterEach(async () => {
+    await reseedAccount();
   });
 
   // P0-10: Library page tag filter bar with AND logic, clear-all button
   test("library shows tag filter bar and filters documents by tag", async ({ page }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
 
-    await expect(page.locator('[data-testid="tag-filter-bar"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="tag-filter-bar"]')).toBeVisible();
 
     // Use button inside the filter bar to avoid matching the bar itself
     const filterButtons = page.locator(
@@ -330,8 +340,8 @@ test.describe("Tagging — library filtering (seeded account)", () => {
 
   // P0-11: Document cards show max 2 tags + "+N" overflow
   test("library document cards show max 2 tags with overflow indicator", async ({ page }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
 
     const docCard = page.locator("a[href^='/library/']").first();
     await expect(docCard).toBeVisible({ timeout: 10000 });
@@ -354,17 +364,18 @@ test.describe("Tagging — library filtering (seeded account)", () => {
 test.describe("Tagging — feed cards (seeded account)", () => {
   test.setTimeout(60000);
 
-  test.afterEach(async ({ page }) => {
-    await reseedAccount(page);
+  test.afterEach(async () => {
+    await reseedAccount();
   });
 
   // P0-12: Feed cards show up to 3 tags from source document + "+N" overflow
   test("feed cards display tag chips from source document", async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
 
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
+    await expect(firstCard).toBeVisible();
 
     const tagList = firstCard.locator('[data-testid="tag-list"]');
     await expect(tagList).toBeVisible({ timeout: 10000 });
@@ -383,6 +394,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
 
     // Add extra tags to the seeded document to ensure > 3 total
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
     const docLink = page.locator("a[href^='/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();
@@ -404,8 +416,9 @@ test.describe("Tagging — feed cards (seeded account)", () => {
     }
 
     await page.goto("/feed?noAutoGenerate");
+    await page.waitForLoadState("networkidle");
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 15000 });
+    await expect(firstCard).toBeVisible();
 
     const tagList = firstCard.locator('[data-testid="tag-list"]');
     await expect(tagList).toBeVisible({ timeout: 10000 });
@@ -420,22 +433,27 @@ test.describe("Tagging — feed cards (seeded account)", () => {
 test.describe("Tagging — AI auto-suggest (ephemeral account)", () => {
   test.setTimeout(120000);
 
+  let ephemeralEmail: string;
+
   test.beforeEach(async ({ page }) => {
-    await signUp(page);
+    const { email } = await signUp(page);
+    ephemeralEmail = email;
   });
 
-  test.afterEach(async ({ page }) => {
-    await cleanupTestData(page);
+  test.afterEach(async () => {
+    await cleanupTestData(ephemeralEmail);
   });
 
   // P0-3: AI auto-suggests 3-5 tags when document reaches "ready" status
   test("AI auto-suggests tags after document upload and processing", async ({ page }) => {
     await page.goto("/upload");
+    await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
     await page.goto("/library");
+    await page.waitForLoadState("networkidle");
     const docLink = page.locator("a[href^='/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();

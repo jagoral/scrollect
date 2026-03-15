@@ -1,7 +1,5 @@
-"use client";
-
+import { Link } from "@tanstack/react-router";
 import { ArrowLeftRight } from "lucide-react";
-import Link from "next/link";
 import Markdown from "react-markdown";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +17,7 @@ export function ConnectionCard({ post }: ConnectionCardProps) {
   return (
     <CardShell post={post} accentClassName="via-violet-500/30 group-hover/card:via-violet-500/60">
       <div className="mb-3" data-testid="connection-source-badge">
-        <Link href={`/library/${post.primarySourceDocumentId}`}>
+        <Link to="/library/$documentId" params={{ documentId: post.primarySourceDocumentId }}>
           <Badge
             variant="outline"
             className="gap-1.5 border-violet-500/15 bg-violet-500/[0.03] font-normal text-muted-foreground transition-all hover:border-violet-500/25 hover:bg-violet-500/[0.06]"

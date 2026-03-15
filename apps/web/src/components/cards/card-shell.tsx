@@ -1,11 +1,9 @@
-"use client";
-
+import { Link } from "@tanstack/react-router";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { Bookmark, BookmarkCheck, Maximize2, ThumbsDown, ThumbsUp } from "lucide-react";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -53,7 +51,11 @@ function getSourceLabel(post: PostCardData): string {
 export function SourceBadge({ post, className }: { post: PostCardData; className?: string }) {
   return (
     <div className={cn("mb-3", className)}>
-      <Link href={`/library/${post.primarySourceDocumentId}`} data-testid="source-badge">
+      <Link
+        to="/library/$documentId"
+        params={{ documentId: post.primarySourceDocumentId }}
+        data-testid="source-badge"
+      >
         <Badge
           variant="outline"
           className="gap-1.5 border-primary/15 bg-primary/[0.03] font-normal text-muted-foreground transition-all hover:border-primary/25 hover:bg-primary/[0.06]"

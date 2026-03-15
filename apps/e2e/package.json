@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
+    "dotenv": "catalog:",
     "typescript": "catalog:"
   }
 }

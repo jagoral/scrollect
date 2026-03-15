@@ -1,5 +1,3 @@
-"use client";
-
 import Markdown from "react-markdown";
 
 import { Badge } from "@/components/ui/badge";

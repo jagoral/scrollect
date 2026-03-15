@@ -39,11 +39,9 @@ export type TypeData =
   | SummaryTypeData
   | ConnectionTypeData;
 
-export interface PostCardTag {
-  tagId: string;
-  tagName: string;
-  source: "ai" | "manual";
-}
+import type { DocumentTag } from "@/components/tags/types";
+
+export type { DocumentTag as PostCardTag } from "@/components/tags/types";
 
 export interface PostCardData {
   _id: Id<"posts">;
@@ -59,5 +57,5 @@ export interface PostCardData {
   reaction?: "like" | "dislike" | null;
   isBookmarked?: boolean;
   chunkIndex?: number;
-  tags?: PostCardTag[];
+  tags?: DocumentTag[];
 }

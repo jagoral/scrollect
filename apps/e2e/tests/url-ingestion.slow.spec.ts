@@ -33,17 +33,21 @@ test.describe(
   () => {
     test.slow();
 
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("real article extraction processes URL to ready status with chunks", async ({ page }) => {
       await test.step("submit article URL", async () => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
         await page.locator('[data-testid="url-input"]').fill("https://example.com");
         await page.locator('[data-testid="url-submit"]').click();
@@ -55,6 +59,7 @@ test.describe(
 
       await test.step("navigate to document detail", async () => {
         await page.goto("/library");
+        await page.waitForLoadState("networkidle");
         const docLink = page.locator("a[href^='/library/']").first();
         await expect(docLink).toBeVisible({ timeout: 10000 });
         await docLink.click();
@@ -82,12 +87,15 @@ test.describe(
   () => {
     test.slow();
 
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("real YouTube extraction processes video to ready status with chunks", async ({
@@ -95,6 +103,7 @@ test.describe(
     }) => {
       await test.step("submit YouTube URL", async () => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
         await page
           .locator('[data-testid="url-input"]')
@@ -110,6 +119,7 @@ test.describe(
 
       await test.step("navigate to document detail", async () => {
         await page.goto("/library");
+        await page.waitForLoadState("networkidle");
         const docLink = page.locator("a[href^='/library/']").first();
         await expect(docLink).toBeVisible({ timeout: 10000 });
         await docLink.click();

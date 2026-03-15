@@ -29,8 +29,8 @@ Prefer **fast** tests. Only use medium/slow when testing the actual upload or ge
 ```ts
 import { SEEDED_USER, signIn, resetTestData } from "./helpers";
 
-test.afterEach(async ({ page }) => {
-  await resetTestData(page); // clears reactions/bookmarks, preserves posts
+test.afterEach(async () => {
+  await resetTestData(SEEDED_USER.email); // clears reactions/bookmarks, preserves posts
 });
 
 test("my interaction test", async ({ page }) => {
@@ -45,12 +45,15 @@ test("my interaction test", async ({ page }) => {
 ```ts
 import { signUp, cleanupTestData } from "./helpers";
 
+let ephemeralEmail: string;
+
 test.beforeEach(async ({ page }) => {
-  await signUp(page); // creates unique account, redirects to /library
+  const { email } = await signUp(page); // creates unique account, redirects to /library
+  ephemeralEmail = email;
 });
 
-test.afterEach(async ({ page }) => {
-  await cleanupTestData(page); // deletes all user data
+test.afterEach(async () => {
+  await cleanupTestData(ephemeralEmail); // deletes all user data
 });
 ```
 
@@ -71,13 +74,15 @@ test.afterEach(async ({ page }) => {
 
 ## API routes for test data management
 
+E2E test data operations call Convex HTTP actions directly (bypassing TanStack Start) with a shared secret.
+
 | Route              | Method | Purpose                                             |
 | ------------------ | ------ | --------------------------------------------------- |
 | `/api/e2e-seed`    | POST   | Seeds documents, chunks, and posts (idempotent)     |
 | `/api/e2e-reset`   | POST   | Clears reactions and bookmarks, preserves structure |
 | `/api/e2e-cleanup` | POST   | Deletes ALL user data (documents, posts, bookmarks) |
 
-All routes require authentication and only work for emails matching `e2e-*@test.scrollect.dev`.
+All routes are on the Convex site URL (`VITE_CONVEX_SITE_URL`), require the `x-e2e-secret` header, and accept `{ email }` in the JSON body. Only emails matching `e2e-*@test.scrollect.dev` are accepted.
 
 ## Running tests
 

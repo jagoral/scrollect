@@ -12,13 +12,10 @@
 /coverage
 
 # Build outputs
-/.next/
 /out/
 /build/
 /dist/
-.vinxi
 .output
-.react-router/
 .tanstack/
 .nitro/
 
@@ -44,7 +41,6 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
 # IDE
 .vscode/*
@@ -54,7 +50,4 @@ next-env.d.ts
 # Other
 dev-dist
 
-.wrangler
 .dev.vars*
-
-.open-next

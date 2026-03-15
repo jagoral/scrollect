@@ -1,9 +1,6 @@
-"use client";
-
+import { Link } from "@tanstack/react-router";
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import { Bookmark, BookOpen, Menu, Rss, Upload } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { ScrollectLogo } from "./scrollect-logo";
@@ -13,14 +10,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui
 import UserMenu from "./user-menu";
 
 const navLinks = [
-  { to: "/feed", label: "Feed", icon: Rss },
-  { to: "/saved", label: "Saved", icon: Bookmark },
-  { to: "/library", label: "Library", icon: BookOpen },
-  { to: "/upload", label: "Upload", icon: Upload },
-] as const;
+  { to: "/feed" as const, label: "Feed", icon: Rss },
+  { to: "/saved" as const, label: "Saved", icon: Bookmark },
+  { to: "/library" as const, label: "Library", icon: BookOpen },
+  { to: "/upload" as const, label: "Upload", icon: Upload },
+];
 
 export default function Header() {
-  const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,7 +24,7 @@ export default function Header() {
       <div className="flex flex-row items-center justify-between px-4 py-3 md:px-6">
         <div className="flex items-center gap-8">
           <Link
-            href="/"
+            to="/"
             className="flex items-center gap-2 text-lg font-bold tracking-tight text-primary"
           >
             <ScrollectLogo size="md" />
@@ -38,14 +34,19 @@ export default function Header() {
             {navLinks.map(({ to, label, icon: Icon }) => (
               <Button
                 key={to}
-                variant={pathname === to ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
-                render={<Link href={to} />}
-                className={
-                  pathname === to
-                    ? "relative font-medium after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-primary"
-                    : "text-muted-foreground"
+                render={
+                  <Link
+                    to={to}
+                    activeOptions={{ includeSearch: false }}
+                    activeProps={{
+                      className:
+                        "bg-secondary text-secondary-foreground relative font-medium after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-primary",
+                    }}
+                  />
                 }
+                className="text-muted-foreground"
               >
                 <Icon className="mr-1.5 h-4 w-4" />
                 {label}
@@ -61,7 +62,7 @@ export default function Header() {
               <UserMenu />
             </Authenticated>
             <Unauthenticated>
-              <Button variant="default" size="sm" render={<Link href="/signin" />}>
+              <Button variant="default" size="sm" render={<Link to="/signin" />}>
                 Sign In
               </Button>
             </Unauthenticated>
@@ -87,9 +88,17 @@ export default function Header() {
                 {navLinks.map(({ to, label, icon: Icon }) => (
                   <Button
                     key={to}
-                    variant={pathname === to ? "secondary" : "ghost"}
+                    variant="ghost"
                     className="justify-start"
-                    render={<Link href={to} />}
+                    render={
+                      <Link
+                        to={to}
+                        activeOptions={{ includeSearch: false }}
+                        activeProps={{
+                          className: "bg-secondary text-secondary-foreground",
+                        }}
+                      />
+                    }
                     onClick={() => setOpen(false)}
                   >
                     <Icon className="mr-2 h-4 w-4" />
@@ -105,7 +114,7 @@ export default function Header() {
                   <Button
                     variant="default"
                     className="w-full"
-                    render={<Link href="/signin" />}
+                    render={<Link to="/signin" />}
                     onClick={() => setOpen(false)}
                   >
                     Sign In

@@ -13,18 +13,22 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("upload page renders three tabs with Upload File selected by default", async ({
       page,
     }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
       // All three tabs should be visible
@@ -41,6 +45,7 @@ test.describe(
 
     test("switching tabs shows the correct content panel", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
       await test.step("switch to Paste URL tab", async () => {
@@ -85,12 +90,15 @@ test.describe(
     ],
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test(
@@ -101,6 +109,7 @@ test.describe(
       async ({ page }) => {
         await test.step("submit article URL", async () => {
           await page.goto("/upload");
+          await page.waitForLoadState("networkidle");
           await page.getByRole("tab", { name: /paste url/i }).click();
           await page.locator('[data-testid="url-input"]').fill("https://example.com/article");
           await page.locator('[data-testid="url-submit"]').click();
@@ -112,6 +121,7 @@ test.describe(
 
         await test.step("verify document appears in library", async () => {
           await page.goto("/library");
+          await page.waitForLoadState("networkidle");
           await expect(page.locator("a[href^='/library/']").first()).toBeVisible({
             timeout: 10000,
           });
@@ -127,6 +137,7 @@ test.describe(
       async ({ page }) => {
         await test.step("submit YouTube URL", async () => {
           await page.goto("/upload");
+          await page.waitForLoadState("networkidle");
           await page.getByRole("tab", { name: /paste url/i }).click();
           await page
             .locator('[data-testid="url-input"]')
@@ -142,6 +153,7 @@ test.describe(
 
         await test.step("verify document appears in library", async () => {
           await page.goto("/library");
+          await page.waitForLoadState("networkidle");
           await expect(page.locator("a[href^='/library/']").first()).toBeVisible({
             timeout: 10000,
           });
@@ -161,12 +173,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     const youtubeUrls = [
@@ -179,6 +194,7 @@ test.describe(
     for (const url of youtubeUrls) {
       test(`YouTube URL format detected with badge: ${url}`, async ({ page }) => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
         await page.locator('[data-testid="url-input"]').fill(url);
@@ -211,12 +227,15 @@ test.describe(
     ],
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test(
@@ -226,6 +245,7 @@ test.describe(
       },
       async ({ page }) => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
         await expect(page.locator('[data-testid="url-submit"]')).toBeDisabled();
@@ -239,6 +259,7 @@ test.describe(
       },
       async ({ page }) => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
         await page.locator('[data-testid="url-input"]').fill("hello world");
@@ -256,6 +277,7 @@ test.describe(
       },
       async ({ page }) => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
         await page.locator('[data-testid="url-input"]').fill("example.com/article");
@@ -282,6 +304,7 @@ test.describe(
       },
       async ({ page }) => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
         const urlInput = page.locator('[data-testid="url-input"]');
@@ -309,17 +332,21 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("submitting title and text body creates a document in the library", async ({ page }) => {
       await test.step("fill in title and text content", async () => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste text/i }).click();
         await page.getByLabel(/title/i).fill("My Test Notes");
         await page
@@ -337,6 +364,7 @@ test.describe(
 
       await test.step("verify document appears in library", async () => {
         await page.goto("/library");
+        await page.waitForLoadState("networkidle");
         await expect(page.getByText("My Test Notes")).toBeVisible({ timeout: 10000 });
       });
     });
@@ -353,16 +381,20 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("Add to Library button is disabled when title is empty", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
       await page.locator('[data-testid="text-content-input"]').fill("Some text content");
@@ -372,6 +404,7 @@ test.describe(
 
     test("Add to Library button is disabled when text body is empty", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
       await page.getByLabel(/title/i).fill("Some Title");
@@ -383,6 +416,7 @@ test.describe(
       page,
     }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
       const titleInput = page.getByLabel(/title/i);
@@ -406,16 +440,20 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("file upload still works on the Upload File tab after tab refactor", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
 
       await expect(page.getByRole("tab", { name: /upload file/i })).toHaveAttribute(
         "aria-selected",
@@ -431,6 +469,7 @@ test.describe(
 
     test("file upload rejects unsupported file types on Upload File tab", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
 
       await page.locator('[data-testid="file-input"]').setInputFiles({
         name: "invalid.txt",
@@ -455,16 +494,20 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("URL tab shows spinner and disables input during processing", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste url/i }).click();
 
       const urlInput = page.locator('[data-testid="url-input"]');
@@ -479,6 +522,7 @@ test.describe(
 
     test("Text tab shows spinner and disables fields during processing", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
       const titleInput = page.getByLabel(/title/i);
@@ -511,16 +555,20 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("URL tab success toast contains library link", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste url/i }).click();
 
       await page.locator('[data-testid="url-input"]').fill("https://example.com/article");
@@ -535,6 +583,7 @@ test.describe(
 
     test("Text tab success toast contains entered title and library link", async ({ page }) => {
       await page.goto("/upload");
+      await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
       await page.getByLabel(/title/i).fill("My Notes");
@@ -560,12 +609,15 @@ test.describe(
     },
   },
   () => {
+    let ephemeralEmail: string;
+
     test.beforeEach(async ({ page }) => {
-      await signUp(page);
+      const { email } = await signUp(page);
+      ephemeralEmail = email;
     });
 
-    test.afterEach(async ({ page }) => {
-      await cleanupTestData(page);
+    test.afterEach(async () => {
+      await cleanupTestData(ephemeralEmail);
     });
 
     test("URL-sourced document can be viewed in library and detail page without errors", async ({
@@ -573,6 +625,7 @@ test.describe(
     }) => {
       await test.step("create a URL-based document", async () => {
         await page.goto("/upload");
+        await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
         await page.locator('[data-testid="url-input"]').fill("https://example.com/article");
         await page.locator('[data-testid="url-submit"]').click();
@@ -581,6 +634,7 @@ test.describe(
 
       await test.step("verify document renders in library", async () => {
         await page.goto("/library");
+        await page.waitForLoadState("networkidle");
         const docLink = page.locator("a[href^='/library/']").first();
         await expect(docLink).toBeVisible({ timeout: 10000 });
         await docLink.click();
