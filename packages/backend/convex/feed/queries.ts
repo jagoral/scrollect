@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { requireAuth, optionalAuth } from "../lib/functions";
 import { postType, reactionInput, typeData } from "../lib/validators";
+import { FRESHNESS_WINDOW_MS } from "./constants";
 
 export const list = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -23,17 +24,31 @@ export const list = query({
       .order("desc")
       .paginate(args.paginationOpts);
 
+    // Date.now() is non-deterministic in Convex queries but acceptable here:
+    // isNew will update on the next query re-evaluation triggered by any data write,
+    // not at the exact 48-hour mark.
+    const now = Date.now();
+
+    const uniqueDocIds = [...new Set(result.page.map((p) => p.primarySourceDocumentId))];
+    const docs = await Promise.all(uniqueDocIds.map((id) => ctx.db.get(id)));
+    const docMap = new Map(uniqueDocIds.map((id, i) => [id, docs[i]]));
+
     const enrichedPage = await Promise.all(
       result.page.map(async (post) => {
-        const bookmark = await ctx.db
-          .query("bookmarks")
-          .withIndex("by_userId_post", (q) => q.eq("userId", user._id).eq("postId", post._id))
-          .first();
-        const chunk = await ctx.db.get(post.primarySourceChunkId);
+        const [bookmark, chunk] = await Promise.all([
+          ctx.db
+            .query("bookmarks")
+            .withIndex("by_userId_post", (q) => q.eq("userId", user._id).eq("postId", post._id))
+            .first(),
+          ctx.db.get(post.primarySourceChunkId),
+        ]);
+        const sourceDoc = docMap.get(post.primarySourceDocumentId);
+        const isNew = sourceDoc ? now - sourceDoc.createdAt < FRESHNESS_WINDOW_MS : false;
         return {
           ...post,
           sourceDocumentTitle: post.primarySourceDocumentTitle,
           isBookmarked: bookmark !== null,
+          isNew,
           sourceChunkId: post.primarySourceChunkId,
           sectionTitle: post.primarySourceSectionTitle ?? null,
           pageNumber: post.primarySourcePageNumber ?? null,

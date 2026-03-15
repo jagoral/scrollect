@@ -14,6 +14,7 @@ import type * as chunking from "../chunking.js";
 import type * as chunks from "../chunks.js";
 import type * as documentActions from "../documentActions.js";
 import type * as documents from "../documents.js";
+import type * as feed_constants from "../feed/constants.js";
 import type * as feed_generation from "../feed/generation.js";
 import type * as feed_queries from "../feed/queries.js";
 import type * as feed_sampling from "../feed/sampling.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   chunks: typeof chunks;
   documentActions: typeof documentActions;
   documents: typeof documents;
+  "feed/constants": typeof feed_constants;
   "feed/generation": typeof feed_generation;
   "feed/queries": typeof feed_queries;
   "feed/sampling": typeof feed_sampling;

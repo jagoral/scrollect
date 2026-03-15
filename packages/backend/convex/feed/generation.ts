@@ -214,10 +214,12 @@ export const generate = action({
           allChunks,
           docSummaries,
           chunkUsageMap,
+          docCreatedAtMap,
           count: sampleSize,
           userId: user._id,
           embedder,
           summaryStore,
+          now,
         });
         evt.set("selectionMethod", "semantic");
       } else if (useMultiType) {

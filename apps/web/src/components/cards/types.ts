@@ -56,6 +56,7 @@ export interface PostCardData {
   createdAt: number;
   reaction?: "like" | "dislike" | null;
   isBookmarked?: boolean;
+  isNew?: boolean;
   chunkIndex?: number;
   tags?: DocumentTag[];
 }

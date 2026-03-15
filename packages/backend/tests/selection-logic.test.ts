@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { FRESHNESS_DECAY_WINDOW_MS } from "../convex/feed/constants";
 import {
   buildSummaryContext,
   filterChunksBySemantic,
@@ -141,6 +142,57 @@ describe("rankByUsage", () => {
     const result = rankByUsage({ chunks, usageMap: new Map(), count: 3 });
 
     expect(result.map((c) => c._id)).toEqual(["c1", "c2", "c3"]);
+  });
+
+  test("boosts chunks from fresh documents when docCreatedAtMap provided", () => {
+    const now = Date.now();
+    const freshDocTime = now - 1000;
+    const oldDocTime = now - FRESHNESS_DECAY_WINDOW_MS - 1000;
+
+    const chunks = [chunk("c1", "d_old"), chunk("c2", "d_fresh")];
+    const usageMap = new Map([
+      ["c1", { types: new Set<string>(), totalCount: 0 }],
+      ["c2", { types: new Set<string>(), totalCount: 0 }],
+    ]);
+    const docCreatedAtMap = new Map([
+      ["d_old", oldDocTime],
+      ["d_fresh", freshDocTime],
+    ]);
+
+    const result = rankByUsage({ chunks, usageMap, docCreatedAtMap, now, count: 2 });
+
+    expect(result[0]!._id).toBe("c2");
+  });
+
+  test("unused old chunk outranks heavily-used fresh chunk (freshness boosts, not overrides)", () => {
+    const now = Date.now();
+    const freshDocTime = now - 1000;
+    const oldDocTime = now - FRESHNESS_DECAY_WINDOW_MS - 1000;
+
+    const chunks = [chunk("c_fresh_used", "d_fresh"), chunk("c_old_unused", "d_old")];
+    const usageMap = new Map([
+      ["c_fresh_used", { types: new Set(["insight", "quiz", "quote"]), totalCount: 5 }],
+    ]);
+    const docCreatedAtMap = new Map([
+      ["d_fresh", freshDocTime],
+      ["d_old", oldDocTime],
+    ]);
+
+    const result = rankByUsage({ chunks, usageMap, docCreatedAtMap, now, count: 2 });
+
+    // Fresh chunk weight: (1/(1+5)) * 2.0 = 0.333
+    // Old unused weight:  (1/(1+0)) * 1.0 = 1.0
+    // Old unused should rank first - freshness is a boost, not an override
+    expect(result[0]!._id).toBe("c_old_unused");
+  });
+
+  test("without docCreatedAtMap falls back to usage-only ranking", () => {
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+    const usageMap = new Map([["c2", { types: new Set(["insight"]), totalCount: 3 }]]);
+
+    const result = rankByUsage({ chunks, usageMap, count: 2 });
+
+    expect(result[0]!._id).toBe("c1");
   });
 });
 

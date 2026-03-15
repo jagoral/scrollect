@@ -1,15 +1,18 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  FRESHNESS_WINDOW_MS,
+  FRESHNESS_DECAY_WINDOW_MS,
+  FRESHNESS_BOOST_FACTOR,
+  computeRecencyBoost,
+} from "../convex/feed/constants";
+import {
   buildChunkUsageMap,
   buildTypeCoverageHint,
-  computeRecencyBoost,
+  frontLoadFreshChunks,
   weightedSample,
 } from "../convex/feed/sampling";
 import type { ChunkInfo, PostSourceRecord } from "../convex/feed/sampling";
-
-const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const chunk = (id: string, docId: string, section?: string): ChunkInfo => ({
   _id: id,
@@ -20,25 +23,25 @@ const chunk = (id: string, docId: string, section?: string): ChunkInfo => ({
 });
 
 describe("computeRecencyBoost", () => {
-  test("returns 2.0 for documents less than 48 hours old", () => {
+  test("returns FRESHNESS_BOOST_FACTOR for documents within freshness window", () => {
     const now = Date.now();
-    const docCreatedAt = now - FORTY_EIGHT_HOURS_MS + 1000;
-    expect(computeRecencyBoost(docCreatedAt, now)).toBe(2.0);
+    const docCreatedAt = now - FRESHNESS_WINDOW_MS + 1000;
+    expect(computeRecencyBoost(docCreatedAt, now)).toBe(FRESHNESS_BOOST_FACTOR);
   });
 
-  test("returns 1.0 for documents older than 7 days", () => {
+  test("returns 1.0 for documents older than decay window", () => {
     const now = Date.now();
-    const docCreatedAt = now - SEVEN_DAYS_MS - 1000;
+    const docCreatedAt = now - FRESHNESS_DECAY_WINDOW_MS - 1000;
     expect(computeRecencyBoost(docCreatedAt, now)).toBe(1.0);
   });
 
-  test("returns interpolated value between 48h and 7 days", () => {
+  test("returns interpolated value between freshness and decay windows", () => {
     const now = Date.now();
-    const midAge = (FORTY_EIGHT_HOURS_MS + SEVEN_DAYS_MS) / 2;
+    const midAge = (FRESHNESS_WINDOW_MS + FRESHNESS_DECAY_WINDOW_MS) / 2;
     const docCreatedAt = now - midAge;
     const result = computeRecencyBoost(docCreatedAt, now);
     expect(result).toBeGreaterThan(1.0);
-    expect(result).toBeLessThan(2.0);
+    expect(result).toBeLessThan(FRESHNESS_BOOST_FACTOR);
   });
 });
 
@@ -170,5 +173,116 @@ describe("weightedSample", () => {
 
     const docIds = new Set(result.map((c) => c.documentId));
     expect(docIds.size).toBe(2);
+  });
+});
+
+describe("frontLoadFreshChunks", () => {
+  test("moves fresh document chunks to the front", () => {
+    const now = Date.now();
+    const freshDocTime = now - 1000;
+    const oldDocTime = now - FRESHNESS_DECAY_WINDOW_MS - 1000;
+
+    const chunks = [chunk("c1", "d_old"), chunk("c2", "d_fresh"), chunk("c3", "d_old")];
+    const docCreatedAtMap = new Map([
+      ["d_old", oldDocTime],
+      ["d_fresh", freshDocTime],
+    ]);
+
+    const result = frontLoadFreshChunks({ chunks, docCreatedAtMap, now });
+
+    expect(result[0]!._id).toBe("c2");
+    expect(result).toHaveLength(3);
+  });
+
+  test("preserves order within fresh and non-fresh groups", () => {
+    const now = Date.now();
+    const freshDocTime = now - 1000;
+    const oldDocTime = now - FRESHNESS_DECAY_WINDOW_MS - 1000;
+
+    const chunks = [
+      chunk("c1", "d_old"),
+      chunk("c2", "d_fresh"),
+      chunk("c3", "d_old"),
+      chunk("c4", "d_fresh"),
+    ];
+    const docCreatedAtMap = new Map([
+      ["d_old", oldDocTime],
+      ["d_fresh", freshDocTime],
+    ]);
+
+    const result = frontLoadFreshChunks({ chunks, docCreatedAtMap, now });
+
+    expect(result.map((c) => c._id)).toEqual(["c2", "c4", "c1", "c3"]);
+  });
+
+  test("returns all chunks unchanged when none are fresh", () => {
+    const now = Date.now();
+    const oldDocTime = now - FRESHNESS_DECAY_WINDOW_MS - 1000;
+
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+    const docCreatedAtMap = new Map([
+      ["d1", oldDocTime],
+      ["d2", oldDocTime],
+    ]);
+
+    const result = frontLoadFreshChunks({ chunks, docCreatedAtMap, now });
+
+    expect(result.map((c) => c._id)).toEqual(["c1", "c2"]);
+  });
+
+  test("returns all chunks unchanged when all are fresh", () => {
+    const now = Date.now();
+    const freshDocTime = now - 1000;
+
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+    const docCreatedAtMap = new Map([
+      ["d1", freshDocTime],
+      ["d2", freshDocTime],
+    ]);
+
+    const result = frontLoadFreshChunks({ chunks, docCreatedAtMap, now });
+
+    expect(result.map((c) => c._id)).toEqual(["c1", "c2"]);
+  });
+
+  test("treats unknown documents as not fresh", () => {
+    const now = Date.now();
+    const freshDocTime = now - 1000;
+
+    const chunks = [chunk("c1", "d_unknown"), chunk("c2", "d_fresh")];
+    const docCreatedAtMap = new Map([["d_fresh", freshDocTime]]);
+
+    const result = frontLoadFreshChunks({ chunks, docCreatedAtMap, now });
+
+    expect(result[0]!._id).toBe("c2");
+    expect(result[1]!._id).toBe("c1");
+  });
+
+  test("caps fresh chunks to half of maxFresh to preserve diversity", () => {
+    const now = Date.now();
+    const freshDocTime = now - 1000;
+    const oldDocTime = now - FRESHNESS_DECAY_WINDOW_MS - 1000;
+
+    const chunks = [
+      chunk("c1", "d_fresh"),
+      chunk("c2", "d_fresh"),
+      chunk("c3", "d_fresh"),
+      chunk("c4", "d_fresh"),
+      chunk("c5", "d_old"),
+      chunk("c6", "d_old"),
+    ];
+    const docCreatedAtMap = new Map([
+      ["d_fresh", freshDocTime],
+      ["d_old", oldDocTime],
+    ]);
+
+    const result = frontLoadFreshChunks({ chunks, docCreatedAtMap, now, maxFresh: 4 });
+
+    // With maxFresh=4, cap = floor(4/2) = 2 fresh at front
+    // Result: [c1, c2 (fresh, capped at 2), c5, c6 (old), c3, c4 (remaining fresh)]
+    expect(result[0]!._id).toBe("c1");
+    expect(result[1]!._id).toBe("c2");
+    expect(result[2]!._id).toBe("c5");
+    expect(result[3]!._id).toBe("c6");
   });
 });

@@ -1,14 +1,12 @@
 import { ALL_POST_TYPES } from "../lib/validators";
 import type { EmbeddingProvider, SummaryVectorStore } from "../providers/types";
 
+import { FRESHNESS_WINDOW_MS, computeRecencyBoost } from "./constants";
 import type { ChunkLike, UsageInfo } from "./selectionLogic";
 import { filterChunksBySemantic, rankByUsage } from "./selectionLogic";
 
 export type ChunkInfo = ChunkLike;
 export type ChunkUsage = UsageInfo;
-
-const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SEMANTIC_TOP_DOCS = 5;
 const SEMANTIC_TOP_SECTIONS = 8;
@@ -33,15 +31,6 @@ export type PostSourceRecord = {
   postId: string;
   createdAt: number;
 };
-
-export function computeRecencyBoost(docCreatedAt: number, now: number): number {
-  const age = now - docCreatedAt;
-  if (age < FORTY_EIGHT_HOURS_MS) return 2.0;
-  if (age < SEVEN_DAYS_MS) {
-    return 1.0 + (1.0 * (SEVEN_DAYS_MS - age)) / (SEVEN_DAYS_MS - FORTY_EIGHT_HOURS_MS);
-  }
-  return 1.0;
-}
 
 export function buildChunkUsageMap(
   postSources: PostSourceRecord[],
@@ -162,10 +151,12 @@ export type SemanticSelectArgs = {
   allChunks: ChunkInfo[];
   docSummaries: DocumentSummaryInfo[];
   chunkUsageMap: Map<string, ChunkUsage>;
+  docCreatedAtMap: Map<string, number>;
   count: number;
   userId: string;
   embedder: EmbeddingProvider;
   summaryStore: SummaryVectorStore;
+  now: number;
   randomFn?: () => number;
 };
 
@@ -174,15 +165,22 @@ export async function semanticSelect(args: SemanticSelectArgs): Promise<ChunkInf
     allChunks,
     docSummaries,
     chunkUsageMap,
+    docCreatedAtMap,
     count,
     userId,
     embedder,
     summaryStore,
+    now,
     randomFn = Math.random,
   } = args;
 
   if (docSummaries.length === 0) {
-    return shuffle(allChunks).slice(0, count);
+    return frontLoadFreshChunks({
+      chunks: shuffle(allChunks),
+      docCreatedAtMap,
+      now,
+      maxFresh: count,
+    }).slice(0, count);
   }
 
   const seedDoc = docSummaries[Math.floor(randomFn() * docSummaries.length)]!;
@@ -217,13 +215,46 @@ export async function semanticSelect(args: SemanticSelectArgs): Promise<ChunkInf
 
   if (semanticChunks.length === 0) {
     const docChunks = allChunks.filter((c) => selectedDocIds.has(c.documentId));
-    return shuffle(docChunks.length > 0 ? docChunks : allChunks).slice(0, count);
+    return frontLoadFreshChunks({
+      chunks: shuffle(docChunks.length > 0 ? docChunks : allChunks),
+      docCreatedAtMap,
+      now,
+      maxFresh: count,
+    }).slice(0, count);
   }
 
   return rankByUsage({
     chunks: semanticChunks,
     usageMap: chunkUsageMap,
+    docCreatedAtMap,
+    now,
     count,
     allChunksForDiversity: allChunks,
   });
+}
+
+export type FrontLoadArgs = {
+  chunks: ChunkInfo[];
+  docCreatedAtMap: Map<string, number>;
+  now: number;
+  maxFresh?: number;
+};
+
+export function frontLoadFreshChunks(args: FrontLoadArgs): ChunkInfo[] {
+  const { chunks, docCreatedAtMap, now, maxFresh } = args;
+  const fresh: ChunkInfo[] = [];
+  const rest: ChunkInfo[] = [];
+
+  for (const chunk of chunks) {
+    const docCreatedAt = docCreatedAtMap.get(chunk.documentId) ?? 0;
+    const age = now - docCreatedAt;
+    if (age < FRESHNESS_WINDOW_MS) {
+      fresh.push(chunk);
+    } else {
+      rest.push(chunk);
+    }
+  }
+
+  const cap = maxFresh !== undefined ? Math.floor(maxFresh / 2) : fresh.length;
+  return [...fresh.slice(0, cap), ...rest, ...fresh.slice(cap)];
 }

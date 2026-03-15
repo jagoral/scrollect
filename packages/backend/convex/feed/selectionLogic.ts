@@ -1,3 +1,5 @@
+import { computeRecencyBoost } from "./constants";
+
 export type ChunkLike = {
   _id: string;
   content: string;
@@ -41,18 +43,34 @@ export type UsageInfo = {
 export type RankArgs = {
   chunks: ChunkLike[];
   usageMap: Map<string, UsageInfo>;
+  docCreatedAtMap?: Map<string, number>;
+  now?: number;
   count: number;
   allChunksForDiversity?: ChunkLike[];
   randomFn?: () => number;
 };
 
 export function rankByUsage(args: RankArgs): ChunkLike[] {
-  const { chunks, usageMap, count, allChunksForDiversity, randomFn = Math.random } = args;
+  const {
+    chunks,
+    usageMap,
+    docCreatedAtMap,
+    now,
+    count,
+    allChunksForDiversity,
+    randomFn = Math.random,
+  } = args;
 
   const weighted = chunks.map((chunk) => {
     const usage = usageMap.get(chunk._id);
     const totalUsage = usage?.totalCount ?? 0;
-    return { chunk, weight: 1 / (1 + totalUsage) };
+    const usageWeight = 1 / (1 + totalUsage);
+    if (docCreatedAtMap && now !== undefined) {
+      const docCreatedAt = docCreatedAtMap.get(chunk.documentId) ?? 0;
+      const recencyBoost = computeRecencyBoost(docCreatedAt, now);
+      return { chunk, weight: usageWeight * recencyBoost };
+    }
+    return { chunk, weight: usageWeight };
   });
 
   weighted.sort((a, b) => b.weight - a.weight);

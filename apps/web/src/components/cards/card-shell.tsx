@@ -112,6 +112,17 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
         />
 
         <div className="px-5 pt-5 pb-4">
+          {post.isNew && (
+            <Badge
+              data-testid="new-badge"
+              aria-label="New: from a recently added document"
+              className="mb-2 gap-1"
+              variant="freshness"
+            >
+              <span aria-hidden="true" className="size-1 shrink-0 rounded-full bg-emerald-500" />
+              New
+            </Badge>
+          )}
           {children}
 
           {tags.length > 0 && (
