@@ -29,6 +29,7 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
       dependencies: ["setup"],
       testMatch: [
+        /connection-cards\.spec\.ts/,
         /feed-interactions\.spec\.ts/,
         /feed-interleaving\.spec\.ts/,
         /freshness\.spec\.ts/,
@@ -46,6 +47,7 @@ export default defineConfig({
       testIgnore: [
         /global-setup\.ts/,
         /\.slow\.spec\.ts/,
+        /connection-cards\.spec\.ts/,
         /feed-interactions\.spec\.ts/,
         /feed-interleaving\.spec\.ts/,
         /freshness\.spec\.ts/,

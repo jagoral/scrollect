@@ -14,9 +14,21 @@ export type RawCard = {
   bulletPoints?: string[];
   sourceATitleHint?: string;
   sourceBTitleHint?: string;
+  sourceAKeyIdea?: string;
+  sourceBKeyIdea?: string;
+  similarityScore?: number;
+  connectionType?: "cross_document" | "within_document";
 };
 
-export function validateCard(card: RawCard, chunks: ChunkInfo[]): boolean {
+export type ValidateCardParams = {
+  card: RawCard;
+  chunks: ChunkInfo[];
+  documentCount: number;
+};
+
+export function validateCard(params: ValidateCardParams): boolean {
+  const { card, chunks, documentCount } = params;
+
   if (!card.type || !card.content || !Array.isArray(card.sourceChunkIndices)) {
     return false;
   }
@@ -53,9 +65,14 @@ export function validateCard(card: RawCard, chunks: ChunkInfo[]): boolean {
     }
     case "connection": {
       if (!card.sourceATitleHint || !card.sourceBTitleHint) return false;
+      if (card.sourceChunkIndices.length < 2) return false;
       const docIds = new Set(card.sourceChunkIndices.map((i) => chunks[i]!.documentId));
-      if (docIds.size < 2) return false;
-      return true;
+      if (docIds.size >= 2) return true;
+      if (documentCount === 1) {
+        const chunkIds = new Set(card.sourceChunkIndices.map((i) => chunks[i]!._id));
+        if (chunkIds.size >= 2) return true;
+      }
+      return false;
     }
     case "insight":
       return true;

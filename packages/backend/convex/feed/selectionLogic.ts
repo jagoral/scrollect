@@ -7,6 +7,7 @@ export type ChunkLike = {
   documentTitle: string;
   sectionTitle?: string;
   pageNumber?: number;
+  chunkIndex?: number;
 };
 
 export type FilterArgs = {

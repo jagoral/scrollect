@@ -12,7 +12,13 @@ import { requireAuth } from "../lib/functions";
 import type { TypeData } from "../lib/validators";
 import { WideEvent } from "../lib/logging";
 import { getAI } from "../providers/ai";
-import { createEmbeddingProvider, createSummaryVectorStore } from "../pipeline/helpers";
+import {
+  createEmbeddingProvider,
+  createSummaryVectorStore,
+  createVectorStore,
+} from "../pipeline/helpers";
+import type { ConnectionPair } from "./discovery";
+import { discoverConnections } from "./discovery";
 import type {
   ChunkInfo,
   DocumentSummaryInfo,
@@ -28,6 +34,11 @@ import {
 } from "./sampling";
 import { interleaveCards } from "./interleaving";
 import { buildSummaryContext, type LearningGoalEntry } from "./selectionLogic";
+import {
+  buildConnectionPairMap,
+  enrichConnectionCard,
+  mergeConnectionChunks,
+} from "./connectionEnrichment";
 import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
 
@@ -39,25 +50,28 @@ function buildMultiTypePrompt(chunkCount: number, cardCount: number): string {
   return `You are an AI learning assistant for Scrollect, a personal learning feed app.
 Your job is to transform raw text chunks from documents into engaging, bite-sized learning cards of MIXED types.
 
-Card types you MUST produce (aim for variety — use at least 3 different types):
+Card types you MUST produce (aim for variety - use at least 3 different types):
 
-1. **insight** — A concise insight or key takeaway (2-4 sentences). Use **bold** for key terms.
-2. **quiz** — A question testing understanding. Include:
+1. **insight** - A concise insight or key takeaway (2-4 sentences). Use **bold** for key terms.
+2. **quiz** - A question testing understanding. Include:
    - variant: "multiple_choice" or "true_false"
    - question: the question text
    - options: array of 4 choices (or 2 for true_false: ["True", "False"])
    - correctIndex: 0-based index of the correct option
    - explanation: brief explanation of the correct answer
-3. **quote** — A notable quote from the source. Include:
+3. **quote** - A notable quote from the source. Include:
    - quotedText: the exact quoted text
    - attribution: (optional) author or source name
-4. **summary** — A bullet-point summary combining ideas from MULTIPLE chunks. Include:
+4. **summary** - A bullet-point summary combining ideas from MULTIPLE chunks. Include:
    - bulletPoints: array of 2-5 bullet point strings
    - IMPORTANT: summaries MUST reference at least 2 different chunks via sourceChunkIndices
-5. **connection** — Links concepts across DIFFERENT documents. Include:
+5. **connection** - Links concepts across different sources. Include:
    - sourceATitleHint: title/topic of the first source
    - sourceBTitleHint: title/topic of the second source
-   - IMPORTANT: connections MUST reference chunks from at least 2 different documents via sourceChunkIndices
+   - sourceAKeyIdea: one sentence describing the key idea from the first source that forms the connection
+   - sourceBKeyIdea: one sentence describing the key idea from the second source that forms the connection
+   - IMPORTANT: connections MUST reference at least 2 chunks via sourceChunkIndices
+   - QUALITY GATE: Only create a connection if the relationship is genuinely insightful and non-obvious. If two chunks merely discuss the same topic without a deeper conceptual bridge, do NOT create a connection card - use a different type instead.
 
 For ALL cards:
 - content: 2-4 sentences of engaging text (the main card body)
@@ -140,6 +154,7 @@ export const generate = action({
             documentTitle: doc.title,
             sectionTitle: chunk.sectionTitle,
             pageNumber: chunk.pageNumber,
+            chunkIndex: chunk.chunkIndex,
           }));
         }),
       );
@@ -208,9 +223,10 @@ export const generate = action({
       evt.set("docSummaries", docSummaries.length);
       evt.set("sectionSummaries", allSectionSummaries.length);
 
+      const embedder = createEmbeddingProvider();
+
       let selected: ChunkInfo[];
       if (useMultiType && docSummaries.length > 0) {
-        const embedder = createEmbeddingProvider();
         const summaryStore = createSummaryVectorStore();
         selected = await semanticSelect({
           allChunks,
@@ -252,10 +268,37 @@ export const generate = action({
         });
       }
 
-      const typeCoverageHint = buildTypeCoverageHint(chunkUsageMap);
-      const systemPrompt = buildMultiTypePrompt(selected.length, cardCount) + typeCoverageHint;
+      let connectionPairs: ConnectionPair[] = [];
+      if (allChunks.length >= 2) {
+        try {
+          const vectorStore = createVectorStore();
+          connectionPairs = await discoverConnections({
+            allChunks,
+            userId: user._id,
+            embedder,
+            vectorStore,
+            maxPairs: Math.max(1, Math.floor(cardCount / 5)),
+          });
+          evt.set("connectionPairsFound", connectionPairs.length);
+        } catch (error) {
+          evt.set("connectionDiscoveryFailed", true);
+          evt.set(
+            "connectionDiscoveryError",
+            error instanceof Error ? error.message : String(error),
+          );
+        }
+      }
 
-      const selectedDocIds = new Set(selected.map((c) => c.documentId));
+      const { merged: selectedWithConnections, connectionHints } = mergeConnectionChunks({
+        selected,
+        connectionPairs,
+      });
+
+      const typeCoverageHint = buildTypeCoverageHint(chunkUsageMap);
+      const systemPrompt =
+        buildMultiTypePrompt(selectedWithConnections.length, cardCount) + typeCoverageHint;
+
+      const selectedDocIds = new Set(selectedWithConnections.map((c) => c.documentId));
 
       const learningGoals = new Map<string, LearningGoalEntry>();
       for (const doc of documents) {
@@ -273,9 +316,15 @@ export const generate = action({
 
       const userPrompt =
         summaryContext +
-        selected
+        selectedWithConnections
           .map((chunk, i) => `Chunk ${i} (from "${chunk.documentTitle}"):\n${chunk.content}`)
-          .join("\n\n---\n\n");
+          .join("\n\n---\n\n") +
+        (connectionHints.length > 0
+          ? `\n\n---\n\nDISCOVERED CONNECTIONS (use these to create connection cards):\n${connectionHints.join("\n")}`
+          : "");
+
+      const connectionPairMap = buildConnectionPairMap(connectionPairs, selectedWithConnections);
+      const documentCount = documents.length;
 
       let validCards: { card: RawCard; chunks: ChunkInfo[] }[] = [];
       let generationAttempts = 0;
@@ -297,8 +346,15 @@ export const generate = action({
         const validated: { card: RawCard; chunks: ChunkInfo[] }[] = [];
         const dropped: string[] = [];
         for (const card of cards) {
-          if (validateCard(card, selected)) {
-            const cardChunks = card.sourceChunkIndices.map((i) => selected[i]!);
+          if (validateCard({ card, chunks: selectedWithConnections, documentCount })) {
+            const cardChunks = card.sourceChunkIndices.map((i) => selectedWithConnections[i]!);
+            if (card.type === "connection") {
+              enrichConnectionCard({ card, cardChunks, connectionPairMap });
+              evt.set(
+                "connectionKeyIdeasPresent",
+                Boolean(card.sourceAKeyIdea && card.sourceBKeyIdea),
+              );
+            }
             validated.push({ card, chunks: cardChunks });
           } else {
             dropped.push(`${card.type ?? "unknown"}: missing fields`);
@@ -408,6 +464,10 @@ function buildTypeData(card: RawCard): TypeData {
         type: "connection",
         sourceATitleHint: card.sourceATitleHint!,
         sourceBTitleHint: card.sourceBTitleHint!,
+        sourceAKeyIdea: card.sourceAKeyIdea,
+        sourceBKeyIdea: card.sourceBKeyIdea,
+        similarityScore: card.similarityScore ?? 0,
+        connectionType: card.connectionType ?? "cross_document",
       };
   }
 }

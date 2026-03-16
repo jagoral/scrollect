@@ -72,6 +72,10 @@ export const typeData = v.union(
     type: v.literal("connection"),
     sourceATitleHint: v.string(),
     sourceBTitleHint: v.string(),
+    sourceAKeyIdea: v.optional(v.string()),
+    sourceBKeyIdea: v.optional(v.string()),
+    similarityScore: v.optional(v.number()),
+    connectionType: v.optional(v.union(v.literal("cross_document"), v.literal("within_document"))),
   }),
 );
 

@@ -30,6 +30,9 @@ export type ConnectionTypeData = {
   type: "connection";
   sourceATitleHint: string;
   sourceBTitleHint: string;
+  connectionType?: "cross_document" | "within_document";
+  sourceAKeyIdea?: string;
+  sourceBKeyIdea?: string;
 };
 
 export type TypeData =
