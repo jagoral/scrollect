@@ -2,14 +2,15 @@ import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, FileText, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { StatusBadge, fileTypeIcons } from "@/components/document-status";
+import { fileTypeIcons, StatusBadge } from "@/components/document-status";
+import { LearningGoalSection } from "@/components/documents/learning-goal-section";
 import { NotFound } from "@/components/not-found";
 import { DocumentTagSection } from "@/components/tags/document-tag-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -146,7 +147,12 @@ function DocumentDetailPage() {
         </div>
       </div>
 
-      {document.status === "ready" && <DocumentTagSection documentId={document._id} />}
+      {document.status === "ready" && (
+        <>
+          <DocumentTagSection documentId={document._id} />
+          <LearningGoalSection documentId={document._id} initialGoal={document.learningGoal} />
+        </>
+      )}
 
       {document.status === "error" && document.errorMessage && (
         <Alert variant="destructive" className="mt-6">
