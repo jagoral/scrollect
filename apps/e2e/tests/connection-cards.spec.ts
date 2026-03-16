@@ -139,7 +139,11 @@ test.describe("Connection card rendering (seeded)", () => {
     const sheet = page.locator('[data-testid="source-sheet"]');
     await expect(sheet).toBeVisible({ timeout: 10000 });
 
-    // Connection card should show source chunks from both documents
+    // Wait for both queries to load: getWithContext (primary + context) and listSourcesByPostId (supporting)
+    // The supporting source from doc2 confirms chunks from both documents are shown
+    const supportingHeading = sheet.getByText("Supporting sources");
+    await expect(supportingHeading).toBeVisible({ timeout: 10000 });
+
     const chunks = sheet.locator('[data-testid="source-chunk"]');
     expect(await chunks.count()).toBeGreaterThanOrEqual(2);
   });
