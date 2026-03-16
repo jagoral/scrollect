@@ -5,6 +5,8 @@ import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
+import { Link } from "@tanstack/react-router";
+
 import { ScrollectLogo } from "./scrollect-logo";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -141,6 +143,26 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
               )}
             </form.Subscribe>
           </form>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            By creating an account, you agree to our{" "}
+            <Link
+              to="/terms-and-conditions"
+              target="_blank"
+              className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
+            >
+              Terms & Conditions
+            </Link>{" "}
+            and{" "}
+            <Link
+              to="/privacy-policy"
+              target="_blank"
+              className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
