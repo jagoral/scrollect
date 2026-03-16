@@ -16,7 +16,7 @@ import {
   storeMarkdownBlob,
 } from "./helpers";
 
-export async function submitPdfParsingImpl(
+export async function submitDatalabParsingImpl(
   ctx: ActionCtx,
   documentId: Id<"documents">,
   storageId: Id<"_storage">,
@@ -51,7 +51,7 @@ export async function submitPdfParsingImpl(
     );
   } catch (error) {
     evt.setError(error);
-    const message = error instanceof Error ? error.message : "PDF submission failed";
+    const message = error instanceof Error ? error.message : "Document submission failed";
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
       status: "error",
@@ -80,7 +80,7 @@ export const pollDatalabResult = internalAction({
         await ctx.runMutation(internal.documents.updateStatus, {
           id: documentId,
           status: "error",
-          errorMessage: "PDF parsing timed out after 5 minutes",
+          errorMessage: "Document parsing timed out after 5 minutes",
           failedAt: "parsing",
         });
         return;
@@ -107,7 +107,7 @@ export const pollDatalabResult = internalAction({
         await ctx.runMutation(internal.documents.updateStatus, {
           id: documentId,
           status: "error",
-          errorMessage: result.errorMessage ?? "PDF parsing failed",
+          errorMessage: result.errorMessage ?? "Document parsing failed",
           failedAt: "parsing",
         });
         return;

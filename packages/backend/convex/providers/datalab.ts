@@ -1,6 +1,11 @@
-import type { PdfParser, PollResult } from "./types";
+import type { DocumentParser, PollResult } from "./types";
 
-export class DatalabParser implements PdfParser {
+/**
+ * Datalab-based document parser. Supports PDF, EPUB, and other document formats.
+ * Datalab auto-detects the file format from binary content (magic bytes),
+ * so opaque Convex storage URLs without file extensions work correctly.
+ */
+export class DatalabParser implements DocumentParser {
   private apiKey: string;
 
   constructor(apiKey: string) {
@@ -56,7 +61,7 @@ export class DatalabParser implements PdfParser {
       if (!markdown) {
         return {
           status: "error",
-          errorMessage: "No text content could be extracted from the PDF",
+          errorMessage: "No text content could be extracted from the document",
         };
       }
       return { status: "complete", markdown };

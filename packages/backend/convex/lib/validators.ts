@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 export const fileType = v.union(
   v.literal("pdf"),
+  v.literal("epub"),
   v.literal("md"),
   v.literal("article"),
   v.literal("youtube"),

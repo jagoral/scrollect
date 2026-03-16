@@ -18,8 +18,8 @@ export interface PollResult {
   errorMessage?: string;
 }
 
-export interface PdfParser {
-  /** Submit a PDF for parsing. Returns a check URL for polling. */
+export interface DocumentParser {
+  /** Submit a document for parsing. Returns a check URL for polling. */
   submit(fileUrl: string): Promise<string>;
 
   /** Poll for parsing result. */
