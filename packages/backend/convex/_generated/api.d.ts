@@ -41,7 +41,6 @@ import type * as pipeline_tagging from "../pipeline/tagging.js";
 import type * as privateData from "../privateData.js";
 import type * as processingJobs from "../processingJobs.js";
 import type * as providers_ai from "../providers/ai.js";
-import type * as providers_convexVectors from "../providers/convexVectors.js";
 import type * as providers_datalab from "../providers/datalab.js";
 import type * as providers_embeddings from "../providers/embeddings.js";
 import type * as providers_markdownNew from "../providers/markdownNew.js";
@@ -98,7 +97,6 @@ declare const fullApi: ApiFromModules<{
   privateData: typeof privateData;
   processingJobs: typeof processingJobs;
   "providers/ai": typeof providers_ai;
-  "providers/convexVectors": typeof providers_convexVectors;
   "providers/datalab": typeof providers_datalab;
   "providers/embeddings": typeof providers_embeddings;
   "providers/markdownNew": typeof providers_markdownNew;
