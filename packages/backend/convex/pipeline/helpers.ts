@@ -5,12 +5,14 @@ import { createHash } from "crypto";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { getAI } from "../providers/ai";
+import { DatalabParser } from "../providers/datalab";
 import { MarkdownNewArticleExtractor } from "../providers/markdownNew";
 import { AiSdkEmbeddings } from "../providers/embeddings";
 import { QdrantSummaryStore, QdrantVectorStore } from "../providers/qdrant";
-import { StubArticleExtractor, StubYouTubeExtractor } from "../providers/stubs";
+import { StubArticleExtractor, StubDatalabParser, StubYouTubeExtractor } from "../providers/stubs";
 import type {
   ContentExtractor,
+  DocumentParser,
   EmbeddingProvider,
   SummaryVectorStore,
   VectorStore,
@@ -49,6 +51,13 @@ export function createVectorStore(): VectorStore {
 export function createSummaryVectorStore(): SummaryVectorStore {
   const { url, apiKey } = getQdrantConfig();
   return new QdrantSummaryStore(url, apiKey);
+}
+
+export function createDocumentParser(): DocumentParser {
+  if (process.env.USE_STUB_EXTRACTORS === "true") return new StubDatalabParser();
+  const apiKey = process.env.DATALAB_API_KEY;
+  if (!apiKey) throw new Error("DATALAB_API_KEY environment variable is not set");
+  return new DatalabParser(apiKey);
 }
 
 export function createArticleExtractor(): ContentExtractor {

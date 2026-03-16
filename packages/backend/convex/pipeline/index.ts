@@ -7,7 +7,7 @@ import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 
 import { extractArticleImpl, extractYouTubeImpl } from "./extraction";
-import { fetchAndParseMarkdownImpl, submitPdfParsingImpl } from "./parsing";
+import { fetchAndParseMarkdownImpl, submitDatalabParsingImpl } from "./parsing";
 
 export const startProcessing = internalAction({
   args: { documentId: v.id("documents") },
@@ -28,9 +28,11 @@ export const startProcessing = internalAction({
 
       switch (doc.fileType) {
         case "pdf":
-          if (!doc.storageId) throw new Error("PDF document missing storageId");
-          evt.set("path", "pdf");
-          await submitPdfParsingImpl(ctx, documentId, doc.storageId, evt);
+        case "epub":
+          if (!doc.storageId)
+            throw new Error(`${doc.fileType.toUpperCase()} document missing storageId`);
+          evt.set("path", "datalab");
+          await submitDatalabParsingImpl(ctx, documentId, doc.storageId, evt);
           break;
 
         case "md":

@@ -7,10 +7,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export const ACCEPTED_TYPES = new Set(["pdf", "md"]);
+const UPLOAD_FILE_TYPES = ["pdf", "epub", "md"] as const;
+type UploadFileType = (typeof UPLOAD_FILE_TYPES)[number];
+
+export const ACCEPTED_TYPES = new Set<string>(UPLOAD_FILE_TYPES);
 
 export function getFileExtension(name: string): string {
   return name.split(".").pop()?.toLowerCase() ?? "";
+}
+
+function isUploadFileType(ext: string): ext is UploadFileType {
+  return ACCEPTED_TYPES.has(ext);
 }
 
 export interface FileUploadState {
@@ -29,8 +36,10 @@ export function UploadFileTab() {
   const uploadFile = useCallback(
     async (file: File) => {
       const ext = getFileExtension(file.name);
-      if (!ACCEPTED_TYPES.has(ext)) {
-        toast.error(`Unsupported file type: .${ext}. Only .pdf and .md files are accepted.`);
+      if (!isUploadFileType(ext)) {
+        toast.error(
+          `Unsupported file type: .${ext}. Only .pdf, .epub, and .md files are accepted.`,
+        );
         return;
       }
 
@@ -53,7 +62,7 @@ export function UploadFileTab() {
         const title = file.name.replace(/\.[^.]+$/, "");
         await createDocument({
           title,
-          fileType: ext as "pdf" | "md",
+          fileType: ext,
           storageId: storageId as never,
         });
 
@@ -157,12 +166,12 @@ export function UploadFileTab() {
           <FileUp className="mr-2 h-4 w-4" />
           Choose files
         </Button>
-        <p className="text-xs text-muted-foreground">Accepts .pdf and .md files</p>
+        <p className="text-xs text-muted-foreground">Accepts .pdf, .epub, and .md files</p>
         <input
           ref={fileInputRef}
           data-testid="file-input"
           type="file"
-          accept=".pdf,.md"
+          accept=".pdf,.epub,.md"
           multiple
           className="hidden"
           onChange={(e) => {

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FileCode, FileText } from "lucide-react";
+import { BookOpen, FileCode, FileText } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 
@@ -58,6 +58,7 @@ export const statusConfig = {
 
 export const fileTypeIcons: Record<string, ReactNode> = {
   pdf: <FileText className="h-4 w-4 text-muted-foreground" />,
+  epub: <BookOpen className="h-4 w-4 text-muted-foreground" />,
   md: <FileCode className="h-4 w-4 text-muted-foreground" />,
 };
 
