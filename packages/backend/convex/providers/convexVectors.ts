@@ -1,6 +1,12 @@
 import type { ActionCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import type { VectorFilter, VectorPoint, VectorSearchResult, VectorStore } from "./types";
+import type {
+  SearchExcludingDocumentParams,
+  VectorFilter,
+  VectorPoint,
+  VectorSearchResult,
+  VectorStore,
+} from "./types";
 
 /**
  * Convex native vector search implementation.
@@ -77,6 +83,15 @@ export class ConvexVectorStore implements VectorStore {
         userId: filter.userId,
       },
     }));
+  }
+
+  async searchExcludingDocument(
+    params: SearchExcludingDocumentParams,
+  ): Promise<VectorSearchResult[]> {
+    const { vector, userId, excludeDocumentId, topK } = params;
+    const overFetch = topK * 3;
+    const results = await this.search(vector, { userId }, overFetch);
+    return results.filter((r) => r.payload.documentId !== excludeDocumentId).slice(0, topK);
   }
 
   async delete(ids: string[]): Promise<void> {
