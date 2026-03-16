@@ -1,4 +1,4 @@
-import type { ContentExtractor, ExtractResult } from "./types";
+import type { ContentExtractor, DocumentParser, ExtractResult, PollResult } from "./types";
 
 const STUB_ARTICLE_MARKDOWN = `# Understanding Software Architecture Patterns
 
@@ -97,6 +97,63 @@ Thank you for watching this introduction to machine learning. In the next video,
 will dive deeper into neural networks and deep learning architectures, exploring how
 multi-layer perceptrons, convolutional networks, and transformers have revolutionized
 the field. Subscribe and hit the bell icon to be notified when it drops.`;
+
+const STUB_DOCUMENT_MARKDOWN = `# The Art of Effective Learning
+
+Learning is not a passive process. Research in cognitive science has shown that active
+engagement with material leads to dramatically better retention and understanding than
+simply re-reading or highlighting text.
+
+## Spaced Repetition
+
+Spaced repetition is a learning technique that involves reviewing information at
+gradually increasing intervals. Instead of cramming all at once, you space out your
+practice sessions over days, weeks, and months. This approach exploits the spacing
+effect, a phenomenon where our brains form stronger memories when exposure to
+information is spread out over time rather than concentrated in a single session.
+
+The optimal spacing schedule depends on the complexity of the material and the desired
+retention period. For simple facts, a schedule of 1 day, 3 days, 7 days, and 21 days
+works well. For complex concepts, shorter intervals with more repetitions may be needed.
+
+## Active Recall
+
+Active recall is the practice of actively stimulating memory during the learning
+process. Rather than passively reviewing notes, you close the book and try to recall
+the key points from memory. This forces your brain to strengthen the neural pathways
+associated with the information, making it easier to retrieve later.
+
+Research by Karpicke and Roediger demonstrated that students who practiced active
+recall retained 80% more information than those who simply re-read the material.
+The testing effect, as it is known, is one of the most robust findings in cognitive
+psychology.
+
+## Interleaving
+
+Interleaving involves mixing different topics or types of problems during a single
+study session. While blocked practice, focusing on one topic at a time, feels easier,
+interleaving leads to better long-term retention and the ability to discriminate between
+different concepts. This is because interleaving forces the brain to continuously
+retrieve different strategies and compare them.
+
+## Conclusion
+
+The most effective learning combines spaced repetition, active recall, and interleaving
+into a coherent system. By transforming saved content into bite-sized learning cards and
+presenting them in a scroll-native feed, we can make these evidence-based techniques
+accessible and even enjoyable.`;
+
+export class StubDatalabParser implements DocumentParser {
+  async submit(_fileUrl: string): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    return "stub://datalab/check/complete";
+  }
+
+  async poll(_checkUrl: string): Promise<PollResult> {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    return { status: "complete", markdown: STUB_DOCUMENT_MARKDOWN };
+  }
+}
 
 export class StubArticleExtractor implements ContentExtractor {
   async extract(url: string): Promise<ExtractResult> {

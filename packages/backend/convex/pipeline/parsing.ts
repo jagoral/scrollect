@@ -7,9 +7,9 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { DatalabParser } from "../providers/datalab";
 
 import {
+  createDocumentParser,
   getPollDelay,
   INITIAL_POLL_DELAY_MS,
   MAX_POLL_DURATION_MS,
@@ -23,13 +23,10 @@ export async function submitDatalabParsingImpl(
   evt: WideEvent,
 ) {
   try {
-    const apiKey = process.env.DATALAB_API_KEY;
-    if (!apiKey) throw new Error("DATALAB_API_KEY environment variable is not set");
-
     const fileUrl = await ctx.storage.getUrl(storageId);
     if (!fileUrl) throw new Error("File not found in storage");
 
-    const parser = new DatalabParser(apiKey);
+    const parser = createDocumentParser();
     const checkUrl = await parser.submit(fileUrl);
 
     // Persist checkpoint BEFORE polling starts
@@ -86,10 +83,7 @@ export const pollDatalabResult = internalAction({
         return;
       }
 
-      const apiKey = process.env.DATALAB_API_KEY;
-      if (!apiKey) throw new Error("DATALAB_API_KEY environment variable is not set");
-
-      const parser = new DatalabParser(apiKey);
+      const parser = createDocumentParser();
       const result = await parser.poll(checkUrl);
 
       if (result.status === "complete") {
