@@ -78,6 +78,13 @@ export interface SummarySearchResult {
   payload: SummaryVectorPoint["payload"];
 }
 
+export interface SearchExcludingDocumentParams {
+  vector: number[];
+  userId: string;
+  excludeDocumentId: string;
+  topK: number;
+}
+
 export interface VectorStore {
   /** Ensure the backing collection/index exists. Idempotent. */
   ensureCollection(): Promise<void>;
@@ -87,6 +94,9 @@ export interface VectorStore {
 
   /** Search for similar vectors, filtered by userId. */
   search(vector: number[], filter: VectorFilter, topK: number): Promise<VectorSearchResult[]>;
+
+  /** Search for similar vectors, excluding results from a specific document. */
+  searchExcludingDocument(params: SearchExcludingDocumentParams): Promise<VectorSearchResult[]>;
 
   /** Delete vectors by ID. */
   delete(ids: string[]): Promise<void>;

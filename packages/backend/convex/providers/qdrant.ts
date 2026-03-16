@@ -1,4 +1,5 @@
 import type {
+  SearchExcludingDocumentParams,
   SummarySearchResult,
   SummaryVectorFilter,
   SummaryVectorPoint,
@@ -119,6 +120,31 @@ export class QdrantVectorStore implements VectorStore {
         limit: topK,
         filter: {
           must: [{ key: "userId", match: { value: filter.userId } }],
+        },
+        with_payload: true,
+      }),
+    })) as { result: Array<{ id: string; score: number; payload: VectorPoint["payload"] }> };
+
+    return data.result.map((r) => ({
+      id: r.id,
+      score: r.score,
+      payload: r.payload,
+    }));
+  }
+
+  async searchExcludingDocument(
+    params: SearchExcludingDocumentParams,
+  ): Promise<VectorSearchResult[]> {
+    const { vector, userId, excludeDocumentId, topK } = params;
+
+    const data = (await this.client.request(`/collections/${COLLECTION_NAME}/points/search`, {
+      method: "POST",
+      body: JSON.stringify({
+        vector,
+        limit: topK,
+        filter: {
+          must: [{ key: "userId", match: { value: userId } }],
+          must_not: [{ key: "documentId", match: { value: excludeDocumentId } }],
         },
         with_payload: true,
       }),

@@ -115,30 +115,33 @@ test.describe("Multi-type cards and source provenance", () => {
   });
 
   test.describe("Source provenance", () => {
-    test("every card has a source badge", async ({ page }) => {
+    test("every card has a source badge or connection header", async ({ page }) => {
       const cards = page.locator(CARD);
       const count = await cards.count();
 
       for (let i = 0; i < count; i++) {
         const card = cards.nth(i);
         const type = await card.getAttribute("data-card-type");
-        // Connection cards render their own dual-title badge
+        // Connection cards render their own header and source panels
         const selector =
           type === "connection"
-            ? '[data-testid="connection-source-badge"]'
+            ? '[data-testid="connection-header"]'
             : '[data-testid="source-badge"]';
         await expect(card.locator(selector)).toBeVisible({ timeout: 5000 });
       }
     });
 
-    test("connection card badge contains both document titles", async ({ page }) => {
+    test("connection card source panels contain both document titles", async ({ page }) => {
       const card = page.locator(cardOfType("connection")).first();
       await expect(card).toBeVisible();
 
-      const badge = card.locator('[data-testid="connection-source-badge"]');
-      await expect(badge).toBeVisible();
-      await expect(badge).toContainText("E2E Seed Document");
-      await expect(badge).toContainText("E2E Seed Document 2");
+      const sources = card.locator('[data-testid="connection-sources"]');
+      await expect(sources).toBeVisible();
+
+      const sourceA = card.locator('[data-testid="connection-source-a"]');
+      const sourceB = card.locator('[data-testid="connection-source-b"]');
+      await expect(sourceA).toContainText("E2E Seed Document");
+      await expect(sourceB).toContainText("E2E Seed Document 2");
     });
 
     test("expand sheet shows source chunks with primary marker", async ({ page }) => {
