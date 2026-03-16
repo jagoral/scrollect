@@ -4,6 +4,7 @@ import { FRESHNESS_DECAY_WINDOW_MS } from "../convex/feed/constants";
 import {
   buildSummaryContext,
   filterChunksBySemantic,
+  type LearningGoalEntry,
   rankByUsage,
 } from "../convex/feed/selectionLogic";
 
@@ -266,5 +267,71 @@ describe("buildSummaryContext", () => {
     expect(result).toContain("intro1");
     expect(result).toContain("Methods");
     expect(result).toContain("methods2");
+  });
+
+  test("includes learning goals for selected documents", () => {
+    const learningGoals = new Map<string, LearningGoalEntry>([
+      ["d1", { title: "AI Basics", goal: "Understand neural networks" }],
+      ["d2", { title: "ML Guide", goal: "Learn about transformers" }],
+    ]);
+
+    const result = buildSummaryContext({
+      docSummaries: [{ documentId: "d1", documentTitle: "AI Basics", summary: "About AI" }],
+      sectionSummaries: [],
+      selectedDocIds: new Set(["d1"]),
+      learningGoals,
+    });
+
+    expect(result).toContain("Learning goals:");
+    expect(result).toContain(
+      'The user wants to learn from "AI Basics": Understand neural networks',
+    );
+    expect(result).not.toContain("transformers");
+  });
+
+  test("omits learning goals section when no goals match selected docs", () => {
+    const learningGoals = new Map<string, LearningGoalEntry>([
+      ["d99", { title: "Other Doc", goal: "Something else" }],
+    ]);
+
+    const result = buildSummaryContext({
+      docSummaries: [{ documentId: "d1", documentTitle: "Doc 1", summary: "s1" }],
+      sectionSummaries: [],
+      selectedDocIds: new Set(["d1"]),
+      learningGoals,
+    });
+
+    expect(result).not.toContain("Learning goals:");
+    expect(result).toContain("Doc 1");
+  });
+
+  test("empty learningGoals map produces identical output to omitted", () => {
+    const args = {
+      docSummaries: [{ documentId: "d1", documentTitle: "Doc 1", summary: "s1" }],
+      sectionSummaries: [],
+      selectedDocIds: new Set(["d1"]),
+    };
+
+    const withoutGoals = buildSummaryContext(args);
+    const withEmptyGoals = buildSummaryContext({ ...args, learningGoals: new Map() });
+
+    expect(withEmptyGoals).toBe(withoutGoals);
+  });
+
+  test("returns learning goals context even when no doc summaries match", () => {
+    const learningGoals = new Map<string, LearningGoalEntry>([
+      ["d1", { title: "AI Basics", goal: "Understand neural networks" }],
+    ]);
+
+    const result = buildSummaryContext({
+      docSummaries: [],
+      sectionSummaries: [],
+      selectedDocIds: new Set(["d1"]),
+      learningGoals,
+    });
+
+    expect(result).toContain("Learning goals:");
+    expect(result).toContain("Understand neural networks");
+    expect(result).not.toContain("Document context:");
   });
 });

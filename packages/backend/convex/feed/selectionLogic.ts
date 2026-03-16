@@ -112,22 +112,53 @@ export type SectionSummaryLike = {
   summary: string;
 };
 
+export type LearningGoalEntry = {
+  title: string;
+  goal: string;
+};
+
 export type SummaryContextArgs = {
   docSummaries: DocSummaryLike[];
   sectionSummaries: SectionSummaryLike[];
   selectedDocIds: Set<string>;
+  learningGoals?: Map<string, LearningGoalEntry>;
 };
 
 export function buildSummaryContext(args: SummaryContextArgs): string {
-  const { docSummaries, sectionSummaries, selectedDocIds } = args;
+  const { docSummaries, sectionSummaries, selectedDocIds, learningGoals } = args;
 
   const relevantDocs = docSummaries.filter((d) => selectedDocIds.has(d.documentId));
-  if (relevantDocs.length === 0) return "";
+
+  const relevantGoals = buildLearningGoalLines({ learningGoals, selectedDocIds });
+
+  if (relevantDocs.length === 0 && relevantGoals.length === 0) return "";
 
   const docCtx = relevantDocs.map((d) => `"${d.documentTitle}": ${d.summary}`).join("\n");
 
   const relevantSections = sectionSummaries.filter((s) => selectedDocIds.has(s.documentId));
   const sectionCtx = relevantSections.map((s) => `  "${s.sectionTitle}": ${s.summary}`).join("\n");
 
-  return `\n\nDocument context:\n${docCtx}${sectionCtx ? `\n\nSection context:\n${sectionCtx}` : ""}\n\n`;
+  const goalCtx =
+    relevantGoals.length > 0 ? `\n\nLearning goals:\n${relevantGoals.join("\n")}` : "";
+
+  if (!docCtx && !sectionCtx && !goalCtx) return "";
+
+  return `${docCtx ? `\n\nDocument context:\n${docCtx}` : ""}${sectionCtx ? `\n\nSection context:\n${sectionCtx}` : ""}${goalCtx}\n\n`;
+}
+
+type LearningGoalLineArgs = {
+  learningGoals?: Map<string, LearningGoalEntry>;
+  selectedDocIds: Set<string>;
+};
+
+function buildLearningGoalLines(args: LearningGoalLineArgs): string[] {
+  const { learningGoals, selectedDocIds } = args;
+  if (!learningGoals || learningGoals.size === 0) return [];
+
+  const lines: string[] = [];
+  for (const [docId, entry] of learningGoals) {
+    if (!selectedDocIds.has(docId)) continue;
+    lines.push(`The user wants to learn from "${entry.title}": ${entry.goal}`);
+  }
+  return lines;
 }

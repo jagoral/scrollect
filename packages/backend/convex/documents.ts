@@ -130,6 +130,68 @@ export const createFromText = mutation({
   },
 });
 
+const LEARNING_GOAL_MAX_LENGTH = 500;
+
+export const updateLearningGoal = mutation({
+  args: {
+    id: v.id("documents"),
+    learningGoal: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const evt = new WideEvent("documents.updateLearningGoal");
+    evt.set("documentId", args.id);
+    try {
+      const user = await requireAuth(ctx);
+      evt.set("userId", user._id);
+      const doc = await ctx.db.get(args.id);
+      if (!doc || doc.userId !== user._id) {
+        throw new Error("Document not found");
+      }
+      const trimmed = args.learningGoal.trim();
+      if (trimmed.length === 0) {
+        throw new Error("Learning goal cannot be empty");
+      }
+      if (trimmed.length > LEARNING_GOAL_MAX_LENGTH) {
+        throw new Error(`Learning goal must be at most ${LEARNING_GOAL_MAX_LENGTH} characters`);
+      }
+      await ctx.db.patch(args.id, { learningGoal: trimmed });
+      return null;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
+  },
+});
+
+export const clearLearningGoal = mutation({
+  args: {
+    id: v.id("documents"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const evt = new WideEvent("documents.clearLearningGoal");
+    evt.set("documentId", args.id);
+    try {
+      const user = await requireAuth(ctx);
+      evt.set("userId", user._id);
+      const doc = await ctx.db.get(args.id);
+      if (!doc || doc.userId !== user._id) {
+        throw new Error("Document not found");
+      }
+      await ctx.db.patch(args.id, { learningGoal: undefined });
+      return null;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
+  },
+});
+
 export const updateTitle = internalMutation({
   args: {
     id: v.id("documents"),

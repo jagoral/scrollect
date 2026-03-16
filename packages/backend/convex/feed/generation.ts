@@ -27,7 +27,7 @@ import {
   weightedSample,
 } from "./sampling";
 import { interleaveCards } from "./interleaving";
-import { buildSummaryContext } from "./selectionLogic";
+import { buildSummaryContext, type LearningGoalEntry } from "./selectionLogic";
 import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
 
@@ -116,6 +116,7 @@ export const generate = action({
         createdAt: number;
         summary?: string;
         summaryEmbeddingId?: string;
+        learningGoal?: string;
       }[] = await ctx.runQuery(internal.feed.queries.listReadyDocuments, { userId: user._id });
       evt.set("readyDocuments", documents.length);
 
@@ -255,10 +256,19 @@ export const generate = action({
       const systemPrompt = buildMultiTypePrompt(selected.length, cardCount) + typeCoverageHint;
 
       const selectedDocIds = new Set(selected.map((c) => c.documentId));
+
+      const learningGoals = new Map<string, LearningGoalEntry>();
+      for (const doc of documents) {
+        if (doc.learningGoal) {
+          learningGoals.set(doc._id, { title: doc.title, goal: doc.learningGoal });
+        }
+      }
+
       const summaryContext = buildSummaryContext({
         docSummaries,
         sectionSummaries: allSectionSummaries,
         selectedDocIds,
+        learningGoals,
       });
 
       const userPrompt =
