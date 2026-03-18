@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getRateLimitMessage } from "@/lib/rate-limit-error";
 
 export function detectUrlType(url: string): "youtube" | "article" {
   try {
@@ -61,8 +62,13 @@ export function UploadUrlTab() {
           </span>,
         );
         setUrl("");
-      } catch {
-        toast.error("Something went wrong while processing this URL. Please try again.");
+      } catch (error) {
+        const rateLimitMsg = getRateLimitMessage(error);
+        if (rateLimitMsg) {
+          toast.error(rateLimitMsg);
+        } else {
+          toast.error("Something went wrong while processing this URL. Please try again.");
+        }
       } finally {
         setSubmitting(false);
       }

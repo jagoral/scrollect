@@ -9,6 +9,7 @@ import { Suspense, useMemo } from "react";
 
 import { PostCard } from "@/components/post-card";
 import { buildTagMap } from "@/components/tags";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAutoGenerate } from "@/hooks/use-auto-generate";
@@ -57,10 +58,14 @@ function FeedContentInner() {
   );
   const generateFeed = useAction(api.feed.generation.generate);
 
-  const { generating, error, generate } = useAutoGenerate(lastGeneratedAt, generateFeed, {
-    disabled: noAutoGenerate,
-    count,
-  });
+  const { generating, error, generate, isRateLimited } = useAutoGenerate(
+    lastGeneratedAt,
+    generateFeed,
+    {
+      disabled: noAutoGenerate,
+      count,
+    },
+  );
   const sentinelRef = useInfiniteScroll(status, loadMore);
 
   const uniqueDocumentIds = useMemo(
@@ -109,7 +114,7 @@ function FeedContentInner() {
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
         </div>
-        <Button onClick={generate} disabled={generating} size="sm">
+        <Button onClick={generate} disabled={generating || isRateLimited} size="sm">
           {generating ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -120,9 +125,9 @@ function FeedContentInner() {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {enrichedResults.length === 0 && !generating ? (
@@ -136,7 +141,7 @@ function FeedContentInner() {
               Click &quot;Generate&quot; to create learning cards from your documents.
             </p>
           </div>
-          <Button onClick={generate} disabled={generating}>
+          <Button onClick={generate} disabled={generating || isRateLimited}>
             <Sparkles className="mr-2 h-4 w-4" />
             Generate your first feed
           </Button>

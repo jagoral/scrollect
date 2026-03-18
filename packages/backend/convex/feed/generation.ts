@@ -1,7 +1,7 @@
 "use node";
 
 import { generateText, Output } from "ai";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { z } from "zod";
 
 import { internal } from "../_generated/api";
@@ -123,6 +123,19 @@ export const generate = action({
     try {
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
+
+      const { ok, retryAfter } = await ctx.runMutation(
+        internal.lib.rateLimitChecks.checkFeedGenerationLimit,
+        { userId: user._id },
+      );
+      if (!ok) {
+        evt.set({ rateLimited: true, endpoint: "feedGeneration", retryAfterMs: retryAfter });
+        throw new ConvexError({
+          kind: "RateLimited" as const,
+          name: "feedGeneration",
+          retryAfter: retryAfter!,
+        });
+      }
 
       const documents: {
         _id: Id<"documents">;
