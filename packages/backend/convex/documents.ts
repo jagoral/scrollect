@@ -411,7 +411,7 @@ export const cascadeDeletePosts = internalMutation({
     const docCheck = await ctx.db.get(args.documentId);
     if (!docCheck) {
       evt.set("skipped", true);
-      evt.log();
+      evt.emit();
       return { deletedPosts: 0, deletedPostSources: 0, deletedBookmarks: 0 };
     }
 
@@ -472,8 +472,12 @@ export const cascadeDeletePosts = internalMutation({
       }
     }
 
-    evt.set({ deletedPosts, deletedPostSources: postSources.length + additionalPostSources, deletedBookmarks });
-    evt.log();
+    evt.set({
+      deletedPosts,
+      deletedPostSources: postSources.length + additionalPostSources,
+      deletedBookmarks,
+    });
+    evt.emit();
     return {
       deletedPosts,
       deletedPostSources: postSources.length + additionalPostSources,
@@ -533,7 +537,7 @@ export const cascadeDeleteDocument = internalMutation({
     const document = await ctx.db.get(args.documentId);
     if (!document) {
       evt.set("skipped", true);
-      evt.log();
+      evt.emit();
       return { deletedOrphanedTags: 0 };
     }
 
@@ -571,7 +575,7 @@ export const cascadeDeleteDocument = internalMutation({
     await ctx.db.delete(args.documentId);
 
     evt.set({ deletedOrphanedTags, tagCount: document.tagIds?.length ?? 0 });
-    evt.log();
+    evt.emit();
     return { deletedOrphanedTags };
   },
 });
