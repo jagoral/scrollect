@@ -1,11 +1,11 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAction, usePaginatedQuery } from "convex/react";
+import { useAction, usePaginatedQuery, useQuery as useConvexQuery } from "convex/react";
 import { CheckCircle, Loader2, Rss, Sparkles } from "lucide-react";
-import { Suspense, useMemo } from "react";
+import { useMemo } from "react";
 
 import { PostCard } from "@/components/post-card";
 import { buildTagMap } from "@/components/tags";
@@ -21,9 +21,6 @@ type FeedSearch = {
 };
 
 export const Route = createFileRoute("/_authenticated/feed")({
-  loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(convexQuery(api.feed.queries.getLastGeneratedAt, {}));
-  },
   head: () => ({
     meta: [{ title: "Feed | Scrollect" }],
   }),
@@ -38,14 +35,6 @@ export const Route = createFileRoute("/_authenticated/feed")({
 });
 
 function FeedPage() {
-  return (
-    <Suspense>
-      <FeedContentInner />
-    </Suspense>
-  );
-}
-
-function FeedContentInner() {
   const { count, noAutoGenerate } = Route.useSearch();
 
   const { results, status, loadMore } = usePaginatedQuery(
@@ -53,9 +42,7 @@ function FeedContentInner() {
     {},
     { initialNumItems: 10 },
   );
-  const { data: lastGeneratedAt } = useSuspenseQuery(
-    convexQuery(api.feed.queries.getLastGeneratedAt, {}),
-  );
+  const lastGeneratedAt = useConvexQuery(api.feed.queries.getLastGeneratedAt);
   const generateFeed = useAction(api.feed.generation.generate);
 
   const { generating, error, generate, isRateLimited } = useAutoGenerate(

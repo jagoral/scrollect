@@ -179,7 +179,13 @@
   {
     "title": "Standardize feed page on Convex-native data fetching",
     "description": "The feed page (apps/web/src/routes/_authenticated/feed.tsx) uses two different data-fetching strategies: Convex's native usePaginatedQuery (real-time via WebSocket) for posts, and TanStack Query's useSuspenseQuery (via convexQuery adapter) for lastGeneratedAt. The saved page uses only Convex-native. This means data flows through two separate cache layers with different freshness semantics. The route loader blocks navigation by pre-fetching lastGeneratedAt via ensureQueryData, but posts arrive reactively regardless. Fix: use Convex's useQuery for lastGeneratedAt instead of useSuspenseQuery. This eliminates the TanStack Query layer for this field and gives all data consistent real-time reactivity. Files: apps/web/src/routes/_authenticated/feed.tsx (lines 23-26, 51-58), apps/web/src/routes/_authenticated/saved.tsx (lines 18-22). RICE: 2.0, Eisenhower: Q2.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "Convex's useQuery returns undefined while loading, which naturally maps to 'still loading' semantics in downstream hooks. No additional loading state management needed when migrating from useSuspenseQuery.",
+      "When both Convex's useQuery and TanStack Query's useQuery are needed in the same file, alias the less-common one (e.g., useQuery as useConvexQuery). If this pattern spreads, establish a project convention.",
+      "Removing a useSuspenseQuery also removes the need for a Suspense boundary wrapper — flatten the component tree when nothing suspends anymore.",
+      "Route loaders with ensureQueryData are unnecessary for Convex-native useQuery since data arrives via WebSocket subscription. Removing the loader eliminates navigation blocking without losing data freshness.",
+      "TanStack Query's useQuery with convexQuery adapter is still appropriate for conditional/skip queries (e.g., tags batch with results.length > 0 guard) — don't force everything to Convex-native if the skip pattern is needed."
+    ]
   }
 ]
