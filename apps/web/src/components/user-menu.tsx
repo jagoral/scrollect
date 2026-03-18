@@ -1,8 +1,8 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { LogOut, User } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { LogOut, Settings, User } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -24,8 +24,8 @@ export default function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <User className="h-3 w-3" />
+        <div className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <User className="size-3" />
         </div>
         <span className="max-w-[120px] truncate">{user?.name}</span>
       </DropdownMenuTrigger>
@@ -37,6 +37,11 @@ export default function UserMenu() {
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link to="/settings" />}>
+            <Settings />
+            Settings
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
@@ -50,7 +55,7 @@ export default function UserMenu() {
               });
             }}
           >
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut />
             Sign Out
           </DropdownMenuItem>
         </DropdownMenuGroup>

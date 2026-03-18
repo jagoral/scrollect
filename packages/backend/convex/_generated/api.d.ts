@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as account from "../account.js";
+import type * as accountActions from "../accountActions.js";
 import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as chunking from "../chunking.js";
@@ -64,6 +66,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  account: typeof account;
+  accountActions: typeof accountActions;
   auth: typeof auth;
   bookmarks: typeof bookmarks;
   chunking: typeof chunking;
