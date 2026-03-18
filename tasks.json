@@ -92,8 +92,15 @@
   {
     "title": "Add error recovery for failed document deletion (stuck in 'deleting' status)",
     "description": "The deleteDocument action (packages/backend/convex/documentActions.ts lines 34-84) sets document status to 'deleting', then deletes vectors from Qdrant and cascade-deletes Convex records. If any step throws after the status change, the catch block re-throws without reverting the status. The document is permanently stuck in 'deleting' with no recovery: the retry mutation (documents.ts:572) only handles status='error', resumeProcessing (resume.ts:20) also checks for 'error' and returns early. The only fix is manual DB intervention. Fix: in the catch block, set status to 'error' with failedAt='deleting'. Add 'deleting' to the failedAtStage validator. Handle 'deleting' in resumeProcessing by re-scheduling deleteDocument. Files: packages/backend/convex/documentActions.ts (lines 34-84), packages/backend/convex/documents.ts (line 561-587 retry), packages/backend/convex/pipeline/resume.ts (lines 12-103). RICE: 6.0, Eisenhower: Q2.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "When adding error recovery to Convex actions, wrap the recovery mutation (e.g., updateStatus to 'error') in its own try-catch inside the outer catch block so a recovery failure doesn't mask the original error.",
+      "In this codebase, userId is v.string() not v.id('user') — always check schema.ts before using Id<> types for userId fields.",
+      "When an internal action needs to perform the same work as a user-facing action but runs from the scheduler (no auth context), create a separate internalAction that reads userId from the document itself rather than from auth.",
+      "Extract shared logic into module-private helper functions (not exported) to avoid duplication between user-facing and internal variants of the same operation. Pass pre-fetched data as parameters to avoid redundant queries.",
+      "Qdrant vector store delete operations are idempotent — they silently ignore missing IDs — making deletion retries safe even after partial completion.",
+      "When a recovery catch block might operate on an already-deleted document (e.g., cascadeDeleteDocument ran but a later step failed), log a distinguishing event field so operators can tell 'recovery failed because document is gone (OK)' from 'recovery failed for unknown reason (not OK)'."
+    ]
   },
   {
     "title": "Add cleanup to account-deletion E2E tests",

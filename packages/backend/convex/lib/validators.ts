@@ -28,6 +28,7 @@ export const failedAtStage = v.union(
   v.literal("chunking"),
   v.literal("embedding"),
   v.literal("summarizing"),
+  v.literal("deleting"),
 );
 
 export const reactionType = v.union(v.literal("like"), v.literal("dislike"));
