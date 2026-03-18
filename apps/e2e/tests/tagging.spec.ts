@@ -125,9 +125,11 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
     await page.locator('[data-testid="add-tag-button"]').click();
     await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
 
-    // The tag should appear as an existing option (not "Create" since it already exists)
+    // The tag should appear as an existing option (not "Create" since it already exists).
+    // Allow extra time for the Convex subscription to deliver the allUserTags data
+    // after the full-page navigation.
     await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
-      timeout: 5000,
+      timeout: 10000,
     });
     await page.locator('[data-testid="tag-option-existing-tag-test"]').click();
     await expect(

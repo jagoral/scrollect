@@ -27,6 +27,7 @@ import type * as feed_selectionLogic from "../feed/selectionLogic.js";
 import type * as feed_validation from "../feed/validation.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
+import type * as lib_fileSizeLimits from "../lib/fileSizeLimits.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_logging from "../lib/logging.js";
 import type * as lib_rateLimitChecks from "../lib/rateLimitChecks.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   "feed/validation": typeof feed_validation;
   healthCheck: typeof healthCheck;
   http: typeof http;
+  "lib/fileSizeLimits": typeof lib_fileSizeLimits;
   "lib/functions": typeof lib_functions;
   "lib/logging": typeof lib_logging;
   "lib/rateLimitChecks": typeof lib_rateLimitChecks;
