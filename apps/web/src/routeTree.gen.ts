@@ -8,269 +8,271 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as TermsAndConditionsRouteImport } from "./routes/terms-and-conditions";
-import { Route as SigninRouteImport } from "./routes/signin";
-import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy";
-import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as AuthenticatedUploadRouteImport } from "./routes/_authenticated/upload";
-import { Route as AuthenticatedSettingsRouteImport } from "./routes/_authenticated/settings";
-import { Route as AuthenticatedSavedRouteImport } from "./routes/_authenticated/saved";
-import { Route as AuthenticatedFeedRouteImport } from "./routes/_authenticated/feed";
-import { Route as AuthenticatedLibraryIndexRouteImport } from "./routes/_authenticated/library/index";
-import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
-import { Route as AuthenticatedLibraryDocumentIdRouteImport } from "./routes/_authenticated/library/$documentId";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
+import { Route as SigninRouteImport } from './routes/signin'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/saved'
+import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
+import { Route as AuthenticatedLibraryIndexRouteImport } from './routes/_authenticated/library/index'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthenticatedLibraryDocumentIdRouteImport } from './routes/_authenticated/library/$documentId'
 
 const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
-  id: "/terms-and-conditions",
-  path: "/terms-and-conditions",
+  id: '/terms-and-conditions',
+  path: '/terms-and-conditions',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const SigninRoute = SigninRouteImport.update({
-  id: "/signin",
-  path: "/signin",
+  id: '/signin',
+  path: '/signin',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
-  id: "/privacy-policy",
-  path: "/privacy-policy",
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: "/_authenticated",
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
-  id: "/upload",
-  path: "/upload",
+  id: '/upload',
+  path: '/upload',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
 const AuthenticatedSavedRoute = AuthenticatedSavedRouteImport.update({
-  id: "/saved",
-  path: "/saved",
+  id: '/saved',
+  path: '/saved',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
 const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
-  id: "/feed",
-  path: "/feed",
+  id: '/feed',
+  path: '/feed',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
-const AuthenticatedLibraryIndexRoute = AuthenticatedLibraryIndexRouteImport.update({
-  id: "/library/",
-  path: "/library/",
-  getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
+const AuthenticatedLibraryIndexRoute =
+  AuthenticatedLibraryIndexRouteImport.update({
+    id: '/library/',
+    path: '/library/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: "/api/auth/$",
-  path: "/api/auth/$",
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
-} as any);
-const AuthenticatedLibraryDocumentIdRoute = AuthenticatedLibraryDocumentIdRouteImport.update({
-  id: "/library/$documentId",
-  path: "/library/$documentId",
-  getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
+const AuthenticatedLibraryDocumentIdRoute =
+  AuthenticatedLibraryDocumentIdRouteImport.update({
+    id: '/library/$documentId',
+    path: '/library/$documentId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/privacy-policy": typeof PrivacyPolicyRoute;
-  "/signin": typeof SigninRoute;
-  "/terms-and-conditions": typeof TermsAndConditionsRoute;
-  "/feed": typeof AuthenticatedFeedRoute;
-  "/saved": typeof AuthenticatedSavedRoute;
-  "/settings": typeof AuthenticatedSettingsRoute;
-  "/upload": typeof AuthenticatedUploadRoute;
-  "/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/library/": typeof AuthenticatedLibraryIndexRoute;
+  '/': typeof IndexRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/signin': typeof SigninRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/feed': typeof AuthenticatedFeedRoute
+  '/saved': typeof AuthenticatedSavedRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/upload': typeof AuthenticatedUploadRoute
+  '/library/$documentId': typeof AuthenticatedLibraryDocumentIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/library/': typeof AuthenticatedLibraryIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/privacy-policy": typeof PrivacyPolicyRoute;
-  "/signin": typeof SigninRoute;
-  "/terms-and-conditions": typeof TermsAndConditionsRoute;
-  "/feed": typeof AuthenticatedFeedRoute;
-  "/saved": typeof AuthenticatedSavedRoute;
-  "/settings": typeof AuthenticatedSettingsRoute;
-  "/upload": typeof AuthenticatedUploadRoute;
-  "/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/library": typeof AuthenticatedLibraryIndexRoute;
+  '/': typeof IndexRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/signin': typeof SigninRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/feed': typeof AuthenticatedFeedRoute
+  '/saved': typeof AuthenticatedSavedRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/upload': typeof AuthenticatedUploadRoute
+  '/library/$documentId': typeof AuthenticatedLibraryDocumentIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/library': typeof AuthenticatedLibraryIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/_authenticated": typeof AuthenticatedRouteWithChildren;
-  "/privacy-policy": typeof PrivacyPolicyRoute;
-  "/signin": typeof SigninRoute;
-  "/terms-and-conditions": typeof TermsAndConditionsRoute;
-  "/_authenticated/feed": typeof AuthenticatedFeedRoute;
-  "/_authenticated/saved": typeof AuthenticatedSavedRoute;
-  "/_authenticated/settings": typeof AuthenticatedSettingsRoute;
-  "/_authenticated/upload": typeof AuthenticatedUploadRoute;
-  "/_authenticated/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/_authenticated/library/": typeof AuthenticatedLibraryIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/signin': typeof SigninRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/_authenticated/feed': typeof AuthenticatedFeedRoute
+  '/_authenticated/saved': typeof AuthenticatedSavedRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/_authenticated/library/$documentId': typeof AuthenticatedLibraryDocumentIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_authenticated/library/': typeof AuthenticatedLibraryIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/privacy-policy"
-    | "/signin"
-    | "/terms-and-conditions"
-    | "/feed"
-    | "/saved"
-    | "/settings"
-    | "/upload"
-    | "/library/$documentId"
-    | "/api/auth/$"
-    | "/library/";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/privacy-policy'
+    | '/signin'
+    | '/terms-and-conditions'
+    | '/feed'
+    | '/saved'
+    | '/settings'
+    | '/upload'
+    | '/library/$documentId'
+    | '/api/auth/$'
+    | '/library/'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/privacy-policy"
-    | "/signin"
-    | "/terms-and-conditions"
-    | "/feed"
-    | "/saved"
-    | "/settings"
-    | "/upload"
-    | "/library/$documentId"
-    | "/api/auth/$"
-    | "/library";
+    | '/'
+    | '/privacy-policy'
+    | '/signin'
+    | '/terms-and-conditions'
+    | '/feed'
+    | '/saved'
+    | '/settings'
+    | '/upload'
+    | '/library/$documentId'
+    | '/api/auth/$'
+    | '/library'
   id:
-    | "__root__"
-    | "/"
-    | "/_authenticated"
-    | "/privacy-policy"
-    | "/signin"
-    | "/terms-and-conditions"
-    | "/_authenticated/feed"
-    | "/_authenticated/saved"
-    | "/_authenticated/settings"
-    | "/_authenticated/upload"
-    | "/_authenticated/library/$documentId"
-    | "/api/auth/$"
-    | "/_authenticated/library/";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/privacy-policy'
+    | '/signin'
+    | '/terms-and-conditions'
+    | '/_authenticated/feed'
+    | '/_authenticated/saved'
+    | '/_authenticated/settings'
+    | '/_authenticated/upload'
+    | '/_authenticated/library/$documentId'
+    | '/api/auth/$'
+    | '/_authenticated/library/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
-  PrivacyPolicyRoute: typeof PrivacyPolicyRoute;
-  SigninRoute: typeof SigninRoute;
-  TermsAndConditionsRoute: typeof TermsAndConditionsRoute;
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
+  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  SigninRoute: typeof SigninRoute
+  TermsAndConditionsRoute: typeof TermsAndConditionsRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/terms-and-conditions": {
-      id: "/terms-and-conditions";
-      path: "/terms-and-conditions";
-      fullPath: "/terms-and-conditions";
-      preLoaderRoute: typeof TermsAndConditionsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/signin": {
-      id: "/signin";
-      path: "/signin";
-      fullPath: "/signin";
-      preLoaderRoute: typeof SigninRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/privacy-policy": {
-      id: "/privacy-policy";
-      path: "/privacy-policy";
-      fullPath: "/privacy-policy";
-      preLoaderRoute: typeof PrivacyPolicyRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_authenticated": {
-      id: "/_authenticated";
-      path: "";
-      fullPath: "/";
-      preLoaderRoute: typeof AuthenticatedRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_authenticated/upload": {
-      id: "/_authenticated/upload";
-      path: "/upload";
-      fullPath: "/upload";
-      preLoaderRoute: typeof AuthenticatedUploadRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/settings": {
-      id: "/_authenticated/settings";
-      path: "/settings";
-      fullPath: "/settings";
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/saved": {
-      id: "/_authenticated/saved";
-      path: "/saved";
-      fullPath: "/saved";
-      preLoaderRoute: typeof AuthenticatedSavedRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/feed": {
-      id: "/_authenticated/feed";
-      path: "/feed";
-      fullPath: "/feed";
-      preLoaderRoute: typeof AuthenticatedFeedRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/library/": {
-      id: "/_authenticated/library/";
-      path: "/library";
-      fullPath: "/library/";
-      preLoaderRoute: typeof AuthenticatedLibraryIndexRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/api/auth/$": {
-      id: "/api/auth/$";
-      path: "/api/auth/$";
-      fullPath: "/api/auth/$";
-      preLoaderRoute: typeof ApiAuthSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_authenticated/library/$documentId": {
-      id: "/_authenticated/library/$documentId";
-      path: "/library/$documentId";
-      fullPath: "/library/$documentId";
-      preLoaderRoute: typeof AuthenticatedLibraryDocumentIdRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
+    '/terms-and-conditions': {
+      id: '/terms-and-conditions'
+      path: '/terms-and-conditions'
+      fullPath: '/terms-and-conditions'
+      preLoaderRoute: typeof TermsAndConditionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/upload': {
+      id: '/_authenticated/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof AuthenticatedUploadRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/saved': {
+      id: '/_authenticated/saved'
+      path: '/saved'
+      fullPath: '/saved'
+      preLoaderRoute: typeof AuthenticatedSavedRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/feed': {
+      id: '/_authenticated/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof AuthenticatedFeedRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/library/': {
+      id: '/_authenticated/library/'
+      path: '/library'
+      fullPath: '/library/'
+      preLoaderRoute: typeof AuthenticatedLibraryIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/library/$documentId': {
+      id: '/_authenticated/library/$documentId'
+      path: '/library/$documentId'
+      fullPath: '/library/$documentId'
+      preLoaderRoute: typeof AuthenticatedLibraryDocumentIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute;
-  AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute;
-  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute;
-  AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute;
-  AuthenticatedLibraryDocumentIdRoute: typeof AuthenticatedLibraryDocumentIdRoute;
-  AuthenticatedLibraryIndexRoute: typeof AuthenticatedLibraryIndexRoute;
+  AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
+  AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
+  AuthenticatedLibraryDocumentIdRoute: typeof AuthenticatedLibraryDocumentIdRoute
+  AuthenticatedLibraryIndexRoute: typeof AuthenticatedLibraryIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -280,11 +282,11 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
   AuthenticatedLibraryDocumentIdRoute: AuthenticatedLibraryDocumentIdRoute,
   AuthenticatedLibraryIndexRoute: AuthenticatedLibraryIndexRoute,
-};
+}
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
-);
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -293,16 +295,16 @@ const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx";
-import type { createStart } from "@tanstack/react-start";
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true;
-    router: Awaited<ReturnType<typeof getRouter>>;
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
   }
 }

@@ -55,6 +55,11 @@ test.describe("Learning goal - document detail (seeded account)", () => {
     await page.goto(currentUrl);
     await page.waitForLoadState("networkidle");
 
+    // Wait for the document page to fully load (Convex subscription must reconnect)
+    await expect(page.locator('[data-testid="learning-goal-section"]')).toBeVisible({
+      timeout: 15000,
+    });
+
     const reloadedTextarea = page.locator('[data-testid="learning-goal-textarea"]');
     await expect(reloadedTextarea).toHaveValue(goal, { timeout: 10000 });
   });
@@ -79,6 +84,11 @@ test.describe("Learning goal - document detail (seeded account)", () => {
     const currentUrl = page.url();
     await page.goto(currentUrl);
     await page.waitForLoadState("networkidle");
+
+    // Wait for the document page to fully load (Convex subscription must reconnect)
+    await expect(page.locator('[data-testid="learning-goal-section"]')).toBeVisible({
+      timeout: 15000,
+    });
 
     const reloadedTextarea = page.locator('[data-testid="learning-goal-textarea"]');
     await expect(reloadedTextarea).toHaveValue("", { timeout: 10000 });
