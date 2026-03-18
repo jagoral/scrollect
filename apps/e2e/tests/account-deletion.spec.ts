@@ -1,18 +1,27 @@
 import { test, expect } from "@playwright/test";
 
-import { signUp } from "./helpers";
+import { signUp, cleanupTestData } from "./helpers";
 
 test.describe("Account deletion", () => {
   test.setTimeout(120000);
 
-  test("user can delete their account via settings page", async ({ page }) => {
-    const { email } = await signUp(page);
+  let ephemeralEmail: string;
 
+  test.beforeEach(async ({ page }) => {
+    const { email } = await signUp(page);
+    ephemeralEmail = email;
+  });
+
+  test.afterEach(async () => {
+    await cleanupTestData(ephemeralEmail);
+  });
+
+  test("user can delete their account via settings page", async ({ page }) => {
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
     await expect(page.getByRole("heading", { name: /settings/i })).toBeVisible();
-    await expect(page.getByText(email)).toBeVisible();
+    await expect(page.getByText(ephemeralEmail)).toBeVisible();
     await expect(page.getByRole("heading", { name: /danger zone/i })).toBeVisible();
 
     await page.getByTestId("delete-account-button").click();
@@ -37,8 +46,6 @@ test.describe("Account deletion", () => {
   });
 
   test("cancel button closes the dialog without deleting", async ({ page }) => {
-    await signUp(page);
-
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -54,8 +61,6 @@ test.describe("Account deletion", () => {
   });
 
   test("confirmation input resets when dialog is reopened", async ({ page }) => {
-    await signUp(page);
-
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 

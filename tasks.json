@@ -110,8 +110,12 @@
   {
     "title": "Add cleanup to account-deletion E2E tests",
     "description": "apps/e2e/tests/account-deletion.spec.ts has 3 tests and zero afterEach/afterAll cleanup. Each test calls signUp(page) but only the first test self-cleans by deleting the account in the test flow. The other two tests ('cancel button closes dialog' and 'confirmation input resets when reopened') create accounts that persist indefinitely. On the shared dev deployment, every local run accumulates 2 orphaned accounts. This violates the project's testing convention in AGENTS.md. Fix: add afterEach with cleanupTestData. Track ephemeralEmail and clean up after each test. Files: apps/e2e/tests/account-deletion.spec.ts. RICE: 6.0, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "When a test already performs the cleanup action (e.g., account deletion), the afterEach cleanupTestData call on an already-deleted account is harmless — the helper logs warnings but doesn't throw. No conditional cleanup needed.",
+      "Extract signUp into beforeEach and track ephemeralEmail at describe scope to share across all tests. This eliminates duplicate signUp calls and ensures every test gets a fresh account with guaranteed cleanup.",
+      "The cleanupTestData helper calls /api/e2e-cleanup which gracefully handles non-existent users, making it safe to call unconditionally in afterEach even when the test itself deletes the account."
+    ]
   },
   {
     "title": "Add E2E test coverage for file upload size limits",
