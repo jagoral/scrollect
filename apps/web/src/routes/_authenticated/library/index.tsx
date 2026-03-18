@@ -5,12 +5,16 @@ import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { FileText, Upload } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
 import { TagFilterBar, TagList, buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+type LibrarySearch = {
+  tags?: string[];
+};
 
 export const Route = createFileRoute("/_authenticated/library/")({
   loader: async ({ context }) => {
@@ -22,6 +26,17 @@ export const Route = createFileRoute("/_authenticated/library/")({
   head: () => ({
     meta: [{ title: "Library | Scrollect" }],
   }),
+  validateSearch: (search: Record<string, unknown>): LibrarySearch => {
+    const raw = search.tags;
+    if (Array.isArray(raw)) {
+      const tags = [...new Set(raw.filter((t): t is string => typeof t === "string"))];
+      return tags.length > 0 ? { tags } : {};
+    }
+    if (typeof raw === "string" && raw.length > 0) {
+      return { tags: [raw] };
+    }
+    return {};
+  },
   component: LibraryPage,
 });
 
@@ -32,7 +47,9 @@ function LibraryPage() {
 }
 
 function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const { tags: tagsParam } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const selectedTags = useMemo(() => new Set(tagsParam ?? []), [tagsParam]);
 
   const documentIds = useMemo(() => documents.map((d) => d._id as Id<"documents">), [documents]);
 
@@ -55,17 +72,24 @@ function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
     });
   }, [documents, selectedTags, docTagMap]);
 
-  const handleToggleTag = (tagName: string) => {
-    setSelectedTags((prev) => {
-      const next = new Set(prev);
-      if (next.has(tagName)) {
-        next.delete(tagName);
-      } else {
-        next.add(tagName);
-      }
-      return next;
-    });
-  };
+  const handleToggleTag = useCallback(
+    (tagName: string) => {
+      navigate({
+        search: (prev) => {
+          const current = new Set((prev as LibrarySearch).tags ?? []);
+          if (current.has(tagName)) current.delete(tagName);
+          else current.add(tagName);
+          const tags = [...current];
+          return { ...prev, tags: tags.length > 0 ? tags : undefined };
+        },
+      });
+    },
+    [navigate],
+  );
+
+  const handleClearTags = useCallback(() => {
+    navigate({ search: (prev) => ({ ...prev, tags: undefined }) });
+  }, [navigate]);
 
   if (documents.length === 0) {
     return (
@@ -110,7 +134,7 @@ function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
             allTags={tagOptions}
             selectedTags={selectedTags}
             onToggle={handleToggleTag}
-            onClear={() => setSelectedTags(new Set())}
+            onClear={handleClearTags}
           />
         </div>
       )}

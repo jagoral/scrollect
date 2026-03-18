@@ -76,8 +76,14 @@
   {
     "title": "Move library tag filter state from useState to URL search params",
     "description": "The library page (apps/web/src/routes/_authenticated/library/index.tsx line 35) stores tag filter selection in useState<Set<string>>. When a user filters documents by tags, clicks a document, and navigates back, the filter is lost because LibraryContent remounts with an empty Set. This is a frustrating UX regression in a core workflow. Fix: move selectedTags from useState to URL search params using the route's validateSearch and Route.useSearch(). Replace setSelectedTags with useNavigate calls that update search params. The filter state then survives navigation, is shareable via URL, and integrates with browser history. Files: apps/web/src/routes/_authenticated/library/index.tsx (line 35). RICE: 7.0, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "Use Route.useNavigate() instead of the imported useNavigate from @tanstack/react-router for route-scoped type safety on search params — it infers the correct search type automatically.",
+      "When updating URL search params via navigate(), read from the prev callback parameter rather than closing over component state. This eliminates stale-closure risks on rapid interactions and removes the state dependency from the handler.",
+      "TanStack Router's validateSearch should handle both single string values (?tags=foo) and array values (?tags=foo&tags=bar) since URL params can arrive in either form depending on how the user shares the URL.",
+      "Deduplicate array values in validateSearch to keep URLs clean — a Set in the component handles duplicates at runtime, but the URL itself should be canonical.",
+      "useCallback for navigate-based handlers is worthwhile since the navigate function reference from Route.useNavigate() is stable, making the callback dependency array minimal ([navigate])."
+    ]
   },
   {
     "title": "Add error recovery for failed document deletion (stuck in 'deleting' status)",
