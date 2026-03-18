@@ -1,0 +1,42 @@
+name: Cleanup Convex Preview Deployments
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # Daily at 2:00 AM UTC
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete all preview deployments
+        env:
+          CONVEX_ACCESS_TOKEN: ${{ secrets.CONVEX_ACCESS_TOKEN }}
+          CONVEX_PROJECT_ID: "1771561"
+        run: |
+          DEPLOYMENTS=$(curl -sf \
+            "https://api.convex.dev/v1/projects/${CONVEX_PROJECT_ID}/list_deployments?deploymentType=preview" \
+            -H "Authorization: Bearer ${CONVEX_ACCESS_TOKEN}")
+
+          COUNT=$(echo "$DEPLOYMENTS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+          echo "Found $COUNT preview deployments"
+
+          if [ "$COUNT" = "0" ]; then
+            echo "Nothing to clean up"
+            exit 0
+          fi
+
+          echo "$DEPLOYMENTS" | python3 -c "import json,sys;[print(d['name']) for d in json.load(sys.stdin)]" | \
+            while IFS= read -r name; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                -X POST "https://api.convex.dev/v1/deployments/${name}/delete" \
+                -H "Authorization: Bearer ${CONVEX_ACCESS_TOKEN}" \
+                -H "Content-Type: application/json")
+              if [ "$STATUS" = "200" ]; then
+                echo "Deleted: $name"
+              else
+                echo "::warning::Failed to delete $name (HTTP $STATUS)"
+              fi
+            done
+
+          echo "Cleanup complete"
