@@ -195,15 +195,17 @@ export const summarizeDocument = internalAction({
         summaries: sectionDbRecords,
       });
 
+      const upsertStart = Date.now();
+      await summaryStore.upsert([docPoint, ...sectionPoints]);
+      evt.set("upsertDurationMs", Date.now() - upsertStart);
+      evt.set("vectorsUpserted", 1 + sectionPoints.length);
+
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
         status: "ready",
         summary: docSummary,
         summaryEmbeddingId: docEmbeddingId,
       });
-
-      await summaryStore.upsert([docPoint, ...sectionPoints]);
-      evt.set("vectorsUpserted", 1 + sectionPoints.length);
 
       await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
     } catch (error) {

@@ -14,5 +14,6 @@ import { components } from "../_generated/api";
  */
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
   documentUpload: { kind: "fixed window", rate: 10, period: HOUR },
+  uploadUrlGeneration: { kind: "fixed window", rate: 20, period: HOUR },
   feedGeneration: { kind: "fixed window", rate: 5, period: HOUR },
 });

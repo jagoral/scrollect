@@ -14,14 +14,24 @@
   {
     "title": "Reorder summarization pipeline: upsert vectors before marking document ready",
     "description": "In packages/backend/convex/pipeline/summarizing.ts, line 198 sets the document status to 'ready' BEFORE line 205 performs summaryStore.upsert() to write vectors to Qdrant. If the Qdrant upsert fails or the action times out between those two lines, the document is permanently marked ready with a summaryEmbeddingId pointing to a vector that was never written. Feed generation's semanticSelect will silently fail and fall back to random sampling. Fix: move summaryStore.upsert() call BEFORE documents.updateStatus that sets 'ready'. The upsert is idempotent (same deterministic UUIDs). Corrected ordering: (1) delete stale vectors, (2) delete/create section summaries in DB, (3) upsert new vectors to Qdrant, (4) THEN set status to 'ready'. This is a line-reorder fix. Files: packages/backend/convex/pipeline/summarizing.ts (lines 198-206). RICE: 40.0, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "In Convex actions that perform external I/O (e.g., Qdrant vector upserts) before a state transition, always complete the external operation BEFORE updating the document status. External calls are not transactional with Convex mutations — if the external call fails after a status update, the document is left in an inconsistent state.",
+      "Qdrant upserts are idempotent when using deterministic UUIDs (convexIdToUuid), making it safe to retry or reorder without risk of duplicate vectors.",
+      "When reordering operations in pipeline stages, check for partial side-effect windows: if stale vector deletion happens before the new upsert, a failure between them leaves Qdrant with neither old nor new vectors. The 'error' status prevents serving, but retry logic must handle this intermediate state.",
+      "Add timing instrumentation (e.g., upsertDurationMs) around external I/O calls in pipeline actions — this matches the convention in embedBatch and aids debugging slow Qdrant operations."
+    ]
   },
   {
     "title": "Fix double rate-limit on document file upload path",
     "description": "The generateUploadUrl mutation (packages/backend/convex/documents.ts lines 51-65) calls rateLimiter.limit(), consuming one token. When the client then calls create or createFromText with the upload result, enforceDocumentUploadLimit (line 79) consumes a second token from the same bucket. A single logical upload costs 2 tokens instead of 1. The effective upload limit is 5/hour, not the configured 10/hour. The createFromUrl path only hits the rate limiter once (line 120), making behavior inconsistent: URL imports get 10/hour, file uploads get 5/hour. Fix: remove the rate-limit check from generateUploadUrl and keep it only in create/createFromText/createFromUrl mutations. Files: packages/backend/convex/documents.ts (lines 51-65 generateUploadUrl, lines 67-105 create, lines 157-195 createFromText). RICE: 24.0, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "When a multi-step flow (e.g., generateUploadUrl → create) spans multiple mutations, rate limiting should be applied only at the final mutation that commits the resource — not at preparatory steps. Otherwise a single logical operation consumes multiple tokens.",
+      "Even when removing a rate limit from one endpoint, consider abuse vectors: generateUploadUrl without any rate limit lets authenticated users spam upload URL generation and fill storage with orphaned blobs. A separate, higher-ceiling rate-limit bucket (e.g., uploadUrlGeneration at 20/hour) prevents abuse without double-counting the document creation limit.",
+      "The Convex RateLimiter from @convex-dev/rate-limiter supports multiple named buckets in a single instance. Adding a new bucket is a one-line config change in rateLimitConfig.ts — no schema migration needed.",
+      "The frontend handles rate-limit errors generically via the kind: 'RateLimited' pattern in lib/rate-limit-error.ts — changing the rate-limit name field does not require frontend changes."
+    ]
   },
   {
     "title": "Pin seeded E2E test project to workers: 1",

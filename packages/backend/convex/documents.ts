@@ -52,11 +52,11 @@ export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireAuth(ctx);
-    const result = await rateLimiter.limit(ctx, "documentUpload", { key: user._id });
+    const result = await rateLimiter.limit(ctx, "uploadUrlGeneration", { key: user._id });
     if (!result.ok) {
       throw new ConvexError({
         kind: "RateLimited" as const,
-        name: "documentUpload",
+        name: "uploadUrlGeneration",
         retryAfter: result.retryAfter,
       });
     }
