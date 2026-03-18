@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import { getRateLimitMessage, isRateLimitError } from "@/lib/rate-limit-error";
+
 const STALE_THRESHOLD_MS = 3_600_000; // 1 hour
 
 /**
@@ -13,6 +15,7 @@ export function useAutoGenerate(
 ) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const triggered = useRef(false);
 
   useEffect(() => {
@@ -27,12 +30,32 @@ export function useAutoGenerate(
       setGenerating(true);
       setError(null);
       generateFeed(options?.count ? { count: options.count } : {})
-        .catch((e) => {
-          setError(e instanceof Error ? e.message : "Failed to generate feed");
+        .catch((e: unknown) => {
+          if (isRateLimitError(e)) {
+            setError(getRateLimitMessage(e)!);
+            setRateLimitedUntil(Date.now() + e.data.retryAfter);
+          } else {
+            setError(e instanceof Error ? e.message : "Failed to generate feed");
+          }
         })
         .finally(() => setGenerating(false));
     }
   }, [lastGeneratedAt, generateFeed, options?.disabled, options?.count]);
+
+  useEffect(() => {
+    if (!rateLimitedUntil) return;
+    const remaining = rateLimitedUntil - Date.now();
+    if (remaining <= 0) {
+      setRateLimitedUntil(null);
+      setError(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setRateLimitedUntil(null);
+      setError(null);
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [rateLimitedUntil]);
 
   async function manualGenerate() {
     setGenerating(true);
@@ -40,11 +63,18 @@ export function useAutoGenerate(
     try {
       await generateFeed(options?.count ? { count: options.count } : {});
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to generate feed");
+      if (isRateLimitError(e)) {
+        setError(getRateLimitMessage(e)!);
+        setRateLimitedUntil(Date.now() + e.data.retryAfter);
+      } else {
+        setError(e instanceof Error ? e.message : "Failed to generate feed");
+      }
     } finally {
       setGenerating(false);
     }
   }
 
-  return { generating, error, generate: manualGenerate };
+  const isRateLimited = rateLimitedUntil !== null && rateLimitedUntil > Date.now();
+
+  return { generating, error, generate: manualGenerate, isRateLimited };
 }

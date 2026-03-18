@@ -1,10 +1,24 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 import { internal } from "./_generated/api";
+import type { MutationCtx } from "./_generated/server";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { requireAuth, optionalAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
+import { rateLimiter } from "./lib/rateLimitConfig";
 import { documentStatus, failedAtStage, fileType, urlFileType } from "./lib/validators";
+
+async function enforceDocumentUploadLimit(ctx: MutationCtx, userId: string, evt: WideEvent) {
+  const { ok, retryAfter } = await rateLimiter.limit(ctx, "documentUpload", { key: userId });
+  if (!ok) {
+    evt.set({ rateLimited: true, endpoint: "documentUpload", retryAfterMs: retryAfter });
+    throw new ConvexError({
+      kind: "RateLimited" as const,
+      name: "documentUpload",
+      retryAfter: retryAfter!,
+    });
+  }
+}
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -26,6 +40,7 @@ export const create = mutation({
     try {
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
+      await enforceDocumentUploadLimit(ctx, user._id, evt);
       const documentId = await ctx.db.insert("documents", {
         title: args.title,
         fileType: args.fileType,
@@ -59,6 +74,10 @@ export const createFromUrl = mutation({
     const evt = new WideEvent("documents.createFromUrl");
     evt.set({ fileType: args.fileType, url: args.url });
     try {
+      const user = await requireAuth(ctx);
+      evt.set("userId", user._id);
+      await enforceDocumentUploadLimit(ctx, user._id, evt);
+
       const parsed = new URL(args.url);
       if (!["http:", "https:"].includes(parsed.protocol)) {
         throw new Error("Only HTTP and HTTPS URLs are supported");
@@ -71,8 +90,6 @@ export const createFromUrl = mutation({
         throw new Error("Local URLs are not allowed");
       }
 
-      const user = await requireAuth(ctx);
-      evt.set("userId", user._id);
       const documentId = await ctx.db.insert("documents", {
         title: args.title ?? args.url,
         fileType: args.fileType,
@@ -107,6 +124,7 @@ export const createFromText = mutation({
     try {
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
+      await enforceDocumentUploadLimit(ctx, user._id, evt);
       const documentId = await ctx.db.insert("documents", {
         title: args.title,
         fileType: "text",
