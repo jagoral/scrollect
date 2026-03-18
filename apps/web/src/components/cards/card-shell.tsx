@@ -224,17 +224,19 @@ export function CardShell({
               View the original source chunk with surrounding context.
             </SheetDescription>
           </SheetHeader>
-          {sheetChildren}
-          <ChunkContextSheetContent
-            postId={post._id}
-            sourceChunkId={post.primarySourceChunkId}
-            sourceDocumentTitle={post.primarySourceDocumentTitle}
-            sectionTitle={post.primarySourceSectionTitle ?? null}
-            pageNumber={post.primarySourcePageNumber ?? null}
-            chunkIndex={post.chunkIndex ?? 0}
-            isOpen={sheetOpen}
-            postType={post.postType}
-          />
+          <div data-testid="source-sheet">
+            {sheetChildren}
+            <ChunkContextSheetContent
+              postId={post._id}
+              sourceChunkId={post.primarySourceChunkId}
+              sourceDocumentTitle={post.primarySourceDocumentTitle}
+              sectionTitle={post.primarySourceSectionTitle ?? null}
+              pageNumber={post.primarySourcePageNumber ?? null}
+              chunkIndex={post.chunkIndex ?? 0}
+              isOpen={sheetOpen}
+              postType={post.postType}
+            />
+          </div>
         </SheetContent>
       </Sheet>
     </>

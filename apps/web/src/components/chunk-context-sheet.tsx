@@ -141,7 +141,7 @@ export function ChunkContextSheetContent({
   const hasMultipleSources = supportingSources.length > 0;
 
   return (
-    <div data-testid="source-sheet" className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
+    <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
       <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-2.5 text-sm text-muted-foreground">
         <FileText className="size-4 shrink-0 text-primary/50" />
         <span className="truncate font-medium">{locationLabel}</span>
