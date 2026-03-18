@@ -18,6 +18,16 @@ export function useAutoGenerate(
   const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const triggered = useRef(false);
 
+  function handleError(e: unknown) {
+    if (isRateLimitError(e)) {
+      const msg = getRateLimitMessage(e);
+      setError(msg);
+      setRateLimitedUntil(Date.now() + e.data.retryAfter);
+    } else {
+      setError(e instanceof Error ? e.message : "Failed to generate feed");
+    }
+  }
+
   useEffect(() => {
     if (options?.disabled) return;
     if (triggered.current) return;
@@ -30,16 +40,10 @@ export function useAutoGenerate(
       setGenerating(true);
       setError(null);
       generateFeed(options?.count ? { count: options.count } : {})
-        .catch((e: unknown) => {
-          if (isRateLimitError(e)) {
-            setError(getRateLimitMessage(e)!);
-            setRateLimitedUntil(Date.now() + e.data.retryAfter);
-          } else {
-            setError(e instanceof Error ? e.message : "Failed to generate feed");
-          }
-        })
+        .catch(handleError)
         .finally(() => setGenerating(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleError uses only stable setters
   }, [lastGeneratedAt, generateFeed, options?.disabled, options?.count]);
 
   useEffect(() => {
@@ -63,12 +67,7 @@ export function useAutoGenerate(
     try {
       await generateFeed(options?.count ? { count: options.count } : {});
     } catch (e) {
-      if (isRateLimitError(e)) {
-        setError(getRateLimitMessage(e)!);
-        setRateLimitedUntil(Date.now() + e.data.retryAfter);
-      } else {
-        setError(e instanceof Error ? e.message : "Failed to generate feed");
-      }
+      handleError(e);
     } finally {
       setGenerating(false);
     }

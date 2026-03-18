@@ -124,16 +124,20 @@ export const generate = action({
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
 
-      const { ok, retryAfter } = await ctx.runMutation(
-        internal.lib.rateLimitChecks.checkFeedGenerationLimit,
+      const rateLimitResult = await ctx.runMutation(
+        internal.lib.rateLimitChecks.enforceFeedGenerationLimit,
         { userId: user._id },
       );
-      if (!ok) {
-        evt.set({ rateLimited: true, endpoint: "feedGeneration", retryAfterMs: retryAfter });
+      if (!rateLimitResult.ok) {
+        evt.set({
+          rateLimited: true,
+          endpoint: "feedGeneration",
+          retryAfterMs: rateLimitResult.retryAfter,
+        });
         throw new ConvexError({
           kind: "RateLimited" as const,
           name: "feedGeneration",
-          retryAfter: retryAfter!,
+          retryAfter: rateLimitResult.retryAfter,
         });
       }
 
