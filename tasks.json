@@ -2,8 +2,14 @@
   {
     "title": "Gate E2E test HTTP endpoints behind environment variable",
     "description": "The HTTP routes /api/e2e-seed, /api/e2e-cleanup, and /api/e2e-reset are registered unconditionally in packages/backend/convex/http.ts (line 36). They are publicly reachable on the production Convex deployment. The only protection is a regex check that the email matches e2e-*@test.scrollect.dev. Since requireEmailVerification is false in auth.ts, an attacker could register a matching email and call e2e-cleanup to delete data. The internal mutations bypass auth entirely. Fix: guard all three routes behind an environment variable check (e.g., if (process.env.ENABLE_E2E_ROUTES !== 'true') return). Only set that variable on dev/staging. Alternatively, require a shared secret header (X-E2E-Secret). Files: packages/backend/convex/http.ts (lines 36-83), packages/backend/convex/testing.ts, packages/backend/convex/testingActions.ts. RICE: 48.0, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "Response.json() returns a single Response instance whose body stream can only be consumed once. Never store a Response at module scope to reuse across requests — use a factory function instead.",
+      "In Convex HTTP actions, prefer the generated httpAction from _generated/server over httpActionGeneric from convex/server for full type safety on ctx.runQuery/runMutation/runAction calls.",
+      "The E2E_EMAIL_PATTERN regex was duplicated across http.ts, testing.ts, and testingActions.ts. Extracted to packages/backend/convex/lib/e2e.ts to keep a single source of truth.",
+      "process.env works in both default Convex runtime and Node runtime for environment variables configured via the Convex dashboard. Reading it inside handlers (not at module scope) ensures changes take effect without redeployment.",
+      "Convex deploy (npx convex dev --once) requires interactive auth — cannot be run in non-interactive terminals. Set ENABLE_E2E_ROUTES=true in the Convex dashboard for dev/staging deployments."
+    ]
   },
   {
     "title": "Reorder summarization pipeline: upsert vectors before marking document ready",
