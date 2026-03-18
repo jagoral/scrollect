@@ -109,13 +109,15 @@ export const embedBatch = internalAction({
       await vectorStore.upsert(points);
       evt.set("upsertDurationMs", Date.now() - t1);
 
-      // Mark each chunk as embedded
-      for (const chunk of validChunks) {
-        await ctx.runMutation(internal.chunks.markEmbedded, {
+      // Mark all chunks as embedded in a single batched mutation
+      const t2 = Date.now();
+      await ctx.runMutation(internal.chunks.markEmbeddedBatch, {
+        chunks: validChunks.map((chunk) => ({
           chunkId: chunk._id,
           embeddingId: convexIdToUuid(chunk._id),
-        });
-      }
+        })),
+      });
+      evt.set("markEmbeddedDurationMs", Date.now() - t2);
 
       // Mark batch complete and check fan-in
       const job = await ctx.runMutation(internal.processingJobs.markBatchComplete, {

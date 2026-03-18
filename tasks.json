@@ -52,8 +52,14 @@
   {
     "title": "Batch markEmbedded mutations in embedBatch action",
     "description": "In packages/backend/convex/pipeline/embedding.ts (lines 112-118), after embedding a batch of chunks, the embedBatch action calls ctx.runMutation(internal.chunks.markEmbedded) in a sequential loop for each chunk. With EMBED_BATCH_SIZE = 100, this means up to 100 sequential mutation round-trips. Even at 10ms per round-trip, 100 sequential calls add 1 second of overhead per batch, and a 500-chunk document has 5 batches, adding 5 seconds to the pipeline. Fix: create a markEmbeddedBatch internal mutation that accepts an array of {chunkId, embeddingId} pairs and patches all chunks in a single transaction. Replace the loop with one call. Files: packages/backend/convex/pipeline/embedding.ts (lines 112-118), packages/backend/convex/chunks.ts (lines 130-141). RICE: 16.0, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "When batching Convex mutations, use Promise.all for independent db.patch calls within a single transaction — patches don't depend on each other and can execute in parallel.",
+      "Keep argument validators consistent across single-item and batch variants of the same mutation (e.g., if embeddingId is v.optional(v.string()) in markEmbedded, the batch version should match).",
+      "Convex mutations have a 8192 document read/write limit per transaction. With EMBED_BATCH_SIZE = 100, batching all patches into one mutation is well within limits, but document this ceiling for future callers.",
+      "When adding returns validators to new functions, add an explicit return null statement — JavaScript functions without explicit return produce undefined, which may not match v.null().",
+      "Add timing instrumentation (e.g., markEmbeddedDurationMs) around batched mutation calls to measure the performance improvement and aid debugging."
+    ]
   },
   {
     "title": "Add pagination to unbounded .collect() user-scoped queries",
