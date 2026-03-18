@@ -186,8 +186,13 @@
   {
     "title": "Consolidate ephemeral account creation in url-ingestion E2E tests",
     "description": "apps/e2e/tests/url-ingestion.spec.ts has 10 test.describe blocks, each with its own beforeEach calling signUp(page). This creates ~20 fresh accounts per run. The signUp helper navigates to /signin, fills 3 fields, clicks create account, waits for redirect (up to 15s per call). Tests tagged @fast that only validate client-side behavior (tab rendering, URL validation, YouTube badge detection) don't need separate accounts. The 4 YouTube URL-format tests each create a new account just to type a URL and check for a badge. Fix: consolidate @fast-tagged blocks to share a single ephemeral account via test.beforeAll. Only blocks that mutate server state need per-test accounts. Cuts ~10 signUp calls per run, saving 60-90s CI time. Files: apps/e2e/tests/url-ingestion.spec.ts. RICE: 3.2, Eisenhower: Q2.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "For @fast E2E tests that only exercise client-side validation (no server mutations), use the seeded account (signIn + SEEDED_USER) instead of ephemeral accounts (signUp + cleanupTestData). This avoids unnecessary account creation overhead and aligns with the Fast test tier convention in AGENTS.md.",
+      "Even when @fast tests are read-only, always include afterEach with resetTestData(SEEDED_USER.email) as a defensive safety net per project convention. The call is cheap (one HTTP POST) and prevents future regressions if someone adds a mutating test to a @fast block.",
+      "The seeded account is created by global-setup.ts which runs as a Playwright project dependency before chromium/seeded projects. No additional setup needed — just signIn with SEEDED_USER credentials.",
+      "url-ingestion.spec.ts runs in the 'chromium' Playwright project (not 'seeded'), which uses parallel workers locally. Since @fast tests are read-only against the seeded account, parallel execution is safe — no race conditions."
+    ]
   },
   {
     "title": "Add pagination to library page document loading",
