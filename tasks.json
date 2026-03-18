@@ -1,0 +1,116 @@
+[
+  {
+    "title": "Gate E2E test HTTP endpoints behind environment variable",
+    "description": "The HTTP routes /api/e2e-seed, /api/e2e-cleanup, and /api/e2e-reset are registered unconditionally in packages/backend/convex/http.ts (line 36). They are publicly reachable on the production Convex deployment. The only protection is a regex check that the email matches e2e-*@test.scrollect.dev. Since requireEmailVerification is false in auth.ts, an attacker could register a matching email and call e2e-cleanup to delete data. The internal mutations bypass auth entirely. Fix: guard all three routes behind an environment variable check (e.g., if (process.env.ENABLE_E2E_ROUTES !== 'true') return). Only set that variable on dev/staging. Alternatively, require a shared secret header (X-E2E-Secret). Files: packages/backend/convex/http.ts (lines 36-83), packages/backend/convex/testing.ts, packages/backend/convex/testingActions.ts. RICE: 48.0, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Reorder summarization pipeline: upsert vectors before marking document ready",
+    "description": "In packages/backend/convex/pipeline/summarizing.ts, line 198 sets the document status to 'ready' BEFORE line 205 performs summaryStore.upsert() to write vectors to Qdrant. If the Qdrant upsert fails or the action times out between those two lines, the document is permanently marked ready with a summaryEmbeddingId pointing to a vector that was never written. Feed generation's semanticSelect will silently fail and fall back to random sampling. Fix: move summaryStore.upsert() call BEFORE documents.updateStatus that sets 'ready'. The upsert is idempotent (same deterministic UUIDs). Corrected ordering: (1) delete stale vectors, (2) delete/create section summaries in DB, (3) upsert new vectors to Qdrant, (4) THEN set status to 'ready'. This is a line-reorder fix. Files: packages/backend/convex/pipeline/summarizing.ts (lines 198-206). RICE: 40.0, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Fix double rate-limit on document file upload path",
+    "description": "The generateUploadUrl mutation (packages/backend/convex/documents.ts lines 51-65) calls rateLimiter.limit(), consuming one token. When the client then calls create or createFromText with the upload result, enforceDocumentUploadLimit (line 79) consumes a second token from the same bucket. A single logical upload costs 2 tokens instead of 1. The effective upload limit is 5/hour, not the configured 10/hour. The createFromUrl path only hits the rate limiter once (line 120), making behavior inconsistent: URL imports get 10/hour, file uploads get 5/hour. Fix: remove the rate-limit check from generateUploadUrl and keep it only in create/createFromText/createFromUrl mutations. Files: packages/backend/convex/documents.ts (lines 51-65 generateUploadUrl, lines 67-105 create, lines 157-195 createFromText). RICE: 24.0, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Pin seeded E2E test project to workers: 1",
+    "description": "The seeded project in apps/e2e/playwright.config.ts sets fullyParallel: false, which only serializes tests within each file. Playwright still distributes files across workers in parallel. The global config sets workers: process.env.CI ? 1 : undefined, so CI is safe but local runs use the default (half CPU cores). All 8 seeded spec files operate on the same shared account (e2e-seeded-account@test.scrollect.dev). When running locally, Playwright can schedule multiple seeded files on different workers simultaneously, causing one file's resetTestData to wipe state mid-test for another file. Fix: add workers: 1 to the seeded project config. This is a 1-line fix. Files: apps/e2e/playwright.config.ts (lines 27-42). RICE: 19.2, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Replace raw <a href> with <Link> in upload toast messages",
+    "description": "All three upload tab components (upload-file-tab.tsx, upload-url-tab.tsx, upload-text-tab.tsx) render success toasts containing <a href='/library'>View in library</a>. These plain HTML anchors trigger a full-page navigation - a complete server round-trip that tears down the React tree, destroys all Convex WebSocket subscriptions, flushes the TanStack Query cache, and forces a full re-bootstrap of the app. In a TanStack Start SPA, internal links must use the Router's <Link> component. Fix: replace <a> tags with TanStack Router's <Link> component in all 3 files. Sonner toasts accept arbitrary React nodes so <Link> works directly. Files: apps/web/src/components/upload/upload-file-tab.tsx (line 90), apps/web/src/components/upload/upload-url-tab.tsx (line 59), apps/web/src/components/upload/upload-text-tab.tsx (line 75). RICE: 16.0, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Batch markEmbedded mutations in embedBatch action",
+    "description": "In packages/backend/convex/pipeline/embedding.ts (lines 112-118), after embedding a batch of chunks, the embedBatch action calls ctx.runMutation(internal.chunks.markEmbedded) in a sequential loop for each chunk. With EMBED_BATCH_SIZE = 100, this means up to 100 sequential mutation round-trips. Even at 10ms per round-trip, 100 sequential calls add 1 second of overhead per batch, and a 500-chunk document has 5 batches, adding 5 seconds to the pipeline. Fix: create a markEmbeddedBatch internal mutation that accepts an array of {chunkId, embeddingId} pairs and patches all chunks in a single transaction. Replace the loop with one call. Files: packages/backend/convex/pipeline/embedding.ts (lines 112-118), packages/backend/convex/chunks.ts (lines 130-141). RICE: 16.0, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Add pagination to unbounded .collect() user-scoped queries",
+    "description": "The documents.list query (packages/backend/convex/documents.ts line 276) uses .collect() with no pagination, returning every document the user has ever uploaded. This query is called on every library page visit and is prefetched in the route loader. tags.deleteTag (packages/backend/convex/tags.ts line 153) collects ALL user documents to scan for tag references. listDocumentsByTag (line 294) does the same. These patterns scale linearly with total document count, not the requested result set. Fix: add pagination to documents.list using Convex's built-in paginationOptsValidator (matching feed.queries.list pattern). For tag-document queries, consider a join table (documentTags with by_tagId and by_documentId indexes). At minimum add .take(limit) guards. Files: packages/backend/convex/documents.ts (line 276), packages/backend/convex/tags.ts (lines 153-156, 294), packages/backend/convex/account.ts (lines 9-14). RICE: 8.0, Eisenhower: Q2.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Replace waitForTimeout with event-driven waits in E2E tests",
+    "description": "Two spec files use arbitrary timeouts violating the project's own anti-flakiness rules in AGENTS.md. feed-interactions.spec.ts (line 58) uses waitForTimeout(500) inside a scroll-to-bottom loop - each iteration sleeps 500ms regardless of content load, up to 5s total dead time. tagging.spec.ts (line 154) uses waitForTimeout(2000) to wait for server confirmation of optimistic data - a flakiness time bomb if mutation takes longer than 2s. Fix for feed-interactions: replace sleep-poll loop with Playwright waitFor checking for end-state element. Fix for tagging: wait for the optimistic-to-confirmed transition by asserting on a stable element state (e.g., toBeEnabled with timeout). Files: apps/e2e/tests/feed-interactions.spec.ts (line 58), apps/e2e/tests/tagging.spec.ts (line 154). RICE: 8.0, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Move library tag filter state from useState to URL search params",
+    "description": "The library page (apps/web/src/routes/_authenticated/library/index.tsx line 35) stores tag filter selection in useState<Set<string>>. When a user filters documents by tags, clicks a document, and navigates back, the filter is lost because LibraryContent remounts with an empty Set. This is a frustrating UX regression in a core workflow. Fix: move selectedTags from useState to URL search params using the route's validateSearch and Route.useSearch(). Replace setSelectedTags with useNavigate calls that update search params. The filter state then survives navigation, is shareable via URL, and integrates with browser history. Files: apps/web/src/routes/_authenticated/library/index.tsx (line 35). RICE: 7.0, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Add error recovery for failed document deletion (stuck in 'deleting' status)",
+    "description": "The deleteDocument action (packages/backend/convex/documentActions.ts lines 34-84) sets document status to 'deleting', then deletes vectors from Qdrant and cascade-deletes Convex records. If any step throws after the status change, the catch block re-throws without reverting the status. The document is permanently stuck in 'deleting' with no recovery: the retry mutation (documents.ts:572) only handles status='error', resumeProcessing (resume.ts:20) also checks for 'error' and returns early. The only fix is manual DB intervention. Fix: in the catch block, set status to 'error' with failedAt='deleting'. Add 'deleting' to the failedAtStage validator. Handle 'deleting' in resumeProcessing by re-scheduling deleteDocument. Files: packages/backend/convex/documentActions.ts (lines 34-84), packages/backend/convex/documents.ts (line 561-587 retry), packages/backend/convex/pipeline/resume.ts (lines 12-103). RICE: 6.0, Eisenhower: Q2.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Add cleanup to account-deletion E2E tests",
+    "description": "apps/e2e/tests/account-deletion.spec.ts has 3 tests and zero afterEach/afterAll cleanup. Each test calls signUp(page) but only the first test self-cleans by deleting the account in the test flow. The other two tests ('cancel button closes dialog' and 'confirmation input resets when reopened') create accounts that persist indefinitely. On the shared dev deployment, every local run accumulates 2 orphaned accounts. This violates the project's testing convention in AGENTS.md. Fix: add afterEach with cleanupTestData. Track ephemeralEmail and clean up after each test. Files: apps/e2e/tests/account-deletion.spec.ts. RICE: 6.0, Eisenhower: Q1.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Add E2E test coverage for file upload size limits",
+    "description": "The most recent commit (69e9991) added file upload size limits with client and server validation but shipped with zero E2E test coverage. The feature adds: empty file rejection (upload-file-tab.tsx line 48), oversized file rejection (lines 53-58), and updated help text (lines 184-188). The existing test for unsupported file types validates type checks but not size checks. The shared fileSizeLimits.ts utility (formatFileSize, getFileSizeLimit) also has no unit tests. Fix: add one E2E test for oversized file rejection using Playwright's synthetic file upload (Buffer.alloc). Add unit tests for formatFileSize boundary conditions. Files: apps/e2e/tests/url-ingestion.spec.ts (missing tests), apps/web/src/components/upload/upload-file-tab.tsx (untested lines 48-59). RICE: 5.0, Eisenhower: Q2.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Reduce feed generation memory footprint: metadata-only loading + bounded history queries",
+    "description": "The generate action (packages/backend/convex/feed/generation.ts lines 162-178) loads ALL chunks including full content text for ALL user documents into memory via sequential ctx.runQuery calls per document. A user with 20 documents averaging 300 chunks = 6000 chunks at ~3KB each = ~18MB in memory. At ~50 documents (~10000 chunks), the action will timeout (10-min wall-clock limit) or OOM. The same pattern repeats for listRecentPostSources, listRecentPosts, and listRecentChunkHashes - all using unbounded .collect() scanning up to 90 days of history. The selection algorithms in sampling.ts and selectionLogic.ts never access the content field - they operate on _id, documentId, sectionTitle, chunkIndex. Content is only needed for 5 seed chunks in discovery.ts:52 and the final selected chunks at generation.ts:337. Fix (two parts): (1) Split loading into two phases - first load chunk metadata without content (new listChunkMetadataForDocument query), then after selection load full content only for the ~15 selected chunks. Reduces memory from O(all_chunks) to O(sample_size). (2) Add limit/pagination to history queries (listRecentPostSources, listRecentChunkHashes) so they return at most a fixed number of results instead of unbounded .collect() over 90 days. Alternatively, use the Qdrant vector store for semantic sampling server-side. Files: packages/backend/convex/feed/generation.ts (lines 162-178), packages/backend/convex/feed/queries.ts (lines 137-155, 147-155, 167-202). RICE: 6.7 (Architecture) / 4.8 (Backend), Eisenhower: Q2.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Batch N+1 reads in feed list query",
+    "description": "The feed.queries.list query (packages/backend/convex/feed/queries.ts lines 36-58) paginates posts but then for every post runs two additional reads: one bookmark lookup via index query and one chunk db.get. With page size 10, that's 20 extra reads per page load. bookmarks.listSaved has the same pattern. These are reactive queries that re-run on data changes, so cost multiplies across connected clients. The document deduplication pattern (lines 32-34) already exists in the same file. Fix: apply the same batching-and-dedup strategy to bookmark lookups and chunk reads. Collect unique primarySourceChunkId values, batch-fetch with Promise.all, build lookup map. Changes reads from O(page_size * 2) to O(unique_chunks + 1). Files: packages/backend/convex/feed/queries.ts (lines 36-58), packages/backend/convex/bookmarks.ts (lines 85-104). RICE: 4.0, Eisenhower: Q3.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Move inline SVG logo to static asset files",
+    "description": "apps/web/src/components/scrollect-logo.tsx contains two components (ScrollectLogo and ScrollectWordmark) with ~31K tokens of inline SVG path data compiled into JavaScript. This file is imported by header.tsx (every page), sign-in-form.tsx, and sign-up-form.tsx. The SVG data must be downloaded as part of the JS bundle, parsed by the JS engine, and constructed as React VDOM elements. A static .svg file would be fetched separately, benefit from HTTP caching, and be rendered natively. Fix: extract SVG content into static .svg files and import using Vite's ?react suffix (to preserve currentColor theming) or as <img> tags. Files: apps/web/src/components/scrollect-logo.tsx (206 lines). RICE: 4.0, Eisenhower: Q3.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Hoist orphaned-tag query outside loop in cascadeDeleteDocument",
+    "description": "In packages/backend/convex/documents.ts (lines 536-553), when deleting a document with tags, the code checks whether each tag is used by other documents. For every tag it re-queries ALL documents belonging to the user via the by_userId index, then scans in memory. If a document has 10 tags and the user has 200 documents, this produces 10 identical full-index queries (2000 document reads) in a single mutation. Fix: hoist the documents query outside the loop so it runs once and is reused for every tag check. Reduces reads from O(T x D) to O(D). Files: packages/backend/convex/documents.ts (lines 536-553). RICE: 4.0, Eisenhower: Q3.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Consolidate ephemeral account creation in url-ingestion E2E tests",
+    "description": "apps/e2e/tests/url-ingestion.spec.ts has 10 test.describe blocks, each with its own beforeEach calling signUp(page). This creates ~20 fresh accounts per run. The signUp helper navigates to /signin, fills 3 fields, clicks create account, waits for redirect (up to 15s per call). Tests tagged @fast that only validate client-side behavior (tab rendering, URL validation, YouTube badge detection) don't need separate accounts. The 4 YouTube URL-format tests each create a new account just to type a URL and check for a badge. Fix: consolidate @fast-tagged blocks to share a single ephemeral account via test.beforeAll. Only blocks that mutate server state need per-test accounts. Cuts ~10 signUp calls per run, saving 60-90s CI time. Files: apps/e2e/tests/url-ingestion.spec.ts. RICE: 3.2, Eisenhower: Q2.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Add pagination to library page document loading",
+    "description": "The library page (apps/web/src/routes/_authenticated/library/index.tsx) calls api.documents.list with no pagination (line 29) and api.tags.getDocumentTagsBatch with every single document ID (line 40). Both queries load eagerly on mount. The route loader blocks navigation until both resolve via ensureQueryData. The feed and saved pages already use usePaginatedQuery for incremental loading but library does not. Fix: switch api.documents.list to usePaginatedQuery with initialNumItems (matching feed/saved pattern). Load tags only for visible page of documents. Reuse existing useInfiniteScroll hook for sentinel element. Makes library load time constant regardless of library size. Files: apps/web/src/routes/_authenticated/library/index.tsx (lines 17-19, 29, 37, 40). RICE: 2.8, Eisenhower: Q2.",
+    "status": "todo",
+    "learnings": []
+  },
+  {
+    "title": "Standardize feed page on Convex-native data fetching",
+    "description": "The feed page (apps/web/src/routes/_authenticated/feed.tsx) uses two different data-fetching strategies: Convex's native usePaginatedQuery (real-time via WebSocket) for posts, and TanStack Query's useSuspenseQuery (via convexQuery adapter) for lastGeneratedAt. The saved page uses only Convex-native. This means data flows through two separate cache layers with different freshness semantics. The route loader blocks navigation by pre-fetching lastGeneratedAt via ensureQueryData, but posts arrive reactively regardless. Fix: use Convex's useQuery for lastGeneratedAt instead of useSuspenseQuery. This eliminates the TanStack Query layer for this field and gives all data consistent real-time reactivity. Files: apps/web/src/routes/_authenticated/feed.tsx (lines 23-26, 51-58), apps/web/src/routes/_authenticated/saved.tsx (lines 18-22). RICE: 2.0, Eisenhower: Q2.",
+    "status": "todo",
+    "learnings": []
+  }
+]
