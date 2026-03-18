@@ -15,6 +15,7 @@ import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy";
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
 import { Route as IndexRouteImport } from "./routes/index";
 import { Route as AuthenticatedUploadRouteImport } from "./routes/_authenticated/upload";
+import { Route as AuthenticatedSettingsRouteImport } from "./routes/_authenticated/settings";
 import { Route as AuthenticatedSavedRouteImport } from "./routes/_authenticated/saved";
 import { Route as AuthenticatedFeedRouteImport } from "./routes/_authenticated/feed";
 import { Route as AuthenticatedLibraryIndexRouteImport } from "./routes/_authenticated/library/index";
@@ -50,6 +51,11 @@ const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
   path: "/upload",
   getParentRoute: () => AuthenticatedRoute,
 } as any);
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
 const AuthenticatedSavedRoute = AuthenticatedSavedRouteImport.update({
   id: "/saved",
   path: "/saved",
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   "/terms-and-conditions": typeof TermsAndConditionsRoute;
   "/feed": typeof AuthenticatedFeedRoute;
   "/saved": typeof AuthenticatedSavedRoute;
+  "/settings": typeof AuthenticatedSettingsRoute;
   "/upload": typeof AuthenticatedUploadRoute;
   "/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   "/terms-and-conditions": typeof TermsAndConditionsRoute;
   "/feed": typeof AuthenticatedFeedRoute;
   "/saved": typeof AuthenticatedSavedRoute;
+  "/settings": typeof AuthenticatedSettingsRoute;
   "/upload": typeof AuthenticatedUploadRoute;
   "/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   "/terms-and-conditions": typeof TermsAndConditionsRoute;
   "/_authenticated/feed": typeof AuthenticatedFeedRoute;
   "/_authenticated/saved": typeof AuthenticatedSavedRoute;
+  "/_authenticated/settings": typeof AuthenticatedSettingsRoute;
   "/_authenticated/upload": typeof AuthenticatedUploadRoute;
   "/_authenticated/library/$documentId": typeof AuthenticatedLibraryDocumentIdRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | "/terms-and-conditions"
     | "/feed"
     | "/saved"
+    | "/settings"
     | "/upload"
     | "/library/$documentId"
     | "/api/auth/$"
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | "/terms-and-conditions"
     | "/feed"
     | "/saved"
+    | "/settings"
     | "/upload"
     | "/library/$documentId"
     | "/api/auth/$"
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | "/terms-and-conditions"
     | "/_authenticated/feed"
     | "/_authenticated/saved"
+    | "/_authenticated/settings"
     | "/_authenticated/upload"
     | "/_authenticated/library/$documentId"
     | "/api/auth/$"
@@ -207,6 +219,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedUploadRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
+    "/_authenticated/settings": {
+      id: "/_authenticated/settings";
+      path: "/settings";
+      fullPath: "/settings";
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
     "/_authenticated/saved": {
       id: "/_authenticated/saved";
       path: "/saved";
@@ -248,6 +267,7 @@ declare module "@tanstack/react-router" {
 interface AuthenticatedRouteChildren {
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute;
   AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute;
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute;
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute;
   AuthenticatedLibraryDocumentIdRoute: typeof AuthenticatedLibraryDocumentIdRoute;
   AuthenticatedLibraryIndexRoute: typeof AuthenticatedLibraryIndexRoute;
@@ -256,6 +276,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
   AuthenticatedSavedRoute: AuthenticatedSavedRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
   AuthenticatedLibraryDocumentIdRoute: AuthenticatedLibraryDocumentIdRoute,
   AuthenticatedLibraryIndexRoute: AuthenticatedLibraryIndexRoute,
