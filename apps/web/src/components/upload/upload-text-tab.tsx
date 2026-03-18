@@ -1,4 +1,5 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
+import { FILE_SIZE_LIMITS, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { useMutation } from "convex/react";
 import { FileText, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -33,6 +34,14 @@ export function UploadTextTab() {
       }
       if (!trimmedTitle) {
         toast.error("Please enter a title.");
+        return;
+      }
+
+      const textBytes = new Blob([trimmedText]).size;
+      if (textBytes > FILE_SIZE_LIMITS.text) {
+        toast.error(
+          `Text too large (${formatFileSize(textBytes)}). Maximum is ${formatFileSize(FILE_SIZE_LIMITS.text)}.`,
+        );
         return;
       }
 
@@ -92,7 +101,8 @@ export function UploadTextTab() {
           <div>
             <p className="text-lg font-semibold">Paste Text</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Paste any text to add it to your library.
+              Paste any text to add it to your library (max {formatFileSize(FILE_SIZE_LIMITS.text)}
+              ).
             </p>
           </div>
         </div>
@@ -131,7 +141,8 @@ export function UploadTextTab() {
           )}
           {text.trim() && (
             <p className="text-xs text-muted-foreground">
-              {text.trim().length.toLocaleString()} characters
+              {formatFileSize(new Blob([text.trim()]).size)} of{" "}
+              {formatFileSize(FILE_SIZE_LIMITS.text)}
             </p>
           )}
         </div>

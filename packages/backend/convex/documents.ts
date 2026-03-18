@@ -1,12 +1,40 @@
 import { ConvexError, v } from "convex/values";
 
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { formatFileSize, getFileSizeLimit } from "./lib/fileSizeLimits";
 import { requireAuth, optionalAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
 import { rateLimiter } from "./lib/rateLimitConfig";
 import { documentStatus, failedAtStage, fileType, urlFileType } from "./lib/validators";
+
+async function enforceFileSizeLimit(
+  ctx: MutationCtx,
+  args: { storageId: Id<"_storage">; fileType: string; evt: WideEvent },
+) {
+  const limit = getFileSizeLimit(args.fileType);
+  if (!limit) {
+    throw new Error(`No file size limit configured for type: ${args.fileType}`);
+  }
+  const metadata = await ctx.db.system.get(args.storageId);
+  if (!metadata) return;
+  args.evt.set("fileSize", metadata.size);
+  if (metadata.size > limit) {
+    // Storage deletion is NOT transactional (persists even if mutation rolls back).
+    // This must be called BEFORE db.insert to avoid orphaned document rows.
+    await ctx.storage.delete(args.storageId);
+    args.evt.set({ fileTooLarge: true, maxSize: limit });
+    throw new ConvexError({
+      kind: "FileTooLarge" as const,
+      fileSize: metadata.size,
+      maxSize: limit,
+      maxSizeFormatted: formatFileSize(limit),
+      fileSizeFormatted: formatFileSize(metadata.size),
+    });
+  }
+}
 
 async function enforceDocumentUploadLimit(ctx: MutationCtx, userId: string, evt: WideEvent) {
   const { ok, retryAfter } = await rateLimiter.limit(ctx, "documentUpload", { key: userId });
@@ -41,6 +69,11 @@ export const create = mutation({
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
       await enforceDocumentUploadLimit(ctx, user._id, evt);
+      await enforceFileSizeLimit(ctx, {
+        storageId: args.storageId,
+        fileType: args.fileType,
+        evt,
+      });
       const documentId = await ctx.db.insert("documents", {
         title: args.title,
         fileType: args.fileType,
@@ -125,6 +158,11 @@ export const createFromText = mutation({
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
       await enforceDocumentUploadLimit(ctx, user._id, evt);
+      await enforceFileSizeLimit(ctx, {
+        storageId: args.storageId,
+        fileType: "text",
+        evt,
+      });
       const documentId = await ctx.db.insert("documents", {
         title: args.title,
         fileType: "text",
