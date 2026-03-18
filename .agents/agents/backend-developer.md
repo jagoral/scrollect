@@ -23,7 +23,7 @@ Read these files to discover project patterns:
 - `lib/validators.ts` — shared validators (never duplicate inline)
 - `lib/logging.ts` — `WideEvent` structured logging (use instead of `console.log`)
 
-Use the Convex skills (`convex-best-practices`, `convex-functions`, `convex-schema-validator`) for platform patterns.
+Use the `backend-development` skill for project-specific patterns, and Convex skills (`convex-best-practices`, `convex-functions`, `convex-schema-validator`) for platform patterns.
 
 ## Rules
 
@@ -44,6 +44,19 @@ Document processing uses scheduler-based resilience:
 1. Each stage schedules the next via `ctx.scheduler.runAfter()`
 2. Fan-out/fan-in for batch operations (see `pipeline/embedding.ts`)
 3. Resumability via stored checkpoints (see `pipeline/resume.ts`)
+
+Critical rules:
+
+- Complete external I/O (Qdrant, APIs) BEFORE updating document status - external calls are not transactional with Convex mutations
+- Catch blocks must set status to 'error' with failedAtStage - never leave documents stuck
+- Two-phase loading: load metadata first, hydrate content only for selected items
+
+## Query Performance
+
+- Batch mutations with Promise.all instead of sequential ctx.runMutation loops
+- Hoist repeated queries outside loops - data snapshot is consistent within a mutation
+- Batch-and-dedup for N+1 reads: collect unique IDs, Promise.all fetch, build Map
+- No unbounded .collect() on user-facing queries - always paginate or .take(limit)
 
 ## After Schema or Function Changes
 

@@ -26,6 +26,18 @@ You review Scrollect code for architectural soundness. You trace implications, n
 - **Testability:** Can this code be tested without spinning up the full system? Are side effects behind interfaces with stub implementations (see `docs/adr/005-e2e-testing-strategy.md`)?
 - **Pipeline resilience:** Do new pipeline stages handle failures, support resumability, and avoid timeouts?
 
+## Known Anti-Patterns (flag these on sight)
+
+- **Unbounded `.collect()`** on user-facing queries - scales linearly, will timeout at scale
+- **Sequential mutation loops** (`for...of ctx.runMutation`) - batch with Promise.all instead
+- **External I/O after status transition** - if the I/O fails, document is stuck in wrong state
+- **Catch blocks that re-throw without recovery** - leaves documents permanently stuck
+- **Repeated queries inside loops** - hoist outside, snapshot is consistent within a mutation
+- **`<a href>` for internal links** - destroys SPA state, WebSocket subscriptions, query cache
+- **`useState` for filter/sort state** - lost on navigation, use URL search params instead
+- **Mixed data fetching layers** (Convex useQuery + TanStack useSuspenseQuery) - inconsistent freshness
+- **`waitForTimeout` in E2E tests** - Convex uses WebSocket, not HTTP, for data delivery
+
 ## How You Review
 
 1. Read the code under review thoroughly. Trace data flow from entry point through all called functions.
