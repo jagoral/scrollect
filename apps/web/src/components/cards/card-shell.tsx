@@ -3,7 +3,7 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { Bookmark, BookmarkCheck, Maximize2, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Bookmark, BookmarkCheck, FileText, Maximize2, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -55,14 +55,10 @@ export function SourceBadge({ post, className }: { post: PostCardData; className
         to="/library/$documentId"
         params={{ documentId: post.primarySourceDocumentId }}
         data-testid="source-badge"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
       >
-        <Badge
-          variant="outline"
-          className="gap-1.5 border-primary/15 bg-primary/[0.03] font-normal text-muted-foreground transition-all hover:border-primary/25 hover:bg-primary/[0.06]"
-        >
-          <span className="size-1.5 shrink-0 rounded-full bg-primary/60" />
-          <span className="max-w-52 truncate">{getSourceLabel(post)}</span>
-        </Badge>
+        <FileText className="size-3 shrink-0" />
+        <span className="max-w-64 truncate">{getSourceLabel(post)}</span>
       </Link>
     </div>
   );
@@ -73,9 +69,16 @@ interface CardShellProps {
   children: ReactNode;
   accentClassName?: string;
   quizVariant?: "multiple_choice" | "true_false";
+  sheetChildren?: ReactNode;
 }
 
-export function CardShell({ post, children, accentClassName, quizVariant }: CardShellProps) {
+export function CardShell({
+  post,
+  children,
+  accentClassName,
+  quizVariant,
+  sheetChildren,
+}: CardShellProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const tags = post.tags ?? [];
@@ -221,16 +224,19 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
               View the original source chunk with surrounding context.
             </SheetDescription>
           </SheetHeader>
-          <ChunkContextSheetContent
-            postId={post._id}
-            sourceChunkId={post.primarySourceChunkId}
-            sourceDocumentTitle={post.primarySourceDocumentTitle}
-            sectionTitle={post.primarySourceSectionTitle ?? null}
-            pageNumber={post.primarySourcePageNumber ?? null}
-            chunkIndex={post.chunkIndex ?? 0}
-            isOpen={sheetOpen}
-            postType={post.postType}
-          />
+          <div data-testid="source-sheet">
+            {sheetChildren}
+            <ChunkContextSheetContent
+              postId={post._id}
+              sourceChunkId={post.primarySourceChunkId}
+              sourceDocumentTitle={post.primarySourceDocumentTitle}
+              sectionTitle={post.primarySourceSectionTitle ?? null}
+              pageNumber={post.primarySourcePageNumber ?? null}
+              chunkIndex={post.chunkIndex ?? 0}
+              isOpen={sheetOpen}
+              postType={post.postType}
+            />
+          </div>
         </SheetContent>
       </Sheet>
     </>
