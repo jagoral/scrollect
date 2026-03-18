@@ -1,4 +1,5 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
+import { FILE_SIZE_LIMITS, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { useMutation } from "convex/react";
 import { CloudUpload, FileUp, Loader2 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
@@ -40,6 +41,19 @@ export function UploadFileTab() {
       if (!isUploadFileType(ext)) {
         toast.error(
           `Unsupported file type: .${ext}. Only .pdf, .epub, and .md files are accepted.`,
+        );
+        return;
+      }
+
+      if (file.size === 0) {
+        toast.error(`File "${file.name}" is empty.`);
+        return;
+      }
+
+      const sizeLimit = FILE_SIZE_LIMITS[ext];
+      if (file.size > sizeLimit) {
+        toast.error(
+          `File too large (${formatFileSize(file.size)}). Maximum for .${ext} files is ${formatFileSize(sizeLimit)}.`,
         );
         return;
       }
@@ -167,7 +181,11 @@ export function UploadFileTab() {
           <FileUp className="mr-2 h-4 w-4" />
           Choose files
         </Button>
-        <p className="text-xs text-muted-foreground">Accepts .pdf, .epub, and .md files</p>
+        <p className="text-xs text-muted-foreground">
+          Accepts .pdf (max {formatFileSize(FILE_SIZE_LIMITS.pdf)}), .epub (max{" "}
+          {formatFileSize(FILE_SIZE_LIMITS.epub)}), and .md (max{" "}
+          {formatFileSize(FILE_SIZE_LIMITS.md)})
+        </p>
         <input
           ref={fileInputRef}
           data-testid="file-input"
