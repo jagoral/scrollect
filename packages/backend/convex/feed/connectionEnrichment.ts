@@ -1,14 +1,14 @@
 import type { ConnectionPair } from "./discovery";
-import type { ChunkInfo } from "./sampling";
+import type { ChunkMetadata } from "./sampling";
 import type { RawCard } from "./validation";
 
 export type MergeResult = {
-  merged: ChunkInfo[];
+  merged: ChunkMetadata[];
   connectionHints: string[];
 };
 
 export type MergeConnectionChunksArgs = {
-  selected: ChunkInfo[];
+  selected: ChunkMetadata[];
   connectionPairs: ConnectionPair[];
 };
 
@@ -63,7 +63,7 @@ export type ConnectionPairMapEntry = {
 
 export function buildConnectionPairMap(
   pairs: ConnectionPair[],
-  allChunks: ChunkInfo[],
+  allChunks: ChunkMetadata[],
 ): Map<string, ConnectionPairMapEntry> {
   const chunkIdToIndex = new Map(allChunks.map((c, i) => [c._id, i]));
   const map = new Map<string, ConnectionPairMapEntry>();
@@ -85,7 +85,7 @@ export function buildConnectionPairMap(
 
 export type EnrichConnectionCardArgs = {
   card: RawCard;
-  cardChunks: ChunkInfo[];
+  cardChunks: ChunkMetadata[];
   connectionPairMap: Map<string, ConnectionPairMapEntry>;
 };
 

@@ -1,4 +1,4 @@
-import type { ChunkInfo } from "./sampling";
+import type { ChunkMetadata } from "./sampling";
 import type { EmbeddingProvider, VectorStore } from "../providers/types";
 
 export const DEFAULT_SIMILARITY_THRESHOLD = 0.82;
@@ -7,18 +7,19 @@ const MAX_SEED_CHUNKS = 5;
 const MIN_CHUNK_INDEX_DISTANCE = 3;
 
 export type ConnectionPair = {
-  chunkA: ChunkInfo;
-  chunkB: ChunkInfo;
+  chunkA: ChunkMetadata;
+  chunkB: ChunkMetadata;
   similarityScore: number;
   connectionType: "cross_document" | "within_document";
 };
 
 export type DiscoverConnectionsArgs = {
-  allChunks: ChunkInfo[];
+  allChunks: ChunkMetadata[];
   userId: string;
   embedder: EmbeddingProvider;
   vectorStore: VectorStore;
   maxPairs: number;
+  fetchContent: (chunkIds: string[]) => Promise<Map<string, string>>;
   similarityThreshold?: number;
   randomFn?: () => number;
 };
@@ -32,6 +33,7 @@ export async function discoverConnections(
     embedder,
     vectorStore,
     maxPairs,
+    fetchContent,
     similarityThreshold = DEFAULT_SIMILARITY_THRESHOLD,
     randomFn = Math.random,
   } = args;
@@ -49,7 +51,8 @@ export async function discoverConnections(
     randomFn,
   });
 
-  const seedTexts = seedChunks.map((c) => c.content);
+  const contentMap = await fetchContent(seedChunks.map((c) => c._id));
+  const seedTexts = seedChunks.map((c) => contentMap.get(c._id) ?? "");
   const seedVectors = await embedder.embed(seedTexts);
 
   const candidatePairs = new Map<string, ConnectionPair>();
@@ -110,15 +113,15 @@ export async function discoverConnections(
 }
 
 type SelectSeedArgs = {
-  chunks: ChunkInfo[];
+  chunks: ChunkMetadata[];
   count: number;
   randomFn: () => number;
 };
 
-function selectSeedChunks(args: SelectSeedArgs): ChunkInfo[] {
+function selectSeedChunks(args: SelectSeedArgs): ChunkMetadata[] {
   const { chunks, count, randomFn } = args;
 
-  const byDoc = new Map<string, ChunkInfo[]>();
+  const byDoc = new Map<string, ChunkMetadata[]>();
   for (const chunk of chunks) {
     const docChunks = byDoc.get(chunk.documentId);
     if (docChunks) {
@@ -128,7 +131,7 @@ function selectSeedChunks(args: SelectSeedArgs): ChunkInfo[] {
     }
   }
 
-  const seeds: ChunkInfo[] = [];
+  const seeds: ChunkMetadata[] = [];
   const seedIds = new Set<string>();
   const docEntries = Array.from(byDoc.entries());
 

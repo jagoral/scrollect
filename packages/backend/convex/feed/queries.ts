@@ -170,6 +170,33 @@ export const listChunksForDocument = internalQuery({
   },
 });
 
+export const listChunkMetadataForDocument = internalQuery({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const chunks = await ctx.db
+      .query("chunks")
+      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+      .collect();
+    return chunks.map((chunk) => ({
+      _id: chunk._id,
+      documentId: chunk.documentId,
+      sectionTitle: chunk.sectionTitle,
+      pageNumber: chunk.pageNumber,
+      chunkIndex: chunk.chunkIndex,
+    }));
+  },
+});
+
+export const getChunksByIds = internalQuery({
+  args: { chunkIds: v.array(v.id("chunks")) },
+  handler: async (ctx, args) => {
+    if (args.chunkIds.length > 200) {
+      throw new Error(`getChunksByIds: received ${args.chunkIds.length} IDs, maximum is 200`);
+    }
+    return await Promise.all(args.chunkIds.map((id) => ctx.db.get(id)));
+  },
+});
+
 export const listSectionSummaries = internalQuery({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => {
@@ -181,39 +208,42 @@ export const listSectionSummaries = internalQuery({
 });
 
 export const listRecentPostSources = internalQuery({
-  args: { userId: v.string(), sinceTs: v.number() },
+  args: { userId: v.string(), sinceTs: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("postSources")
       .withIndex("by_userId_createdAt", (q) =>
         q.eq("userId", args.userId).gte("createdAt", args.sinceTs),
       )
-      .collect();
+      .order("desc")
+      .take(args.limit ?? 1000);
   },
 });
 
 export const listRecentPosts = internalQuery({
-  args: { userId: v.string(), sinceTs: v.number() },
+  args: { userId: v.string(), sinceTs: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_userId_createdAt", (q) =>
         q.eq("userId", args.userId).gte("createdAt", args.sinceTs),
       )
-      .collect();
+      .order("desc")
+      .take(args.limit ?? 1000);
     return posts.map((p) => ({ _id: p._id, postType: p.postType }));
   },
 });
 
 export const listRecentChunkHashes = internalQuery({
-  args: { userId: v.string(), sinceTs: v.number() },
+  args: { userId: v.string(), sinceTs: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_userId_createdAt", (q) =>
         q.eq("userId", args.userId).gte("createdAt", args.sinceTs),
       )
-      .collect();
+      .order("desc")
+      .take(args.limit ?? 1000);
     return posts.map((p) => p.sourceChunkHash);
   },
 });

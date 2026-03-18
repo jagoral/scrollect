@@ -1,4 +1,4 @@
-import type { ChunkInfo } from "./sampling";
+import type { ChunkMetadata } from "./sampling";
 
 export type RawCard = {
   type: "insight" | "quiz" | "quote" | "summary" | "connection";
@@ -22,7 +22,7 @@ export type RawCard = {
 
 export type ValidateCardParams = {
   card: RawCard;
-  chunks: ChunkInfo[];
+  chunks: ChunkMetadata[];
   documentCount: number;
 };
 

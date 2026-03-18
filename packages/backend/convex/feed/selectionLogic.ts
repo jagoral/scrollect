@@ -1,8 +1,7 @@
 import { computeRecencyBoost } from "./constants";
 
-export type ChunkLike = {
+export type ChunkMetadata = {
   _id: string;
-  content: string;
   documentId: string;
   documentTitle: string;
   sectionTitle?: string;
@@ -10,15 +9,19 @@ export type ChunkLike = {
   chunkIndex?: number;
 };
 
+export type ChunkLike = ChunkMetadata & {
+  content: string;
+};
+
 export type FilterArgs = {
-  allChunks: ChunkLike[];
+  allChunks: ChunkMetadata[];
   selectedDocIds: Set<string>;
   selectedSections: Set<string>;
 };
 
-export function filterChunksBySemantic(args: FilterArgs): ChunkLike[] {
+export function filterChunksBySemantic(args: FilterArgs): ChunkMetadata[] {
   const { allChunks, selectedDocIds, selectedSections } = args;
-  const result: ChunkLike[] = [];
+  const result: ChunkMetadata[] = [];
 
   for (const chunk of allChunks) {
     if (!selectedDocIds.has(chunk.documentId)) continue;
@@ -42,16 +45,16 @@ export type UsageInfo = {
 };
 
 export type RankArgs = {
-  chunks: ChunkLike[];
+  chunks: ChunkMetadata[];
   usageMap: Map<string, UsageInfo>;
   docCreatedAtMap?: Map<string, number>;
   now?: number;
   count: number;
-  allChunksForDiversity?: ChunkLike[];
+  allChunksForDiversity?: ChunkMetadata[];
   randomFn?: () => number;
 };
 
-export function rankByUsage(args: RankArgs): ChunkLike[] {
+export function rankByUsage(args: RankArgs): ChunkMetadata[] {
   const {
     chunks,
     usageMap,
@@ -76,7 +79,7 @@ export function rankByUsage(args: RankArgs): ChunkLike[] {
 
   weighted.sort((a, b) => b.weight - a.weight);
 
-  const result: ChunkLike[] = [];
+  const result: ChunkMetadata[] = [];
   const seen = new Set<string>();
   const docCounts = new Map<string, number>();
 

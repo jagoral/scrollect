@@ -21,6 +21,7 @@ import type { ConnectionPair } from "./discovery";
 import { discoverConnections } from "./discovery";
 import type {
   ChunkInfo,
+  ChunkMetadata,
   DocumentSummaryInfo,
   PostSourceRecord,
   SectionSummaryInfo,
@@ -159,15 +160,15 @@ export const generate = action({
       const docMap = new Map<string, string>(documents.map((d) => [d._id, d.title]));
       const docCreatedAtMap = new Map<string, number>(documents.map((d) => [d._id, d.createdAt]));
 
-      const chunkArrays = await Promise.all(
+      const metadataLoadStart = Date.now();
+      const metadataArrays = await Promise.all(
         documents.map(async (doc) => {
-          const chunks = await ctx.runQuery(internal.feed.queries.listChunksForDocument, {
+          const chunks = await ctx.runQuery(internal.feed.queries.listChunkMetadataForDocument, {
             documentId: doc._id,
           });
           return chunks.map((chunk) => ({
-            _id: chunk._id,
-            content: chunk.content,
-            documentId: doc._id,
+            _id: chunk._id as string,
+            documentId: doc._id as string,
             documentTitle: doc.title,
             sectionTitle: chunk.sectionTitle,
             pageNumber: chunk.pageNumber,
@@ -175,7 +176,32 @@ export const generate = action({
           }));
         }),
       );
-      const allChunks: ChunkInfo[] = chunkArrays.flat();
+      const allChunks: ChunkMetadata[] = metadataArrays.flat();
+      evt.set("metadataLoadDurationMs", Date.now() - metadataLoadStart);
+
+      const contentCache = new Map<string, string>();
+      const fetchContent = async (chunkIds: string[]): Promise<Map<string, string>> => {
+        const uncached = chunkIds.filter((id) => !contentCache.has(id));
+        if (uncached.length > 0) {
+          const results = await ctx.runQuery(internal.feed.queries.getChunksByIds, {
+            chunkIds: uncached as Id<"chunks">[],
+          });
+          for (let i = 0; i < uncached.length; i++) {
+            const chunk = results[i];
+            if (chunk) {
+              contentCache.set(uncached[i]!, chunk.content);
+            }
+          }
+        }
+        const result = new Map<string, string>();
+        for (const id of chunkIds) {
+          const content = contentCache.get(id);
+          if (content) {
+            result.set(id, content);
+          }
+        }
+        return result;
+      };
 
       evt.set("totalChunks", allChunks.length);
 
@@ -242,7 +268,7 @@ export const generate = action({
 
       const embedder = createEmbeddingProvider();
 
-      let selected: ChunkInfo[];
+      let selected: ChunkMetadata[];
       if (useMultiType && docSummaries.length > 0) {
         const summaryStore = createSummaryVectorStore();
         selected = await semanticSelect({
@@ -275,9 +301,16 @@ export const generate = action({
       evt.set("model", "fast");
 
       if (!useMultiType) {
+        const hydrationStart = Date.now();
+        const legacyContentMap = await fetchContent(selected.map((c) => c._id));
+        evt.set("legacyHydrationDurationMs", Date.now() - hydrationStart);
+        const hydratedSelected: ChunkInfo[] = selected.map((c) => ({
+          ...c,
+          content: legacyContentMap.get(c._id) ?? "",
+        }));
         return await generateLegacy({
           ctx,
-          selected,
+          selected: hydratedSelected,
           documents,
           userId: user._id,
           cardCount,
@@ -294,6 +327,7 @@ export const generate = action({
             userId: user._id,
             embedder,
             vectorStore,
+            fetchContent,
             maxPairs: Math.max(1, Math.floor(cardCount / 5)),
           });
           evt.set("connectionPairsFound", connectionPairs.length);
@@ -311,11 +345,25 @@ export const generate = action({
         connectionPairs,
       });
 
+      const hydrationStart = Date.now();
+      const contentMap = await fetchContent(selectedWithConnections.map((c) => c._id));
+      evt.set("contentHydrationDurationMs", Date.now() - hydrationStart);
+      evt.set("hydratedChunks", contentMap.size);
+      const missingChunks = selectedWithConnections.filter((c) => !contentMap.has(c._id));
+      if (missingChunks.length > 0) {
+        evt.set("missingChunksDuringHydration", missingChunks.length);
+      }
+
+      const hydratedChunks: ChunkInfo[] = selectedWithConnections.map((c) => ({
+        ...c,
+        content: contentMap.get(c._id) ?? "",
+      }));
+
       const typeCoverageHint = buildTypeCoverageHint(chunkUsageMap);
       const systemPrompt =
-        buildMultiTypePrompt(selectedWithConnections.length, cardCount) + typeCoverageHint;
+        buildMultiTypePrompt(hydratedChunks.length, cardCount) + typeCoverageHint;
 
-      const selectedDocIds = new Set(selectedWithConnections.map((c) => c.documentId));
+      const selectedDocIds = new Set(hydratedChunks.map((c) => c.documentId));
 
       const learningGoals = new Map<string, LearningGoalEntry>();
       for (const doc of documents) {
@@ -333,14 +381,14 @@ export const generate = action({
 
       const userPrompt =
         summaryContext +
-        selectedWithConnections
+        hydratedChunks
           .map((chunk, i) => `Chunk ${i} (from "${chunk.documentTitle}"):\n${chunk.content}`)
           .join("\n\n---\n\n") +
         (connectionHints.length > 0
           ? `\n\n---\n\nDISCOVERED CONNECTIONS (use these to create connection cards):\n${connectionHints.join("\n")}`
           : "");
 
-      const connectionPairMap = buildConnectionPairMap(connectionPairs, selectedWithConnections);
+      const connectionPairMap = buildConnectionPairMap(connectionPairs, hydratedChunks);
       const documentCount = documents.length;
 
       let validCards: { card: RawCard; chunks: ChunkInfo[] }[] = [];
@@ -363,8 +411,8 @@ export const generate = action({
         const validated: { card: RawCard; chunks: ChunkInfo[] }[] = [];
         const dropped: string[] = [];
         for (const card of cards) {
-          if (validateCard({ card, chunks: selectedWithConnections, documentCount })) {
-            const cardChunks = card.sourceChunkIndices.map((i) => selectedWithConnections[i]!);
+          if (validateCard({ card, chunks: hydratedChunks, documentCount })) {
+            const cardChunks = card.sourceChunkIndices.map((i) => hydratedChunks[i]!);
             if (card.type === "connection") {
               enrichConnectionCard({ card, cardChunks, connectionPairMap });
               evt.set(
