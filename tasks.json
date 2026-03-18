@@ -42,8 +42,12 @@
   {
     "title": "Replace raw <a href> with <Link> in upload toast messages",
     "description": "All three upload tab components (upload-file-tab.tsx, upload-url-tab.tsx, upload-text-tab.tsx) render success toasts containing <a href='/library'>View in library</a>. These plain HTML anchors trigger a full-page navigation - a complete server round-trip that tears down the React tree, destroys all Convex WebSocket subscriptions, flushes the TanStack Query cache, and forces a full re-bootstrap of the app. In a TanStack Start SPA, internal links must use the Router's <Link> component. Fix: replace <a> tags with TanStack Router's <Link> component in all 3 files. Sonner toasts accept arbitrary React nodes so <Link> works directly. Files: apps/web/src/components/upload/upload-file-tab.tsx (line 90), apps/web/src/components/upload/upload-url-tab.tsx (line 59), apps/web/src/components/upload/upload-text-tab.tsx (line 75). RICE: 16.0, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "Sonner toasts accept arbitrary React nodes including TanStack Router's <Link> component — no wrapper or workaround needed for SPA navigation from toasts.",
+      "When adding imports to files in this codebase, maintain alphabetical ordering within the third-party import block (@scrollect/* → @tanstack/* → convex/* → lucide-react → react → sonner). CI lint checks may catch ordering violations.",
+      "The `storageId as never` type cast pattern in upload components is a pre-existing type-safety escape hatch that suppresses checking — worth tracking for future cleanup to align with the Convex Id<\"_storage\"> type."
+    ]
   },
   {
     "title": "Batch markEmbedded mutations in embedBatch action",

@@ -1,5 +1,6 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
+import { Link } from "@tanstack/react-router";
 import { Globe, Loader2, Youtube } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -56,9 +57,9 @@ export function UploadUrlTab() {
         toast.success(
           <span>
             Submitted for processing.{" "}
-            <a href="/library" className="underline">
+            <Link to="/library" className="underline">
               View in library
-            </a>
+            </Link>
           </span>,
         );
         setUrl("");
