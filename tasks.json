@@ -164,8 +164,14 @@
   {
     "title": "Move inline SVG logo to static asset files",
     "description": "apps/web/src/components/scrollect-logo.tsx contains two components (ScrollectLogo and ScrollectWordmark) with ~31K tokens of inline SVG path data compiled into JavaScript. This file is imported by header.tsx (every page), sign-in-form.tsx, and sign-up-form.tsx. The SVG data must be downloaded as part of the JS bundle, parsed by the JS engine, and constructed as React VDOM elements. A static .svg file would be fetched separately, benefit from HTTP caching, and be rendered natively. Fix: extract SVG content into static .svg files and import using Vite's ?react suffix (to preserve currentColor theming) or as <img> tags. Files: apps/web/src/components/scrollect-logo.tsx (206 lines). RICE: 4.0, Eisenhower: Q3.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "vite-plugin-svgr with the ?react import suffix is the cleanest way to use SVGs as React components in Vite — it transforms SVGs at build time into JSX, which is SSR-safe with TanStack Start.",
+      "When an SVG component has conditional viewBox variants (e.g., with/without subline), extract separate .svg files for each variant and use conditional rendering in the wrapper component rather than trying to dynamically modify viewBox on a single SVG import.",
+      "Add a TypeScript declaration for *.svg?react imports in vite-env.d.ts: declare module '*.svg?react' { const component: React.ComponentType<React.SVGProps<SVGSVGElement>>; export default component; }",
+      "SVG files must have fill='none' on the root <svg> element and fill='currentColor' on each <path> to preserve theme color inheritance when imported as React components.",
+      "The svgr plugin is a transform plugin, so its position in the Vite plugins array relative to other config plugins (tailwindcss, tanstackStart) does not affect behavior."
+    ]
   },
   {
     "title": "Hoist orphaned-tag query outside loop in cascadeDeleteDocument",
