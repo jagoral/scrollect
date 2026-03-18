@@ -197,8 +197,14 @@
   {
     "title": "Add pagination to library page document loading",
     "description": "The library page (apps/web/src/routes/_authenticated/library/index.tsx) calls api.documents.list with no pagination (line 29) and api.tags.getDocumentTagsBatch with every single document ID (line 40). Both queries load eagerly on mount. The route loader blocks navigation until both resolve via ensureQueryData. The feed and saved pages already use usePaginatedQuery for incremental loading but library does not. Fix: switch api.documents.list to usePaginatedQuery with initialNumItems (matching feed/saved pattern). Load tags only for visible page of documents. Reuse existing useInfiniteScroll hook for sentinel element. Makes library load time constant regardless of library size. Files: apps/web/src/routes/_authenticated/library/index.tsx (lines 17-19, 29, 37, 40). RICE: 2.8, Eisenhower: Q2.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "When usePaginatedQuery returns a new results array reference on every Convex real-time update, memos depending on [documents] recompute every cycle. Stabilize derived arrays (like documentIds) by using a serialized key (e.g., documents.map(d => d._id).join(',')) as the memo dependency instead of the array reference.",
+      "Client-side filtering over paginated data creates a UX trap: 'no results' may show while matching items exist on unloaded pages. Show a 'still loading' qualifier when status !== 'Exhausted' and only show a definitive 'no match' message when all pages have been loaded.",
+      "When three render branches (loading, empty, content) share the same page layout wrapper, extract the wrapper and use conditional content rendering instead. This eliminates DRY violations and prevents subtle inconsistencies (e.g., missing description text in one branch).",
+      "TypeScript structural typing means a Doc<'documents'> (with extra fields) is assignable to { _id: string; name: string } — no need for useMemo to project fields. Remove trivial identity-transform memos that create new references without changing the effective type.",
+      "Pre-existing type errors in other files (e.g., WideEvent.log in documents.ts) should not block changes — use grep to filter known errors when verifying typecheck passes for your changes."
+    ]
   },
   {
     "title": "Standardize feed page on Convex-native data fetching",
