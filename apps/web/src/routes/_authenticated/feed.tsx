@@ -3,7 +3,7 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAction, usePaginatedQuery, useQuery as useConvexQuery } from "convex/react";
+import { useAction, usePaginatedQuery } from "convex/react";
 import { CheckCircle, Loader2, Rss, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 
@@ -42,7 +42,9 @@ function FeedPage() {
     {},
     { initialNumItems: 10 },
   );
-  const lastGeneratedAt = useConvexQuery(api.feed.queries.getLastGeneratedAt);
+  const { data: lastGeneratedAt } = useQuery({
+    ...convexQuery(api.feed.queries.getLastGeneratedAt, {}),
+  });
   const generateFeed = useAction(api.feed.generation.generate);
 
   const { generating, error, generate, isRateLimited } = useAutoGenerate(

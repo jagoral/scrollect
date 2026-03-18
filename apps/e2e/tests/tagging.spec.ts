@@ -415,7 +415,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
     }
 
     // Capture which document we tagged from the URL
-    const taggedDocId = page.url().split("/library/")[1];
+    const _taggedDocId = page.url().split("/library/")[1];
 
     await page.goto("/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
