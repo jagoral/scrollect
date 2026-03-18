@@ -36,8 +36,12 @@
   {
     "title": "Pin seeded E2E test project to workers: 1",
     "description": "The seeded project in apps/e2e/playwright.config.ts sets fullyParallel: false, which only serializes tests within each file. Playwright still distributes files across workers in parallel. The global config sets workers: process.env.CI ? 1 : undefined, so CI is safe but local runs use the default (half CPU cores). All 8 seeded spec files operate on the same shared account (e2e-seeded-account@test.scrollect.dev). When running locally, Playwright can schedule multiple seeded files on different workers simultaneously, causing one file's resetTestData to wipe state mid-test for another file. Fix: add workers: 1 to the seeded project config. This is a 1-line fix. Files: apps/e2e/playwright.config.ts (lines 27-42). RICE: 19.2, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "Playwright's fullyParallel: false only serializes tests within each file — it does not prevent multiple files from running on different workers simultaneously. To fully serialize a project, you must also set workers: 1 at the project level.",
+      "The global workers config in playwright.config.ts applies as a default, but project-level workers overrides it for that specific project. This allows fine-grained control — e.g., seeded tests run serially while independent tests run in parallel.",
+      "CI already sets workers: 1 globally via process.env.CI, so project-level workers: 1 only affects local development runs where the default is half CPU cores."
+    ]
   },
   {
     "title": "Replace raw <a href> with <Link> in upload toast messages",
