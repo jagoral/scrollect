@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, cleanupTestData, signUp } from "./helpers";
+import { FIXTURES_DIR, SEEDED_USER, cleanupTestData, resetTestData, signIn, signUp } from "./helpers";
 
 test.describe("Upload and Content Library flow", () => {
   test.setTimeout(120000);
@@ -103,6 +103,60 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.getByText(/unsupported file type/i)).toBeVisible({
       timeout: 5000,
     });
+  });
+});
+
+test.describe("File upload size validation", { tag: "@fast" }, () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+  });
+
+  test.afterEach(async () => {
+    await resetTestData(SEEDED_USER.email);
+  });
+
+  test("oversized PDF file shows error toast", async ({ page }) => {
+    await page.goto("/upload");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+
+    await page.locator('[data-testid="file-input"]').setInputFiles({
+      name: "huge.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.alloc(50 * 1024 * 1024 + 1),
+    });
+
+    await expect(
+      page.locator("[data-sonner-toast]").getByText(/file too large/i),
+    ).toBeVisible({ timeout: 5000 });
+  });
+
+  test("empty file shows error toast", async ({ page }) => {
+    await page.goto("/upload");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+
+    await page.locator('[data-testid="file-input"]').setInputFiles({
+      name: "empty.md",
+      mimeType: "text/markdown",
+      buffer: Buffer.alloc(0),
+    });
+
+    await expect(
+      page.locator("[data-sonner-toast]").getByText(/is empty/i),
+    ).toBeVisible({ timeout: 5000 });
+  });
+
+  test("upload help text displays correct size limits", async ({ page }) => {
+    await page.goto("/upload");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+
+    const helpText = page.locator('[data-testid="file-drop-zone"]').getByText(/accepts/i);
+    await expect(helpText).toBeVisible();
+    await expect(helpText).toContainText("50.0 MB");
+    await expect(helpText).toContainText("10.0 MB");
+    await expect(helpText).toContainText("5.0 MB");
   });
 });
 

@@ -128,8 +128,14 @@
   {
     "title": "Add E2E test coverage for file upload size limits",
     "description": "The most recent commit (69e9991) added file upload size limits with client and server validation but shipped with zero E2E test coverage. The feature adds: empty file rejection (upload-file-tab.tsx line 48), oversized file rejection (lines 53-58), and updated help text (lines 184-188). The existing test for unsupported file types validates type checks but not size checks. The shared fileSizeLimits.ts utility (formatFileSize, getFileSizeLimit) also has no unit tests. Fix: add one E2E test for oversized file rejection using Playwright's synthetic file upload (Buffer.alloc). Add unit tests for formatFileSize boundary conditions. Files: apps/e2e/tests/url-ingestion.spec.ts (missing tests), apps/web/src/components/upload/upload-file-tab.tsx (untested lines 48-59). RICE: 5.0, Eisenhower: Q2.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "Playwright's tag-based test filtering (--grep-tag) only works when tags are passed via the options object ({ tag: '@fast' }), not when embedded in the describe title string. Always use test.describe('name', { tag: '@fast' }, () => {}).",
+      "For E2E tests that only exercise client-side validation (no server mutations), use the seeded account (signIn + resetTestData) instead of ephemeral accounts (signUp + cleanupTestData). This avoids unnecessary account creation overhead and aligns with the Fast test tier.",
+      "When testing file size limits with Playwright's setInputFiles, use Buffer.alloc(limit + 1) instead of a much larger buffer. The validation checks file.size, so 1 byte over the limit is sufficient and avoids allocating tens of megabytes in the test process.",
+      "Target Sonner toast assertions with page.locator('[data-sonner-toast]').getByText() instead of bare page.getByText() to avoid false matches from other page elements containing the same text.",
+      "Unit tests for constant objects should use toEqual with the full expected object rather than individual toHaveProperty checks — this catches both additions and removals of keys."
+    ]
   },
   {
     "title": "Reduce feed generation memory footprint: metadata-only loading + bounded history queries",
