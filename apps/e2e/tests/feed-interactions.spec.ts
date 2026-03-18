@@ -53,14 +53,19 @@ test.describe("Feed interactions and pagination", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
 
+    const endState = page.locator('[data-testid="feed-end-state"]');
     for (let i = 0; i < 10; i++) {
+      const cardCountBefore = await page.locator('[data-testid="post-card"]').count();
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(500);
-      const endState = page.locator('[data-testid="feed-end-state"]');
       if (await endState.isVisible()) break;
+      // Wait for either new content to load (card count increases) or end state to appear
+      await Promise.race([
+        endState.waitFor({ state: "visible", timeout: 3000 }).catch(() => {}),
+        expect(page.locator('[data-testid="post-card"]')).not.toHaveCount(cardCountBefore, { timeout: 3000 }).catch(() => {}),
+      ]);
     }
 
-    await expect(page.locator('[data-testid="feed-end-state"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('[data-testid="feed-end-state"]')).toContainText("all caught up");
+    await expect(endState).toBeVisible({ timeout: 10000 });
+    await expect(endState).toContainText("all caught up");
   });
 });

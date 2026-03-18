@@ -74,8 +74,13 @@
   {
     "title": "Replace waitForTimeout with event-driven waits in E2E tests",
     "description": "Two spec files use arbitrary timeouts violating the project's own anti-flakiness rules in AGENTS.md. feed-interactions.spec.ts (line 58) uses waitForTimeout(500) inside a scroll-to-bottom loop - each iteration sleeps 500ms regardless of content load, up to 5s total dead time. tagging.spec.ts (line 154) uses waitForTimeout(2000) to wait for server confirmation of optimistic data - a flakiness time bomb if mutation takes longer than 2s. Fix for feed-interactions: replace sleep-poll loop with Playwright waitFor checking for end-state element. Fix for tagging: wait for the optimistic-to-confirmed transition by asserting on a stable element state (e.g., toBeEnabled with timeout). Files: apps/e2e/tests/feed-interactions.spec.ts (line 58), apps/e2e/tests/tagging.spec.ts (line 154). RICE: 8.0, Eisenhower: Q1.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "Convex delivers reactive query data over WebSockets, not HTTP responses. Playwright's page.waitForResponse() only captures HTTP traffic, so it cannot detect Convex data updates. For scroll-to-load patterns, track DOM element count changes (e.g., post card count) instead of waiting for network responses.",
+      "When Convex mutations use optimistic updates with temporary IDs (e.g., 'optimistic_<timestamp>'), the backend can implement a name-based fallback lookup to handle operations on not-yet-confirmed records. This makes waitForTimeout unnecessary between create and delete operations — the delete works regardless of whether the server has confirmed.",
+      "For scroll-to-bottom loops in Playwright, use Promise.race with element.waitFor() and expect().not.toHaveCount() to create event-driven waits that resolve as soon as either the target element appears or new content loads — avoids arbitrary sleep durations.",
+      "Playwright's expect().not.toHaveCount(n) with a timeout is a reliable way to wait for DOM changes — it polls automatically and resolves as soon as the count differs from the snapshot."
+    ]
   },
   {
     "title": "Move library tag filter state from useState to URL search params",
