@@ -128,8 +128,12 @@
   {
     "title": "Hoist orphaned-tag query outside loop in cascadeDeleteDocument",
     "description": "In packages/backend/convex/documents.ts (lines 536-553), when deleting a document with tags, the code checks whether each tag is used by other documents. For every tag it re-queries ALL documents belonging to the user via the by_userId index, then scans in memory. If a document has 10 tags and the user has 200 documents, this produces 10 identical full-index queries (2000 document reads) in a single mutation. Fix: hoist the documents query outside the loop so it runs once and is reused for every tag check. Reduces reads from O(T x D) to O(D). Files: packages/backend/convex/documents.ts (lines 536-553). RICE: 4.0, Eisenhower: Q3.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "Within a Convex mutation, the data snapshot is consistent — no concurrent writes can change the result mid-transaction. This makes it safe to hoist a query outside a loop and reuse the result for all iterations.",
+      "The cascadeDeleteDocument and cascadeDeletePosts internal mutations were using bare console.log(JSON.stringify(...)) for error logging instead of the project's WideEvent structured logging convention. When touching these functions, convert to WideEvent for consistency.",
+      "Convex type-checking is done via `cd packages/backend && npx convex typecheck`, not standard tsc — the tsconfig lives at packages/backend/convex/tsconfig.json."
+    ]
   },
   {
     "title": "Consolidate ephemeral account creation in url-ingestion E2E tests",

@@ -399,8 +399,14 @@ export const cascadeDeletePosts = internalMutation({
     deletedBookmarks: v.number(),
   }),
   handler: async (ctx, args) => {
+    const evt = new WideEvent("documents.cascadeDeletePosts");
+    evt.set("documentId", args.documentId);
     const docCheck = await ctx.db.get(args.documentId);
-    if (!docCheck) return { deletedPosts: 0, deletedPostSources: 0, deletedBookmarks: 0 };
+    if (!docCheck) {
+      evt.set("skipped", true);
+      evt.log();
+      return { deletedPosts: 0, deletedPostSources: 0, deletedBookmarks: 0 };
+    }
 
     const postSources = await ctx.db
       .query("postSources")
@@ -446,13 +452,11 @@ export const cascadeDeletePosts = internalMutation({
           try {
             await ctx.storage.delete(post.assetStorageId);
           } catch (error) {
-            console.log(
-              JSON.stringify({
-                warning: "post_asset_storage_delete_failed",
-                postId: postId,
-                error: error instanceof Error ? error.message : String(error),
-              }),
-            );
+            evt.set({
+              warning: "post_asset_storage_delete_failed",
+              failedPostId: postId,
+              storageDeleteError: error instanceof Error ? error.message : String(error),
+            });
           }
         }
 
@@ -461,6 +465,8 @@ export const cascadeDeletePosts = internalMutation({
       }
     }
 
+    evt.set({ deletedPosts, deletedPostSources: postSources.length + additionalPostSources, deletedBookmarks });
+    evt.log();
     return {
       deletedPosts,
       deletedPostSources: postSources.length + additionalPostSources,
@@ -515,31 +521,34 @@ export const cascadeDeleteDocument = internalMutation({
     deletedOrphanedTags: v.number(),
   }),
   handler: async (ctx, args) => {
+    const evt = new WideEvent("documents.cascadeDeleteDocument");
+    evt.set("documentId", args.documentId);
     const document = await ctx.db.get(args.documentId);
-    if (!document) return { deletedOrphanedTags: 0 };
+    if (!document) {
+      evt.set("skipped", true);
+      evt.log();
+      return { deletedOrphanedTags: 0 };
+    }
 
     if (document.storageId) {
       try {
         await ctx.storage.delete(document.storageId);
       } catch (error) {
-        console.log(
-          JSON.stringify({
-            warning: "document_storage_delete_failed",
-            documentId: args.documentId,
-            error: error instanceof Error ? error.message : String(error),
-          }),
-        );
+        evt.set({
+          warning: "document_storage_delete_failed",
+          storageDeleteError: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
     let deletedOrphanedTags = 0;
     if (document.tagIds && document.tagIds.length > 0) {
+      const userDocs = await ctx.db
+        .query("documents")
+        .withIndex("by_userId", (q) => q.eq("userId", document.userId))
+        .collect();
       for (const tagId of document.tagIds) {
-        const otherDocs = await ctx.db
-          .query("documents")
-          .withIndex("by_userId", (q) => q.eq("userId", document.userId))
-          .collect();
-        const isUsedElsewhere = otherDocs.some(
+        const isUsedElsewhere = userDocs.some(
           (d) => d._id !== args.documentId && d.tagIds?.includes(tagId),
         );
         if (!isUsedElsewhere) {
@@ -554,6 +563,8 @@ export const cascadeDeleteDocument = internalMutation({
 
     await ctx.db.delete(args.documentId);
 
+    evt.set({ deletedOrphanedTags, tagCount: document.tagIds?.length ?? 0 });
+    evt.log();
     return { deletedOrphanedTags };
   },
 });
