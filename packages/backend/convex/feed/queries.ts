@@ -33,29 +33,37 @@ export const list = query({
     const docs = await Promise.all(uniqueDocIds.map((id) => ctx.db.get(id)));
     const docMap = new Map(uniqueDocIds.map((id, i) => [id, docs[i]]));
 
-    const enrichedPage = await Promise.all(
-      result.page.map(async (post) => {
-        const [bookmark, chunk] = await Promise.all([
+    const uniqueChunkIds = [...new Set(result.page.map((p) => p.primarySourceChunkId))];
+    // Promise.all preserves input order — positional index maps results to IDs
+    const [chunks, bookmarks] = await Promise.all([
+      Promise.all(uniqueChunkIds.map((id) => ctx.db.get(id))),
+      // Bookmark queries are per-post (userId + postId), so no deduplication possible
+      Promise.all(
+        result.page.map((post) =>
           ctx.db
             .query("bookmarks")
             .withIndex("by_userId_post", (q) => q.eq("userId", user._id).eq("postId", post._id))
             .first(),
-          ctx.db.get(post.primarySourceChunkId),
-        ]);
-        const sourceDoc = docMap.get(post.primarySourceDocumentId);
-        const isNew = sourceDoc ? now - sourceDoc.createdAt < FRESHNESS_WINDOW_MS : false;
-        return {
-          ...post,
-          sourceDocumentTitle: post.primarySourceDocumentTitle,
-          isBookmarked: bookmark !== null,
-          isNew,
-          sourceChunkId: post.primarySourceChunkId,
-          sectionTitle: post.primarySourceSectionTitle ?? null,
-          pageNumber: post.primarySourcePageNumber ?? null,
-          chunkIndex: chunk?.chunkIndex ?? 0,
-        };
-      }),
-    );
+        ),
+      ),
+    ]);
+    const chunkMap = new Map(uniqueChunkIds.map((id, i) => [id, chunks[i]]));
+
+    const enrichedPage = result.page.map((post, i) => {
+      const chunk = chunkMap.get(post.primarySourceChunkId);
+      const sourceDoc = docMap.get(post.primarySourceDocumentId);
+      const isNew = sourceDoc ? now - sourceDoc.createdAt < FRESHNESS_WINDOW_MS : false;
+      return {
+        ...post,
+        sourceDocumentTitle: post.primarySourceDocumentTitle,
+        isBookmarked: bookmarks[i] !== null,
+        isNew,
+        sourceChunkId: post.primarySourceChunkId,
+        sectionTitle: post.primarySourceSectionTitle ?? null,
+        pageNumber: post.primarySourcePageNumber ?? null,
+        chunkIndex: chunk?.chunkIndex ?? 0,
+      };
+    });
 
     return { ...result, page: enrichedPage };
   },
@@ -99,22 +107,30 @@ export const listSourcesByPostId = query({
       .withIndex("by_postId", (q) => q.eq("postId", args.postId))
       .collect();
 
-    return await Promise.all(
-      sources.map(async (source) => {
-        const chunk = await ctx.db.get(source.chunkId);
-        const doc = await ctx.db.get(source.documentId);
-        return {
-          _id: source._id,
-          chunkId: source.chunkId,
-          documentId: source.documentId,
-          documentTitle: doc?.title ?? null,
-          chunkContent: chunk?.content ?? null,
-          chunkIndex: chunk?.chunkIndex ?? 0,
-          sectionTitle: chunk?.sectionTitle ?? null,
-          pageNumber: chunk?.pageNumber ?? null,
-        };
-      }),
-    );
+    const uniqueChunkIds = [...new Set(sources.map((s) => s.chunkId))];
+    const uniqueDocIds = [...new Set(sources.map((s) => s.documentId))];
+    // Promise.all preserves input order — positional index maps results to IDs
+    const [chunks, docs] = await Promise.all([
+      Promise.all(uniqueChunkIds.map((id) => ctx.db.get(id))),
+      Promise.all(uniqueDocIds.map((id) => ctx.db.get(id))),
+    ]);
+    const chunkMap = new Map(uniqueChunkIds.map((id, i) => [id, chunks[i]]));
+    const docMap = new Map(uniqueDocIds.map((id, i) => [id, docs[i]]));
+
+    return sources.map((source) => {
+      const chunk = chunkMap.get(source.chunkId);
+      const doc = docMap.get(source.documentId);
+      return {
+        _id: source._id,
+        chunkId: source.chunkId,
+        documentId: source.documentId,
+        documentTitle: doc?.title ?? null,
+        chunkContent: chunk?.content ?? null,
+        chunkIndex: chunk?.chunkIndex ?? 0,
+        sectionTitle: chunk?.sectionTitle ?? null,
+        pageNumber: chunk?.pageNumber ?? null,
+      };
+    });
   },
 });
 

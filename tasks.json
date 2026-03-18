@@ -140,8 +140,13 @@
   {
     "title": "Batch N+1 reads in feed list query",
     "description": "The feed.queries.list query (packages/backend/convex/feed/queries.ts lines 36-58) paginates posts but then for every post runs two additional reads: one bookmark lookup via index query and one chunk db.get. With page size 10, that's 20 extra reads per page load. bookmarks.listSaved has the same pattern. These are reactive queries that re-run on data changes, so cost multiplies across connected clients. The document deduplication pattern (lines 32-34) already exists in the same file. Fix: apply the same batching-and-dedup strategy to bookmark lookups and chunk reads. Collect unique primarySourceChunkId values, batch-fetch with Promise.all, build lookup map. Changes reads from O(page_size * 2) to O(unique_chunks + 1). Files: packages/backend/convex/feed/queries.ts (lines 36-58), packages/backend/convex/bookmarks.ts (lines 85-104). RICE: 4.0, Eisenhower: Q3.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "The batch-and-dedup pattern (collect unique IDs → Promise.all → build Map) is the standard approach for eliminating N+1 reads in Convex queries. Promise.all preserves input order, enabling positional index-to-ID mapping for Map construction.",
+      "Bookmark lookups by (userId, postId) are inherently per-post — no deduplication is possible. They still benefit from concurrent execution via Promise.all but cannot be reduced below O(page_size) queries.",
+      "When batching reads in a paginated query enrichment step, look for ALL N+1 patterns in the same file — listSourcesByPostId had the same issue as list and listSaved but was easy to miss since it was not mentioned in the task description.",
+      "Pre-existing type errors (e.g., WideEvent.log in documents.ts) should not block changes in other files. Use grep to filter known errors when verifying typecheck passes for your changes."
+    ]
   },
   {
     "title": "Move inline SVG logo to static asset files",

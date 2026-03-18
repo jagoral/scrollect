@@ -82,26 +82,35 @@ export const listSaved = query({
       .order("desc")
       .paginate(args.paginationOpts);
 
-    const enrichedPage = await Promise.all(
-      result.page.map(async (bookmark) => {
-        const post = await ctx.db.get(bookmark.postId);
-        if (!post) {
-          return { ...bookmark, post: null };
-        }
-        const chunk = await ctx.db.get(post.primarySourceChunkId);
-        return {
-          ...bookmark,
-          post: {
-            ...post,
-            sourceDocumentTitle: post.primarySourceDocumentTitle,
-            sourceChunkId: post.primarySourceChunkId,
-            sectionTitle: post.primarySourceSectionTitle ?? null,
-            pageNumber: post.primarySourcePageNumber ?? null,
-            chunkIndex: chunk?.chunkIndex ?? 0,
-          },
-        };
-      }),
-    );
+    const uniquePostIds = [...new Set(result.page.map((b) => b.postId))];
+    // Promise.all preserves input order — positional index maps results to IDs
+    const posts = await Promise.all(uniquePostIds.map((id) => ctx.db.get(id)));
+    const postMap = new Map(uniquePostIds.map((id, i) => [id, posts[i]]));
+
+    const uniqueChunkIds = [
+      ...new Set(posts.filter(Boolean).map((p) => p!.primarySourceChunkId)),
+    ];
+    const chunks = await Promise.all(uniqueChunkIds.map((id) => ctx.db.get(id)));
+    const chunkMap = new Map(uniqueChunkIds.map((id, i) => [id, chunks[i]]));
+
+    const enrichedPage = result.page.map((bookmark) => {
+      const post = postMap.get(bookmark.postId);
+      if (!post) {
+        return { ...bookmark, post: null };
+      }
+      const chunk = chunkMap.get(post.primarySourceChunkId);
+      return {
+        ...bookmark,
+        post: {
+          ...post,
+          sourceDocumentTitle: post.primarySourceDocumentTitle,
+          sourceChunkId: post.primarySourceChunkId,
+          sectionTitle: post.primarySourceSectionTitle ?? null,
+          pageNumber: post.primarySourcePageNumber ?? null,
+          chunkIndex: chunk?.chunkIndex ?? 0,
+        },
+      };
+    });
 
     return { ...result, page: enrichedPage };
   },
