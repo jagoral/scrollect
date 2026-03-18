@@ -1,16 +1,19 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Doc, Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { usePaginatedQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, Upload } from "lucide-react";
+import { FileText, Loader2, Upload } from "lucide-react";
 import { useCallback, useMemo } from "react";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
 import { TagFilterBar, TagList, buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 type LibrarySearch = {
   tags?: string[];
@@ -18,10 +21,7 @@ type LibrarySearch = {
 
 export const Route = createFileRoute("/_authenticated/library/")({
   loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(convexQuery(api.documents.list, {})),
-      context.queryClient.ensureQueryData(convexQuery(api.tags.listUserTags, {})),
-    ]);
+    await context.queryClient.ensureQueryData(convexQuery(api.tags.listUserTags, {}));
   },
   head: () => ({
     meta: [{ title: "Library | Scrollect" }],
@@ -41,12 +41,14 @@ export const Route = createFileRoute("/_authenticated/library/")({
 });
 
 function LibraryPage() {
-  const { data: documents } = useSuspenseQuery(convexQuery(api.documents.list, {}));
+  const { results: documents, status, loadMore } = usePaginatedQuery(
+    api.documents.list,
+    {},
+    { initialNumItems: 20 },
+  );
 
-  return <LibraryContent documents={documents} />;
-}
+  const sentinelRef = useInfiniteScroll(status, loadMore);
 
-function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
   const { tags: tagsParam } = Route.useSearch();
   const navigate = Route.useNavigate();
   const selectedTags = useMemo(() => new Set(tagsParam ?? []), [tagsParam]);
@@ -90,6 +92,25 @@ function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
   const handleClearTags = useCallback(() => {
     navigate({ search: (prev) => ({ ...prev, tags: undefined }) });
   }, [navigate]);
+
+  if (status === "LoadingFirstPage") {
+    return (
+      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
+          <p className="mt-1 text-muted-foreground">
+            Your uploaded documents and their processing status.
+          </p>
+        </div>
+        <div className="grid gap-3">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   if (documents.length === 0) {
     return (
@@ -179,12 +200,29 @@ function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
             </Link>
           );
         })}
-        {filteredDocuments.length === 0 && selectedTags.size > 0 && (
+        {filteredDocuments.length === 0 && selectedTags.size > 0 && status === "Exhausted" && (
           <div className="py-8 text-center text-sm text-muted-foreground">
             No documents match the selected tags.
           </div>
         )}
       </div>
+
+      <div ref={sentinelRef} className="h-1" />
+
+      {status === "LoadingMore" && (
+        <div className="flex justify-center py-4 animate-in fade-in duration-300">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
+      {status === "Exhausted" && filteredDocuments.length > 0 && (
+        <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
+          <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">
+            End of library
+          </p>
+        </div>
+      )}
     </div>
   );
 }

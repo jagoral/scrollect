@@ -68,8 +68,16 @@
   {
     "title": "Add pagination to unbounded .collect() user-scoped queries",
     "description": "The documents.list query (packages/backend/convex/documents.ts line 276) uses .collect() with no pagination, returning every document the user has ever uploaded. This query is called on every library page visit and is prefetched in the route loader. tags.deleteTag (packages/backend/convex/tags.ts line 153) collects ALL user documents to scan for tag references. listDocumentsByTag (line 294) does the same. These patterns scale linearly with total document count, not the requested result set. Fix: add pagination to documents.list using Convex's built-in paginationOptsValidator (matching feed.queries.list pattern). For tag-document queries, consider a join table (documentTags with by_tagId and by_documentId indexes). At minimum add .take(limit) guards. Files: packages/backend/convex/documents.ts (line 276), packages/backend/convex/tags.ts (lines 153-156, 294), packages/backend/convex/account.ts (lines 9-14). RICE: 8.0, Eisenhower: Q2.",
-    "status": "todo",
-    "learnings": []
+    "status": "done",
+    "learnings": [
+      "When converting a Convex query from .collect() to .paginate(), the unauthenticated fallback must return { page: [], isDone: true, continueCursor: '' } to match the PaginationResult shape — not an empty array.",
+      "Do NOT use .take() as a performance guard on mutations or internal queries where completeness is required (e.g., account deletion, tag deletion). Silent truncation causes data corruption (orphaned documents, stale tag references). Reserve .take() only for user-facing read queries where partial results are acceptable and clearly communicated.",
+      "When switching from useSuspenseQuery (TanStack Query) to usePaginatedQuery (Convex React), remove the route loader's ensureQueryData for that query since usePaginatedQuery manages its own subscription. Keep loader prefetches for other queries that still use TanStack Query.",
+      "Client-side filtering on paginated data creates a UX trap: 'no results' may show while matching items exist on unloaded pages. Only show definitive 'no match' messages when status === 'Exhausted'. Otherwise let infinite scroll continue loading.",
+      "Place the infinite scroll sentinel div and loading/exhausted indicators outside the grid container to avoid grid gap calculations affecting layout.",
+      "tags.listDocumentsByTag is dead code — defined but never imported anywhere in the app. Candidate for removal.",
+      "getDocumentTagsBatch re-subscribes with a growing argument on every page load when used with usePaginatedQuery, since the documentIds array grows. A future optimization would fetch tags per-page or embed tag data in the document query response."
+    ]
   },
   {
     "title": "Replace waitForTimeout with event-driven waits in E2E tests",
