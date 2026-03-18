@@ -11,6 +11,13 @@ import { cn } from "@/lib/utils";
 import { CardShell } from "./card-shell";
 import type { ConnectionTypeData, PostCardData } from "./types";
 
+interface ConnectionSource {
+  titleHint: string;
+  documentId: Id<"documents"> | null;
+  keyIdea: string | null;
+  chunkContent: string | null;
+}
+
 interface ConnectionCardProps {
   post: PostCardData & { typeData: ConnectionTypeData };
 }
@@ -24,12 +31,37 @@ export function ConnectionCard({ post }: ConnectionCardProps) {
     primarySourceDocumentId: post.primarySourceDocumentId,
   });
 
-  // Legacy posts may not have connectionType; default to cross-document
   const isWithinDocument = connectionType === "within_document";
   const showSourceDetails = !isError;
 
+  const resolvedSourceA: ConnectionSource = {
+    titleHint: sourceATitleHint,
+    documentId: sourceA?.documentId ?? post.primarySourceDocumentId,
+    keyIdea: sourceAKeyIdea ?? null,
+    chunkContent: showSourceDetails ? (sourceA?.chunkContent ?? null) : null,
+  };
+
+  const resolvedSourceB: ConnectionSource = {
+    titleHint: sourceBTitleHint,
+    documentId: sourceB?.documentId ?? null,
+    keyIdea: sourceBKeyIdea ?? null,
+    chunkContent: showSourceDetails ? (sourceB?.chunkContent ?? null) : null,
+  };
+
+  const sourcePanelSheet = (
+    <ConnectionSheetContent
+      sourceA={resolvedSourceA}
+      sourceB={resolvedSourceB}
+      isLoading={showSourceDetails && isLoading}
+    />
+  );
+
   return (
-    <CardShell post={post} accentClassName="via-violet-500/30 group-hover/card:via-violet-500/60">
+    <CardShell
+      post={post}
+      accentClassName="via-violet-500/30 group-hover/card:via-violet-500/60"
+      sheetChildren={sourcePanelSheet}
+    >
       <div className="mb-3 flex items-center gap-2" data-testid="connection-header">
         <Badge
           variant="outline"
@@ -40,34 +72,15 @@ export function ConnectionCard({ post }: ConnectionCardProps) {
         </Badge>
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="connection-sources">
-        <SourcePanel
-          source={{
-            titleHint: sourceATitleHint,
-            documentId: sourceA?.documentId ?? post.primarySourceDocumentId,
-            keyIdea: sourceAKeyIdea ?? null,
-            chunkContent: showSourceDetails ? (sourceA?.chunkContent ?? null) : null,
-          }}
-          side="a"
-          isLoading={showSourceDetails && isLoading}
-        />
-        <SourcePanel
-          source={{
-            titleHint: sourceBTitleHint,
-            documentId: sourceB?.documentId ?? null,
-            keyIdea: sourceBKeyIdea ?? null,
-            chunkContent: showSourceDetails ? (sourceB?.chunkContent ?? null) : null,
-          }}
-          side="b"
-          isLoading={showSourceDetails && isLoading}
-        />
-      </div>
-
-      <BridgeIndicator />
+      <ConnectionProvenance
+        sourceA={resolvedSourceA}
+        sourceB={resolvedSourceB}
+        isWithinDocument={isWithinDocument}
+      />
 
       <div
         data-testid="connection-content"
-        className="prose prose-sm prose-neutral dark:prose-invert mt-3 max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+        className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
       >
         <Markdown>{post.content}</Markdown>
       </div>
@@ -76,12 +89,7 @@ export function ConnectionCard({ post }: ConnectionCardProps) {
 }
 
 interface SourcePanelProps {
-  source: {
-    titleHint: string;
-    documentId: Id<"documents"> | null;
-    keyIdea: string | null;
-    chunkContent: string | null;
-  };
+  source: ConnectionSource;
   side: "a" | "b";
   isLoading: boolean;
 }
@@ -133,6 +141,95 @@ function SourcePanel({ source, side, isLoading }: SourcePanelProps) {
       ) : (
         <p className="text-xs italic text-muted-foreground/50">Source content unavailable</p>
       )}
+    </div>
+  );
+}
+
+interface ConnectionProvenanceProps {
+  sourceA: ConnectionSource;
+  sourceB: ConnectionSource;
+  isWithinDocument: boolean;
+}
+
+function ConnectionProvenance({ sourceA, sourceB, isWithinDocument }: ConnectionProvenanceProps) {
+  if (isWithinDocument) {
+    return (
+      <div
+        data-testid="connection-provenance"
+        className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground/70"
+      >
+        <FileText className="size-3 shrink-0" />
+        <span className="truncate">
+          Sections in:{" "}
+          {sourceA.documentId ? (
+            <Link
+              to="/library/$documentId"
+              params={{ documentId: sourceA.documentId }}
+              className="underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
+            >
+              {sourceA.titleHint}
+            </Link>
+          ) : (
+            sourceA.titleHint
+          )}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-testid="connection-provenance"
+      className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground/70"
+    >
+      <FileText className="size-3 shrink-0" />
+      <span className="truncate">
+        Connecting:{" "}
+        {sourceA.documentId ? (
+          <Link
+            to="/library/$documentId"
+            params={{ documentId: sourceA.documentId }}
+            className="underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
+            aria-label={`Source: ${sourceA.titleHint}`}
+          >
+            {sourceA.titleHint}
+          </Link>
+        ) : (
+          sourceA.titleHint
+        )}
+        {" + "}
+        {sourceB.documentId ? (
+          <Link
+            to="/library/$documentId"
+            params={{ documentId: sourceB.documentId }}
+            className="underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
+            aria-label={`Source: ${sourceB.titleHint}`}
+          >
+            {sourceB.titleHint}
+          </Link>
+        ) : (
+          sourceB.titleHint
+        )}
+      </span>
+    </div>
+  );
+}
+
+interface ConnectionSheetContentProps {
+  sourceA: ConnectionSource;
+  sourceB: ConnectionSource;
+  isLoading: boolean;
+}
+
+function ConnectionSheetContent({ sourceA, sourceB, isLoading }: ConnectionSheetContentProps) {
+  return (
+    <div className="mb-6" data-testid="connection-sheet-sources">
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="connection-sources">
+        <SourcePanel source={sourceA} side="a" isLoading={isLoading} />
+        <SourcePanel source={sourceB} side="b" isLoading={isLoading} />
+      </div>
+
+      <BridgeIndicator />
     </div>
   );
 }

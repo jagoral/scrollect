@@ -115,33 +115,30 @@ test.describe("Multi-type cards and source provenance", () => {
   });
 
   test.describe("Source provenance", () => {
-    test("every card has a source badge or connection header", async ({ page }) => {
+    test("every card has a source badge or connection provenance", async ({ page }) => {
       const cards = page.locator(CARD);
       const count = await cards.count();
 
       for (let i = 0; i < count; i++) {
         const card = cards.nth(i);
         const type = await card.getAttribute("data-card-type");
-        // Connection cards render their own header and source panels
+        // Connection cards use a provenance line instead of the standard source-badge
         const selector =
           type === "connection"
-            ? '[data-testid="connection-header"]'
+            ? '[data-testid="connection-provenance"]'
             : '[data-testid="source-badge"]';
         await expect(card.locator(selector)).toBeVisible({ timeout: 5000 });
       }
     });
 
-    test("connection card source panels contain both document titles", async ({ page }) => {
+    test("connection card provenance contains both document titles", async ({ page }) => {
       const card = page.locator(cardOfType("connection")).first();
       await expect(card).toBeVisible();
 
-      const sources = card.locator('[data-testid="connection-sources"]');
-      await expect(sources).toBeVisible();
-
-      const sourceA = card.locator('[data-testid="connection-source-a"]');
-      const sourceB = card.locator('[data-testid="connection-source-b"]');
-      await expect(sourceA).toContainText("E2E Seed Document");
-      await expect(sourceB).toContainText("E2E Seed Document 2");
+      const provenance = card.locator('[data-testid="connection-provenance"]');
+      await expect(provenance).toBeVisible();
+      await expect(provenance).toContainText("E2E Seed Document");
+      await expect(provenance).toContainText("E2E Seed Document 2");
     });
 
     test("expand sheet shows source chunks with primary marker", async ({ page }) => {
