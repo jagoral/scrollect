@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root";
+import { Route as TermsAndConditionsRouteImport } from "./routes/terms-and-conditions";
 import { Route as SigninRouteImport } from "./routes/signin";
+import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy";
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
 import { Route as IndexRouteImport } from "./routes/index";
 import { Route as AuthenticatedUploadRouteImport } from "./routes/_authenticated/upload";
@@ -20,9 +22,19 @@ import { Route as AuthenticatedLibraryIndexRouteImport } from "./routes/_authent
 import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
 import { Route as AuthenticatedLibraryDocumentIdRouteImport } from "./routes/_authenticated/library/$documentId";
 
+const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
+  id: "/terms-and-conditions",
+  path: "/terms-and-conditions",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const SigninRoute = SigninRouteImport.update({
   id: "/signin",
   path: "/signin",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: "/privacy-policy",
+  path: "/privacy-policy",
   getParentRoute: () => rootRouteImport,
 } as any);
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -72,7 +84,9 @@ const AuthenticatedLibraryDocumentIdRoute = AuthenticatedLibraryDocumentIdRouteI
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
   "/signin": typeof SigninRoute;
+  "/terms-and-conditions": typeof TermsAndConditionsRoute;
   "/feed": typeof AuthenticatedFeedRoute;
   "/saved": typeof AuthenticatedSavedRoute;
   "/settings": typeof AuthenticatedSettingsRoute;
@@ -83,7 +97,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
   "/signin": typeof SigninRoute;
+  "/terms-and-conditions": typeof TermsAndConditionsRoute;
   "/feed": typeof AuthenticatedFeedRoute;
   "/saved": typeof AuthenticatedSavedRoute;
   "/settings": typeof AuthenticatedSettingsRoute;
@@ -96,7 +112,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   "/": typeof IndexRoute;
   "/_authenticated": typeof AuthenticatedRouteWithChildren;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
   "/signin": typeof SigninRoute;
+  "/terms-and-conditions": typeof TermsAndConditionsRoute;
   "/_authenticated/feed": typeof AuthenticatedFeedRoute;
   "/_authenticated/saved": typeof AuthenticatedSavedRoute;
   "/_authenticated/settings": typeof AuthenticatedSettingsRoute;
@@ -109,7 +127,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | "/"
+    | "/privacy-policy"
     | "/signin"
+    | "/terms-and-conditions"
     | "/feed"
     | "/saved"
     | "/settings"
@@ -120,7 +140,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/"
+    | "/privacy-policy"
     | "/signin"
+    | "/terms-and-conditions"
     | "/feed"
     | "/saved"
     | "/settings"
@@ -132,7 +154,9 @@ export interface FileRouteTypes {
     | "__root__"
     | "/"
     | "/_authenticated"
+    | "/privacy-policy"
     | "/signin"
+    | "/terms-and-conditions"
     | "/_authenticated/feed"
     | "/_authenticated/saved"
     | "/_authenticated/settings"
@@ -145,17 +169,33 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute;
   SigninRoute: typeof SigninRoute;
+  TermsAndConditionsRoute: typeof TermsAndConditionsRoute;
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
+    "/terms-and-conditions": {
+      id: "/terms-and-conditions";
+      path: "/terms-and-conditions";
+      fullPath: "/terms-and-conditions";
+      preLoaderRoute: typeof TermsAndConditionsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     "/signin": {
       id: "/signin";
       path: "/signin";
       fullPath: "/signin";
       preLoaderRoute: typeof SigninRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/privacy-policy": {
+      id: "/privacy-policy";
+      path: "/privacy-policy";
+      fullPath: "/privacy-policy";
+      preLoaderRoute: typeof PrivacyPolicyRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/_authenticated": {
@@ -249,7 +289,9 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   SigninRoute: SigninRoute,
+  TermsAndConditionsRoute: TermsAndConditionsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 };
 export const routeTree = rootRouteImport

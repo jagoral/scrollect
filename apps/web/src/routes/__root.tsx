@@ -5,6 +5,7 @@ import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanst
 import type { ConvexReactClient } from "convex/react";
 
 import appCss from "@/index.css?url";
+import Footer from "@/components/footer";
 import Header from "@/components/header";
 import Providers from "@/components/providers";
 import { getSession } from "@/lib/auth-server";
@@ -63,6 +64,7 @@ function RootComponent() {
         <Header />
         <main className="flex flex-col overflow-y-auto">
           <Outlet />
+          <Footer />
         </main>
       </div>
     </Providers>

@@ -18,10 +18,14 @@ export const env = createEnv({
   client: {
     VITE_CONVEX_URL: z.url(),
     VITE_CONVEX_SITE_URL: z.url(),
+    VITE_SITE_URL: z.url().optional(),
+    VITE_CONTACT_EMAIL: z.email().optional(),
   },
   runtimeEnv: {
     VITE_CONVEX_URL: getEnvVar("VITE_CONVEX_URL"),
     VITE_CONVEX_SITE_URL: getEnvVar("VITE_CONVEX_SITE_URL"),
+    VITE_SITE_URL: getEnvVar("VITE_SITE_URL"),
+    VITE_CONTACT_EMAIL: getEnvVar("VITE_CONTACT_EMAIL"),
   },
   emptyStringAsUndefined: true,
 });
