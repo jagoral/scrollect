@@ -9,13 +9,13 @@ import { rateLimiter } from "./lib/rateLimitConfig";
 import { documentStatus, failedAtStage, fileType, urlFileType } from "./lib/validators";
 
 async function enforceDocumentUploadLimit(ctx: MutationCtx, userId: string, evt: WideEvent) {
-  const { ok, retryAfter } = await rateLimiter.limit(ctx, "documentUpload", { key: userId });
-  if (!ok) {
-    evt.set({ rateLimited: true, endpoint: "documentUpload", retryAfterMs: retryAfter });
+  const result = await rateLimiter.limit(ctx, "documentUpload", { key: userId });
+  if (!result.ok) {
+    evt.set({ rateLimited: true, endpoint: "documentUpload", retryAfterMs: result.retryAfter });
     throw new ConvexError({
       kind: "RateLimited" as const,
       name: "documentUpload",
-      retryAfter: retryAfter!,
+      retryAfter: result.retryAfter,
     });
   }
 }
@@ -23,7 +23,15 @@ async function enforceDocumentUploadLimit(ctx: MutationCtx, userId: string, evt:
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireAuth(ctx);
+    const user = await requireAuth(ctx);
+    const result = await rateLimiter.limit(ctx, "documentUpload", { key: user._id });
+    if (!result.ok) {
+      throw new ConvexError({
+        kind: "RateLimited" as const,
+        name: "documentUpload",
+        retryAfter: result.retryAfter,
+      });
+    }
     return await ctx.storage.generateUploadUrl();
   },
 });

@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getRateLimitMessage } from "@/lib/rate-limit-error";
+import { toastRateLimitOrFallback } from "@/lib/rate-limit-error";
 
 export function UploadTextTab() {
   const [title, setTitle] = useState("");
@@ -69,12 +69,10 @@ export function UploadTextTab() {
           </span>,
         );
       } catch (error) {
-        const rateLimitMsg = getRateLimitMessage(error);
-        if (rateLimitMsg) {
-          toast.error(rateLimitMsg);
-        } else {
-          toast.error("Something went wrong while saving your text. Please try again.");
-        }
+        toastRateLimitOrFallback(
+          error,
+          "Something went wrong while saving your text. Please try again.",
+        );
       } finally {
         setSubmitting(false);
       }

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getRateLimitMessage } from "@/lib/rate-limit-error";
+import { toastRateLimitOrFallback } from "@/lib/rate-limit-error";
 
 const UPLOAD_FILE_TYPES = ["pdf", "epub", "md"] as const;
 type UploadFileType = (typeof UPLOAD_FILE_TYPES)[number];
@@ -82,12 +82,7 @@ export function UploadFileTab() {
         setUploads((prev) =>
           prev.map((u) => (u.file === file ? { ...u, status: "error" as const } : u)),
         );
-        const rateLimitMsg = getRateLimitMessage(error);
-        if (rateLimitMsg) {
-          toast.error(rateLimitMsg);
-        } else {
-          toast.error(`Failed to upload ${file.name}`);
-        }
+        toastRateLimitOrFallback(error, `Failed to upload ${file.name}`);
       }
     },
     [generateUploadUrl, createDocument],

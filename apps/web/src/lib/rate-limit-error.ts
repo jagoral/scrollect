@@ -1,8 +1,11 @@
 import { ConvexError } from "convex/values";
+import { toast } from "sonner";
+
+type RateLimitErrorData = { kind: "RateLimited"; name: string; retryAfter: number };
 
 export function isRateLimitError(
   error: unknown,
-): error is { data: { kind: "RateLimited"; name: string; retryAfter: number } } {
+): error is ConvexError<string> & { data: RateLimitErrorData } {
   return (
     error instanceof ConvexError &&
     typeof error.data === "object" &&
@@ -12,9 +15,9 @@ export function isRateLimitError(
 }
 
 export function formatRetryAfter(ms: number): string {
-  const seconds = Math.ceil(ms / 1000);
-  if (seconds < 60) return `${seconds} second${seconds !== 1 ? "s" : ""}`;
-  const minutes = Math.ceil(seconds / 60);
+  const totalSeconds = Math.ceil(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds} second${totalSeconds !== 1 ? "s" : ""}`;
+  const minutes = Math.ceil(ms / 60_000);
   return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
 }
 
@@ -22,4 +25,9 @@ export function getRateLimitMessage(error: unknown): string | null {
   if (!isRateLimitError(error)) return null;
   const wait = formatRetryAfter(error.data.retryAfter);
   return `You've hit the rate limit. Please try again in ${wait}.`;
+}
+
+export function toastRateLimitOrFallback(error: unknown, fallbackMessage: string) {
+  const rateLimitMsg = getRateLimitMessage(error);
+  toast.error(rateLimitMsg ?? fallbackMessage);
 }
