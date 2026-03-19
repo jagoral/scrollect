@@ -6,7 +6,10 @@ export function useCardImpression(cardId: string, properties: Record<string, unk
   const hasTracked = useRef(false);
   const ref = useRef<HTMLElement>(null);
   const propertiesRef = useRef(properties);
-  propertiesRef.current = properties;
+
+  useEffect(() => {
+    propertiesRef.current = properties;
+  });
 
   useEffect(() => {
     const element = ref.current;
@@ -16,7 +19,12 @@ export function useCardImpression(cardId: string, properties: Record<string, unk
       ([entry]) => {
         if (entry.isIntersecting && !hasTracked.current) {
           hasTracked.current = true;
-          posthog.capture("card.viewed", propertiesRef.current);
+          const props = { ...propertiesRef.current };
+          if (typeof props.created_at === "number") {
+            props.card_age_hours = Math.round((Date.now() - props.created_at) / 3600000);
+            delete props.created_at;
+          }
+          posthog.capture("card.viewed", props);
           observer.disconnect();
         }
       },

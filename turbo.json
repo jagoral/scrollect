@@ -6,7 +6,12 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".output/**"],
-      "env": ["VITE_CONVEX_URL", "VITE_CONVEX_SITE_URL"]
+      "env": [
+        "VITE_CONVEX_URL",
+        "VITE_CONVEX_SITE_URL",
+        "VITE_PUBLIC_POSTHOG_KEY",
+        "VITE_PUBLIC_POSTHOG_HOST"
+      ]
     },
     "dev": {
       "cache": false,

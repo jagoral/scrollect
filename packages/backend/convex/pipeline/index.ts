@@ -22,7 +22,7 @@ export const startProcessing = internalAction({
 
       evt.set({ fileType: doc.fileType, userId: doc.userId });
 
-      captureEvent({
+      await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.processing_started",
         properties: { document_id: documentId, file_type: doc.fileType },

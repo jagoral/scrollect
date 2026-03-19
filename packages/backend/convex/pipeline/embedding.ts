@@ -79,7 +79,7 @@ export const embedBatch = internalAction({
       evt.set("validChunkCount", validChunks.length);
 
       if (validChunks.length === 0) {
-        // All chunks already embedded — mark batch complete
+        // All chunks already embedded - mark batch complete
         const job = await ctx.runMutation(internal.processingJobs.markBatchComplete, {
           id: jobId,
           failed: false,
@@ -94,12 +94,12 @@ export const embedBatch = internalAction({
       const vectors = await embedder.embed(texts);
       evt.set("embedDurationMs", Date.now() - t0);
       if (embedder.lastUsage) {
-        captureAiUsage({
+        await captureAiUsage({
           distinctId: doc.userId,
           operation: "embedding",
           documentId,
           usage: embedder.lastUsage,
-          model: "embedding",
+          modelType: "embedding",
         });
       }
 
@@ -178,7 +178,7 @@ async function checkCompletion(
     const summary = `${job.failedBatches}/${job.totalBatches} embedding batches failed`;
     const errorMessage = lastError ? `${summary}: ${lastError}` : summary;
     if (doc) {
-      captureEvent({
+      await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_failed",
         properties: {
@@ -198,7 +198,7 @@ async function checkCompletion(
     });
   } else {
     if (doc) {
-      captureEvent({
+      await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_completed",
         properties: {

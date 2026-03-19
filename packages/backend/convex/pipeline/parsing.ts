@@ -23,8 +23,11 @@ export async function submitDatalabParsingImpl(
   storageId: Id<"_storage">,
   evt: WideEvent,
 ) {
-  const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+  let doc:
+    | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
+    | undefined;
   try {
+    doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
     const fileUrl = await ctx.storage.getUrl(storageId);
     if (!fileUrl) throw new Error("File not found in storage");
 
@@ -51,7 +54,7 @@ export async function submitDatalabParsingImpl(
   } catch (error) {
     evt.setError(error);
     const message = error instanceof Error ? error.message : "Document submission failed";
-    captureEvent({
+    await captureEvent({
       distinctId: doc?.userId ?? "unknown",
       event: "pipeline.stage_failed",
       properties: {
@@ -79,16 +82,20 @@ export const pollDatalabResult = internalAction({
   handler: async (ctx, { documentId, checkUrl, attempt, startedAt }) => {
     const evt = new WideEvent("pipeline.pollDatalabResult");
     evt.set({ documentId, attempt });
-    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-    if (!doc) throw new Error(`Document ${documentId} not found`);
-    if (doc.status === "deleting") return;
+    let doc:
+      | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
+      | undefined;
     try {
+      doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+      if (!doc) throw new Error(`Document ${documentId} not found`);
+      if (doc.status === "deleting") return;
+
       const elapsed = Date.now() - startedAt;
       evt.set("elapsedMs", elapsed);
 
       if (elapsed > MAX_POLL_DURATION_MS) {
         evt.set("pollResult", "timeout");
-        captureEvent({
+        await captureEvent({
           distinctId: doc.userId,
           event: "pipeline.stage_failed",
           properties: {
@@ -112,7 +119,7 @@ export const pollDatalabResult = internalAction({
 
       if (result.status === "complete") {
         evt.set("pollResult", "complete");
-        captureEvent({
+        await captureEvent({
           distinctId: doc.userId,
           event: "pipeline.stage_completed",
           properties: {
@@ -132,7 +139,7 @@ export const pollDatalabResult = internalAction({
 
       if (result.status === "error") {
         evt.set("pollResult", "error");
-        captureEvent({
+        await captureEvent({
           distinctId: doc.userId,
           event: "pipeline.stage_failed",
           properties: {
@@ -152,7 +159,7 @@ export const pollDatalabResult = internalAction({
       }
 
       evt.set("pollResult", "pending");
-      // Still pending — schedule next poll with exponential backoff
+      // Still pending - schedule next poll with exponential backoff
       const nextDelay = getPollDelay(attempt);
       await ctx.scheduler.runAfter(nextDelay, internal.pipeline.parsing.pollDatalabResult, {
         documentId,
@@ -163,13 +170,12 @@ export const pollDatalabResult = internalAction({
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Polling failed";
-      captureEvent({
-        distinctId: doc.userId,
+      await captureEvent({
+        distinctId: doc?.userId ?? "unknown",
         event: "pipeline.stage_failed",
         properties: {
           stage: "parsing",
           document_id: documentId,
-          file_type: doc.fileType,
           error: message,
         },
       });
@@ -192,10 +198,14 @@ export async function fetchAndParseMarkdownImpl(
   evt: WideEvent,
 ) {
   const startMs = Date.now();
-  const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-  if (!doc) throw new Error(`Document ${documentId} not found`);
-  if (doc.status === "deleting") return;
+  let doc:
+    | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
+    | undefined;
   try {
+    doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    if (!doc) throw new Error(`Document ${documentId} not found`);
+    if (doc.status === "deleting") return;
+
     const url = await ctx.storage.getUrl(storageId);
     if (!url) throw new Error("File not found in storage");
 
@@ -205,7 +215,7 @@ export async function fetchAndParseMarkdownImpl(
     const text = await response.text();
     if (!text.trim()) throw new Error("File is empty");
 
-    captureEvent({
+    await captureEvent({
       distinctId: doc.userId,
       event: "pipeline.stage_completed",
       properties: {
@@ -224,13 +234,12 @@ export async function fetchAndParseMarkdownImpl(
   } catch (error) {
     evt.setError(error);
     const message = error instanceof Error ? error.message : "Markdown parsing failed";
-    captureEvent({
-      distinctId: doc.userId,
+    await captureEvent({
+      distinctId: doc?.userId ?? "unknown",
       event: "pipeline.stage_failed",
       properties: {
         stage: "parsing",
         document_id: documentId,
-        file_type: doc.fileType,
         error: message,
       },
     });

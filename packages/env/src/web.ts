@@ -20,12 +20,16 @@ export const env = createEnv({
     VITE_CONVEX_SITE_URL: z.url(),
     VITE_SITE_URL: z.url().optional(),
     VITE_CONTACT_EMAIL: z.email().optional(),
+    VITE_PUBLIC_POSTHOG_KEY: z.string().optional(),
+    VITE_PUBLIC_POSTHOG_HOST: z.url().optional(),
   },
   runtimeEnv: {
     VITE_CONVEX_URL: getEnvVar("VITE_CONVEX_URL"),
     VITE_CONVEX_SITE_URL: getEnvVar("VITE_CONVEX_SITE_URL"),
     VITE_SITE_URL: getEnvVar("VITE_SITE_URL"),
     VITE_CONTACT_EMAIL: getEnvVar("VITE_CONTACT_EMAIL"),
+    VITE_PUBLIC_POSTHOG_KEY: getEnvVar("VITE_PUBLIC_POSTHOG_KEY"),
+    VITE_PUBLIC_POSTHOG_HOST: getEnvVar("VITE_PUBLIC_POSTHOG_HOST"),
   },
   emptyStringAsUndefined: true,
 });

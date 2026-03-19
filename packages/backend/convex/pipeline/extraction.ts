@@ -15,10 +15,14 @@ export async function extractArticleImpl(
   evt: WideEvent,
 ) {
   const startMs = Date.now();
-  const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-  if (!doc) throw new Error(`Document ${documentId} not found`);
-  if (doc.status === "deleting") return;
+  let doc:
+    | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
+    | undefined;
   try {
+    doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    if (!doc) throw new Error(`Document ${documentId} not found`);
+    if (doc.status === "deleting") return;
+
     const extractor = createArticleExtractor();
     const result = await extractor.extract(sourceUrl);
 
@@ -31,7 +35,7 @@ export async function extractArticleImpl(
       });
     }
 
-    captureEvent({
+    await captureEvent({
       distinctId: doc.userId,
       event: "pipeline.stage_completed",
       properties: {
@@ -50,13 +54,13 @@ export async function extractArticleImpl(
   } catch (error) {
     evt.setError(error);
     const message = error instanceof Error ? error.message : "Article extraction failed";
-    captureEvent({
-      distinctId: doc.userId,
+    await captureEvent({
+      distinctId: doc?.userId ?? "unknown",
       event: "pipeline.stage_failed",
       properties: {
         stage: "parsing",
         document_id: documentId,
-        file_type: doc.fileType,
+        file_type: "article",
         error: message,
       },
     });
@@ -76,10 +80,14 @@ export async function extractYouTubeImpl(
   evt: WideEvent,
 ) {
   const startMs = Date.now();
-  const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-  if (!doc) throw new Error(`Document ${documentId} not found`);
-  if (doc.status === "deleting") return;
+  let doc:
+    | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
+    | undefined;
   try {
+    doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    if (!doc) throw new Error(`Document ${documentId} not found`);
+    if (doc.status === "deleting") return;
+
     const extractor = createYouTubeExtractor();
     const result = await extractor.extract(sourceUrl);
 
@@ -95,7 +103,7 @@ export async function extractYouTubeImpl(
       });
     }
 
-    captureEvent({
+    await captureEvent({
       distinctId: doc.userId,
       event: "pipeline.stage_completed",
       properties: {
@@ -114,13 +122,13 @@ export async function extractYouTubeImpl(
   } catch (error) {
     evt.setError(error);
     const message = error instanceof Error ? error.message : "YouTube extraction failed";
-    captureEvent({
-      distinctId: doc.userId,
+    await captureEvent({
+      distinctId: doc?.userId ?? "unknown",
       event: "pipeline.stage_failed",
       properties: {
         stage: "parsing",
         document_id: documentId,
-        file_type: doc.fileType,
+        file_type: "youtube",
         error: message,
       },
     });
