@@ -63,6 +63,8 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_PUBLIC_POSTHOG_KEY: ${{ vars.VITE_PUBLIC_POSTHOG_KEY }}
+          VITE_PUBLIC_POSTHOG_HOST: ${{ vars.VITE_PUBLIC_POSTHOG_HOST }}
 
       - name: Install Playwright browsers
         working-directory: apps/e2e
@@ -74,6 +76,8 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_PUBLIC_POSTHOG_KEY: ${{ vars.VITE_PUBLIC_POSTHOG_KEY }}
+          VITE_PUBLIC_POSTHOG_HOST: ${{ vars.VITE_PUBLIC_POSTHOG_HOST }}
 
       - name: Run E2E tests (fast)
         working-directory: apps/e2e
@@ -140,6 +144,8 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_PUBLIC_POSTHOG_KEY: ${{ vars.VITE_PUBLIC_POSTHOG_KEY }}
+          VITE_PUBLIC_POSTHOG_HOST: ${{ vars.VITE_PUBLIC_POSTHOG_HOST }}
 
       - name: Install Playwright browsers
         working-directory: apps/e2e
@@ -151,6 +157,8 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ steps.convex-preview.outputs.preview_url }}
           VITE_CONVEX_SITE_URL: ${{ steps.convex-preview.outputs.preview_site_url }}
+          VITE_PUBLIC_POSTHOG_KEY: ${{ vars.VITE_PUBLIC_POSTHOG_KEY }}
+          VITE_PUBLIC_POSTHOG_HOST: ${{ vars.VITE_PUBLIC_POSTHOG_HOST }}
 
       - name: Run E2E tests (slow)
         working-directory: apps/e2e

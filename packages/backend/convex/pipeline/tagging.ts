@@ -49,10 +49,14 @@ export const autoSuggest = internalAction({
   handler: async (ctx, { documentId }) => {
     const evt = new WideEvent("pipeline.autoSuggestTags");
     evt.set({ documentId });
-    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-    if (!doc) throw new Error(`Document ${documentId} not found`);
-    if (doc.status === "deleting") return;
+    let doc:
+      | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
+      | undefined;
     try {
+      doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+      if (!doc) throw new Error(`Document ${documentId} not found`);
+      if (doc.status === "deleting") return;
+
       evt.set("userId", doc.userId);
 
       if (doc.tagSources?.includes("ai")) {
@@ -91,14 +95,6 @@ export const autoSuggest = internalAction({
         temperature: 0.3,
         maxRetries: 2,
       });
-      captureAiUsage({
-        distinctId: doc.userId,
-        operation: "tagging",
-        documentId,
-        usage,
-        model: "llm",
-      });
-
       const tagNames = output?.tags ?? [];
       evt.set("suggestedTags", tagNames.length);
 
@@ -117,7 +113,14 @@ export const autoSuggest = internalAction({
 
       evt.set("storedTags", validTags.length);
 
-      captureEvent({
+      await captureAiUsage({
+        distinctId: doc.userId,
+        operation: "tagging",
+        documentId,
+        usage,
+        modelType: "llm",
+      });
+      await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_completed",
         properties: {
@@ -128,8 +131,8 @@ export const autoSuggest = internalAction({
       });
     } catch (error) {
       evt.setError(error);
-      captureEvent({
-        distinctId: doc.userId,
+      await captureEvent({
+        distinctId: doc?.userId ?? `unresolved:${documentId}`,
         event: "pipeline.stage_failed",
         properties: {
           stage: "tagging",

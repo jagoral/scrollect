@@ -96,7 +96,7 @@ export function CardShell({
     () => ({
       card_type: post.postType,
       source_type: "document",
-      card_age_hours: Math.round((Date.now() - post.createdAt) / 3600000),
+      created_at: post.createdAt,
     }),
     [post.postType, post.createdAt],
   );

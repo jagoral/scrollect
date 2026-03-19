@@ -248,6 +248,7 @@ export const generate = action({
       const embedder = createEmbeddingProvider();
 
       let selected: ChunkMetadata[];
+      let selectionMethod: string;
       if (docSummaries.length > 0) {
         const summaryStore = createSummaryVectorStore();
         selected = await semanticSelect({
@@ -261,6 +262,7 @@ export const generate = action({
           summaryStore,
           now,
         });
+        selectionMethod = "semantic";
         evt.set("selectionMethod", "semantic");
       } else {
         selected = weightedSample({
@@ -270,6 +272,7 @@ export const generate = action({
           count: sampleSize,
           now,
         });
+        selectionMethod = "weighted";
         evt.set("selectionMethod", "weighted");
       }
       evt.set("selectedChunks", selected.length);
@@ -451,18 +454,18 @@ export const generate = action({
       }
       postIds.reverse();
 
-      captureAiUsage({
+      await captureAiUsage({
         distinctId: user._id,
         operation: "feed_generation",
         usage: generationTokens,
-        model: "llm",
+        modelType: "llm",
       });
-      captureEvent({
+      await captureEvent({
         distinctId: user._id,
-        event: "pipeline.cards_generated",
+        event: "feed.cards_generated",
         properties: {
           card_count: postIds.length,
-          selection_method: "multi_type",
+          selection_method: selectionMethod,
         },
       });
 

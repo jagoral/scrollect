@@ -52,6 +52,7 @@ export default function UserMenu() {
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
+                    posthog.reset();
                     navigate({ to: "/" });
                   },
                 },

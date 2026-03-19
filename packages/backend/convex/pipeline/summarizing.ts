@@ -30,7 +30,7 @@ Given text chunks from a section of a document, produce a concise summary that c
 Rules:
 - Write 2-5 sentences
 - Capture the main concepts and their relationships
-- Be specific — include key terms, names, and numbers
+- Be specific - include key terms, names, and numbers
 - Write in third person
 
 Return a JSON object: { "summary": "..." }`;
@@ -124,10 +124,14 @@ export const summarizeDocument = internalAction({
     const evt = new WideEvent("pipeline.summarizeDocument");
     evt.set({ documentId });
     const startMs = Date.now();
-    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-    if (!doc) throw new Error(`Document ${documentId} not found`);
-    if (doc.status === "deleting") return;
+    let doc:
+      | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
+      | undefined;
     try {
+      doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+      if (!doc) throw new Error(`Document ${documentId} not found`);
+      if (doc.status === "deleting") return;
+
       evt.set("userId", doc.userId);
 
       const allChunks = await ctx.runQuery(internal.chunks.listByDocumentInternal, {
@@ -233,23 +237,30 @@ export const summarizeDocument = internalAction({
       evt.set("upsertDurationMs", Date.now() - upsertStart);
       evt.set("vectorsUpserted", 1 + sectionPoints.length);
 
-      captureAiUsage({
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "ready",
+        summary: docSummary,
+        summaryEmbeddingId: docEmbeddingId,
+      });
+
+      await captureAiUsage({
         distinctId: doc.userId,
         operation: "summarizing",
         documentId,
         usage: llmTokens,
-        model: "llm",
+        modelType: "llm",
       });
       if (embedder.lastUsage) {
-        captureAiUsage({
+        await captureAiUsage({
           distinctId: doc.userId,
           operation: "summarizing.embed",
           documentId,
           usage: embedder.lastUsage,
-          model: "embedding",
+          modelType: "embedding",
         });
       }
-      captureEvent({
+      await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_completed",
         properties: {
@@ -259,31 +270,24 @@ export const summarizeDocument = internalAction({
         },
       });
 
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "ready",
-        summary: docSummary,
-        summaryEmbeddingId: docEmbeddingId,
-      });
-
       await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Summarization failed";
-      captureEvent({
-        distinctId: doc.userId,
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "error",
+        errorMessage: message,
+        failedAt: "summarizing",
+      });
+      await captureEvent({
+        distinctId: doc?.userId ?? `unresolved:${documentId}`,
         event: "pipeline.stage_failed",
         properties: {
           stage: "summarizing",
           document_id: documentId,
           error: message,
         },
-      });
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "error",
-        errorMessage: message,
-        failedAt: "summarizing",
       });
     } finally {
       evt.emit();

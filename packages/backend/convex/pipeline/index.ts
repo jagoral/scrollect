@@ -22,15 +22,15 @@ export const startProcessing = internalAction({
 
       evt.set({ fileType: doc.fileType, userId: doc.userId });
 
-      captureEvent({
-        distinctId: doc.userId,
-        event: "pipeline.processing_started",
-        properties: { document_id: documentId, file_type: doc.fileType },
-      });
-
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
         status: "parsing",
+      });
+
+      await captureEvent({
+        distinctId: doc.userId,
+        event: "pipeline.processing_started",
+        properties: { document_id: documentId, file_type: doc.fileType },
       });
 
       switch (doc.fileType) {
@@ -39,26 +39,53 @@ export const startProcessing = internalAction({
           if (!doc.storageId)
             throw new Error(`${doc.fileType.toUpperCase()} document missing storageId`);
           evt.set("path", "datalab");
-          await submitDatalabParsingImpl(ctx, documentId, doc.storageId, evt);
+          await submitDatalabParsingImpl({
+            ctx,
+            documentId,
+            storageId: doc.storageId,
+            userId: doc.userId,
+            evt,
+          });
           break;
 
         case "md":
         case "text":
           if (!doc.storageId) throw new Error(`${doc.fileType} document missing storageId`);
           evt.set("path", "markdown");
-          await fetchAndParseMarkdownImpl(ctx, documentId, doc.storageId, evt);
+          await fetchAndParseMarkdownImpl({
+            ctx,
+            documentId,
+            storageId: doc.storageId,
+            userId: doc.userId,
+            fileType: doc.fileType,
+            evt,
+          });
           break;
 
         case "article":
           if (!doc.sourceUrl) throw new Error("Article document missing sourceUrl");
           evt.set("path", "article");
-          await extractArticleImpl(ctx, documentId, doc.sourceUrl, evt);
+          await extractArticleImpl({
+            ctx,
+            documentId,
+            sourceUrl: doc.sourceUrl,
+            userId: doc.userId,
+            fileType: doc.fileType,
+            evt,
+          });
           break;
 
         case "youtube":
           if (!doc.sourceUrl) throw new Error("YouTube document missing sourceUrl");
           evt.set("path", "youtube");
-          await extractYouTubeImpl(ctx, documentId, doc.sourceUrl, evt);
+          await extractYouTubeImpl({
+            ctx,
+            documentId,
+            sourceUrl: doc.sourceUrl,
+            userId: doc.userId,
+            fileType: doc.fileType,
+            evt,
+          });
           break;
 
         default:

@@ -4,6 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import type { ConvexReactClient } from "convex/react";
 import { PostHogProvider, usePostHog } from "posthog-js/react";
+import { env } from "@scrollect/env/web";
 
 import appCss from "@/index.css?url";
 import Footer from "@/components/footer";
@@ -58,10 +59,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="font-sans antialiased">
         <PostHogProvider
-          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ?? ""}
+          apiKey={env.VITE_PUBLIC_POSTHOG_KEY ?? ""}
           options={{
             api_host: "/ingest",
-            ui_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
+            ui_host: env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
             capture_exceptions: true,
             person_profiles: "identified_only",
             opt_out_capturing_by_default: true,
@@ -79,6 +80,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { initialToken, convexClient } = Route.useRouteContext();
+
   return (
     <Providers initialToken={initialToken} convexClient={convexClient}>
       <div className="grid grid-rows-[auto_1fr] h-svh">

@@ -21,10 +21,14 @@ export const chunkAndStore = internalAction({
     const evt = new WideEvent("pipeline.chunkAndStore");
     evt.set({ documentId, markdownStorageId });
     const startMs = Date.now();
-    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-    if (!doc) throw new Error(`Document ${documentId} not found`);
-    if (doc.status === "deleting") return;
+    let doc:
+      | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
+      | undefined;
     try {
+      doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+      if (!doc) throw new Error(`Document ${documentId} not found`);
+      if (doc.status === "deleting") return;
+
       const markdown = await fetchMarkdownBlob(ctx, markdownStorageId);
       evt.set("markdownLength", markdown.length);
 
@@ -57,7 +61,13 @@ export const chunkAndStore = internalAction({
       }
       evt.set("batchesStored", batchesStored);
 
-      captureEvent({
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "embedding",
+        chunkCount: chunks.length,
+      });
+
+      await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_completed",
         properties: {
@@ -68,31 +78,25 @@ export const chunkAndStore = internalAction({
         },
       });
 
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "embedding",
-        chunkCount: chunks.length,
-      });
-
       // Fan-out embedding batches
       await fanOutEmbedding(ctx, documentId, allChunkIds);
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Chunking failed";
-      captureEvent({
-        distinctId: doc.userId,
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "error",
+        errorMessage: message,
+        failedAt: "chunking",
+      });
+      await captureEvent({
+        distinctId: doc?.userId ?? `unresolved:${documentId}`,
         event: "pipeline.stage_failed",
         properties: {
           stage: "chunking",
           document_id: documentId,
           error: message,
         },
-      });
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "error",
-        errorMessage: message,
-        failedAt: "chunking",
       });
     } finally {
       evt.emit();

@@ -79,7 +79,7 @@ export const embedBatch = internalAction({
       evt.set("validChunkCount", validChunks.length);
 
       if (validChunks.length === 0) {
-        // All chunks already embedded — mark batch complete
+        // All chunks already embedded - mark batch complete
         const job = await ctx.runMutation(internal.processingJobs.markBatchComplete, {
           id: jobId,
           failed: false,
@@ -93,16 +93,6 @@ export const embedBatch = internalAction({
       const t0 = Date.now();
       const vectors = await embedder.embed(texts);
       evt.set("embedDurationMs", Date.now() - t0);
-      if (embedder.lastUsage) {
-        captureAiUsage({
-          distinctId: doc.userId,
-          operation: "embedding",
-          documentId,
-          usage: embedder.lastUsage,
-          model: "embedding",
-        });
-      }
-
       // Build vector points with deterministic UUIDs derived from chunk IDs
       const points = validChunks.map((chunk, i) => ({
         id: convexIdToUuid(chunk._id),
@@ -135,6 +125,16 @@ export const embedBatch = internalAction({
         failed: false,
       });
       await checkCompletion(ctx, job, documentId);
+
+      if (embedder.lastUsage) {
+        await captureAiUsage({
+          distinctId: doc.userId,
+          operation: "embedding",
+          documentId,
+          usage: embedder.lastUsage,
+          modelType: "embedding",
+        });
+      }
     } catch (error) {
       evt.setError(error);
 
@@ -177,8 +177,14 @@ async function checkCompletion(
   if (job.failedBatches > 0) {
     const summary = `${job.failedBatches}/${job.totalBatches} embedding batches failed`;
     const errorMessage = lastError ? `${summary}: ${lastError}` : summary;
+    await ctx.runMutation(internal.documents.updateStatus, {
+      id: documentId,
+      status: "error",
+      errorMessage,
+      failedAt: "embedding",
+    });
     if (doc) {
-      captureEvent({
+      await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_failed",
         properties: {
@@ -190,15 +196,16 @@ async function checkCompletion(
         },
       });
     }
+  } else {
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
-      status: "error",
-      errorMessage,
-      failedAt: "embedding",
+      status: "summarizing",
     });
-  } else {
+    await ctx.scheduler.runAfter(0, internal.pipeline.summarizing.summarizeDocument, {
+      documentId,
+    });
     if (doc) {
-      captureEvent({
+      await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_completed",
         properties: {
@@ -209,12 +216,5 @@ async function checkCompletion(
         },
       });
     }
-    await ctx.runMutation(internal.documents.updateStatus, {
-      id: documentId,
-      status: "summarizing",
-    });
-    await ctx.scheduler.runAfter(0, internal.pipeline.summarizing.summarizeDocument, {
-      documentId,
-    });
   }
 }
