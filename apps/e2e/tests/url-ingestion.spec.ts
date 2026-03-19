@@ -1,7 +1,14 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, SEEDED_USER, cleanupTestData, resetTestData, signIn, signUp } from "./helpers";
+import {
+  FIXTURES_DIR,
+  SEEDED_USER,
+  cleanupTestData,
+  resetTestData,
+  signIn,
+  signUp,
+} from "./helpers";
 
 test.describe(
   "Upload page tab structure",

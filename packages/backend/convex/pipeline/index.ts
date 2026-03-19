@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
+import { captureEvent } from "../providers/analytics";
 
 import { extractArticleImpl, extractYouTubeImpl } from "./extraction";
 import { fetchAndParseMarkdownImpl, submitDatalabParsingImpl } from "./parsing";
@@ -20,6 +21,12 @@ export const startProcessing = internalAction({
       if (doc.status === "deleting") return;
 
       evt.set({ fileType: doc.fileType, userId: doc.userId });
+
+      captureEvent({
+        distinctId: doc.userId,
+        event: "pipeline.processing_started",
+        properties: { document_id: documentId, file_type: doc.fileType },
+      });
 
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,

@@ -5,7 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, usePaginatedQuery } from "convex/react";
 import { CheckCircle, Loader2, Rss, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import { usePostHog } from "posthog-js/react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { PostCard } from "@/components/post-card";
 import { buildTagMap } from "@/components/tags";
@@ -55,6 +56,12 @@ function FeedPage() {
       count,
     },
   );
+  const posthog = usePostHog();
+  const handleGenerate = useCallback(() => {
+    posthog.capture("feed.generate_clicked", { existing_card_count: results.length });
+    generate();
+  }, [posthog, generate, results.length]);
+
   const sentinelRef = useInfiniteScroll(status, loadMore);
 
   const uniqueDocumentIds = useMemo(
@@ -80,6 +87,17 @@ function FeedPage() {
     [results, tagsByDocId],
   );
 
+  const exhaustedTracked = useRef(false);
+  useEffect(() => {
+    if (status === "Exhausted" && !exhaustedTracked.current) {
+      exhaustedTracked.current = true;
+      posthog.capture("feed.exhausted", { total_cards: enrichedResults.length });
+    }
+    if (status !== "Exhausted") {
+      exhaustedTracked.current = false;
+    }
+  }, [status, posthog, enrichedResults.length]);
+
   if (status === "LoadingFirstPage") {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
@@ -103,7 +121,7 @@ function FeedPage() {
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
         </div>
-        <Button onClick={generate} disabled={generating || isRateLimited} size="sm">
+        <Button onClick={handleGenerate} disabled={generating || isRateLimited} size="sm">
           {generating ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -130,7 +148,7 @@ function FeedPage() {
               Click &quot;Generate&quot; to create learning cards from your documents.
             </p>
           </div>
-          <Button onClick={generate} disabled={generating || isRateLimited}>
+          <Button onClick={handleGenerate} disabled={generating || isRateLimited}>
             <Sparkles className="mr-2 h-4 w-4" />
             Generate your first feed
           </Button>

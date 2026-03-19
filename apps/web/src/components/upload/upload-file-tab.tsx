@@ -3,6 +3,7 @@ import { FILE_SIZE_LIMITS, formatFileSize } from "@scrollect/backend/convex/lib/
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { CloudUpload, FileUp, Loader2 } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -32,6 +33,7 @@ export function UploadFileTab() {
   const [dragOver, setDragOver] = useState(false);
   const [uploads, setUploads] = useState<FileUploadState[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const posthog = usePostHog();
 
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createDocument = useMutation(api.documents.create);
@@ -85,6 +87,10 @@ export function UploadFileTab() {
         setUploads((prev) =>
           prev.map((u) => (u.file === file ? { ...u, status: "done" as const } : u)),
         );
+        posthog.capture("content.uploaded", {
+          source_type: ext,
+          file_size: file.size,
+        });
         toast.success(
           <span>
             Uploaded <strong>{file.name}</strong>.{" "}
@@ -97,10 +103,11 @@ export function UploadFileTab() {
         setUploads((prev) =>
           prev.map((u) => (u.file === file ? { ...u, status: "error" as const } : u)),
         );
+        posthog.captureException(error);
         toastRateLimitOrFallback(error, `Failed to upload ${file.name}`);
       }
     },
-    [generateUploadUrl, createDocument],
+    [generateUploadUrl, createDocument, posthog],
   );
 
   const handleFiles = useCallback(

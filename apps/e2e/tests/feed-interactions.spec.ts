@@ -61,7 +61,9 @@ test.describe("Feed interactions and pagination", () => {
       // Wait for either new content to load (card count increases) or end state to appear
       await Promise.race([
         endState.waitFor({ state: "visible", timeout: 3000 }).catch(() => {}),
-        expect(page.locator('[data-testid="post-card"]')).not.toHaveCount(cardCountBefore, { timeout: 3000 }).catch(() => {}),
+        expect(page.locator('[data-testid="post-card"]'))
+          .not.toHaveCount(cardCountBefore, { timeout: 3000 })
+          .catch(() => {}),
       ]);
     }
 

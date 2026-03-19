@@ -4,8 +4,9 @@ import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { Bookmark, BookmarkCheck, FileText, Maximize2, ThumbsDown, ThumbsUp } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { ChunkContextSheetContent } from "@/components/chunk-context-sheet";
 import { TagList } from "@/components/tags";
@@ -19,6 +20,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+
+import { useCardImpression } from "@/hooks/use-card-impression";
 
 import type { PostCardData } from "./types";
 import { formatSourceLocation } from "./utils";
@@ -49,6 +52,8 @@ function getSourceLabel(post: PostCardData): string {
 }
 
 export function SourceBadge({ post, className }: { post: PostCardData; className?: string }) {
+  const posthog = usePostHog();
+
   return (
     <div className={cn("mb-3", className)}>
       <Link
@@ -56,6 +61,11 @@ export function SourceBadge({ post, className }: { post: PostCardData; className
         params={{ documentId: post.primarySourceDocumentId }}
         data-testid="source-badge"
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
+        onClick={() => {
+          posthog.capture("source.revisited", {
+            card_type: post.postType,
+          });
+        }}
       >
         <FileText className="size-3 shrink-0" />
         <span className="max-w-64 truncate">{getSourceLabel(post)}</span>
@@ -80,6 +90,17 @@ export function CardShell({
   sheetChildren,
 }: CardShellProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const posthog = usePostHog();
+
+  const impressionProperties = useMemo(
+    () => ({
+      card_type: post.postType,
+      source_type: "document",
+      card_age_hours: Math.round((Date.now() - post.createdAt) / 3600000),
+    }),
+    [post.postType, post.createdAt],
+  );
+  const impressionRef = useCardImpression(post._id, impressionProperties);
 
   const tags = post.tags ?? [];
 
@@ -102,6 +123,7 @@ export function CardShell({
   return (
     <>
       <article
+        ref={impressionRef}
         data-testid="post-card"
         data-card-type={post.postType}
         data-quiz-variant={quizVariant}
@@ -144,7 +166,12 @@ export function CardShell({
                 variant="ghost"
                 size="icon-sm"
                 className="transition-all duration-200 active:scale-90"
-                onClick={() => setSheetOpen(true)}
+                onClick={() => {
+                  posthog.capture("card.expanded", {
+                    card_type: post.postType,
+                  });
+                  setSheetOpen(true);
+                }}
                 data-testid="expand-button"
                 title="View source context"
               >
@@ -158,7 +185,13 @@ export function CardShell({
                   post.isBookmarked &&
                     "bg-primary/10 text-primary hover:bg-primary/15 dark:bg-primary/20 dark:hover:bg-primary/25",
                 )}
-                onClick={() => toggleBookmark({ postId: post._id })}
+                onClick={() => {
+                  posthog.capture("card.bookmarked", {
+                    card_type: post.postType,
+                    bookmarked: !post.isBookmarked,
+                  });
+                  toggleBookmark({ postId: post._id });
+                }}
                 data-testid="save-button"
                 aria-pressed={!!post.isBookmarked}
                 title="Save"
@@ -177,12 +210,16 @@ export function CardShell({
                   post.reaction === "like" &&
                     "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/25",
                 )}
-                onClick={() =>
+                onClick={() => {
+                  posthog.capture("card.reacted", {
+                    card_type: post.postType,
+                    reaction: post.reaction === "like" ? "none" : "like",
+                  });
                   setReaction({
                     postId: post._id,
                     reaction: post.reaction === "like" ? "none" : "like",
-                  })
-                }
+                  });
+                }}
                 data-testid="like-button"
                 aria-pressed={post.reaction === "like"}
                 title="Like"
@@ -197,12 +234,16 @@ export function CardShell({
                   post.reaction === "dislike" &&
                     "bg-red-500/10 text-red-500 hover:bg-red-500/15 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/25",
                 )}
-                onClick={() =>
+                onClick={() => {
+                  posthog.capture("card.reacted", {
+                    card_type: post.postType,
+                    reaction: post.reaction === "dislike" ? "none" : "dislike",
+                  });
                   setReaction({
                     postId: post._id,
                     reaction: post.reaction === "dislike" ? "none" : "dislike",
-                  })
-                }
+                  });
+                }}
                 data-testid="dislike-button"
                 aria-pressed={post.reaction === "dislike"}
                 title="Dislike"

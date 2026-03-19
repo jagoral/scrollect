@@ -3,6 +3,7 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LogOut, Settings, User } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 
 import {
   DropdownMenu,
@@ -19,6 +20,7 @@ import { Button } from "./ui/button";
 
 export default function UserMenu() {
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const { data: user } = useQuery(convexQuery(api.auth.getCurrentUser, {}));
 
   return (
@@ -46,6 +48,7 @@ export default function UserMenu() {
           <DropdownMenuItem
             variant="destructive"
             onClick={() => {
+              posthog.reset();
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {

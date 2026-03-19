@@ -5,6 +5,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { usePaginatedQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { FileText, Loader2, Upload } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
@@ -40,14 +41,15 @@ export const Route = createFileRoute("/_authenticated/library/")({
 });
 
 function LibraryPage() {
-  const { results: documents, status, loadMore } = usePaginatedQuery(
-    api.documents.list,
-    {},
-    { initialNumItems: 20 },
-  );
+  const {
+    results: documents,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.documents.list, {}, { initialNumItems: 20 });
 
   const sentinelRef = useInfiniteScroll(status, loadMore);
 
+  const posthog = usePostHog();
   const { tags: tagsParam } = Route.useSearch();
   const navigate = Route.useNavigate();
   const selectedTags = useMemo(() => new Set(tagsParam ?? []), [tagsParam]);
@@ -77,6 +79,9 @@ function LibraryPage() {
 
   const handleToggleTag = useCallback(
     (tagName: string) => {
+      posthog.capture("library.tag_filtered", {
+        action: selectedTags.has(tagName) ? "removed" : "added",
+      });
       navigate({
         search: (prev) => {
           const current = new Set(prev.tags ?? []);
@@ -87,7 +92,7 @@ function LibraryPage() {
         },
       });
     },
-    [navigate],
+    [navigate, posthog, selectedTags],
   );
 
   const handleClearTags = useCallback(() => {
@@ -209,9 +214,7 @@ function LibraryPage() {
           {status === "Exhausted" && filteredDocuments.length > 0 && (
             <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
               <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">
-                End of library
-              </p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">End of library</p>
             </div>
           )}
         </>

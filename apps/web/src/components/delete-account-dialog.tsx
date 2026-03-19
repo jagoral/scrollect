@@ -1,6 +1,7 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
 import { useAction } from "convex/react";
 import { Loader2, Trash2 } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ import { Input } from "./ui/input";
 const CONFIRMATION_TEXT = "DELETE";
 
 export function DeleteAccountDialog() {
+  const posthog = usePostHog();
   const deleteAccount = useAction(api.accountActions.deleteAccount);
   const [open, setOpen] = useState(false);
   const [confirmationInput, setConfirmationInput] = useState("");
@@ -41,6 +43,8 @@ export function DeleteAccountDialog() {
       setIsDeleting(false);
       return;
     }
+
+    posthog.reset();
 
     // Session is already deleted server-side; clear client state best-effort
     try {

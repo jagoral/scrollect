@@ -30,6 +30,9 @@ export interface EmbeddingProvider {
   /** The dimensionality of the embedding vectors. */
   readonly dimensions: number;
 
+  /** Token usage from the most recent embed() call. */
+  lastUsage?: { tokens: number };
+
   /** Generate embeddings for a batch of texts. Returns one vector per input text. */
   embed(texts: string[]): Promise<number[][]>;
 }
