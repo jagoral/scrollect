@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
+import { showCookiePreferences } from "@/hooks/use-cookie-consent";
+
 const LINK_CLASSES =
   "text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none";
 
@@ -17,6 +19,13 @@ export default function Footer() {
           <Link to="/terms-and-conditions" className={LINK_CLASSES}>
             Terms & Conditions
           </Link>
+          <button
+            type="button"
+            onClick={showCookiePreferences}
+            className={`${LINK_CLASSES} cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm`}
+          >
+            Cookie Settings
+          </button>
         </nav>
       </div>
     </footer>

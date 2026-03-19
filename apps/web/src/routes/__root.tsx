@@ -3,12 +3,13 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import type { ConvexReactClient } from "convex/react";
-import { PostHogProvider } from "posthog-js/react";
+import { PostHogProvider, usePostHog } from "posthog-js/react";
 
 import appCss from "@/index.css?url";
 import Footer from "@/components/footer";
 import Header from "@/components/header";
 import Providers from "@/components/providers";
+import { useCookieConsent } from "@/hooks/use-cookie-consent";
 import { getSession } from "@/lib/auth-server";
 
 export const Route = createRootRouteWithContext<{
@@ -43,6 +44,12 @@ export const Route = createRootRouteWithContext<{
   component: RootComponent,
 });
 
+function CookieConsentInit() {
+  const posthog = usePostHog();
+  useCookieConsent(posthog);
+  return null;
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -57,8 +64,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             ui_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
             capture_exceptions: true,
             person_profiles: "identified_only",
+            opt_out_capturing_by_default: true,
+            persistence: "memory",
           }}
         >
+          <CookieConsentInit />
           {children}
         </PostHogProvider>
         <Scripts />

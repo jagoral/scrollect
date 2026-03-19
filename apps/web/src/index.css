@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource/geist-sans/latin.css";
 @import "@fontsource/geist-mono/latin.css";
+@import "vanilla-cookieconsent/dist/cookieconsent.css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -260,4 +261,87 @@
   .animate-ring-pulse {
     animation: none;
   }
+}
+
+/* Cookie Consent - light theme (mapped to Scrollect design tokens) */
+#cc-main {
+  --cc-font-family: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --cc-modal-border-radius: var(--radius);
+  --cc-btn-border-radius: calc(var(--radius) - 2px);
+  --cc-modal-transition-duration: 0.25s;
+  --cc-bg: var(--card);
+  --cc-primary-color: var(--card-foreground);
+  --cc-secondary-color: var(--muted-foreground);
+  --cc-btn-primary-bg: var(--primary);
+  --cc-btn-primary-color: var(--primary-foreground);
+  --cc-btn-primary-border-color: var(--primary);
+  --cc-btn-primary-hover-bg: color-mix(in oklch, var(--primary) 85%, black);
+  --cc-btn-primary-hover-color: var(--primary-foreground);
+  --cc-btn-primary-hover-border-color: color-mix(in oklch, var(--primary) 85%, black);
+  --cc-btn-secondary-bg: var(--secondary);
+  --cc-btn-secondary-color: var(--secondary-foreground);
+  --cc-btn-secondary-border-color: var(--border);
+  --cc-btn-secondary-hover-bg: color-mix(in oklch, var(--secondary) 85%, var(--foreground));
+  --cc-btn-secondary-hover-color: var(--foreground);
+  --cc-btn-secondary-hover-border-color: var(--border);
+  --cc-separator-border-color: var(--border);
+  --cc-toggle-on-bg: var(--primary);
+  --cc-toggle-off-bg: var(--muted-foreground);
+  --cc-toggle-on-knob-bg: var(--primary-foreground);
+  --cc-toggle-off-knob-bg: var(--background);
+  --cc-toggle-readonly-bg: var(--muted);
+  --cc-toggle-readonly-knob-bg: var(--muted-foreground);
+  --cc-cookie-category-block-bg: var(--accent);
+  --cc-cookie-category-block-border: var(--border);
+  --cc-cookie-category-block-hover-bg: color-mix(in oklch, var(--accent) 80%, var(--foreground));
+  --cc-cookie-category-block-hover-border: var(--border);
+  --cc-cookie-category-expanded-block-bg: transparent;
+  --cc-cookie-category-expanded-block-hover-bg: var(--muted);
+  --cc-overlay-bg: oklch(0.15 0.02 240 / 0.6);
+  --cc-footer-bg: var(--muted);
+  --cc-footer-color: var(--muted-foreground);
+  --cc-footer-border-color: var(--border);
+  --cc-link-color: var(--primary);
+}
+
+/* Cookie Consent - dark theme (only overrides that differ from light) */
+.cc--darkmode #cc-main {
+  --cc-btn-primary-hover-bg: color-mix(in oklch, var(--primary) 80%, white);
+  --cc-btn-primary-hover-border-color: color-mix(in oklch, var(--primary) 80%, white);
+  --cc-btn-secondary-hover-bg: color-mix(in oklch, var(--secondary) 80%, white);
+  --cc-cookie-category-block-hover-bg: color-mix(in oklch, var(--accent) 80%, white);
+  --cc-overlay-bg: oklch(0.05 0.01 240 / 0.7);
+  --cc-footer-bg: color-mix(in oklch, var(--background) 90%, black);
+}
+
+/* Cookie Consent - bar layout refinements */
+#cc-main .cm--bar {
+  border-top: 1px solid var(--cc-separator-border-color);
+  box-shadow: 0 -4px 24px oklch(0.15 0.02 240 / 0.08);
+}
+
+.cc--darkmode #cc-main .cm--bar {
+  box-shadow: 0 -4px 24px oklch(0 0 0 / 0.3);
+}
+
+#cc-main .cm__btn {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+#cc-main .cm__title {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+#cc-main .pm__title {
+  letter-spacing: -0.02em;
+}
+
+#cc-main .cm__desc {
+  line-height: 1.6;
+}
+
+#cc-main .pm__section-desc {
+  line-height: 1.6;
 }
