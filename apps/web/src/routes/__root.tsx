@@ -3,6 +3,7 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import type { ConvexReactClient } from "convex/react";
+import { PostHogProvider } from "posthog-js/react";
 
 import appCss from "@/index.css?url";
 import Footer from "@/components/footer";
@@ -49,7 +50,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="font-sans antialiased">
-        {children}
+        <PostHogProvider
+          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ?? ""}
+          options={{
+            api_host: "/ingest",
+            ui_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
+            capture_exceptions: true,
+            person_profiles: "identified_only",
+          }}
+        >
+          {children}
+        </PostHogProvider>
         <Scripts />
       </body>
     </html>

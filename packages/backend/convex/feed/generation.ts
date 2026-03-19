@@ -6,11 +6,11 @@ import { z } from "zod";
 
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import type { ActionCtx } from "../_generated/server";
 import { action } from "../_generated/server";
 import { requireAuth } from "../lib/functions";
 import type { TypeData } from "../lib/validators";
 import { WideEvent } from "../lib/logging";
+import { captureAiUsage, captureEvent } from "../providers/analytics";
 import { getAI } from "../providers/ai";
 import {
   createEmbeddingProvider,
@@ -30,7 +30,6 @@ import {
   buildChunkUsageMap,
   buildTypeCoverageHint,
   semanticSelect,
-  shuffle,
   weightedSample,
 } from "./sampling";
 import { interleaveCards } from "./interleaving";
@@ -83,20 +82,6 @@ Return a JSON object: { "cards": [ { type, content, sourceChunkIndices, ...type-
 Produce exactly ${cardCount} cards from the ${chunkCount} chunks provided. Ensure variety in types.`;
 }
 
-function buildLegacyPrompt(chunkCount: number): string {
-  return `You are an AI learning assistant for Scrollect, a personal learning feed app.
-Your job is to transform raw text chunks from documents into engaging, bite-sized learning cards.
-
-Each card should:
-- Be concise (2-4 sentences)
-- Highlight one key insight, fact, or concept
-- Be written in a clear, engaging tone
-- Stand on its own without needing additional context
-- Use light Markdown formatting: **bold** for key terms, and occasional bullet points when listing related ideas
-
-Return a JSON object with a "posts" key containing an array of exactly ${chunkCount} strings, one for each input chunk.`;
-}
-
 const cardsResponseSchema = z.object({
   cards: z.array(
     z
@@ -109,17 +94,11 @@ const cardsResponseSchema = z.object({
   ),
 });
 
-const postsResponseSchema = z.object({
-  posts: z.array(z.string()),
-});
-
 export const generate = action({
   args: { count: v.optional(v.number()) },
   handler: async (ctx, args): Promise<Id<"posts">[]> => {
     const cardCount = args.count ?? 5;
     const evt = new WideEvent("feedGeneration.generate");
-    const useMultiType = process.env.MULTI_TYPE_GENERATION !== "false";
-    evt.set("multiTypeEnabled", useMultiType);
 
     try {
       const user = await requireAuth(ctx);
@@ -269,7 +248,7 @@ export const generate = action({
       const embedder = createEmbeddingProvider();
 
       let selected: ChunkMetadata[];
-      if (useMultiType && docSummaries.length > 0) {
+      if (docSummaries.length > 0) {
         const summaryStore = createSummaryVectorStore();
         selected = await semanticSelect({
           allChunks,
@@ -283,7 +262,7 @@ export const generate = action({
           now,
         });
         evt.set("selectionMethod", "semantic");
-      } else if (useMultiType) {
+      } else {
         selected = weightedSample({
           chunks: allChunks,
           chunkUsageMap,
@@ -292,31 +271,9 @@ export const generate = action({
           now,
         });
         evt.set("selectionMethod", "weighted");
-      } else {
-        selected = shuffle(allChunks).slice(0, sampleSize);
-        evt.set("selectionMethod", "random");
       }
       evt.set("selectedChunks", selected.length);
-
       evt.set("model", "fast");
-
-      if (!useMultiType) {
-        const hydrationStart = Date.now();
-        const legacyContentMap = await fetchContent(selected.map((c) => c._id));
-        evt.set("legacyHydrationDurationMs", Date.now() - hydrationStart);
-        const hydratedSelected: ChunkInfo[] = selected.map((c) => ({
-          ...c,
-          content: legacyContentMap.get(c._id) ?? "",
-        }));
-        return await generateLegacy({
-          ctx,
-          selected: hydratedSelected,
-          documents,
-          userId: user._id,
-          cardCount,
-          evt,
-        });
-      }
 
       let connectionPairs: ConnectionPair[] = [];
       if (allChunks.length >= 2) {
@@ -394,10 +351,11 @@ export const generate = action({
       let validCards: { card: RawCard; chunks: ChunkInfo[] }[] = [];
       let generationAttempts = 0;
       const maxBatchRetries = 2;
+      const generationTokens = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
       while (validCards.length < cardCount && generationAttempts <= maxBatchRetries) {
         generationAttempts++;
-        const { output } = await generateText({
+        const { output, usage } = await generateText({
           model: getAI().languageModel("fast"),
           output: Output.object({ schema: cardsResponseSchema }),
           system: systemPrompt,
@@ -405,6 +363,9 @@ export const generate = action({
           temperature: 0.7,
           maxRetries: 2,
         });
+        generationTokens.inputTokens += usage.inputTokens ?? 0;
+        generationTokens.outputTokens += usage.outputTokens ?? 0;
+        generationTokens.totalTokens += usage.totalTokens ?? 0;
 
         const cards = (output?.cards ?? []) as RawCard[];
 
@@ -490,6 +451,21 @@ export const generate = action({
       }
       postIds.reverse();
 
+      captureAiUsage({
+        distinctId: user._id,
+        operation: "feed_generation",
+        usage: generationTokens,
+        model: "llm",
+      });
+      captureEvent({
+        distinctId: user._id,
+        event: "pipeline.cards_generated",
+        properties: {
+          card_count: postIds.length,
+          selection_method: "multi_type",
+        },
+      });
+
       return postIds;
     } catch (error) {
       evt.setError(error);
@@ -535,58 +511,4 @@ function buildTypeData(card: RawCard): TypeData {
         connectionType: card.connectionType ?? "cross_document",
       };
   }
-}
-
-type LegacyGenerateArgs = {
-  ctx: ActionCtx;
-  selected: ChunkInfo[];
-  documents: { _id: Id<"documents">; title: string }[];
-  userId: string;
-  cardCount: number;
-  evt: WideEvent;
-};
-
-async function generateLegacy(args: LegacyGenerateArgs): Promise<Id<"posts">[]> {
-  const { ctx, selected, documents, userId, cardCount, evt } = args;
-  const systemPrompt = buildLegacyPrompt(Math.min(selected.length, cardCount));
-  const subset = selected.slice(0, cardCount);
-  const userPrompt = subset
-    .map((chunk, i) => `Chunk ${i + 1}:\n${chunk.content}`)
-    .join("\n\n---\n\n");
-
-  const { output } = await generateText({
-    model: getAI().languageModel("fast"),
-    output: Output.object({ schema: postsResponseSchema }),
-    system: systemPrompt,
-    prompt: userPrompt,
-    temperature: 0.7,
-    maxRetries: 2,
-  });
-
-  const posts = output?.posts ?? [];
-
-  evt.set("postsGenerated", posts.length);
-
-  const postIds: Id<"posts">[] = [];
-  for (let i = 0; i < posts.length; i++) {
-    const chunk = subset[i]!;
-    const content = posts[i]!;
-    const doc = documents.find((d) => d._id === chunk.documentId);
-    const id = await ctx.runMutation(internal.feed.queries.insertPost, {
-      content,
-      postType: "insight",
-      typeData: { type: "insight" },
-      primarySourceDocumentId: chunk.documentId as Id<"documents">,
-      primarySourceDocumentTitle: doc?.title ?? "Unknown",
-      primarySourceChunkId: chunk._id as Id<"chunks">,
-      primarySourceSectionTitle: chunk.sectionTitle,
-      primarySourcePageNumber: chunk.pageNumber,
-      sourceChunkIds: [chunk._id as Id<"chunks">],
-      sourceDocumentIds: [chunk.documentId as Id<"documents">],
-      userId,
-    });
-    postIds.push(id);
-  }
-
-  return postIds;
 }

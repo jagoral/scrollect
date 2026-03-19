@@ -23,7 +23,12 @@ type DeletionData = {
 
 async function executeDeletionCascade(
   ctx: ActionCtx,
-  { documentId, userId, data, evt }: {
+  {
+    documentId,
+    userId,
+    data,
+    evt,
+  }: {
     documentId: Id<"documents">;
     userId: string;
     data: DeletionData;
@@ -60,10 +65,9 @@ async function executeDeletionCascade(
     userId,
   });
 
-  const chunkResult = await ctx.runMutation(
-    internal.documents.cascadeDeleteChunksAndSummaries,
-    { documentId },
-  );
+  const chunkResult = await ctx.runMutation(internal.documents.cascadeDeleteChunksAndSummaries, {
+    documentId,
+  });
 
   const docResult = await ctx.runMutation(internal.documents.cascadeDeleteDocument, {
     documentId,
@@ -84,7 +88,11 @@ async function executeDeletionCascade(
 
 async function setDeletionErrorStatus(
   ctx: ActionCtx,
-  { documentId, error, evt }: {
+  {
+    documentId,
+    error,
+    evt,
+  }: {
     documentId: Id<"documents">;
     error: unknown;
     evt: WideEvent;

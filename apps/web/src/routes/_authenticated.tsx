@@ -1,6 +1,8 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 
+import { usePostHogIdentify } from "@/hooks/use-posthog-identify";
+
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ context }) => {
     if (!context.initialToken) {
@@ -17,5 +19,6 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
+  usePostHogIdentify();
   return <Outlet />;
 }

@@ -74,6 +74,15 @@ try {
 
 Operation naming: `"module.functionName"` (e.g., `"documents.create"`, `"pipeline.embedBatch"`).
 
+## Analytics (PostHog)
+
+Use `captureEvent()` and `captureAiUsage()` from `providers/analytics.ts`:
+
+- `captureEvent({ distinctId, event, properties })` - business events (content uploaded, feed generated)
+- `captureAiUsage({ distinctId, operation, usage, model })` - AI token usage tracking for cost analysis
+
+Analytics is separate from WideEvent logging. WideEvent = operational observability. Analytics = product metrics.
+
 ## File Organization
 
 - Keep files 50-200 lines; split at ~200.

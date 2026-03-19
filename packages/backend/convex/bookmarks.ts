@@ -87,9 +87,7 @@ export const listSaved = query({
     const posts = await Promise.all(uniquePostIds.map((id) => ctx.db.get(id)));
     const postMap = new Map(uniquePostIds.map((id, i) => [id, posts[i]]));
 
-    const uniqueChunkIds = [
-      ...new Set(posts.filter(Boolean).map((p) => p!.primarySourceChunkId)),
-    ];
+    const uniqueChunkIds = [...new Set(posts.filter(Boolean).map((p) => p!.primarySourceChunkId))];
     const chunks = await Promise.all(uniqueChunkIds.map((id) => ctx.db.get(id)));
     const chunkMap = new Map(uniqueChunkIds.map((id, i) => [id, chunks[i]]));
 

@@ -7,6 +7,7 @@ import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { chunkMarkdown } from "../chunking";
 import { WideEvent } from "../lib/logging";
+import { captureEvent } from "../providers/analytics";
 
 import { fanOutEmbedding } from "./embedding";
 import { CHUNK_STORE_BATCH_SIZE, fetchMarkdownBlob } from "./helpers";
@@ -19,6 +20,10 @@ export const chunkAndStore = internalAction({
   handler: async (ctx, { documentId, markdownStorageId }) => {
     const evt = new WideEvent("pipeline.chunkAndStore");
     evt.set({ documentId, markdownStorageId });
+    const startMs = Date.now();
+    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    if (!doc) throw new Error(`Document ${documentId} not found`);
+    if (doc.status === "deleting") return;
     try {
       const markdown = await fetchMarkdownBlob(ctx, markdownStorageId);
       evt.set("markdownLength", markdown.length);
@@ -52,6 +57,17 @@ export const chunkAndStore = internalAction({
       }
       evt.set("batchesStored", batchesStored);
 
+      captureEvent({
+        distinctId: doc.userId,
+        event: "pipeline.stage_completed",
+        properties: {
+          stage: "chunking",
+          document_id: documentId,
+          chunk_count: chunks.length,
+          duration_ms: Date.now() - startMs,
+        },
+      });
+
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
         status: "embedding",
@@ -63,6 +79,15 @@ export const chunkAndStore = internalAction({
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Chunking failed";
+      captureEvent({
+        distinctId: doc.userId,
+        event: "pipeline.stage_failed",
+        properties: {
+          stage: "chunking",
+          document_id: documentId,
+          error: message,
+        },
+      });
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
         status: "error",

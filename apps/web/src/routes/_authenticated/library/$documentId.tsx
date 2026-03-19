@@ -6,6 +6,7 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, FileText, Loader2, Trash2 } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -57,6 +58,7 @@ function DocumentDetailPage() {
   );
   const navigate = useNavigate();
   const deleteDocument = useAction(api.documentActions.deleteDocument);
+  const posthog = usePostHog();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -66,10 +68,12 @@ function DocumentDetailPage() {
     setIsDeleting(true);
     try {
       await deleteDocument({ documentId: document._id });
+      posthog.capture("document.deleted", { file_type: document.fileType });
       setDeleteDialogOpen(false);
       toast.success("Document deleted");
       await navigate({ to: "/library" });
-    } catch {
+    } catch (error) {
+      posthog.captureException(error);
       toast.error("Failed to delete document");
       setIsDeleting(false);
     }

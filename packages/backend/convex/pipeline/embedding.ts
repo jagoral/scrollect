@@ -7,6 +7,7 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
+import { captureAiUsage, captureEvent } from "../providers/analytics";
 
 import {
   convexIdToUuid,
@@ -92,6 +93,15 @@ export const embedBatch = internalAction({
       const t0 = Date.now();
       const vectors = await embedder.embed(texts);
       evt.set("embedDurationMs", Date.now() - t0);
+      if (embedder.lastUsage) {
+        captureAiUsage({
+          distinctId: doc.userId,
+          operation: "embedding",
+          documentId,
+          usage: embedder.lastUsage,
+          model: "embedding",
+        });
+      }
 
       // Build vector points with deterministic UUIDs derived from chunk IDs
       const points = validChunks.map((chunk, i) => ({
@@ -162,9 +172,24 @@ async function checkCompletion(
     return;
   }
 
+  const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+
   if (job.failedBatches > 0) {
     const summary = `${job.failedBatches}/${job.totalBatches} embedding batches failed`;
     const errorMessage = lastError ? `${summary}: ${lastError}` : summary;
+    if (doc) {
+      captureEvent({
+        distinctId: doc.userId,
+        event: "pipeline.stage_failed",
+        properties: {
+          stage: "embedding",
+          document_id: documentId,
+          total_batches: job.totalBatches,
+          failed_batches: job.failedBatches,
+          error: errorMessage,
+        },
+      });
+    }
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
       status: "error",
@@ -172,6 +197,18 @@ async function checkCompletion(
       failedAt: "embedding",
     });
   } else {
+    if (doc) {
+      captureEvent({
+        distinctId: doc.userId,
+        event: "pipeline.stage_completed",
+        properties: {
+          stage: "embedding",
+          document_id: documentId,
+          total_batches: job.totalBatches,
+          chunk_count: doc.chunkCount ?? 0,
+        },
+      });
+    }
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
       status: "summarizing",

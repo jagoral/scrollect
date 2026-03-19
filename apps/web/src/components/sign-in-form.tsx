@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -13,6 +14,7 @@ import { Label } from "./ui/label";
 
 export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const form = useForm({
     defaultValues: {
       email: "",
@@ -26,6 +28,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         },
         {
           onSuccess: () => {
+            posthog.capture("user.signed_in");
             navigate({ to: "/library" });
           },
           onError: (error) => {

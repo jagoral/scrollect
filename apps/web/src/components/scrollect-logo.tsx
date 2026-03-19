@@ -49,11 +49,6 @@ export function ScrollectWordmark({
 }) {
   const Svg = showSubline ? WordmarkWithSubline : WordmarkBase;
   return (
-    <Svg
-      height={height}
-      role="img"
-      aria-label="Scrollect"
-      className={cn("shrink-0", className)}
-    />
+    <Svg height={height} role="img" aria-label="Scrollect" className={cn("shrink-0", className)} />
   );
 }

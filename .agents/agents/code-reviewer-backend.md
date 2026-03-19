@@ -112,6 +112,14 @@ convex/pipeline/helpers.ts    // pipeline-specific retry logic
 convex/providers/youtube/utils.ts  // YouTube URL parsing
 ```
 
+## Analytics
+
+- Verify pipeline actions capture `pipeline.stage_completed` / `pipeline.stage_failed` events
+- Verify AI operations call `captureAiUsage()` with correct token usage
+- Check `captureEvent` calls only appear in actions (not queries/mutations)
+- Verify `distinctId` uses userId, not email or "unknown"
+- Check error paths capture analytics before updating status
+
 ## Output Format
 
 For each finding:

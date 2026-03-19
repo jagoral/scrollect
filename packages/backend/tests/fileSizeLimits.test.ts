@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  FILE_SIZE_LIMITS,
-  formatFileSize,
-  getFileSizeLimit,
-} from "../convex/lib/fileSizeLimits";
+import { FILE_SIZE_LIMITS, formatFileSize, getFileSizeLimit } from "../convex/lib/fileSizeLimits";
 
 describe("FILE_SIZE_LIMITS", () => {
   test("matches expected limits", () => {

@@ -58,6 +58,15 @@ Critical rules:
 - Batch-and-dedup for N+1 reads: collect unique IDs, Promise.all fetch, build Map
 - No unbounded .collect() on user-facing queries - always paginate or .take(limit)
 
+## Analytics
+
+- Use `captureEvent()` from `providers/analytics.ts` for business events in actions (not queries/mutations)
+- Use `captureAiUsage()` for ALL AI API calls (LLM and embeddings) to track token usage and cost
+- Events use dot-notation: `pipeline.stage_completed`, `pipeline.stage_failed`, `ai.tokens_used`
+- Never capture PII - use Convex user IDs only
+- Analytics calls gracefully no-op when `POSTHOG_API_KEY` is not set
+- Always capture both success and error paths in pipeline stages
+
 ## After Schema or Function Changes
 
 Always deploy: `cd packages/backend && npx convex dev --once`

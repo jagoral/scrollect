@@ -3,6 +3,7 @@ import { FILE_SIZE_LIMITS, formatFileSize } from "@scrollect/backend/convex/lib/
 import { useMutation } from "convex/react";
 import { Link } from "@tanstack/react-router";
 import { FileText, Loader2 } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
@@ -19,6 +20,7 @@ export function UploadTextTab() {
   const [submitting, setSubmitting] = useState(false);
   const [titleTouched, setTitleTouched] = useState(false);
   const [textTouched, setTextTouched] = useState(false);
+  const posthog = usePostHog();
 
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createFromText = useMutation(api.documents.createFromText);
@@ -70,6 +72,10 @@ export function UploadTextTab() {
         setText("");
         setTitleTouched(false);
         setTextTouched(false);
+        posthog.capture("content.uploaded", {
+          source_type: "text",
+          file_size: new Blob([trimmedText]).size,
+        });
         toast.success(
           <span>
             Added <strong>{trimmedTitle}</strong>.{" "}
@@ -79,6 +85,7 @@ export function UploadTextTab() {
           </span>,
         );
       } catch (error) {
+        posthog.captureException(error);
         toastRateLimitOrFallback(
           error,
           "Something went wrong while saving your text. Please try again.",
@@ -87,7 +94,7 @@ export function UploadTextTab() {
         setSubmitting(false);
       }
     },
-    [title, text, generateUploadUrl, createFromText],
+    [title, text, generateUploadUrl, createFromText, posthog],
   );
 
   return (

@@ -46,6 +46,15 @@ You build the Scrollect web app at `apps/web/src/`. You make UI/UX decisions whe
 - **Convex-native data fetching**: Use `useQuery`/`usePaginatedQuery` for real-time data. Avoid mixing with TanStack Query's `useSuspenseQuery`/`ensureQueryData` which creates dual cache layers.
 - Paginated query unauthenticated fallback: `{ page: [], isDone: true, continueCursor: '' }`, not empty array.
 
+## Analytics
+
+- Use `usePostHog()` from `posthog-js/react` to capture user-facing events
+- Event names use dot-notation: `entity.action` (e.g., `content.uploaded`, `card.viewed`, `feed.generate_clicked`)
+- Never capture PII (email, name, passwords) in event properties
+- Call `posthog.captureException(error)` in catch blocks for client-side error tracking
+- Add `posthog` to `useCallback` dependency arrays when used inside callbacks
+- For card/element visibility tracking, use the `useCardImpression` hook pattern from `hooks/use-card-impression.ts`
+
 ## Scope
 
 - `apps/web/src/` only. Do not modify backend code in `packages/backend/`.

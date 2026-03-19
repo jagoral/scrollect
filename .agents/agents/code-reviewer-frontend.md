@@ -97,6 +97,14 @@ src/lib/date-formatting.ts
 src/components/cards/card-utils.ts
 ```
 
+## Analytics
+
+- Verify user-facing features capture relevant PostHog events
+- Check for PII leaks in event properties (no email, name, passwords)
+- Verify `posthog.reset()` is called on sign-out paths
+- Check that `usePostHog()` is in callback dependency arrays
+- Verify event names follow dot-notation convention
+
 ## Output Format
 
 For each finding:

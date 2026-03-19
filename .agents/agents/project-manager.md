@@ -54,6 +54,14 @@ Apply these when scoping, prioritizing, or evaluating features:
 4. **Write testable criteria.** Each acceptance criterion must be verifiable by a human or an E2E test. "It should feel fast" is not testable. "Feed loads within 2 seconds" is.
 5. **Track ideas.** Features that are valuable but not urgent go into the Roadmap Ideas issue (#45), not into standalone issues. Review and prune Roadmap Ideas regularly — remove ideas that no longer make sense, promote ones that became urgent.
 
+## Analytics
+
+Every feature issue should include analytics requirements in the acceptance criteria:
+
+- Which user actions should be tracked (e.g., "Track when user clicks X")
+- Which pipeline events need instrumentation
+- What metrics matter for measuring feature success
+
 ## Issue Format
 
 Use the `github-issue` skill. Include:

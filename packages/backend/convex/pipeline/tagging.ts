@@ -7,6 +7,7 @@ import { z } from "zod";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
+import { captureAiUsage, captureEvent } from "../providers/analytics";
 import { getAI } from "../providers/ai";
 
 const MAX_SAMPLE_CHUNKS = 5;
@@ -48,10 +49,10 @@ export const autoSuggest = internalAction({
   handler: async (ctx, { documentId }) => {
     const evt = new WideEvent("pipeline.autoSuggestTags");
     evt.set({ documentId });
+    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    if (!doc) throw new Error(`Document ${documentId} not found`);
+    if (doc.status === "deleting") return;
     try {
-      const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-      if (!doc) throw new Error(`Document ${documentId} not found`);
-      if (doc.status === "deleting") return;
       evt.set("userId", doc.userId);
 
       if (doc.tagSources?.includes("ai")) {
@@ -82,13 +83,20 @@ export const autoSuggest = internalAction({
         })
         .join("\n\n---\n\n");
 
-      const { output } = await generateText({
+      const { output, usage } = await generateText({
         model: getAI().languageModel("fast"),
         output: Output.object({ schema: tagSchema }),
         system: buildTagSuggestionPrompt(),
         prompt: userPrompt,
         temperature: 0.3,
         maxRetries: 2,
+      });
+      captureAiUsage({
+        distinctId: doc.userId,
+        operation: "tagging",
+        documentId,
+        usage,
+        model: "llm",
       });
 
       const tagNames = output?.tags ?? [];
@@ -108,8 +116,27 @@ export const autoSuggest = internalAction({
       }
 
       evt.set("storedTags", validTags.length);
+
+      captureEvent({
+        distinctId: doc.userId,
+        event: "pipeline.stage_completed",
+        properties: {
+          stage: "tagging",
+          document_id: documentId,
+          tag_count: validTags.length,
+        },
+      });
     } catch (error) {
       evt.setError(error);
+      captureEvent({
+        distinctId: doc.userId,
+        event: "pipeline.stage_failed",
+        properties: {
+          stage: "tagging",
+          document_id: documentId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
     } finally {
       evt.emit();
     }

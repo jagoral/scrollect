@@ -2,6 +2,7 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { Link } from "@tanstack/react-router";
 import { Globe, Loader2, Youtube } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
@@ -35,6 +36,7 @@ export function isValidUrl(input: string): boolean {
 export function UploadUrlTab() {
   const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const posthog = usePostHog();
 
   const createFromUrl = useMutation(api.documents.createFromUrl);
 
@@ -54,6 +56,9 @@ export function UploadUrlTab() {
       try {
         const fileType = detectUrlType(trimmed);
         await createFromUrl({ url: trimmed, fileType });
+        posthog.capture("content.uploaded", {
+          source_type: fileType,
+        });
         toast.success(
           <span>
             Submitted for processing.{" "}
@@ -64,6 +69,7 @@ export function UploadUrlTab() {
         );
         setUrl("");
       } catch (error) {
+        posthog.captureException(error);
         toastRateLimitOrFallback(
           error,
           "Something went wrong while processing this URL. Please try again.",
@@ -72,7 +78,7 @@ export function UploadUrlTab() {
         setSubmitting(false);
       }
     },
-    [url, createFromUrl],
+    [url, createFromUrl, posthog],
   );
 
   return (

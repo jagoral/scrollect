@@ -17,6 +17,14 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    proxy: {
+      "/ingest": {
+        target: "https://eu.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
+        secure: false,
+      },
+    },
   },
   plugins: [
     svgr(),
@@ -32,6 +40,12 @@ export default defineConfig({
         plugins: ["babel-plugin-react-compiler"],
       },
     }),
-    nitro(),
+    nitro({
+      routeRules: {
+        "/ingest/**": {
+          proxy: { to: "https://eu.i.posthog.com/**" },
+        },
+      },
+    }),
   ],
 });

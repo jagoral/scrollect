@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-03-11
 ---
 
@@ -7,7 +7,7 @@ date: 2026-03-11
 
 ## Context
 
-The feed currently generates a single card type: insight cards. Each generation run randomly samples N chunks, sends them to GPT-4o-mini, and stores the result in the `posts` table with a 1:1 mapping (`sourceChunkId`). This has three limitations:
+The feed originally generated a single card type: insight cards. Each generation run randomly sampled N chunks and stored the result in the `posts` table with a 1:1 mapping (`sourceChunkId`). The legacy single-type generation path has been removed. This ADR documents the multi-type system that replaced it, which addressed three limitations of the original approach:
 
 1. **Monotonous feed** — Every card is the same format: 2–4 sentence insight. No variety in how knowledge is presented.
 2. **No deduplication** — Random sampling can select the same chunk across runs, producing near-duplicate cards.
@@ -70,8 +70,6 @@ One LLM call per generation batch. The prompt instructs the model to produce a m
 The AI output uses structured JSON with `sourceChunkIndices` (array of indices referencing input chunks) to map cards back to source material, enabling multi-chunk provenance.
 
 **Post-generation validation:** Cards are validated before storage. Missing required type-specific fields, quiz with answer verbatim in question, single-chunk summaries, same-document connections, and unknown types are dropped (not retried individually). If >50% of cards in a batch are dropped, retry the entire batch once.
-
-**Feature flag:** A `MULTI_TYPE_GENERATION` environment variable controls whether the new multi-type prompt or legacy single-type prompt is used. Enables instant rollback without code deploy if card quality is poor in production.
 
 ### 3. Type-aware usage-weighted deduplication
 
