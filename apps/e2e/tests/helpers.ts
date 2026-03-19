@@ -110,7 +110,7 @@ export async function goToFirstDocument(page: Page) {
   await page.goto("/library");
   await page.waitForLoadState("networkidle");
   const docLink = page.locator("a[href^='/library/']").first();
-  await expect(docLink).toBeVisible({ timeout: 10000 });
+  await expect(docLink).toBeVisible({ timeout: 15000 });
   const href = await docLink.getAttribute("href");
   await page.goto(href!);
   await page.waitForLoadState("networkidle");

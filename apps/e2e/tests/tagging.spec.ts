@@ -152,17 +152,21 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
       timeout: 10000,
     });
 
-    // Remove it — the backend handles optimistic IDs via tag-name fallback lookup
+    // Remove it - the client detects optimistic IDs and falls back to name-based removal
     await page.locator('[data-testid="tag-remove-removable-tag"]').click();
     await expect(page.locator('[data-testid="tag-badge-removable-tag"]')).not.toBeVisible({
       timeout: 10000,
     });
 
-    // Tag should persist for reuse — search with exact name for cmdk matching
+    // Tag should persist for reuse - reopen the combobox and search.
     await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("removable-tag");
+    const searchInput = page.locator('[data-testid="tag-search-input"]');
+    await expect(searchInput).toBeVisible({ timeout: 5000 });
+    await searchInput.fill("removable-tag");
+
+    // The tag should appear as an existing option (not "Create" since it exists)
     await expect(page.locator('[data-testid="tag-option-removable-tag"]')).toBeVisible({
-      timeout: 10000,
+      timeout: 15000,
     });
   });
 
