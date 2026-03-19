@@ -1,7 +1,14 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, SEEDED_USER, cleanupTestData, resetTestData, signIn, signUp } from "./helpers";
+import {
+  FIXTURES_DIR,
+  SEEDED_USER,
+  cleanupTestData,
+  resetTestData,
+  signIn,
+  signUp,
+} from "./helpers";
 
 test.describe("Upload and Content Library flow", () => {
   test.setTimeout(120000);
@@ -115,20 +122,22 @@ test.describe("File upload size validation", { tag: "@fast" }, () => {
     await resetTestData(SEEDED_USER.email);
   });
 
-  test("oversized PDF file shows error toast", async ({ page }) => {
+  test("oversized markdown file shows error toast", async ({ page }) => {
     await page.goto("/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
+    // Use markdown (5MB limit) instead of PDF (50MB limit) to stay under
+    // Playwright's 50MB in-memory buffer cap for setInputFiles
     await page.locator('[data-testid="file-input"]').setInputFiles({
-      name: "huge.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.alloc(50 * 1024 * 1024 + 1),
+      name: "huge.md",
+      mimeType: "text/markdown",
+      buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
     });
 
-    await expect(
-      page.locator("[data-sonner-toast]").getByText(/file too large/i),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("[data-sonner-toast]").getByText(/file too large/i)).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test("empty file shows error toast", async ({ page }) => {
@@ -142,9 +151,9 @@ test.describe("File upload size validation", { tag: "@fast" }, () => {
       buffer: Buffer.alloc(0),
     });
 
-    await expect(
-      page.locator("[data-sonner-toast]").getByText(/is empty/i),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("[data-sonner-toast]").getByText(/is empty/i)).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test("upload help text displays correct size limits", async ({ page }) => {

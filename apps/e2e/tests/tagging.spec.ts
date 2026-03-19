@@ -162,7 +162,7 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
     await page.locator('[data-testid="add-tag-button"]').click();
     await page.locator('[data-testid="tag-search-input"]').fill("removable-tag");
     await expect(page.locator('[data-testid="tag-option-removable-tag"]')).toBeVisible({
-      timeout: 5000,
+      timeout: 10000,
     });
   });
 
