@@ -1,81 +1,147 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="apps/web/src/app/scrollect-full-logo-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="apps/web/src/app/scrollect-full-logo.svg" />
-    <img src="apps/web/src/app/scrollect-full-logo.svg" alt="Scrollect" width="400" />
+    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/scrollect-full-logo-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="apps/web/public/scrollect-full-logo.svg" />
+    <img src="apps/web/public/scrollect-full-logo.svg" alt="Scrollect" width="400" />
   </picture>
 </p>
 
 <p align="center">
   <strong>AI-powered personal learning feed.</strong><br/>
-  Transform your saved content into a scrollable feed of bite-sized learning cards.
+  Transform your saved content into a scrollable feed of bite-sized learning cards - like social media, but built from your own knowledge.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="AGPL-3.0 License" /></a>
 </p>
 
 ---
 
-## Features
+## The Problem
 
-- **TypeScript** - For type safety and improved developer experience
-- **Next.js** - Full-stack React framework
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **shadcn/ui** - Reusable UI components
-- **Convex** - Reactive backend-as-a-service platform
-- **Authentication** - Better-Auth
-- **Turborepo** - Optimized monorepo build system
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Starlight** - Documentation site with Astro
+You read books, watch talks, save articles, bookmark videos - and forget 90% of it within a week. Your browser bookmarks are a graveyard of good intentions.
+
+Scrollect fixes that.
+
+## What It Does
+
+Scrollect turns your saved content into a personal learning feed you actually want to scroll:
+
+- **Upload anything** - books, articles, YouTube videos, PDFs
+- **AI breaks it down** - content is transformed into bite-sized learning cards by a dedicated AI agent
+- **Scroll to learn** - browse your personal feed daily to retain what you've read
+- **Connect the dots** - cards surface connections across your entire knowledge base
+
+Personal, not social. No followers, no comments, no public profiles. Just you and your knowledge.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/feed.png" alt="Feed - AI-generated learning cards" width="720" />
+  <br/>
+  <em>Your personal learning feed with AI-generated cards</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/library.png" alt="Library - uploaded documents" width="720" />
+  <br/>
+  <em>Library view with uploaded documents and topic tags</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/upload.png" alt="Upload - add content" width="720" />
+  <br/>
+  <em>Upload files, paste URLs, or add text in seconds</em>
+</p>
 
 ## Getting Started
 
-First, install the dependencies:
+### Prerequisites
+
+- [Bun](https://bun.sh/) >= 1.3.3
+- A [Convex](https://convex.dev/) account (free tier works)
+
+### Installation
 
 ```bash
+git clone https://github.com/jagoral/scrollect.git
+cd scrollect
 bun install
 ```
 
-## Convex Setup
+### Setup Convex Backend
 
-This project uses Convex as a backend. You'll need to set up Convex before running the app:
+Scrollect uses [Convex](https://convex.dev/) as its real-time backend. Run the setup wizard:
 
 ```bash
 bun run dev:setup
 ```
 
-Follow the prompts to create a new Convex project and connect it to your application.
+Follow the prompts to create a new Convex project. Then copy the environment variables:
 
-Copy environment variables from `packages/backend/.env.local` to `apps/*/.env`.
+```bash
+cp packages/backend/.env.local apps/web/.env
+```
 
-Then, run the development server:
+### Run
 
 ```bash
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-Your app will connect to the Convex cloud backend automatically.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-## Git Hooks and Formatting
+## Tech Stack
 
-- Format and lint fix: `bun run check`
+| Layer     | Technology                                                                        |
+| --------- | --------------------------------------------------------------------------------- |
+| Monorepo  | [Turborepo](https://turbo.build/) + [Bun](https://bun.sh/)                        |
+| Frontend  | [TanStack Start](https://tanstack.com/start)                                      |
+| Backend   | [Convex](https://convex.dev/)                                                     |
+| Auth      | [Better-Auth](https://better-auth.com/)                                           |
+| UI        | [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS v4](https://tailwindcss.com/) |
+| Linting   | [Oxlint](https://oxc.rs/) + Oxfmt                                                 |
+| E2E Tests | [Playwright](https://playwright.dev/)                                             |
+| Docs      | [Astro Starlight](https://starlight.astro.build/)                                 |
 
 ## Project Structure
 
 ```
 scrollect/
-├── apps/
-│   ├── web/         # Frontend application (Next.js)
-│   ├── docs/        # Documentation site (Astro Starlight)
-├── packages/
-│   ├── backend/     # Convex backend functions and schema
+  apps/
+    web/              # Frontend application (TanStack Start)
+    docs/             # Documentation site (Astro Starlight)
+    e2e/              # End-to-end tests (Playwright)
+    presentation/     # Project presentation (Slidev)
+  packages/
+    backend/          # Convex backend (functions, schema, AI pipeline)
+    config/           # Shared configuration
+    env/              # Shared environment validation
 ```
 
-## Available Scripts
+## Scripts
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:setup`: Setup and configure your Convex project
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run check`: Run Oxlint and Oxfmt
-- `cd apps/docs && bun run dev`: Start documentation site
-- `cd apps/docs && bun run build`: Build documentation site
+| Command              | Description                        |
+| -------------------- | ---------------------------------- |
+| `bun run dev`        | Start all apps in development mode |
+| `bun run build`      | Build all apps                     |
+| `bun run dev:web`    | Start only the web app             |
+| `bun run dev:server` | Start only the Convex backend      |
+| `bun run dev:setup`  | Setup and configure Convex         |
+| `bun run check`      | Run Oxlint and Oxfmt               |
+| `bun run test:e2e`   | Run end-to-end tests               |
+
+## Contributing
+
+Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feat/your-feature`)
+3. Commit your changes
+4. Push to the branch and open a Pull Request
+
+## License
+
+Scrollect is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+
+You are free to fork, modify, and use this software for personal purposes. If you deploy a modified version as a service, you must make your source code available under the same license.
