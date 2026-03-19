@@ -69,7 +69,7 @@ export function createCookieConsentConfig({ posthog, cc }: ConfigDeps): CookieCo
           consentModal: {
             title: "We value your privacy",
             description:
-              'We use analytics cookies to understand how you use Scrollect and improve your experience. Essential cookies for authentication always remain active. Read our <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" class="cc__link">Privacy Policy</a> for details.',
+              'We use analytics cookies to understand how you use Scrollect and improve your experience. Essential cookies for authentication always remain active. Read our <a href="/privacy-policy" class="cc__link">Privacy Policy</a> for details.',
             acceptAllBtn: "Accept analytics",
             acceptNecessaryBtn: "Reject",
             showPreferencesBtn: "Preferences",

@@ -1,18 +1,23 @@
 import type { PostHog } from "posthog-js";
+import type CookieConsent from "vanilla-cookieconsent";
 import { useEffect } from "react";
 
 import { createCookieConsentConfig } from "@/lib/cookie-consent-config";
 
+let didInit = false;
+let ccModule: typeof CookieConsent | null = null;
 let initPromise: Promise<void> | null = null;
 
 export function useCookieConsent(posthog: PostHog) {
   useEffect(() => {
-    let mounted = true;
+    if (didInit) return;
+    didInit = true;
+
     let observer: MutationObserver | undefined;
 
     initPromise = (async () => {
       const cc = await import("vanilla-cookieconsent");
-      if (!mounted) return;
+      ccModule = cc;
 
       await cc.run(createCookieConsentConfig({ posthog, cc }));
 
@@ -21,21 +26,21 @@ export function useCookieConsent(posthog: PostHog) {
     })();
 
     initPromise.catch((err) => {
+      didInit = false;
       console.error("Cookie consent initialization failed:", err);
     });
 
     return () => {
-      mounted = false;
       observer?.disconnect();
     };
   }, [posthog]);
 }
 
 export function showCookiePreferences() {
-  if (!initPromise) return;
-  initPromise.then(() => {
-    import("vanilla-cookieconsent").then((cc) => cc.showPreferences());
-  });
+  if (!initPromise || !ccModule) return;
+  initPromise
+    .then(() => ccModule!.showPreferences())
+    .catch((err) => console.error("Failed to show cookie preferences:", err));
 }
 
 function syncDarkMode(html: HTMLElement) {
