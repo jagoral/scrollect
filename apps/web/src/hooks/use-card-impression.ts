@@ -6,14 +6,12 @@ export function useCardImpression(cardId: string, properties: Record<string, unk
   const hasTracked = useRef(false);
   const ref = useRef<HTMLElement>(null);
   const propertiesRef = useRef(properties);
+  propertiesRef.current = properties;
 
   useEffect(() => {
-    propertiesRef.current = properties;
-  });
-
-  useEffect(() => {
+    hasTracked.current = false;
     const element = ref.current;
-    if (!element || hasTracked.current) return;
+    if (!element) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {

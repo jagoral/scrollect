@@ -237,6 +237,13 @@ export const summarizeDocument = internalAction({
       evt.set("upsertDurationMs", Date.now() - upsertStart);
       evt.set("vectorsUpserted", 1 + sectionPoints.length);
 
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "ready",
+        summary: docSummary,
+        summaryEmbeddingId: docEmbeddingId,
+      });
+
       await captureAiUsage({
         distinctId: doc.userId,
         operation: "summarizing",
@@ -263,31 +270,24 @@ export const summarizeDocument = internalAction({
         },
       });
 
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "ready",
-        summary: docSummary,
-        summaryEmbeddingId: docEmbeddingId,
-      });
-
       await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Summarization failed";
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "error",
+        errorMessage: message,
+        failedAt: "summarizing",
+      });
       await captureEvent({
-        distinctId: doc?.userId ?? "unknown",
+        distinctId: doc?.userId ?? `unresolved:${documentId}`,
         event: "pipeline.stage_failed",
         properties: {
           stage: "summarizing",
           document_id: documentId,
           error: message,
         },
-      });
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "error",
-        errorMessage: message,
-        failedAt: "summarizing",
       });
     } finally {
       evt.emit();

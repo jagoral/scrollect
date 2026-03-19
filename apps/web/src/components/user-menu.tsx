@@ -48,10 +48,10 @@ export default function UserMenu() {
           <DropdownMenuItem
             variant="destructive"
             onClick={() => {
-              posthog.reset();
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
+                    posthog.reset();
                     navigate({ to: "/" });
                   },
                 },

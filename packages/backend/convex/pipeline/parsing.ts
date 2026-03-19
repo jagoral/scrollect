@@ -17,17 +17,22 @@ import {
   storeMarkdownBlob,
 } from "./helpers";
 
-export async function submitDatalabParsingImpl(
-  ctx: ActionCtx,
-  documentId: Id<"documents">,
-  storageId: Id<"_storage">,
-  evt: WideEvent,
-) {
-  let doc:
-    | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
-    | undefined;
+interface DatalabSubmitArgs {
+  ctx: ActionCtx;
+  documentId: Id<"documents">;
+  storageId: Id<"_storage">;
+  userId: string;
+  evt: WideEvent;
+}
+
+export async function submitDatalabParsingImpl({
+  ctx,
+  documentId,
+  storageId,
+  userId,
+  evt,
+}: DatalabSubmitArgs) {
   try {
-    doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
     const fileUrl = await ctx.storage.getUrl(storageId);
     if (!fileUrl) throw new Error("File not found in storage");
 
@@ -54,20 +59,20 @@ export async function submitDatalabParsingImpl(
   } catch (error) {
     evt.setError(error);
     const message = error instanceof Error ? error.message : "Document submission failed";
+    await ctx.runMutation(internal.documents.updateStatus, {
+      id: documentId,
+      status: "error",
+      errorMessage: message,
+      failedAt: "parsing",
+    });
     await captureEvent({
-      distinctId: doc?.userId ?? "unknown",
+      distinctId: userId,
       event: "pipeline.stage_failed",
       properties: {
         stage: "parsing",
         document_id: documentId,
         error: message,
       },
-    });
-    await ctx.runMutation(internal.documents.updateStatus, {
-      id: documentId,
-      status: "error",
-      errorMessage: message,
-      failedAt: "parsing",
     });
   }
 }
@@ -95,6 +100,12 @@ export const pollDatalabResult = internalAction({
 
       if (elapsed > MAX_POLL_DURATION_MS) {
         evt.set("pollResult", "timeout");
+        await ctx.runMutation(internal.documents.updateStatus, {
+          id: documentId,
+          status: "error",
+          errorMessage: "Document parsing timed out after 5 minutes",
+          failedAt: "parsing",
+        });
         await captureEvent({
           distinctId: doc.userId,
           event: "pipeline.stage_failed",
@@ -105,12 +116,6 @@ export const pollDatalabResult = internalAction({
             error: "Document parsing timed out after 5 minutes",
           },
         });
-        await ctx.runMutation(internal.documents.updateStatus, {
-          id: documentId,
-          status: "error",
-          errorMessage: "Document parsing timed out after 5 minutes",
-          failedAt: "parsing",
-        });
         return;
       }
 
@@ -119,6 +124,11 @@ export const pollDatalabResult = internalAction({
 
       if (result.status === "complete") {
         evt.set("pollResult", "complete");
+        const markdownStorageId = await storeMarkdownBlob(ctx, result.markdown!);
+        await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
+          documentId,
+          markdownStorageId,
+        });
         await captureEvent({
           distinctId: doc.userId,
           event: "pipeline.stage_completed",
@@ -129,16 +139,17 @@ export const pollDatalabResult = internalAction({
             duration_ms: elapsed,
           },
         });
-        const markdownStorageId = await storeMarkdownBlob(ctx, result.markdown!);
-        await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
-          documentId,
-          markdownStorageId,
-        });
         return;
       }
 
       if (result.status === "error") {
         evt.set("pollResult", "error");
+        await ctx.runMutation(internal.documents.updateStatus, {
+          id: documentId,
+          status: "error",
+          errorMessage: result.errorMessage ?? "Document parsing failed",
+          failedAt: "parsing",
+        });
         await captureEvent({
           distinctId: doc.userId,
           event: "pipeline.stage_failed",
@@ -148,12 +159,6 @@ export const pollDatalabResult = internalAction({
             file_type: doc.fileType,
             error: result.errorMessage ?? "Document parsing failed",
           },
-        });
-        await ctx.runMutation(internal.documents.updateStatus, {
-          id: documentId,
-          status: "error",
-          errorMessage: result.errorMessage ?? "Document parsing failed",
-          failedAt: "parsing",
         });
         return;
       }
@@ -170,8 +175,14 @@ export const pollDatalabResult = internalAction({
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Polling failed";
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "error",
+        errorMessage: message,
+        failedAt: "parsing",
+      });
       await captureEvent({
-        distinctId: doc?.userId ?? "unknown",
+        distinctId: doc?.userId ?? `unresolved:${documentId}`,
         event: "pipeline.stage_failed",
         properties: {
           stage: "parsing",
@@ -179,30 +190,32 @@ export const pollDatalabResult = internalAction({
           error: message,
         },
       });
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "error",
-        errorMessage: message,
-        failedAt: "parsing",
-      });
     } finally {
       evt.emit();
     }
   },
 });
 
-export async function fetchAndParseMarkdownImpl(
-  ctx: ActionCtx,
-  documentId: Id<"documents">,
-  storageId: Id<"_storage">,
-  evt: WideEvent,
-) {
+interface MarkdownParseArgs {
+  ctx: ActionCtx;
+  documentId: Id<"documents">;
+  storageId: Id<"_storage">;
+  userId: string;
+  fileType: string;
+  evt: WideEvent;
+}
+
+export async function fetchAndParseMarkdownImpl({
+  ctx,
+  documentId,
+  storageId,
+  userId,
+  fileType,
+  evt,
+}: MarkdownParseArgs) {
   const startMs = Date.now();
-  let doc:
-    | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
-    | undefined;
   try {
-    doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
     if (!doc) throw new Error(`Document ${documentId} not found`);
     if (doc.status === "deleting") return;
 
@@ -215,39 +228,39 @@ export async function fetchAndParseMarkdownImpl(
     const text = await response.text();
     if (!text.trim()) throw new Error("File is empty");
 
-    await captureEvent({
-      distinctId: doc.userId,
-      event: "pipeline.stage_completed",
-      properties: {
-        stage: "parsing",
-        document_id: documentId,
-        file_type: doc.fileType,
-        duration_ms: Date.now() - startMs,
-      },
-    });
-
     const markdownStorageId = await storeMarkdownBlob(ctx, text);
     await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
       documentId,
       markdownStorageId,
     });
+
+    await captureEvent({
+      distinctId: userId,
+      event: "pipeline.stage_completed",
+      properties: {
+        stage: "parsing",
+        document_id: documentId,
+        file_type: fileType,
+        duration_ms: Date.now() - startMs,
+      },
+    });
   } catch (error) {
     evt.setError(error);
     const message = error instanceof Error ? error.message : "Markdown parsing failed";
+    await ctx.runMutation(internal.documents.updateStatus, {
+      id: documentId,
+      status: "error",
+      errorMessage: message,
+      failedAt: "parsing",
+    });
     await captureEvent({
-      distinctId: doc?.userId ?? "unknown",
+      distinctId: userId,
       event: "pipeline.stage_failed",
       properties: {
         stage: "parsing",
         document_id: documentId,
         error: message,
       },
-    });
-    await ctx.runMutation(internal.documents.updateStatus, {
-      id: documentId,
-      status: "error",
-      errorMessage: message,
-      failedAt: "parsing",
     });
   }
 }

@@ -93,15 +93,6 @@ export const embedBatch = internalAction({
       const t0 = Date.now();
       const vectors = await embedder.embed(texts);
       evt.set("embedDurationMs", Date.now() - t0);
-      if (embedder.lastUsage) {
-        await captureAiUsage({
-          distinctId: doc.userId,
-          operation: "embedding",
-          documentId,
-          usage: embedder.lastUsage,
-          modelType: "embedding",
-        });
-      }
 
       // Build vector points with deterministic UUIDs derived from chunk IDs
       const points = validChunks.map((chunk, i) => ({
@@ -135,6 +126,16 @@ export const embedBatch = internalAction({
         failed: false,
       });
       await checkCompletion(ctx, job, documentId);
+
+      if (embedder.lastUsage) {
+        await captureAiUsage({
+          distinctId: doc.userId,
+          operation: "embedding",
+          documentId,
+          usage: embedder.lastUsage,
+          modelType: "embedding",
+        });
+      }
     } catch (error) {
       evt.setError(error);
 
@@ -177,6 +178,12 @@ async function checkCompletion(
   if (job.failedBatches > 0) {
     const summary = `${job.failedBatches}/${job.totalBatches} embedding batches failed`;
     const errorMessage = lastError ? `${summary}: ${lastError}` : summary;
+    await ctx.runMutation(internal.documents.updateStatus, {
+      id: documentId,
+      status: "error",
+      errorMessage,
+      failedAt: "embedding",
+    });
     if (doc) {
       await captureEvent({
         distinctId: doc.userId,
@@ -190,13 +197,14 @@ async function checkCompletion(
         },
       });
     }
+  } else {
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
-      status: "error",
-      errorMessage,
-      failedAt: "embedding",
+      status: "summarizing",
     });
-  } else {
+    await ctx.scheduler.runAfter(0, internal.pipeline.summarizing.summarizeDocument, {
+      documentId,
+    });
     if (doc) {
       await captureEvent({
         distinctId: doc.userId,
@@ -209,12 +217,5 @@ async function checkCompletion(
         },
       });
     }
-    await ctx.runMutation(internal.documents.updateStatus, {
-      id: documentId,
-      status: "summarizing",
-    });
-    await ctx.scheduler.runAfter(0, internal.pipeline.summarizing.summarizeDocument, {
-      documentId,
-    });
   }
 }

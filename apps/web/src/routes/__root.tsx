@@ -60,9 +60,25 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { initialToken, convexClient } = Route.useRouteContext();
+  const posthogKey = env.VITE_PUBLIC_POSTHOG_KEY;
+
+  const content = (
+    <Providers initialToken={initialToken} convexClient={convexClient}>
+      <div className="grid grid-rows-[auto_1fr] h-svh">
+        <Header />
+        <main className="flex flex-col overflow-y-auto">
+          <Outlet />
+          <Footer />
+        </main>
+      </div>
+    </Providers>
+  );
+
+  if (!posthogKey) return content;
+
   return (
     <PostHogProvider
-      apiKey={env.VITE_PUBLIC_POSTHOG_KEY ?? ""}
+      apiKey={posthogKey}
       options={{
         api_host: "/ingest",
         ui_host: env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
@@ -70,15 +86,7 @@ function RootComponent() {
         person_profiles: "identified_only",
       }}
     >
-      <Providers initialToken={initialToken} convexClient={convexClient}>
-        <div className="grid grid-rows-[auto_1fr] h-svh">
-          <Header />
-          <main className="flex flex-col overflow-y-auto">
-            <Outlet />
-            <Footer />
-          </main>
-        </div>
-      </Providers>
+      {content}
     </PostHogProvider>
   );
 }

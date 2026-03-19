@@ -8,18 +8,26 @@ import { captureEvent } from "../providers/analytics";
 
 import { createArticleExtractor, createYouTubeExtractor, storeMarkdownBlob } from "./helpers";
 
-export async function extractArticleImpl(
-  ctx: ActionCtx,
-  documentId: Id<"documents">,
-  sourceUrl: string,
-  evt: WideEvent,
-) {
+interface ExtractionArgs {
+  ctx: ActionCtx;
+  documentId: Id<"documents">;
+  sourceUrl: string;
+  userId: string;
+  fileType: string;
+  evt: WideEvent;
+}
+
+export async function extractArticleImpl({
+  ctx,
+  documentId,
+  sourceUrl,
+  userId,
+  fileType,
+  evt,
+}: ExtractionArgs) {
   const startMs = Date.now();
-  let doc:
-    | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
-    | undefined;
   try {
-    doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
     if (!doc) throw new Error(`Document ${documentId} not found`);
     if (doc.status === "deleting") return;
 
@@ -35,27 +43,33 @@ export async function extractArticleImpl(
       });
     }
 
-    await captureEvent({
-      distinctId: doc.userId,
-      event: "pipeline.stage_completed",
-      properties: {
-        stage: "parsing",
-        document_id: documentId,
-        file_type: doc.fileType,
-        duration_ms: Date.now() - startMs,
-      },
-    });
-
     const markdownStorageId = await storeMarkdownBlob(ctx, result.markdown);
     await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
       documentId,
       markdownStorageId,
     });
+
+    await captureEvent({
+      distinctId: userId,
+      event: "pipeline.stage_completed",
+      properties: {
+        stage: "parsing",
+        document_id: documentId,
+        file_type: fileType,
+        duration_ms: Date.now() - startMs,
+      },
+    });
   } catch (error) {
     evt.setError(error);
     const message = error instanceof Error ? error.message : "Article extraction failed";
+    await ctx.runMutation(internal.documents.updateStatus, {
+      id: documentId,
+      status: "error",
+      errorMessage: message,
+      failedAt: "parsing",
+    });
     await captureEvent({
-      distinctId: doc?.userId ?? "unknown",
+      distinctId: userId,
       event: "pipeline.stage_failed",
       properties: {
         stage: "parsing",
@@ -64,27 +78,20 @@ export async function extractArticleImpl(
         error: message,
       },
     });
-    await ctx.runMutation(internal.documents.updateStatus, {
-      id: documentId,
-      status: "error",
-      errorMessage: message,
-      failedAt: "parsing",
-    });
   }
 }
 
-export async function extractYouTubeImpl(
-  ctx: ActionCtx,
-  documentId: Id<"documents">,
-  sourceUrl: string,
-  evt: WideEvent,
-) {
+export async function extractYouTubeImpl({
+  ctx,
+  documentId,
+  sourceUrl,
+  userId,
+  fileType,
+  evt,
+}: ExtractionArgs) {
   const startMs = Date.now();
-  let doc:
-    | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
-    | undefined;
   try {
-    doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
     if (!doc) throw new Error(`Document ${documentId} not found`);
     if (doc.status === "deleting") return;
 
@@ -103,27 +110,33 @@ export async function extractYouTubeImpl(
       });
     }
 
-    await captureEvent({
-      distinctId: doc.userId,
-      event: "pipeline.stage_completed",
-      properties: {
-        stage: "parsing",
-        document_id: documentId,
-        file_type: doc.fileType,
-        duration_ms: Date.now() - startMs,
-      },
-    });
-
     const markdownStorageId = await storeMarkdownBlob(ctx, result.markdown);
     await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
       documentId,
       markdownStorageId,
     });
+
+    await captureEvent({
+      distinctId: userId,
+      event: "pipeline.stage_completed",
+      properties: {
+        stage: "parsing",
+        document_id: documentId,
+        file_type: fileType,
+        duration_ms: Date.now() - startMs,
+      },
+    });
   } catch (error) {
     evt.setError(error);
     const message = error instanceof Error ? error.message : "YouTube extraction failed";
+    await ctx.runMutation(internal.documents.updateStatus, {
+      id: documentId,
+      status: "error",
+      errorMessage: message,
+      failedAt: "parsing",
+    });
     await captureEvent({
-      distinctId: doc?.userId ?? "unknown",
+      distinctId: userId,
       event: "pipeline.stage_failed",
       properties: {
         stage: "parsing",
@@ -131,12 +144,6 @@ export async function extractYouTubeImpl(
         file_type: "youtube",
         error: message,
       },
-    });
-    await ctx.runMutation(internal.documents.updateStatus, {
-      id: documentId,
-      status: "error",
-      errorMessage: message,
-      failedAt: "parsing",
     });
   }
 }

@@ -95,14 +95,6 @@ export const autoSuggest = internalAction({
         temperature: 0.3,
         maxRetries: 2,
       });
-      await captureAiUsage({
-        distinctId: doc.userId,
-        operation: "tagging",
-        documentId,
-        usage,
-        modelType: "llm",
-      });
-
       const tagNames = output?.tags ?? [];
       evt.set("suggestedTags", tagNames.length);
 
@@ -121,6 +113,13 @@ export const autoSuggest = internalAction({
 
       evt.set("storedTags", validTags.length);
 
+      await captureAiUsage({
+        distinctId: doc.userId,
+        operation: "tagging",
+        documentId,
+        usage,
+        modelType: "llm",
+      });
       await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_completed",
@@ -133,7 +132,7 @@ export const autoSuggest = internalAction({
     } catch (error) {
       evt.setError(error);
       await captureEvent({
-        distinctId: doc?.userId ?? "unknown",
+        distinctId: doc?.userId ?? `unresolved:${documentId}`,
         event: "pipeline.stage_failed",
         properties: {
           stage: "tagging",

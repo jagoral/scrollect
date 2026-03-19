@@ -61,6 +61,12 @@ export const chunkAndStore = internalAction({
       }
       evt.set("batchesStored", batchesStored);
 
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "embedding",
+        chunkCount: chunks.length,
+      });
+
       await captureEvent({
         distinctId: doc.userId,
         event: "pipeline.stage_completed",
@@ -72,31 +78,25 @@ export const chunkAndStore = internalAction({
         },
       });
 
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "embedding",
-        chunkCount: chunks.length,
-      });
-
       // Fan-out embedding batches
       await fanOutEmbedding(ctx, documentId, allChunkIds);
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Chunking failed";
+      await ctx.runMutation(internal.documents.updateStatus, {
+        id: documentId,
+        status: "error",
+        errorMessage: message,
+        failedAt: "chunking",
+      });
       await captureEvent({
-        distinctId: doc?.userId ?? "unknown",
+        distinctId: doc?.userId ?? `unresolved:${documentId}`,
         event: "pipeline.stage_failed",
         properties: {
           stage: "chunking",
           document_id: documentId,
           error: message,
         },
-      });
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "error",
-        errorMessage: message,
-        failedAt: "chunking",
       });
     } finally {
       evt.emit();

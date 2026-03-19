@@ -96,7 +96,7 @@ function FeedPage() {
     if (status !== "Exhausted") {
       exhaustedTracked.current = false;
     }
-  }, [status, posthog, enrichedResults.length]);
+  }, [status, posthog]); // eslint-disable-line react-hooks/exhaustive-deps -- enrichedResults.length intentionally omitted; we only fire when status changes
 
   if (status === "LoadingFirstPage") {
     return (
