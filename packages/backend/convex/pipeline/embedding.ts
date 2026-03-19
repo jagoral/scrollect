@@ -93,7 +93,6 @@ export const embedBatch = internalAction({
       const t0 = Date.now();
       const vectors = await embedder.embed(texts);
       evt.set("embedDurationMs", Date.now() - t0);
-
       // Build vector points with deterministic UUIDs derived from chunk IDs
       const points = validChunks.map((chunk, i) => ({
         id: convexIdToUuid(chunk._id),

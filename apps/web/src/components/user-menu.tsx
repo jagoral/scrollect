@@ -48,6 +48,7 @@ export default function UserMenu() {
           <DropdownMenuItem
             variant="destructive"
             onClick={() => {
+              posthog.reset();
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
