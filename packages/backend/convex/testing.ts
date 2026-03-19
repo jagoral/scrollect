@@ -4,11 +4,10 @@ import type { GenericMutationCtx } from "convex/server";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
+import { E2E_EMAIL_PATTERN } from "./lib/e2e";
 import { requireAuth } from "./lib/functions";
 import type { PostType, TypeData } from "./lib/validators";
 import { normalizeTagName } from "./tags";
-
-const E2E_EMAIL_PATTERN = /^e2e-.*@test\.scrollect\.dev$/;
 
 type MutationCtx = GenericMutationCtx<DataModel>;
 

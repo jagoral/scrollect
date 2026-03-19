@@ -74,7 +74,14 @@ export function DocumentTagSection({ documentId }: DocumentTagSectionProps) {
   };
 
   const handleRemoveTag = (tag: DocumentTag) => {
-    removeTag({ documentId, tagId: tag.tagId as Id<"tags">, tagName: tag.tagName }).catch(() => {
+    // Only send tagId if it's a real Convex ID (not an optimistic_* placeholder).
+    // The mutation falls back to name-based lookup when tagId is omitted.
+    const isOptimistic = tag.tagId.startsWith("optimistic_");
+    removeTag({
+      documentId,
+      tagId: isOptimistic ? undefined : (tag.tagId as Id<"tags">),
+      tagName: tag.tagName,
+    }).catch(() => {
       toast.error("Failed to remove tag");
     });
   };

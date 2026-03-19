@@ -85,6 +85,13 @@ export const resumeProcessing = internalAction({
           await resumeSummarizing(ctx, documentId);
           break;
 
+        case "deleting":
+          evt.set("resumePath", "retryDeleteDocument");
+          await ctx.scheduler.runAfter(0, internal.documentActions.retryDeleteDocument, {
+            documentId,
+          });
+          break;
+
         default:
           evt.set("resumePath", "startProcessing");
           // No failedAt — restart from scratch

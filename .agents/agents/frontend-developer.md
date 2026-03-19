@@ -41,6 +41,10 @@ You build the Scrollect web app at `apps/web/src/`. You make UI/UX decisions whe
 - Functions must not have more than 3 parameters — use object params.
 - No `useEffect` for derived state or event handling.
 - Place public API (exported functions, components) at the top of the file.
+- **`<Link>` not `<a>`** for all internal navigation - including inside toasts. Plain anchors destroy the React tree and WebSocket subscriptions.
+- **Filter/sort state in URL search params** via `validateSearch` + `Route.useNavigate()`, not `useState`. Survives navigation, shareable, integrates with browser history.
+- **Convex-native data fetching**: Use `useQuery`/`usePaginatedQuery` for real-time data. Avoid mixing with TanStack Query's `useSuspenseQuery`/`ensureQueryData` which creates dual cache layers.
+- Paginated query unauthenticated fallback: `{ page: [], isDone: true, continueCursor: '' }`, not empty array.
 
 ## Scope
 

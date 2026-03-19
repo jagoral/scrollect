@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 import viteReact from "@vitejs/plugin-react";
+import svgr from "vite-plugin-svgr";
 import { nitro } from "nitro/vite";
 
 export default defineConfig({
@@ -18,6 +19,7 @@ export default defineConfig({
     port: 3000,
   },
   plugins: [
+    svgr(),
     tailwindcss(),
     tsConfigPaths({
       projects: ["./tsconfig.json"],

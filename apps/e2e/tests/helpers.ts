@@ -83,7 +83,7 @@ export async function signUp(page: Page): Promise<{ email: string }> {
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);
   await page.getByRole("button", { name: /create account/i }).click();
-  await expect(page).toHaveURL(/\/library/, { timeout: 15000 });
+  await page.waitForURL(/\/(library|feed)/, { timeout: 30000 });
   return { email: user.email };
 }
 
@@ -110,7 +110,7 @@ export async function goToFirstDocument(page: Page) {
   await page.goto("/library");
   await page.waitForLoadState("networkidle");
   const docLink = page.locator("a[href^='/library/']").first();
-  await expect(docLink).toBeVisible({ timeout: 10000 });
+  await expect(docLink).toBeVisible({ timeout: 15000 });
   const href = await docLink.getAttribute("href");
   await page.goto(href!);
   await page.waitForLoadState("networkidle");

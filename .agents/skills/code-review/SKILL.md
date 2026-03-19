@@ -44,3 +44,4 @@ You analyze changed files and dispatch review to the appropriate agent(s).
 - Do not review files outside the reviewer's scope (don't send backend files to the frontend reviewer).
 - If there are no changes to review, tell the user and stop.
 - If changes are trivial (only config, only docs), say so — don't force a full review.
+- Make sure that changes doesn't break exisiting tests and any of the workflows in @.github/workflows

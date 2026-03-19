@@ -45,6 +45,16 @@ Use ALL of these skills during review to verify code against framework best prac
 - **No coincidental cohesion:** `helpers.ts` and `utils.ts` grab-bag files are red flags. Colocate logic with its consumers or create domain-specific modules.
 - **SOLID:** Single responsibility for components and hooks. Open for extension (composition over conditionals). Depend on abstractions (hook interfaces, not concrete implementations).
 
+## SPA & Data Fetching Anti-Patterns (flag on sight)
+
+- **`<a href>` for internal links** - destroys React tree, WebSocket subscriptions, and query cache. Use `<Link>` everywhere, including inside Sonner toasts (they accept React nodes)
+- **`useState` for filter/sort state** - lost on navigation. Use URL search params via `validateSearch` + `Route.useNavigate()` for state that should survive back/forward
+- **Mixed data fetching layers** - mixing Convex `useQuery` with TanStack Query's `useSuspenseQuery`/`ensureQueryData` creates dual cache layers with inconsistent freshness. Use Convex-native for real-time data
+- **Route loader blocking for Convex queries** - `ensureQueryData` in loaders is unnecessary for Convex-native `useQuery` since data arrives via WebSocket subscription. Removing the loader eliminates navigation blocking
+- **Paginated query unauthenticated fallback returning `[]`** - must return `{ page: [], isDone: true, continueCursor: '' }` to match PaginationResult shape
+- **Client-side filtering showing "no results" on partial data** - only show definitive "no match" when `status === 'Exhausted'`, otherwise indicate more data is loading
+- **Unstable memo dependencies from paginated data** - `usePaginatedQuery` returns new array references on every update. Stabilize derived arrays by memoizing with a serialized key (e.g., `ids.join(',')`) not the array reference
+
 ## FAIL/PASS Examples
 
 **FAIL — derived state in useEffect:**

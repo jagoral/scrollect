@@ -12,6 +12,20 @@ function makeChunk(overrides: Partial<ChunkInfo> & { _id: string; documentId: st
   };
 }
 
+function mockFetchContent(
+  chunks: ChunkInfo[],
+): (chunkIds: string[]) => Promise<Map<string, string>> {
+  const contentMap = new Map(chunks.map((c) => [c._id, c.content]));
+  return async (chunkIds: string[]) => {
+    const result = new Map<string, string>();
+    for (const id of chunkIds) {
+      const content = contentMap.get(id);
+      if (content) result.set(id, content);
+    }
+    return result;
+  };
+}
+
 function createMockEmbedder(vectorMap?: Map<string, number[]>): EmbeddingProvider {
   return {
     dimensions: 3,
@@ -47,11 +61,13 @@ function createMockVectorStore(searchFn: MockSearchFn): VectorStore {
 
 describe("discoverConnections", () => {
   test("returns empty array when fewer than 2 chunks", async () => {
+    const chunks = [makeChunk({ _id: "c1", documentId: "d1" })];
     const result = await discoverConnections({
-      allChunks: [makeChunk({ _id: "c1", documentId: "d1" })],
+      allChunks: chunks,
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore: createMockVectorStore(() => []),
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 3,
     });
     expect(result).toEqual([]);
@@ -86,6 +102,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 3,
       randomFn: () => 0.1,
     });
@@ -127,6 +144,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 2,
       randomFn: () => 0.1,
     });
@@ -170,6 +188,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 3,
       randomFn: () => 0.1,
     });
@@ -199,6 +218,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 3,
       randomFn: () => 0.1,
     });
@@ -233,6 +253,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 1,
       randomFn: () => 0.1,
     });
@@ -273,6 +294,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 5,
       randomFn: () => 0.1,
     });
@@ -306,6 +328,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 3,
       randomFn: () => 0.1,
     });
@@ -341,6 +364,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 5,
       randomFn: () => 0.1,
     });
@@ -371,6 +395,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 3,
       similarityThreshold: 0.8,
       randomFn: () => 0.1,
@@ -382,6 +407,7 @@ describe("discoverConnections", () => {
       userId: "user1",
       embedder: createMockEmbedder(),
       vectorStore,
+      fetchContent: mockFetchContent(chunks),
       maxPairs: 3,
       similarityThreshold: 0.7,
       randomFn: () => 0.1,

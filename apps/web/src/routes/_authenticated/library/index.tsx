@@ -1,48 +1,68 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
-import type { Doc, Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { usePaginatedQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, Upload } from "lucide-react";
-import { useMemo, useState } from "react";
+import { FileText, Loader2, Upload } from "lucide-react";
+import { useCallback, useMemo } from "react";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
 import { TagFilterBar, TagList, buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+
+type LibrarySearch = {
+  tags?: string[];
+};
 
 export const Route = createFileRoute("/_authenticated/library/")({
   loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(convexQuery(api.documents.list, {})),
-      context.queryClient.ensureQueryData(convexQuery(api.tags.listUserTags, {})),
-    ]);
+    await context.queryClient.ensureQueryData(convexQuery(api.tags.listUserTags, {}));
   },
   head: () => ({
     meta: [{ title: "Library | Scrollect" }],
   }),
+  validateSearch: (search: Record<string, unknown>): LibrarySearch => {
+    const raw = search.tags;
+    if (Array.isArray(raw)) {
+      const tags = [...new Set(raw.filter((t): t is string => typeof t === "string"))];
+      return tags.length > 0 ? { tags } : {};
+    }
+    if (typeof raw === "string" && raw.length > 0) {
+      return { tags: [raw] };
+    }
+    return {};
+  },
   component: LibraryPage,
 });
 
 function LibraryPage() {
-  const { data: documents } = useSuspenseQuery(convexQuery(api.documents.list, {}));
+  const { results: documents, status, loadMore } = usePaginatedQuery(
+    api.documents.list,
+    {},
+    { initialNumItems: 20 },
+  );
 
-  return <LibraryContent documents={documents} />;
-}
+  const sentinelRef = useInfiniteScroll(status, loadMore);
 
-function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const { tags: tagsParam } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const selectedTags = useMemo(() => new Set(tagsParam ?? []), [tagsParam]);
 
-  const documentIds = useMemo(() => documents.map((d) => d._id as Id<"documents">), [documents]);
+  const documentIdsKey = documents.map((d) => d._id).join(",");
+  const documentIds = useMemo(
+    () => documents.map((d) => d._id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [documentIdsKey],
+  );
 
   const { data: allUserTags } = useQuery(convexQuery(api.tags.listUserTags, {}));
   const { data: tagsBatch } = useQuery(convexQuery(api.tags.getDocumentTagsBatch, { documentIds }));
 
-  const tagOptions = useMemo(
-    () => (allUserTags ?? []).map((t) => ({ _id: t._id, name: t.name })),
-    [allUserTags],
-  );
+  const tagOptions = allUserTags ?? [];
 
   const docTagMap = useMemo(() => buildTagMap(tagsBatch), [tagsBatch]);
 
@@ -55,40 +75,26 @@ function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
     });
   }, [documents, selectedTags, docTagMap]);
 
-  const handleToggleTag = (tagName: string) => {
-    setSelectedTags((prev) => {
-      const next = new Set(prev);
-      if (next.has(tagName)) {
-        next.delete(tagName);
-      } else {
-        next.add(tagName);
-      }
-      return next;
-    });
-  };
+  const handleToggleTag = useCallback(
+    (tagName: string) => {
+      navigate({
+        search: (prev) => {
+          const current = new Set(prev.tags ?? []);
+          if (current.has(tagName)) current.delete(tagName);
+          else current.add(tagName);
+          const tags = [...current];
+          return { ...prev, tags: tags.length > 0 ? tags : undefined };
+        },
+      });
+    },
+    [navigate],
+  );
 
-  if (documents.length === 0) {
-    return (
-      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
-        <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
-        <div className="mt-16 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
-            <FileText className="h-8 w-8 text-primary/70" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold">No documents yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Upload your first file to get started.
-            </p>
-          </div>
-          <Button render={<Link to="/upload" />}>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload your first file
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleClearTags = useCallback(() => {
+    navigate({ search: (prev) => ({ ...prev, tags: undefined }) });
+  }, [navigate]);
+
+  const hasDocuments = documents.length > 0;
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -99,68 +105,117 @@ function LibraryContent({ documents }: { documents: Doc<"documents">[] }) {
             Your uploaded documents and their processing status.
           </p>
         </div>
-        <Button size="sm" variant="outline" render={<Link to="/upload" />}>
-          <Upload className="mr-1.5 h-4 w-4" />
-          Upload
-        </Button>
-      </div>
-      {tagOptions.length > 0 && (
-        <div className="mb-6">
-          <TagFilterBar
-            allTags={tagOptions}
-            selectedTags={selectedTags}
-            onToggle={handleToggleTag}
-            onClear={() => setSelectedTags(new Set())}
-          />
-        </div>
-      )}
-      <div className="animate-stagger-in grid gap-3">
-        {filteredDocuments.map((doc: Doc<"documents">) => {
-          const docTags = docTagMap.get(doc._id) ?? [];
-          return (
-            <Link
-              key={doc._id}
-              to="/library/$documentId"
-              params={{ documentId: doc._id }}
-              className="block"
-            >
-              <Card className="transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2.5 text-base">
-                    {fileTypeIcons[doc.fileType] ?? (
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span className="truncate">{doc.title}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3">
-                    <StatusBadge status={doc.status} />
-                    {doc.status === "ready" && (
-                      <span className="text-xs text-muted-foreground">
-                        {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(doc.createdAt, { addSuffix: true })}
-                    </span>
-                  </div>
-                  {docTags.length > 0 && (
-                    <div className="mt-2">
-                      <TagList tags={docTags} maxVisible={2} size="sm" />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-        {filteredDocuments.length === 0 && selectedTags.size > 0 && (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            No documents match the selected tags.
-          </div>
+        {hasDocuments && (
+          <Button size="sm" variant="outline" render={<Link to="/upload" />}>
+            <Upload className="size-4" />
+            Upload
+          </Button>
         )}
       </div>
+
+      {status === "LoadingFirstPage" ? (
+        <div className="grid gap-3">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+        </div>
+      ) : !hasDocuments ? (
+        <div className="mt-8 flex flex-col items-center gap-4 text-center">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+            <FileText className="size-8 text-primary/70" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold">No documents yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Upload your first file to get started.
+            </p>
+          </div>
+          <Button render={<Link to="/upload" />}>
+            <Upload className="size-4" />
+            Upload your first file
+          </Button>
+        </div>
+      ) : (
+        <>
+          {tagOptions.length > 0 && (
+            <div className="mb-6">
+              <TagFilterBar
+                allTags={tagOptions}
+                selectedTags={selectedTags}
+                onToggle={handleToggleTag}
+                onClear={handleClearTags}
+              />
+            </div>
+          )}
+          <div className="animate-stagger-in grid gap-3">
+            {filteredDocuments.map((doc) => {
+              const docTags = docTagMap.get(doc._id) ?? [];
+              return (
+                <Link
+                  key={doc._id}
+                  to="/library/$documentId"
+                  params={{ documentId: doc._id }}
+                  className="block"
+                >
+                  <Card className="transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2.5 text-base">
+                        {fileTypeIcons[doc.fileType] ?? (
+                          <FileText className="size-4 text-muted-foreground" />
+                        )}
+                        <span className="truncate">{doc.title}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-3">
+                        <StatusBadge status={doc.status} />
+                        {doc.status === "ready" && (
+                          <span className="text-xs text-muted-foreground">
+                            {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(doc.createdAt, { addSuffix: true })}
+                        </span>
+                      </div>
+                      {docTags.length > 0 && (
+                        <div className="mt-2">
+                          <TagList tags={docTags} maxVisible={2} size="sm" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+            {filteredDocuments.length === 0 && selectedTags.size > 0 && (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                {status === "Exhausted"
+                  ? "No documents match the selected tags."
+                  : "No matches yet — loading more documents…"}
+              </div>
+            )}
+          </div>
+
+          <div ref={sentinelRef} className="h-1" />
+
+          {status === "LoadingMore" && (
+            <div className="flex justify-center py-4 animate-in fade-in duration-300">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {status === "Exhausted" && filteredDocuments.length > 0 && (
+            <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
+              <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">
+                End of library
+              </p>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

@@ -39,6 +39,7 @@ export default defineConfig({
         /tagging\.spec\.ts/,
       ],
       fullyParallel: false,
+      workers: 1,
     },
     {
       name: "chromium",

@@ -1,6 +1,7 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
 import { FILE_SIZE_LIMITS, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { useMutation } from "convex/react";
+import { Link } from "@tanstack/react-router";
 import { FileText, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -72,9 +73,9 @@ export function UploadTextTab() {
         toast.success(
           <span>
             Added <strong>{trimmedTitle}</strong>.{" "}
-            <a href="/library" className="underline">
+            <Link to="/library" className="underline">
               View in library
-            </a>
+            </Link>
           </span>,
         );
       } catch (error) {

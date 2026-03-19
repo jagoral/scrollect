@@ -4,9 +4,8 @@ import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
+import { E2E_EMAIL_PATTERN } from "./lib/e2e";
 import { requireAuth } from "./lib/functions";
-
-const E2E_EMAIL_PATTERN = /^e2e-.*@test\.scrollect\.dev$/;
 
 export const seedE2EData = action({
   args: {},

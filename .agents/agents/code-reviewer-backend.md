@@ -48,6 +48,21 @@ Use ALL of these Convex skills during review to verify code against platform bes
 - **No coincidental cohesion:** No `helpers.ts` or `utils.ts` grab-bag files. If a helper is used by one module, put it in that module. If shared, create a domain-specific file.
 - **SOLID:** Single responsibility per file. Functions behind interfaces when there are multiple implementations (see provider pattern in `providers/types.ts`). Depend on abstractions.
 
+## Performance Anti-Patterns (flag on sight)
+
+- **Unbounded `.collect()` on user-facing queries** - scales linearly, will timeout at scale. Use `.paginate()` or `.take(limit)`. Exception: internal mutations requiring completeness (cascade delete) where truncation would corrupt data
+- **Sequential `ctx.runMutation` loops** - N round-trips add ~N\*10ms. Batch with `Promise.all` inside a single mutation, or create batch internal mutations
+- **Repeated queries inside loops** - data snapshot is consistent within a Convex mutation. Hoist the query outside and reuse the result. O(T x D) reads become O(D)
+- **N+1 reads in paginated query enrichment** - collect unique IDs first, batch-fetch with `Promise.all`, build a `Map` lookup
+- **`.take(limit)` without `.order('desc')`** - silently drops newest records on time-range queries
+- **Rate-limiting preparatory mutations** - multi-step flows (generateUploadUrl -> create) should rate-limit only at the final commit
+
+## Pipeline Safety Anti-Patterns (flag on sight)
+
+- **Status update before external I/O** - if the Qdrant upsert or API call fails after setting status to 'ready', the document is permanently stuck with no recovery. Complete external I/O first
+- **Catch block that re-throws without recovery** - must set status to 'error' with `failedAtStage`. Wrap the recovery mutation in its own try-catch so recovery failure doesn't mask the original error
+- **Loading full content when only metadata is needed** - two-phase loading (metadata first, content hydration for selected items only) reduces memory from O(all_records) to O(selected)
+
 ## FAIL/PASS Examples
 
 **FAIL — missing index usage:**

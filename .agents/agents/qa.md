@@ -39,7 +39,9 @@ Use these skills when writing and reviewing tests:
 - Measure execution time. Flag tests that take >10 seconds.
 - Prefer fast tier (seeded accounts, $0) over medium/slow tiers.
 - Batch setup operations. Reuse seeded data where possible instead of creating ephemeral accounts.
-- Minimize network-bound waits — use `waitForSelector` over arbitrary timeouts.
+- **No `waitForTimeout`** - Convex data arrives via WebSocket, not HTTP. `page.waitForResponse()` cannot detect Convex data updates.
+- For scroll-to-load: track DOM element count changes, use `expect().not.toHaveCount(n)` or `Promise.race` with `element.waitFor()`.
+- `fullyParallel: false` only serializes within a file - set `workers: 1` at project level to fully serialize shared-state tests.
 
 ### Test Cost
 
@@ -58,7 +60,10 @@ Use these skills when writing and reviewing tests:
 ## Writing Tests
 
 - Use `getByRole` and `getByText` over CSS selectors.
-- Always clean up: `resetTestData` for seeded, `cleanupTestData` for ephemeral.
+- Always clean up: `resetTestData` for seeded, `cleanupTestData` for ephemeral. `cleanupTestData` handles already-deleted accounts gracefully - safe to call unconditionally in `afterEach`.
+- @fast tests that only exercise client-side validation should use the seeded account (`signIn` + `SEEDED_USER`), not ephemeral accounts. Always include `afterEach` with `resetTestData` even for read-only tests as a safety net.
+- Target Sonner toast assertions with `page.locator('[data-sonner-toast]').getByText()` to avoid false matches from other page elements.
+- Use `Buffer.alloc(limit + 1)` for file size limit tests - 1 byte over is sufficient. Don't allocate large buffers.
 - Before running: `kill -9 $(lsof -t -i:3001)` to free the port.
 
 ## Scope

@@ -139,3 +139,26 @@ export const markEmbedded = internalMutation({
     });
   },
 });
+
+export const markEmbeddedBatch = internalMutation({
+  args: {
+    chunks: v.array(
+      v.object({
+        chunkId: v.id("chunks"),
+        embeddingId: v.optional(v.string()),
+      }),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await Promise.all(
+      args.chunks.map(({ chunkId, embeddingId }) =>
+        ctx.db.patch(chunkId, {
+          embedded: true,
+          embeddingId,
+        }),
+      ),
+    );
+    return null;
+  },
+});

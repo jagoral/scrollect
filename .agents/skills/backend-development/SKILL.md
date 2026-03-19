@@ -3,7 +3,7 @@ name: backend-development
 description: Rules and patterns for working in the Scrollect Convex backend (packages/backend/). Use this skill anytime work touches packages/backend/, including creating or editing Convex functions, modifying the schema, working with the processing pipeline, feed generation, auth, providers, logging, or testing. Also trigger when the user mentions Convex functions, backend queries/mutations/actions, document processing, embeddings, chunking, feed cards, or any file under packages/backend/convex/.
 ---
 
-# Backend Development — Scrollect
+# Backend Development - Scrollect
 
 Scrollect's backend is a Convex BaaS at `packages/backend/convex/`. It powers an AI-driven personal learning feed: users save content (books, articles, PDFs), which gets parsed, chunked, embedded, and turned into bite-sized learning cards.
 
@@ -11,21 +11,21 @@ Scrollect's backend is a Convex BaaS at `packages/backend/convex/`. It powers an
 
 ```
 convex/
-  pipeline/           — Multi-step document processing
+  pipeline/           - Multi-step document processing
     index.ts            startProcessing entry point
     parsing.ts          PDF & markdown parsing, Datalab polling
     chunking.ts         chunkAndStore
     embedding.ts        fanOutEmbedding, embedBatch, checkCompletion
     resume.ts           resumeProcessing, embedUnembeddedChunks
     helpers.ts          convexIdToUuid, blob helpers, provider factories, constants
-  feed/               — Learning card generation
+  feed/               - Learning card generation
     queries.ts          list, getLastGeneratedAt, setReaction + internal helpers
     generation.ts       generate action (OpenAI), shuffle
-  lib/                — Shared utilities
+  lib/                - Shared utilities
     functions.ts        requireAuth(), optionalAuth() auth helpers
     validators.ts       shared validators (documentStatus, fileType, etc.)
     logging.ts          WideEvent structured logging class
-  providers/          — External service abstractions
+  providers/          - External service abstractions
     types.ts            interfaces: PdfParser, EmbeddingProvider, VectorStore
     openai.ts, qdrant.ts, datalab.ts, convexVectors.ts
   auth.ts, bookmarks.ts, chunks.ts, documents.ts,
@@ -50,11 +50,11 @@ export const myQuery = query({
 
 ## Validators
 
-Import shared validators from `lib/validators.ts` — never duplicate inline. Available: `fileType`, `documentStatus`, `failedAtStage`, `reactionType`, `reactionInput`. When a validator is used in more than one file, add it to `lib/validators.ts`.
+Import shared validators from `lib/validators.ts` - never duplicate inline. Available: `fileType`, `documentStatus`, `failedAtStage`, `reactionType`, `reactionInput`. When a validator is used in more than one file, add it to `lib/validators.ts`.
 
 ## Logging
 
-Use `WideEvent` from `lib/logging.ts` for all actions and mutations with side effects. No `console.log` — use structured wide events instead.
+Use `WideEvent` from `lib/logging.ts` for all actions and mutations with side effects. No `console.log` - use structured wide events instead.
 
 ```typescript
 import { WideEvent } from "./lib/logging";
@@ -80,7 +80,7 @@ Operation naming: `"module.functionName"` (e.g., `"documents.create"`, `"pipelin
 - Create a subdirectory when a module has 3+ related files.
 - Colocate internal functions with the module that calls them.
 - No junk-drawer files (no `helpers.ts` at root level).
-- Don't put business logic in multiple places — colocate with the domain.
+- Don't put business logic in multiple places - colocate with the domain.
 
 ## Domain Folders (pipeline/, feed/)
 
@@ -121,20 +121,36 @@ The document processing pipeline uses scheduler-based resilience:
 - Actions call external APIs; queries/mutations are for database operations
 - Use `internalAction`/`internalMutation`/`internalQuery` for server-only logic
 - Always validate arguments with `v.*` validators
-- Use `.withIndex()` for queries — avoid `.filter()` when an index exists
+- Use `.withIndex()` for queries - avoid `.filter()` when an index exists
 
 ## Testing
 
 - `testing.ts` and `testingActions.ts` contain E2E test utilities
-- Test data is guarded by `E2E_EMAIL_PATTERN` — production data is safe
+- Test data is guarded by `E2E_EMAIL_PATTERN` - production data is safe
 - After backend changes, run `bun run test:e2e` to verify
 - Before running E2E tests: `kill -9 $(lsof -t -i:3001)` to free port 3001
+
+## Query Performance Patterns
+
+- **No unbounded `.collect()`** on user-facing queries. Always paginate or `.take(limit)`. Exception: internal mutations where completeness is required (cascade delete) - silent truncation causes data corruption
+- **Hoist queries outside loops** in mutations. Data snapshot is consistent within a transaction - no need to re-query for each iteration
+- **Batch-and-dedup for N+1 reads**: collect unique IDs, batch-fetch with `Promise.all`, build a `Map` lookup. Reduces reads from O(page_size \* N) to O(unique_items + 1)
+- **Batch mutations**: use `Promise.all` for independent `db.patch` calls within a single transaction instead of sequential `ctx.runMutation` loops across transactions
+- **Bounded time-range queries**: `.take(limit)` must be paired with `.order('desc')` to get most recent records first
+- **Rate-limit at final mutation only**: multi-step flows (generateUploadUrl -> create) should rate-limit at the commit step, not preparatory steps
+
+## Pipeline Safety
+
+- **External I/O before state transitions**: complete Qdrant upserts and API calls BEFORE setting document status to 'ready'. External calls are not transactional with Convex mutations
+- **Error recovery**: catch blocks must set status to 'error' with `failedAtStage` - never re-throw without updating status. Wrap recovery mutation in its own try-catch
+- **Two-phase loading**: load metadata without content first, run selection, then hydrate content only for selected items. Reduces memory from O(all_records) to O(selected)
+- **Qdrant idempotency**: upserts and deletes are idempotent (deterministic UUIDs via convexIdToUuid). Safe to retry
 
 ## Don'ts
 
 - Don't import `authComponent` or `GenericCtx` outside `auth.ts` and `lib/functions.ts`
-- Don't duplicate validators — check `lib/validators.ts` first
+- Don't duplicate validators - check `lib/validators.ts` first
 - Don't create root-level junk-drawer files
 - Don't exceed ~200 lines per file
-- Don't use `console.log` — use `WideEvent` for structured logging
-- Don't use `.filter()` when an index exists — use `.withIndex()`
+- Don't use `console.log` - use `WideEvent` for structured logging
+- Don't use `.filter()` when an index exists - use `.withIndex()`

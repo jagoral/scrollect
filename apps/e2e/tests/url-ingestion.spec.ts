@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, cleanupTestData, signUp } from "./helpers";
+import { FIXTURES_DIR, SEEDED_USER, cleanupTestData, resetTestData, signIn, signUp } from "./helpers";
 
 test.describe(
   "Upload page tab structure",
@@ -13,15 +13,12 @@ test.describe(
     },
   },
   () => {
-    let ephemeralEmail: string;
-
     test.beforeEach(async ({ page }) => {
-      const { email } = await signUp(page);
-      ephemeralEmail = email;
+      await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     });
 
     test.afterEach(async () => {
-      await cleanupTestData(ephemeralEmail);
+      await resetTestData(SEEDED_USER.email);
     });
 
     test("upload page renders three tabs with Upload File selected by default", async ({
@@ -173,15 +170,12 @@ test.describe(
     },
   },
   () => {
-    let ephemeralEmail: string;
-
     test.beforeEach(async ({ page }) => {
-      const { email } = await signUp(page);
-      ephemeralEmail = email;
+      await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     });
 
     test.afterEach(async () => {
-      await cleanupTestData(ephemeralEmail);
+      await resetTestData(SEEDED_USER.email);
     });
 
     const youtubeUrls = [
@@ -227,15 +221,12 @@ test.describe(
     ],
   },
   () => {
-    let ephemeralEmail: string;
-
     test.beforeEach(async ({ page }) => {
-      const { email } = await signUp(page);
-      ephemeralEmail = email;
+      await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     });
 
     test.afterEach(async () => {
-      await cleanupTestData(ephemeralEmail);
+      await resetTestData(SEEDED_USER.email);
     });
 
     test(
@@ -381,15 +372,12 @@ test.describe(
     },
   },
   () => {
-    let ephemeralEmail: string;
-
     test.beforeEach(async ({ page }) => {
-      const { email } = await signUp(page);
-      ephemeralEmail = email;
+      await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     });
 
     test.afterEach(async () => {
-      await cleanupTestData(ephemeralEmail);
+      await resetTestData(SEEDED_USER.email);
     });
 
     test("Add to Library button is disabled when title is empty", async ({ page }) => {

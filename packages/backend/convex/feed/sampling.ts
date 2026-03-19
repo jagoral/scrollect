@@ -2,10 +2,11 @@ import { ALL_POST_TYPES } from "../lib/validators";
 import type { EmbeddingProvider, SummaryVectorStore } from "../providers/types";
 
 import { FRESHNESS_WINDOW_MS, computeRecencyBoost } from "./constants";
-import type { ChunkLike, UsageInfo } from "./selectionLogic";
+import type { ChunkLike, ChunkMetadata, UsageInfo } from "./selectionLogic";
 import { filterChunksBySemantic, rankByUsage } from "./selectionLogic";
 
 export type ChunkInfo = ChunkLike;
+export type { ChunkMetadata } from "./selectionLogic";
 export type ChunkUsage = UsageInfo;
 
 const SEMANTIC_TOP_DOCS = 5;
@@ -52,7 +53,7 @@ export function buildChunkUsageMap(
 }
 
 export type WeightedSampleArgs = {
-  chunks: ChunkInfo[];
+  chunks: ChunkMetadata[];
   chunkUsageMap: Map<string, ChunkUsage>;
   docCreatedAtMap: Map<string, number>;
   count: number;
@@ -60,7 +61,7 @@ export type WeightedSampleArgs = {
   randomFn?: () => number;
 };
 
-export function weightedSample(args: WeightedSampleArgs): ChunkInfo[] {
+export function weightedSample(args: WeightedSampleArgs): ChunkMetadata[] {
   const { chunks, chunkUsageMap, docCreatedAtMap, count, now, randomFn = Math.random } = args;
   const base = 1.0;
   const weights = chunks.map((chunk) => {
@@ -74,7 +75,7 @@ export function weightedSample(args: WeightedSampleArgs): ChunkInfo[] {
     );
   });
 
-  const selected: ChunkInfo[] = [];
+  const selected: ChunkMetadata[] = [];
   const usedIndices = new Set<number>();
   const docCounts = new Map<string, number>();
 
@@ -148,7 +149,7 @@ export function shuffle<T>(arr: T[]): T[] {
 }
 
 export type SemanticSelectArgs = {
-  allChunks: ChunkInfo[];
+  allChunks: ChunkMetadata[];
   docSummaries: DocumentSummaryInfo[];
   chunkUsageMap: Map<string, ChunkUsage>;
   docCreatedAtMap: Map<string, number>;
@@ -160,7 +161,7 @@ export type SemanticSelectArgs = {
   randomFn?: () => number;
 };
 
-export async function semanticSelect(args: SemanticSelectArgs): Promise<ChunkInfo[]> {
+export async function semanticSelect(args: SemanticSelectArgs): Promise<ChunkMetadata[]> {
   const {
     allChunks,
     docSummaries,
@@ -234,16 +235,16 @@ export async function semanticSelect(args: SemanticSelectArgs): Promise<ChunkInf
 }
 
 export type FrontLoadArgs = {
-  chunks: ChunkInfo[];
+  chunks: ChunkMetadata[];
   docCreatedAtMap: Map<string, number>;
   now: number;
   maxFresh?: number;
 };
 
-export function frontLoadFreshChunks(args: FrontLoadArgs): ChunkInfo[] {
+export function frontLoadFreshChunks(args: FrontLoadArgs): ChunkMetadata[] {
   const { chunks, docCreatedAtMap, now, maxFresh } = args;
-  const fresh: ChunkInfo[] = [];
-  const rest: ChunkInfo[] = [];
+  const fresh: ChunkMetadata[] = [];
+  const rest: ChunkMetadata[] = [];
 
   for (const chunk of chunks) {
     const docCreatedAt = docCreatedAtMap.get(chunk.documentId) ?? 0;

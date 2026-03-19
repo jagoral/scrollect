@@ -239,7 +239,10 @@ export const addTagToDocument = mutation({
 export const removeTagFromDocument = mutation({
   args: {
     documentId: v.id("documents"),
-    tagId: v.id("tags"),
+    // tagId is optional because the client may send an optimistic_* placeholder
+    // that fails v.id() validation. When tagId is missing or not found in the
+    // document's tagIds array, the handler falls back to name-based lookup.
+    tagId: v.optional(v.id("tags")),
     tagName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -254,9 +257,9 @@ export const removeTagFromDocument = mutation({
     const sources = doc.tagSources ?? [];
     assertTagParity(args.documentId, tagIds, sources);
 
-    let idx = tagIds.indexOf(args.tagId);
+    let idx = args.tagId ? tagIds.indexOf(args.tagId) : -1;
 
-    // Fallback: if the tagId wasn't found (e.g. optimistic ID), look up by name
+    // Fallback: if the tagId wasn't found or wasn't provided, look up by name
     if (idx === -1 && args.tagName) {
       const normalized = normalizeTagName(args.tagName);
       const tag = await ctx.db
