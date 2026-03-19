@@ -3,13 +3,14 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import type { ConvexReactClient } from "convex/react";
-import { PostHogProvider } from "posthog-js/react";
+import { PostHogProvider, usePostHog } from "posthog-js/react";
 import { env } from "@scrollect/env/web";
 
 import appCss from "@/index.css?url";
 import Footer from "@/components/footer";
 import Header from "@/components/header";
 import Providers from "@/components/providers";
+import { useCookieConsent } from "@/hooks/use-cookie-consent";
 import { getSession } from "@/lib/auth-server";
 
 export const Route = createRootRouteWithContext<{
@@ -44,6 +45,12 @@ export const Route = createRootRouteWithContext<{
   component: RootComponent,
 });
 
+function CookieConsentInit() {
+  const posthog = usePostHog();
+  useCookieConsent(posthog);
+  return null;
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -51,7 +58,20 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="font-sans antialiased">
-        {children}
+        <PostHogProvider
+          apiKey={env.VITE_PUBLIC_POSTHOG_KEY ?? ""}
+          options={{
+            api_host: "/ingest",
+            ui_host: env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
+            capture_exceptions: true,
+            person_profiles: "identified_only",
+            opt_out_capturing_by_default: true,
+            persistence: "memory",
+          }}
+        >
+          <CookieConsentInit />
+          {children}
+        </PostHogProvider>
         <Scripts />
       </body>
     </html>
@@ -60,9 +80,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { initialToken, convexClient } = Route.useRouteContext();
-  const posthogKey = env.VITE_PUBLIC_POSTHOG_KEY;
 
-  const content = (
+  return (
     <Providers initialToken={initialToken} convexClient={convexClient}>
       <div className="grid grid-rows-[auto_1fr] h-svh">
         <Header />
@@ -72,21 +91,5 @@ function RootComponent() {
         </main>
       </div>
     </Providers>
-  );
-
-  if (!posthogKey) return content;
-
-  return (
-    <PostHogProvider
-      apiKey={posthogKey}
-      options={{
-        api_host: "/ingest",
-        ui_host: env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
-        capture_exceptions: true,
-        person_profiles: "identified_only",
-      }}
-    >
-      {content}
-    </PostHogProvider>
   );
 }

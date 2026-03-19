@@ -74,10 +74,18 @@ export async function reseedAccount() {
   await seedTestData(SEEDED_USER.email);
 }
 
+export async function dismissCookieConsent(page: Page) {
+  const rejectBtn = page.locator("#cc-main .cm__btn[data-role='necessary']");
+  if (await rejectBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await rejectBtn.click();
+  }
+}
+
 export async function signUp(page: Page): Promise<{ email: string }> {
   const user = testUser();
   await page.goto("/signin");
   await page.waitForLoadState("networkidle");
+  await dismissCookieConsent(page);
   await page.getByRole("button", { name: /sign up/i }).click();
   await page.getByLabel("Name").fill(user.name);
   await page.getByLabel("Email").fill(user.email);
@@ -90,6 +98,7 @@ export async function signUp(page: Page): Promise<{ email: string }> {
 export async function signIn(page: Page, email: string, password: string) {
   await page.goto("/signin");
   await page.waitForLoadState("networkidle");
+  await dismissCookieConsent(page);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page

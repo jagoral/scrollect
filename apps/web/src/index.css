@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource/geist-sans/latin.css";
 @import "@fontsource/geist-mono/latin.css";
+@import "vanilla-cookieconsent/dist/cookieconsent.css";
+@import "./styles/cookie-consent.css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
