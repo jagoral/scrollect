@@ -20,14 +20,14 @@ Today there is no production deployment workflow. The CI pipeline (`.github/work
 Use Convex's official Vercel integration. Override Vercel's build command to:
 
 ```
-npx convex deploy --cmd 'npx convex run migrations:runAll && npm run build'
+npx convex deploy --cmd 'npm run build'
 ```
 
 This command:
 
 1. Reads the `CONVEX_DEPLOY_KEY` environment variable
 2. Pushes Convex functions + schema to the target deployment
-3. Runs the provided `--cmd`: first executes pending migrations, then builds the web app
+3. Runs the provided `--cmd` to build the web app
 
 This guarantees ordering - Convex functions are live before the web app builds against them. No separate GitHub Actions deploy workflow needed.
 
@@ -57,7 +57,13 @@ When Vercel builds a production deploy (merge to `main`), it uses the production
 
 Adopt the `@convex-dev/migrations` component for automated, stateful data backfills. Register in `convex/convex.config.ts`, define all migrations in `convex/migrations.ts`.
 
-Migrations run as part of the Vercel build command (see section 1) - after `convex deploy` succeeds and before the web app builds. This ensures backfilled data is available when the new frontend goes live.
+When the first migration is defined, update the Vercel build command to run migrations between Convex deploy and the web app build:
+
+```
+npx convex deploy --cmd 'npx convex run migrations:runAll && npm run build'
+```
+
+This ensures backfilled data is available when the new frontend goes live.
 
 **Two-phase schema change pattern** (Convex's fundamental constraint):
 
