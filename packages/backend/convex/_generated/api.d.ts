@@ -34,6 +34,7 @@ import type * as lib_logging from "../lib/logging.js";
 import type * as lib_rateLimitChecks from "../lib/rateLimitChecks.js";
 import type * as lib_rateLimitConfig from "../lib/rateLimitConfig.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as migrations from "../migrations.js";
 import type * as pipeline_chunking from "../pipeline/chunking.js";
 import type * as pipeline_embedding from "../pipeline/embedding.js";
 import type * as pipeline_extraction from "../pipeline/extraction.js";
@@ -97,6 +98,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimitChecks": typeof lib_rateLimitChecks;
   "lib/rateLimitConfig": typeof lib_rateLimitConfig;
   "lib/validators": typeof lib_validators;
+  migrations: typeof migrations;
   "pipeline/chunking": typeof pipeline_chunking;
   "pipeline/embedding": typeof pipeline_embedding;
   "pipeline/extraction": typeof pipeline_extraction;
@@ -2130,6 +2132,92 @@ export declare const components: {
     adapterTest: {
       runCustomTests: FunctionReference<"action", "internal", any, any>;
       runTests: FunctionReference<"action", "internal", any, any>;
+    };
+  };
+  migrations: {
+    lib: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        { name: string },
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          error?: string;
+          isDone: boolean;
+          latestEnd?: number;
+          latestStart: number;
+          name: string;
+          next?: Array<string>;
+          processed: number;
+          state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
+        }
+      >;
+      cancelAll: FunctionReference<
+        "mutation",
+        "internal",
+        { sinceTs?: number },
+        Array<{
+          batchSize?: number;
+          cursor?: string | null;
+          error?: string;
+          isDone: boolean;
+          latestEnd?: number;
+          latestStart: number;
+          name: string;
+          next?: Array<string>;
+          processed: number;
+          state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
+        }>
+      >;
+      clearAll: FunctionReference<
+        "mutation",
+        "internal",
+        { before?: number },
+        null
+      >;
+      getStatus: FunctionReference<
+        "query",
+        "internal",
+        { limit?: number; names?: Array<string> },
+        Array<{
+          batchSize?: number;
+          cursor?: string | null;
+          error?: string;
+          isDone: boolean;
+          latestEnd?: number;
+          latestStart: number;
+          name: string;
+          next?: Array<string>;
+          processed: number;
+          state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
+        }>
+      >;
+      migrate: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun: boolean;
+          fnHandle: string;
+          name: string;
+          next?: Array<{ fnHandle: string; name: string }>;
+          oneBatchOnly?: boolean;
+        },
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          error?: string;
+          isDone: boolean;
+          latestEnd?: number;
+          latestStart: number;
+          name: string;
+          next?: Array<string>;
+          processed: number;
+          state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
+        }
+      >;
     };
   };
   rateLimiter: {

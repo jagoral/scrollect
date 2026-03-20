@@ -75,7 +75,7 @@ The generated prompt should follow this structure:
 [1-2 sentence description of what the team is building.]
 
 **Issue:** [link] — read the full issue with `gh issue view <number>`.
-**Branch:** Create a new branch `feat/<number>-<slug>` from `main`.
+**Branch:** Create a new branch `feat/<number>-<slug>` from `dev`.
 
 ## Your role as team lead
 

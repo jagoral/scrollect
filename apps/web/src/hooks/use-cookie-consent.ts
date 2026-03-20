@@ -52,7 +52,13 @@ function syncDarkMode(html: HTMLElement) {
 }
 
 function observeDarkModeChanges(html: HTMLElement): MutationObserver {
-  const observer = new MutationObserver(() => syncDarkMode(html));
+  let wasDark = html.classList.contains("dark");
+  const observer = new MutationObserver(() => {
+    const isDark = html.classList.contains("dark");
+    if (isDark === wasDark) return;
+    wasDark = isDark;
+    syncDarkMode(html);
+  });
   observer.observe(html, { attributes: true, attributeFilter: ["class"] });
   return observer;
 }
