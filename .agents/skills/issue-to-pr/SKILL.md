@@ -55,8 +55,8 @@ Derive a branch name from the issue:
 #   fix/87-feed-scroll-jank
 #   chore/15-update-convex-deps
 
-git fetch origin main
-git checkout -b <branch-name> origin/main
+git fetch origin dev
+git checkout -b <branch-name> origin/dev
 ```
 
 Branch name rules:
@@ -193,7 +193,7 @@ EOF
 
 Then use the `/pull-request` skill to create the PR:
 
-- Base branch: `main`
+- Base branch: `dev`
 - Title: conventional commit format with issue reference — e.g., `feat(#42): add content ingestion pipeline`
 - Body: reference the issue, summarize changes, include test plan
 - The PR body should include `Closes #<issue-number>` so GitHub auto-closes the issue on merge

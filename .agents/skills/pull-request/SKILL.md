@@ -11,8 +11,8 @@ Create a pull request for the current branch, or cherry-pick specific commits in
 
 **Usage:**
 
-- `/pull-request` - PR the current branch against `main` (default)
-- `/pull-request --base main` - PR against `main`
+- `/pull-request` - PR the current branch against `dev` (default)
+- `/pull-request --base dev` - PR against `dev`
 - `/pull-request --commit HEAD` - PR just the last commit on a new branch
 - `/pull-request --commit abc123` - PR a specific commit on a new branch
 - `/pull-request --commit HEAD --branch my-branch` - Override the auto-generated branch name
@@ -31,7 +31,7 @@ Create a pull request for the current branch, or cherry-pick specific commits in
 **Priority order:**
 
 1. Explicit argument: `--base <branch>` → use that branch
-2. No argument → default to `main`
+2. No argument → default to `dev`
 
 ### 3. Gather Context
 
@@ -193,5 +193,5 @@ git checkout {original-branch}
 
 ## Notes
 
-- Default base branch is `main`, customizable via `--base`
+- Default base branch is `dev`, customizable via `--base`
 - Do not modify any files or make commits except during cherry-pick mode and the code review gate (step 7)

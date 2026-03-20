@@ -20,7 +20,7 @@ Prefer **fast** tests. Only use medium/slow when testing the actual upload or ge
 ## 2-tier CI strategy
 
 - **Tier 1 (every PR)**: Runs `npx playwright test` — uses stub extractors (`USE_STUB_EXTRACTORS=true` on Convex). Fast, deterministic, no external API calls. Excludes `*.slow.spec.ts` files via `testIgnore` in `playwright.config.ts`.
-- **Tier 2 (merge-to-main / nightly)**: Runs `npx playwright test url-ingestion.slow.spec.ts` — uses real extractors (markdown.new, YouTube transcript). Requires `USE_STUB_EXTRACTORS` unset. Tests real provider implementations end-to-end (extraction + chunking + embedding, no GPT).
+- **Tier 2 (merge-to-dev or merge-to-main)**: Runs `npx playwright test url-ingestion.slow.spec.ts` — uses real extractors (markdown.new, YouTube transcript). Requires `USE_STUB_EXTRACTORS` unset. Tests real provider implementations end-to-end (extraction + chunking + embedding, no GPT).
 
 ## Writing new tests
 
