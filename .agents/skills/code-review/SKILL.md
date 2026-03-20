@@ -16,7 +16,7 @@ You analyze changed files and dispatch review to the appropriate agent(s).
 
 ## Workflow
 
-1. **Identify changed files.** If the user specified files, use those. Otherwise, run `git diff --name-only HEAD` (unstaged + staged changes). If no local changes, try `git diff --name-only main...HEAD` (branch changes).
+1. **Identify changed files.** If the user specified files, use those. Otherwise, run `git diff --name-only HEAD` (unstaged + staged changes). If no local changes, try `git diff --name-only dev...HEAD` (branch changes).
 
 2. **Classify changes by layer:**
    - **Frontend:** files in `apps/web/`
