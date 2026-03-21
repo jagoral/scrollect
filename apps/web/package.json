@@ -46,6 +46,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@fontsource/fraunces": "^5.2.9",
     "@scrollect/config": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^20",

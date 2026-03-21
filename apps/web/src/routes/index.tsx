@@ -1,7 +1,7 @@
 import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { Brain, Sparkles, Upload } from "lucide-react";
 
-import { ScrollectWordmark } from "@/components/scrollect-logo";
+import { ScrollectBrand } from "@/components/scrollect-logo";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
@@ -25,6 +25,26 @@ export const Route = createFileRoute("/")({
           "Transform your saved content into a scrollable feed of bite-sized learning cards — like social media, but built from your own knowledge.",
       },
       { property: "og:type", content: "website" },
+      {
+        property: "og:image",
+        content: "https://scrollect.ai/og-image.png",
+      },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      {
+        name: "twitter:title",
+        content: "Scrollect - AI-Powered Personal Learning Feed",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Transform your saved content into a scrollable feed of bite-sized learning cards - like social media, but built from your own knowledge.",
+      },
+      {
+        name: "twitter:image",
+        content: "https://scrollect.ai/og-image.png",
+      },
     ],
   }),
   component: HomePage,
@@ -68,7 +88,11 @@ function HomePage() {
           }}
         />
         <div className="animate-hero-in flex flex-col items-center gap-8">
-          <ScrollectWordmark height={80} className="text-foreground" />
+          <ScrollectBrand
+            iconSize="xl"
+            className="gap-3"
+            textClassName="text-5xl text-foreground"
+          />
           <div className="max-w-2xl">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
               Learn smarter,{" "}
