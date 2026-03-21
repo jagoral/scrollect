@@ -236,7 +236,7 @@
   animation-delay: 480ms;
 }
 
-/* Highlight ring pulse – single play to draw attention */
+/* Highlight ring pulse - single play to draw attention */
 @keyframes ring-pulse {
   0% {
     box-shadow: 0 0 0 0 var(--color-primary);
@@ -253,6 +253,59 @@
   animation: ring-pulse 1.2s ease-out 1;
 }
 
+/* Phone frame - titanium gradient with layered shadow */
+.phone-frame {
+  background: linear-gradient(
+    to bottom,
+    #58585a 0%,
+    #3a3a3c 15%,
+    #2c2c2e 50%,
+    #3a3a3c 85%,
+    #48484a 100%
+  );
+  box-shadow:
+    0 2px 8px -2px rgba(0, 0, 0, 0.3),
+    0 8px 24px -4px rgba(0, 0, 0, 0.2),
+    0 24px 48px -8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
+}
+
+:is(.dark) .phone-frame {
+  background: linear-gradient(
+    to bottom,
+    #6e6e70 0%,
+    #48484a 15%,
+    #3a3a3c 50%,
+    #48484a 85%,
+    #58585a 100%
+  );
+  box-shadow:
+    0 2px 8px -2px rgba(0, 0, 0, 0.5),
+    0 8px 24px -4px rgba(0, 0, 0, 0.4),
+    0 24px 48px -8px rgba(0, 0, 0, 0.3),
+    0 48px 80px -12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Phone mockup scroll hint - plays once to indicate scrollability */
+@keyframes phone-scroll-hint {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-80px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-phone-scroll-hint {
+  animation: phone-scroll-hint 1.8s ease-in-out 0.6s 1 both;
+}
+
 /* Accessibility: disable animations for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-stagger-in > *,
@@ -261,7 +314,167 @@
     animation: none;
   }
   .skeleton-shimmer,
-  .animate-ring-pulse {
+  .animate-ring-pulse,
+  .animate-phone-scroll-hint {
     animation: none;
+  }
+}
+
+/* How it Works illustration microinteractions */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes illust-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes illust-float-reverse {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(6px);
+    }
+  }
+
+  @keyframes illust-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes illust-sparkle {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    40% {
+      opacity: 0.2;
+      transform: scale(0.6);
+    }
+    70% {
+      opacity: 0.8;
+      transform: scale(0.95);
+    }
+    85% {
+      opacity: 0.35;
+      transform: scale(0.7);
+    }
+  }
+
+  @keyframes illust-drift {
+    0%,
+    100% {
+      transform: translateX(0) rotate(var(--drift-rotate, 0deg));
+    }
+    50% {
+      transform: translateX(4px) rotate(var(--drift-rotate, 0deg));
+    }
+  }
+
+  @keyframes illust-portal-glow-pulse {
+    0%,
+    100% {
+      box-shadow:
+        0 0 16px rgba(14, 157, 150, 0.25),
+        0 0 36px rgba(14, 157, 150, 0.1);
+    }
+    50% {
+      box-shadow:
+        0 0 24px rgba(14, 157, 150, 0.4),
+        0 0 48px rgba(14, 157, 150, 0.18);
+    }
+  }
+
+  @keyframes illust-particle-rise {
+    0% {
+      opacity: 0;
+      transform: translateY(0) scale(0.5);
+    }
+    25% {
+      opacity: 1;
+      transform: translateY(-8px) scale(1);
+    }
+    75% {
+      opacity: 0.6;
+      transform: translateY(-22px) scale(0.8);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-30px) scale(0.3);
+    }
+  }
+
+  .illust-float-1 {
+    animation: illust-float 3.5s ease-in-out infinite;
+  }
+  .illust-float-2 {
+    animation: illust-float 4s ease-in-out infinite;
+    animation-delay: 0.5s;
+  }
+  .illust-float-3 {
+    animation: illust-float-reverse 3.8s ease-in-out infinite;
+    animation-delay: 1s;
+  }
+  .illust-portal-pulse {
+    animation: illust-pulse 3s ease-in-out infinite;
+  }
+  .illust-sparkle-1 {
+    animation: illust-sparkle 5.5s ease-in-out infinite;
+  }
+  .illust-sparkle-2 {
+    animation: illust-sparkle 7.2s ease-in-out infinite;
+    animation-delay: 2.3s;
+  }
+  .illust-sparkle-3 {
+    animation: illust-sparkle 6.1s ease-in-out infinite;
+    animation-delay: 4.7s;
+  }
+  .illust-sparkle-4 {
+    animation: illust-sparkle 8s ease-in-out infinite;
+    animation-delay: 1.1s;
+  }
+  .illust-sparkle-5 {
+    animation: illust-sparkle 6.8s ease-in-out infinite;
+    animation-delay: 3.5s;
+  }
+  .illust-drift-1 {
+    animation: illust-drift 5s ease-in-out infinite;
+  }
+  .illust-drift-2 {
+    animation: illust-drift 4.5s ease-in-out infinite;
+    animation-delay: 0.8s;
+  }
+  .illust-drift-3 {
+    animation: illust-drift 5.5s ease-in-out infinite;
+    animation-delay: 1.5s;
+  }
+  .illust-card-1 {
+    animation: illust-float 4.5s ease-in-out infinite;
+    animation-delay: 0.2s;
+  }
+  .illust-card-2 {
+    animation: illust-float-reverse 4s ease-in-out infinite;
+    animation-delay: 0.6s;
+  }
+  .illust-card-3 {
+    animation: illust-float 4.2s ease-in-out infinite;
+    animation-delay: 1s;
+  }
+  .illust-portal-glow {
+    animation: illust-portal-glow-pulse 3s ease-in-out infinite;
+  }
+  .illust-particle-rise {
+    animation: illust-particle-rise 3s ease-in-out infinite;
   }
 }
