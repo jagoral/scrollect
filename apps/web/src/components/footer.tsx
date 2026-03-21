@@ -7,7 +7,7 @@ const LINK_CLASSES =
 
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t px-4 py-6">
+    <footer className="border-t px-4 py-6">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <p className="text-sm text-muted-foreground" suppressHydrationWarning>
           &copy; {new Date().getFullYear()} Scrollect. All rights reserved.

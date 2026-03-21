@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/scrollect-full-logo-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="apps/web/public/scrollect-full-logo.svg" />
-    <img src="apps/web/public/scrollect-full-logo.svg" alt="Scrollect" width="400" />
+    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/icon-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="apps/web/public/icon.svg" />
+    <img src="apps/web/public/icon.svg" alt="Scrollect" width="120" />
   </picture>
 </p>
 

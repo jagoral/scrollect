@@ -3,7 +3,7 @@ import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import { Bookmark, BookOpen, Menu, Rss, Upload } from "lucide-react";
 import { useState } from "react";
 
-import { ScrollectLogo } from "./scrollect-logo";
+import { ScrollectBrand } from "./scrollect-logo";
 import { Button } from "./ui/button";
 import { ModeToggle } from "./mode-toggle";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
@@ -21,14 +21,10 @@ export default function Header() {
 
   return (
     <header className="z-50 border-b border-border/50 bg-background/80 shadow-[0_1px_3px_0_rgb(0_0_0/0.02)] backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
-      <div className="flex flex-row items-center justify-between px-4 py-3 md:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-row items-center justify-between px-4 py-3 md:px-6">
         <div className="flex items-center gap-8">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-lg font-bold tracking-tight text-primary"
-          >
-            <ScrollectLogo size="md" />
-            Scrollect
+          <Link to="/" className="text-foreground flex items-center">
+            <ScrollectBrand iconSize="md" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {navLinks.map(({ to, label, icon: Icon }) => (
@@ -79,9 +75,8 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <SheetHeader>
-                <SheetTitle className="flex items-center gap-2 text-primary">
-                  <ScrollectLogo size="sm" />
-                  Scrollect
+                <SheetTitle className="text-foreground">
+                  <ScrollectBrand iconSize="sm" />
                 </SheetTitle>
               </SheetHeader>
               <nav className="mt-6 flex flex-col gap-1 px-4">
