@@ -14,6 +14,7 @@ import { env } from "@scrollect/env/web";
 
 import geistSans400 from "@fontsource/geist-sans/files/geist-sans-latin-400-normal.woff2?url";
 import geistSans600 from "@fontsource/geist-sans/files/geist-sans-latin-600-normal.woff2?url";
+import geistSans700 from "@fontsource/geist-sans/files/geist-sans-latin-700-normal.woff2?url";
 import fraunces600 from "@fontsource/fraunces/files/fraunces-latin-600-normal.woff2?url";
 import appCss from "@/index.css?url";
 import Footer from "@/components/footer";
@@ -87,6 +88,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Raw JSX preloads - TanStack head() links only support {rel, href}, not as/type/crossOrigin */}
         <link
           rel="preload"
           href={geistSans400}
@@ -97,6 +99,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <link
           rel="preload"
           href={geistSans600}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href={geistSans700}
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"

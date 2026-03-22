@@ -41,6 +41,7 @@ export default defineConfig({
       },
     }),
     nitro({
+      compressPublicAssets: true,
       routeRules: {
         "/ingest/**": {
           proxy: { to: "https://eu.i.posthog.com/**" },
