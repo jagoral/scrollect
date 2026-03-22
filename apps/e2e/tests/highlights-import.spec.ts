@@ -74,6 +74,9 @@ test.describe("Pocketbook highlights import (seeded account)", () => {
     const highlightsSection = page.locator('[data-testid="highlights-section"]');
     await expect(highlightsSection).toBeVisible({ timeout: 15000 });
 
+    // Expand the collapsible to reveal highlight items
+    await highlightsSection.locator('[data-slot="collapsible-trigger"]').click();
+
     // All 3 highlights should be displayed
     await expect(highlightsSection.locator('[data-testid^="highlight-"]')).toHaveCount(3, {
       timeout: 10000,
@@ -124,6 +127,7 @@ test.describe("Pocketbook highlights import (seeded account)", () => {
 
     // Still only 3 highlights on the page (no duplicates)
     const highlightsSection = page.locator('[data-testid="highlights-section"]');
+    await highlightsSection.locator('[data-slot="collapsible-trigger"]').click();
     await expect(highlightsSection.locator('[data-testid^="highlight-"]')).toHaveCount(3, {
       timeout: 10000,
     });
