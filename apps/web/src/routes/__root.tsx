@@ -1,7 +1,13 @@
 /// <reference types="vite/client" />
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRouteWithContext,
+  useRouterState,
+} from "@tanstack/react-router";
 import type { ConvexReactClient } from "convex/react";
 import { PostHogProvider, usePostHog } from "posthog-js/react";
 import { env } from "@scrollect/env/web";
@@ -34,6 +40,29 @@ export const Route = createRootRouteWithContext<{
         name: "description",
         content:
           "Transform your saved content into a scrollable feed of bite-sized learning cards.",
+      },
+      {
+        property: "og:image",
+        content: "https://scrollect.ai/og-image.png",
+      },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:url", content: "https://scrollect.ai" },
+      { property: "og:type", content: "website" },
+      { property: "og:locale", content: "en_US" },
+      { name: "twitter:card", content: "summary_large_image" },
+      {
+        name: "twitter:title",
+        content: "Scrollect - AI-Powered Personal Learning Feed",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Transform your saved content into a scrollable feed of bite-sized learning cards.",
+      },
+      {
+        name: "twitter:image",
+        content: "https://scrollect.ai/og-image.png",
       },
     ],
     links: [
@@ -80,15 +109,20 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { initialToken, convexClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  if (pathname.startsWith("/dev/")) {
+    return <Outlet />;
+  }
 
   return (
     <Providers initialToken={initialToken} convexClient={convexClient}>
-      <div className="grid grid-rows-[auto_1fr] h-svh">
+      <div className="flex min-h-svh flex-col">
         <Header />
-        <main className="flex flex-col overflow-y-auto">
+        <main className="flex flex-1 flex-col">
           <Outlet />
-          <Footer />
         </main>
+        <Footer />
       </div>
     </Providers>
   );

@@ -5,8 +5,10 @@ pre-commit:
   parallel: true
   jobs:
     - name: oxlint
+      glob: "*.{js,jsx,ts,tsx}"
       run: bun oxlint --fix {staged_files}
       stage_fixed: true
     - name: oxfmt
-      run: '[ -z "{staged_files}" ] || bun oxfmt --write {staged_files}'
+      glob: "*.{js,jsx,ts,tsx}"
+      run: bun oxfmt --write {staged_files}
       stage_fixed: true

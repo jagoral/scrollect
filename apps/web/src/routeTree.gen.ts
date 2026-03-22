@@ -14,6 +14,7 @@ import { Route as SigninRouteImport } from './routes/signin'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DevOgPreviewRouteImport } from './routes/dev.og-preview'
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/saved'
@@ -44,6 +45,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevOgPreviewRoute = DevOgPreviewRouteImport.update({
+  id: '/dev/og-preview',
+  path: '/dev/og-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/upload': typeof AuthenticatedUploadRoute
+  '/dev/og-preview': typeof DevOgPreviewRoute
   '/library/$documentId': typeof AuthenticatedLibraryDocumentIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/library/': typeof AuthenticatedLibraryIndexRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/upload': typeof AuthenticatedUploadRoute
+  '/dev/og-preview': typeof DevOgPreviewRoute
   '/library/$documentId': typeof AuthenticatedLibraryDocumentIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/library': typeof AuthenticatedLibraryIndexRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/saved': typeof AuthenticatedSavedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/dev/og-preview': typeof DevOgPreviewRoute
   '/_authenticated/library/$documentId': typeof AuthenticatedLibraryDocumentIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authenticated/library/': typeof AuthenticatedLibraryIndexRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/saved'
     | '/settings'
     | '/upload'
+    | '/dev/og-preview'
     | '/library/$documentId'
     | '/api/auth/$'
     | '/library/'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/saved'
     | '/settings'
     | '/upload'
+    | '/dev/og-preview'
     | '/library/$documentId'
     | '/api/auth/$'
     | '/library'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/saved'
     | '/_authenticated/settings'
     | '/_authenticated/upload'
+    | '/dev/og-preview'
     | '/_authenticated/library/$documentId'
     | '/api/auth/$'
     | '/_authenticated/library/'
@@ -174,6 +186,7 @@ export interface RootRouteChildren {
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   SigninRoute: typeof SigninRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
+  DevOgPreviewRoute: typeof DevOgPreviewRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev/og-preview': {
+      id: '/dev/og-preview'
+      path: '/dev/og-preview'
+      fullPath: '/dev/og-preview'
+      preLoaderRoute: typeof DevOgPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/upload': {
@@ -294,6 +314,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   SigninRoute: SigninRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
+  DevOgPreviewRoute: DevOgPreviewRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
