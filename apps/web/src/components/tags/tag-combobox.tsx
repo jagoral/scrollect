@@ -49,12 +49,14 @@ export function TagCombobox({
     );
   }
 
-  const filtered = existingTags.filter((t) => !assignedTagNames.has(t.name));
-
   const trimmed = search.trim().toLowerCase();
   const exactMatch = existingTags.some((t) => t.name.toLowerCase() === trimmed);
   const tooLong = trimmed.length > MAX_TAG_NAME_LENGTH;
   const showCreate = trimmed.length > 0 && !exactMatch && !tooLong;
+
+  const filtered = existingTags
+    .filter((t) => !assignedTagNames.has(t.name))
+    .filter((t) => trimmed.length === 0 || t.name.toLowerCase().includes(trimmed));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -72,7 +74,7 @@ export function TagCombobox({
         Add tag
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
-        <Command shouldFilter={true}>
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search or create tag..."
             value={search}

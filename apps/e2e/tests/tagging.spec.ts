@@ -104,32 +104,30 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
       timeout: 10000,
     });
 
-    // Navigate to the second document via full page load (same pattern as goToFirstDocument)
-    // to ensure Convex auth token propagation
-    await page.goto("/app/library");
-    await page.waitForLoadState("networkidle");
+    // Navigate to the second document via client-side navigation (Link clicks)
+    // to preserve the Convex WebSocket connection. Full-page navigation (page.goto)
+    // causes a race: the tag mutation may not have propagated to the new subscription
+    // by the time the combobox opens.
+    await page.getByText(/back to library/i).click();
+    await page.waitForURL(/\/app\/library$/);
     const docLinks = page.locator("a[href^='/app/library/']");
     await expect(docLinks.first()).toBeVisible({ timeout: 10000 });
     const count = await docLinks.count();
     expect(count).toBeGreaterThan(1);
-
-    const secondHref = await docLinks.nth(1).getAttribute("href");
-    await page.goto(secondHref!);
-    await page.waitForLoadState("networkidle");
+    await docLinks.nth(1).click();
     await expect(page).toHaveURL(/\/app\/library\/.+/);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
 
-    // Open combobox and search for the tag we created — cmdk needs search text to show filtered results
+    // Open combobox and search for the tag we created on doc 1.
     await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
-
-    // The tag should appear as an existing option (not "Create" since it already exists).
-    // Allow extra time for the Convex subscription to deliver the allUserTags data
-    // after the full-page navigation.
     await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
       timeout: 10000,
+    });
+    await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
+    await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
+      timeout: 5000,
     });
     await page.locator('[data-testid="tag-option-existing-tag-test"]').click();
     await expect(
