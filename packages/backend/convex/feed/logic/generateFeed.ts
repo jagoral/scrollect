@@ -22,7 +22,8 @@ import {
 } from "./connectionEnrichment";
 import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
-import type { FeedServiceContext } from "../services";
+import type { FeedServiceContext } from "../../providers/types";
+import type { TypeData } from "../../lib/validators";
 
 const SATURATION_THRESHOLD = 0.8;
 
@@ -40,7 +41,7 @@ export type FeedInputData = {
   allChunks: ChunkMetadata[];
   recentSources: PostSourceRecord[];
   recentPosts: { _id: string; postType: string }[];
-  recentHashes: Set<string>;
+  recentHashes: ReadonlySet<string>;
   sectionSummaries: SectionSummaryInfo[];
   userId: string;
   now: number;
@@ -51,7 +52,20 @@ export type ValidatedCard = {
   chunks: ChunkInfo[];
 };
 
-export type GenerateFeedMetrics = Record<string, unknown>;
+export type GenerateFeedMetrics = {
+  saturationRatio?: number;
+  saturationWarning?: boolean;
+  selectionMethod?: string;
+  selectedChunks?: number;
+  connectionPairsFound?: number;
+  connectionDiscoveryFailed?: boolean;
+  connectionDiscoveryError?: string;
+  hydratedChunks?: number;
+  finalCardCount?: number;
+  dedupSkipped?: number;
+  interleavedCount?: number;
+  [key: `attempt_${number}_${"total" | "valid" | "dropped"}`]: number;
+};
 
 export type GenerateFeedResult = {
   cards: ValidatedCard[];
@@ -299,7 +313,7 @@ Return a JSON object: { "cards": [ { type, content, sourceChunkIndices, ...type-
 Produce exactly ${cardCount} cards from the ${chunkCount} chunks provided. Ensure variety in types.`;
 }
 
-export function buildTypeData(card: RawCard) {
+export function buildTypeData(card: RawCard): TypeData {
   switch (card.type) {
     case "insight":
       return { type: "insight" as const };
@@ -333,5 +347,9 @@ export function buildTypeData(card: RawCard) {
         similarityScore: card.similarityScore ?? 0,
         connectionType: card.connectionType ?? ("cross_document" as const),
       };
+    default: {
+      const _exhaustive: never = card.type;
+      throw new Error(`Unknown card type: ${_exhaustive}`);
+    }
   }
 }

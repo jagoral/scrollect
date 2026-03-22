@@ -9,7 +9,7 @@ import type {
   VectorSearchResult,
   VectorStore,
 } from "../../../providers/types";
-import type { FeedServiceContext } from "../../services";
+import type { FeedServiceContext } from "../../../providers/types";
 
 const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 

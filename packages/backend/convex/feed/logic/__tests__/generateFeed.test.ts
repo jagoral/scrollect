@@ -237,6 +237,26 @@ describe("generateFeed", () => {
     expect(result.metrics.connectionDiscoveryFailed).toBe(true);
   });
 
+  test("returns empty cards when LLM produces nothing after all retries", async () => {
+    const services = createMockServices({
+      cardGenerator: createMockCardGenerator({
+        generateCards: async () => ({
+          cards: [],
+          usage: { inputTokens: 100, outputTokens: 0, totalTokens: 100 },
+        }),
+      }),
+      contentFetcher: createMapContentFetcher(contentMap),
+    });
+
+    const result = await generateFeed({
+      data: makeInputData(),
+      services,
+      cardCount: 3,
+    });
+
+    expect(result.cards).toHaveLength(0);
+  });
+
   test("throws when no chunks are available", async () => {
     const services = createMockServices();
 

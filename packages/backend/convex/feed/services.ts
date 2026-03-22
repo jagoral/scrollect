@@ -3,14 +3,7 @@
 import type { ActionCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import type {
-  AnalyticsService,
-  CardGenerationService,
-  ContentFetcher,
-  EmbeddingProvider,
-  SummaryVectorStore,
-  VectorStore,
-} from "../providers/types";
+import type { FeedServiceContext } from "../providers/types";
 import { AiSdkCardGenerator } from "../providers/cardGeneration";
 import { PostHogAnalyticsService } from "../providers/analyticsService";
 import {
@@ -18,15 +11,6 @@ import {
   createSummaryVectorStore,
   createVectorStore,
 } from "../pipeline/helpers";
-
-export type FeedServiceContext = {
-  cardGenerator: CardGenerationService;
-  embedder: EmbeddingProvider;
-  vectorStore: VectorStore;
-  summaryStore: SummaryVectorStore;
-  analytics: AnalyticsService;
-  contentFetcher: ContentFetcher;
-};
 
 export function createFeedServiceContext(ctx: ActionCtx): FeedServiceContext {
   const contentCache = new Map<string, string>();

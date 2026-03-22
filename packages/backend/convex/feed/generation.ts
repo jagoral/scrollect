@@ -83,20 +83,22 @@ export const generate = action({
       }
       postIds.reverse();
 
-      await services.analytics.captureAiUsage({
-        distinctId: user._id,
-        operation: "feed_generation",
-        usage: result.tokenUsage,
-        modelType: "llm",
-      });
-      await services.analytics.captureEvent({
-        distinctId: user._id,
-        event: "feed.cards_generated",
-        properties: {
-          card_count: postIds.length,
-          selection_method: result.selectionMethod,
-        },
-      });
+      await Promise.all([
+        services.analytics.captureAiUsage({
+          distinctId: user._id,
+          operation: "feed_generation",
+          usage: result.tokenUsage,
+          modelType: "llm",
+        }),
+        services.analytics.captureEvent({
+          distinctId: user._id,
+          event: "feed.cards_generated",
+          properties: {
+            card_count: postIds.length,
+            selection_method: result.selectionMethod,
+          },
+        }),
+      ]);
 
       return postIds;
     } catch (error) {
@@ -108,31 +110,23 @@ export const generate = action({
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- userId comes from auth, Convex queries expect Id type
-async function loadFeedData(ctx: ActionCtx, userId: any): Promise<FeedInputData> {
+async function loadFeedData(ctx: ActionCtx, userId: string): Promise<FeedInputData> {
   const documents = await ctx.runQuery(internal.feed.queries.listReadyDocuments, { userId });
   const now = Date.now();
 
   const metadataArrays = await Promise.all(
-    documents.map(async (doc: { _id: Id<"documents">; title: string }) => {
+    documents.map(async (doc) => {
       const chunks = await ctx.runQuery(internal.feed.queries.listChunkMetadataForDocument, {
         documentId: doc._id,
       });
-      return chunks.map(
-        (chunk: {
-          _id: Id<"chunks">;
-          sectionTitle?: string;
-          pageNumber?: number;
-          chunkIndex: number;
-        }) => ({
-          _id: chunk._id as string,
-          documentId: doc._id as string,
-          documentTitle: doc.title,
-          sectionTitle: chunk.sectionTitle,
-          pageNumber: chunk.pageNumber,
-          chunkIndex: chunk.chunkIndex,
-        }),
-      );
+      return chunks.map((chunk) => ({
+        _id: chunk._id as string,
+        documentId: doc._id as string,
+        documentTitle: doc.title,
+        sectionTitle: chunk.sectionTitle,
+        pageNumber: chunk.pageNumber,
+        chunkIndex: chunk.chunkIndex,
+      }));
     }),
   );
   const allChunks: ChunkMetadata[] = metadataArrays.flat();
@@ -151,25 +145,18 @@ async function loadFeedData(ctx: ActionCtx, userId: any): Promise<FeedInputData>
       sinceTs: now - THIRTY_DAYS_MS,
     }),
     ...documents
-      .filter((doc: { summary?: string }) => doc.summary)
-      .map(async (doc: { _id: Id<"documents"> }) => {
+      .filter((doc) => doc.summary)
+      .map(async (doc) => {
         const sections = await ctx.runQuery(internal.feed.queries.listSectionSummaries, {
           documentId: doc._id,
         });
-        return sections.map(
-          (s: {
-            sectionTitle: string;
-            summary: string;
-            chunkStartIndex: number;
-            chunkEndIndex: number;
-          }) => ({
-            documentId: doc._id as string,
-            sectionTitle: s.sectionTitle,
-            summary: s.summary,
-            chunkStartIndex: s.chunkStartIndex,
-            chunkEndIndex: s.chunkEndIndex,
-          }),
-        );
+        return sections.map((s) => ({
+          documentId: doc._id as string,
+          sectionTitle: s.sectionTitle,
+          summary: s.summary,
+          chunkStartIndex: s.chunkStartIndex,
+          chunkEndIndex: s.chunkEndIndex,
+        }));
       }),
   ]);
 
@@ -178,23 +165,14 @@ async function loadFeedData(ctx: ActionCtx, userId: any): Promise<FeedInputData>
   ).flat();
 
   return {
-    documents: documents.map(
-      (d: {
-        _id: Id<"documents">;
-        title: string;
-        createdAt: number;
-        summary?: string;
-        summaryEmbeddingId?: string;
-        learningGoal?: string;
-      }) => ({
-        _id: d._id as string,
-        title: d.title,
-        createdAt: d.createdAt,
-        summary: d.summary,
-        summaryEmbeddingId: d.summaryEmbeddingId,
-        learningGoal: d.learningGoal,
-      }),
-    ),
+    documents: documents.map((d) => ({
+      _id: d._id as string,
+      title: d.title,
+      createdAt: d.createdAt,
+      summary: d.summary,
+      summaryEmbeddingId: d.summaryEmbeddingId,
+      learningGoal: d.learningGoal,
+    })),
     allChunks,
     recentSources,
     recentPosts,

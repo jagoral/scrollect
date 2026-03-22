@@ -139,6 +139,15 @@ export interface VectorStore {
   delete(ids: string[]): Promise<void>;
 }
 
+export type FeedServiceContext = {
+  cardGenerator: CardGenerationService;
+  embedder: EmbeddingProvider;
+  vectorStore: VectorStore;
+  summaryStore: SummaryVectorStore;
+  analytics: AnalyticsService;
+  contentFetcher: ContentFetcher;
+};
+
 export interface SummaryVectorStore {
   /** Ensure the summary collection exists. Idempotent. */
   ensureCollection(): Promise<void>;
