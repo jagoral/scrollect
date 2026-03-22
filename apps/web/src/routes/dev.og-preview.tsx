@@ -1,3 +1,4 @@
+import "@fontsource/geist-sans/latin-800.css";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { OgImage } from "@/components/og-images";
