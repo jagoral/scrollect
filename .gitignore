@@ -44,6 +44,9 @@ lerna-debug.log*
 coverage
 .nyc_output
 
+# Lighthouse CI
+.lighthouseci
+
 # Misc
 *.tgz
 .cache

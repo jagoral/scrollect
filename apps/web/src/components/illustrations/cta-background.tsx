@@ -9,6 +9,7 @@ export function CtaBackground({ className }: { className?: string }) {
       width={1440}
       height={400}
       loading="lazy"
+      decoding="async"
       className={cn(className)}
     />
   );
