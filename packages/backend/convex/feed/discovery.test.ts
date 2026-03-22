@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { discoverConnections, DEFAULT_SIMILARITY_THRESHOLD } from "./discovery";
 import type { ChunkInfo } from "./sampling";

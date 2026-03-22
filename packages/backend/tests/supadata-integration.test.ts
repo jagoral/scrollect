@@ -1,11 +1,11 @@
 /**
  * Temporary integration test to verify Supadata API works as expected.
- * Run with: SUPADATA_API_KEY=<key> bun test tests/supadata-integration.test.ts
+ * Run with: SUPADATA_API_KEY=<key> npx vitest run tests/supadata-integration.test.ts
  *
  * This test makes real API calls and consumes credits. Remove after verification.
  */
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { Supadata } from "@supadata/js";
 

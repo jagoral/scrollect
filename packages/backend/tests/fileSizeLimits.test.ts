@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { FILE_SIZE_LIMITS, formatFileSize, getFileSizeLimit } from "../convex/lib/fileSizeLimits";
 

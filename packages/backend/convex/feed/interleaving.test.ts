@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { interleaveCards } from "./interleaving";
 import { MAX_CONSECUTIVE_SAME_TYPE } from "./constants";
