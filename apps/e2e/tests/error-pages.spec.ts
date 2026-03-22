@@ -18,7 +18,7 @@ test.describe("Error pages", () => {
   });
 
   test("unauthenticated access to protected route redirects to sign in", async ({ page }) => {
-    await page.goto("/library/nonexistent-document-id");
+    await page.goto("/app/library/nonexistent-document-id");
     await page.waitForURL(/\/signin/);
     await expect(page.getByText(/welcome back/i)).toBeVisible();
   });

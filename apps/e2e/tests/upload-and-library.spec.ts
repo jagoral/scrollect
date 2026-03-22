@@ -34,7 +34,7 @@ test.describe("Upload and Content Library flow", () => {
   });
 
   test("user can upload a Markdown file and sees success message", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -45,58 +45,58 @@ test.describe("Upload and Content Library flow", () => {
   });
 
   test("after upload, document appears in library with correct title", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
     // Navigate to library and find the document by its card link
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("a[href^='/library/']").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("a[href^='/app/library/']").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("clicking a document in library navigates to detail page", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
     // Go to library and click the first document link
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/library/']").first();
+    const docLink = page.locator("a[href^='/app/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();
 
     // Should be on detail page
-    await expect(page).toHaveURL(/\/library\/.+/);
+    await expect(page).toHaveURL(/\/app\/library\/.+/);
     await expect(page.getByText(/back to library/i)).toBeVisible();
   });
 
   test("document detail page shows title and status after processing", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
     // Navigate to library and click the document
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/library/']").first();
+    const docLink = page.locator("a[href^='/app/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();
-    await expect(page).toHaveURL(/\/library\/.+/);
+    await expect(page).toHaveURL(/\/app\/library\/.+/);
 
     // Wait for processing to complete — should show chunk count in metadata
     await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 90000 });
   });
 
   test("upload page rejects unsupported file types", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -123,7 +123,7 @@ test.describe("File upload size validation", { tag: "@fast" }, () => {
   });
 
   test("oversized markdown file shows error toast", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -141,7 +141,7 @@ test.describe("File upload size validation", { tag: "@fast" }, () => {
   });
 
   test("empty file shows error toast", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -157,7 +157,7 @@ test.describe("File upload size validation", { tag: "@fast" }, () => {
   });
 
   test("upload help text displays correct size limits", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -171,13 +171,13 @@ test.describe("File upload size validation", { tag: "@fast" }, () => {
 
 test.describe("Unauthenticated access", () => {
   test("unauthenticated user is redirected from /upload", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/signin/, { timeout: 15000 });
   });
 
   test("unauthenticated user is redirected from /library", async ({ page }) => {
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/signin/, { timeout: 15000 });
   });

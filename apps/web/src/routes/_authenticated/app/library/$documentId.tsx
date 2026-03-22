@@ -30,7 +30,8 @@ import { Button } from "@/components/ui/button";
 
 const PROCESSING_STATUSES = new Set(["parsing", "chunking", "embedding", "summarizing"]);
 
-export const Route = createFileRoute("/_authenticated/library/$documentId")({
+export const Route = createFileRoute("/_authenticated/app/library/$documentId")({
+  ssr: false,
   loader: async ({ params: { documentId }, context }) => {
     const data = await context.queryClient.ensureQueryData(
       convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
@@ -71,7 +72,7 @@ function DocumentDetailPage() {
       posthog.capture("document.deleted", { file_type: document.fileType });
       setDeleteDialogOpen(false);
       toast.success("Document deleted");
-      await navigate({ to: "/library" });
+      await navigate({ to: "/app/library" });
     } catch (error) {
       posthog.captureException(error);
       toast.error("Failed to delete document");
@@ -82,7 +83,7 @@ function DocumentDetailPage() {
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
       <Link
-        to="/library"
+        to="/app/library"
         className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />

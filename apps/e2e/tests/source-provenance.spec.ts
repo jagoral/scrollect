@@ -26,10 +26,10 @@ test.describe("Source provenance on feed cards", () => {
     await expect(sourceBadge).toBeVisible({ timeout: 10000 });
 
     const href = await sourceBadge.getAttribute("href");
-    expect(href).toMatch(/\/library\/.+/);
+    expect(href).toMatch(/\/app\/library\/.+/);
 
     await sourceBadge.click();
-    await expect(page).toHaveURL(/\/library\/.+/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/app\/library\/.+/, { timeout: 15000 });
     await expect(page.getByText(/back to library/i)).toBeVisible();
     await expect(page.locator("h1").getByText("E2E Seed Document")).toBeVisible({ timeout: 10000 });
   });

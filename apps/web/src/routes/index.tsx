@@ -8,7 +8,7 @@ import { HowItWorksSection } from "@/components/landing/how-it-works-section";
 export const Route = createFileRoute("/")({
   beforeLoad: async ({ context }) => {
     if (context.initialToken) {
-      throw redirect({ to: "/library" });
+      throw redirect({ to: "/app/library" });
     }
   },
   head: () => ({
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/")({
           "AI turns your saved content into a curated learning feed. Upload PDFs, articles, and markdown - get bite-sized learning cards you'll actually remember.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://scrollect.app/" }],
   }),
   component: HomePage,
 });

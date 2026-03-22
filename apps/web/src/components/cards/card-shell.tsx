@@ -57,7 +57,7 @@ export function SourceBadge({ post, className }: { post: PostCardData; className
   return (
     <div className={cn("mb-3", className)}>
       <Link
-        to="/library/$documentId"
+        to="/app/library/$documentId"
         params={{ documentId: post.primarySourceDocumentId }}
         data-testid="source-badge"
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"

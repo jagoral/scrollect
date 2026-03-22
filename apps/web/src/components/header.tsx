@@ -10,10 +10,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui
 import UserMenu from "./user-menu";
 
 const navLinks = [
-  { to: "/feed" as const, label: "Feed", icon: Rss },
-  { to: "/saved" as const, label: "Saved", icon: Bookmark },
-  { to: "/library" as const, label: "Library", icon: BookOpen },
-  { to: "/upload" as const, label: "Upload", icon: Upload },
+  { to: "/app/feed" as const, label: "Feed", icon: Rss },
+  { to: "/app/saved" as const, label: "Saved", icon: Bookmark },
+  { to: "/app/library" as const, label: "Library", icon: BookOpen },
+  { to: "/app/upload" as const, label: "Upload", icon: Upload },
 ];
 
 export default function Header() {

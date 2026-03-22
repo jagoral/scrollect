@@ -7,7 +7,8 @@ import { PostCard } from "@/components/post-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
-export const Route = createFileRoute("/_authenticated/saved")({
+export const Route = createFileRoute("/_authenticated/app/saved")({
+  ssr: false,
   head: () => ({
     meta: [{ title: "Saved | Scrollect" }],
   }),

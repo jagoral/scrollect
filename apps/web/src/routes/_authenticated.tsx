@@ -4,6 +4,9 @@ import { Loader2 } from "lucide-react";
 import { usePostHogIdentify } from "@/hooks/use-posthog-identify";
 
 export const Route = createFileRoute("/_authenticated")({
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  }),
   beforeLoad: async ({ context }) => {
     if (!context.initialToken) {
       throw redirect({ to: "/signin" });

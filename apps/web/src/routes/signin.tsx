@@ -7,10 +7,11 @@ import SignUpForm from "@/components/sign-up-form";
 export const Route = createFileRoute("/signin")({
   head: () => ({
     meta: [{ title: "Sign In | Scrollect" }],
+    links: [{ rel: "canonical", href: "https://scrollect.app/signin" }],
   }),
   beforeLoad: async ({ context }) => {
     if (context.initialToken) {
-      throw redirect({ to: "/library" });
+      throw redirect({ to: "/app/library" });
     }
   },
   component: SignInPage,

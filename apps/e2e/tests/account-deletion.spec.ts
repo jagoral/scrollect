@@ -17,7 +17,7 @@ test.describe("Account deletion", () => {
   });
 
   test("user can delete their account via settings page", async ({ page }) => {
-    await page.goto("/settings");
+    await page.goto("/app/settings");
     await page.waitForLoadState("networkidle");
 
     await expect(page.getByRole("heading", { name: /settings/i })).toBeVisible();
@@ -42,11 +42,11 @@ test.describe("Account deletion", () => {
     await expect(confirmButton).toContainText("Deleting", { timeout: 5000 });
 
     // After deletion, the page navigates away from settings
-    await page.waitForURL((url) => !url.pathname.includes("/settings"), { timeout: 60000 });
+    await page.waitForURL((url) => !url.pathname.includes("/app/settings"), { timeout: 60000 });
   });
 
   test("cancel button closes the dialog without deleting", async ({ page }) => {
-    await page.goto("/settings");
+    await page.goto("/app/settings");
     await page.waitForLoadState("networkidle");
 
     await page.getByTestId("delete-account-button").click();
@@ -61,7 +61,7 @@ test.describe("Account deletion", () => {
   });
 
   test("confirmation input resets when dialog is reopened", async ({ page }) => {
-    await page.goto("/settings");
+    await page.goto("/app/settings");
     await page.waitForLoadState("networkidle");
 
     await page.getByTestId("delete-account-button").click();

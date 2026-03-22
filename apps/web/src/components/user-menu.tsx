@@ -40,7 +40,7 @@ export default function UserMenu() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem render={<Link to="/settings" />}>
+          <DropdownMenuItem render={<Link to="/app/settings" />}>
             <Settings />
             Settings
           </DropdownMenuItem>

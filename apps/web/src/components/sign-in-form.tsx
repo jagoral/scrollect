@@ -29,7 +29,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         {
           onSuccess: () => {
             posthog.capture("user.signed_in");
-            navigate({ to: "/library" });
+            navigate({ to: "/app/library" });
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);

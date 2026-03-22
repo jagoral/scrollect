@@ -94,7 +94,7 @@ export function UploadFileTab() {
         toast.success(
           <span>
             Uploaded <strong>{file.name}</strong>.{" "}
-            <Link to="/library" className="underline">
+            <Link to="/app/library" className="underline">
               View in library
             </Link>
           </span>,
