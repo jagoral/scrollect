@@ -34,11 +34,6 @@ export default defineConfig({
     }),
     tanstackStart({
       srcDirectory: "src",
-      prerender: {
-        enabled: true,
-        crawlLinks: true,
-        filter: ({ path }) => !path.startsWith("/app") && !path.startsWith("/dev"),
-      },
     }),
     viteReact({
       babel: {
