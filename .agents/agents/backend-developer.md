@@ -37,6 +37,26 @@ Use the `backend-development` skill for project-specific patterns, and Convex sk
 - Functions must not have more than 3 parameters — use object params.
 - Place public API at the top of the file.
 
+## Service Layer & Testability (ADR-012)
+
+Complex Convex actions follow the **controller-orchestration-service** pattern:
+
+1. **Controller** (Convex action): auth, rate limiting, data loading, persistence, analytics. Thin - ~50 lines.
+2. **Orchestration** (pure function): business logic with zero Convex `ctx` dependency. Receives `FeedServiceContext` + `FeedInputData`.
+3. **Services** (injected interfaces): `CardGenerationService`, `EmbeddingProvider`, `VectorStore`, `SummaryVectorStore`, `AnalyticsService`, `ContentFetcher`.
+
+Key patterns:
+- Use `FeedServiceContext` from `feed/services.ts` for dependency injection. Production factory: `createFeedServiceContext(ctx)`.
+- Data loading functions (e.g., `loadFeedData`) return plain data objects - no `ctx` leaks into business logic.
+- Lazy content fetching wraps `ctx.runQuery` behind the `ContentFetcher` interface.
+- Each phase function returns `{ result, metrics }` - business logic stays logging-unaware, controller aggregates metrics into `WideEvent`.
+- `buildTypeData` in `generateFeed.ts` maps `RawCard` to Convex `TypeData` validators.
+- Provider interfaces live in `providers/types.ts`. Production implementations in `providers/cardGeneration.ts`, `providers/analyticsService.ts`.
+- Shared mock factories in `feed/__tests__/mocks.ts` - use `createMockServices({ overrides })` for tests.
+- Tests use vitest (not bun:test). Config at `packages/backend/vitest.config.ts`.
+
+When creating new complex actions, follow this pattern instead of putting all logic in the handler.
+
 ## Pipeline Pattern
 
 Document processing uses scheduler-based resilience:
