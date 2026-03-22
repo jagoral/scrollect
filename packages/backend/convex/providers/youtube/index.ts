@@ -1,15 +1,11 @@
-import { Supadata, type TranscriptChunk } from "@supadata/js";
+import { Supadata, SupadataError, type TranscriptChunk } from "@supadata/js";
 
 import type { ContentExtractor, ExtractResult } from "../types";
 
-import {
-  type TranscriptSegment,
-  extractYouTubeVideoId,
-  formatTimestampMs,
-  normalizeTranscriptText,
-} from "./utils";
+import { type TranscriptSegment, extractYouTubeVideoId, formatTimestampMs } from "./utils";
 
-const POLL_INTERVAL_MS = 1_000;
+const INITIAL_POLL_DELAY_MS = 1_000;
+const MAX_POLL_DELAY_MS = 30_000;
 const MAX_POLL_DURATION_MS = 300_000;
 
 export class YouTubeTranscriptExtractor implements ContentExtractor {
@@ -31,6 +27,12 @@ export class YouTubeTranscriptExtractor implements ContentExtractor {
     ]);
 
     const segments = this.mapToSegments(transcript);
+    if (segments.length === 0) {
+      throw new Error(
+        `No transcript segments found for video: ${videoId}. The video may not have captions.`,
+      );
+    }
+
     const markdown = this.transcriptToMarkdown(segments, title);
 
     return {
@@ -41,25 +43,35 @@ export class YouTubeTranscriptExtractor implements ContentExtractor {
   }
 
   private async fetchTranscript(url: string): Promise<TranscriptChunk[]> {
-    const result = await this.client.transcript({ url, text: false, lang: "en" });
+    try {
+      const result = await this.client.transcript({ url, text: false, lang: "en" });
 
-    // Videos >20 min return async jobId - poll until complete
-    if ("jobId" in result) {
-      return this.pollForTranscript(result.jobId);
+      // Videos >20 min return async jobId - poll until complete
+      if ("jobId" in result) {
+        return this.pollForTranscript(result.jobId);
+      }
+
+      if (!Array.isArray(result.content)) {
+        throw new Error("Expected timestamped transcript chunks but received plain text");
+      }
+
+      return result.content;
+    } catch (error) {
+      if (error instanceof SupadataError) {
+        throw new Error(`Supadata ${error.error}: ${error.message} (${error.details})`);
+      }
+      throw error;
     }
-
-    if (!Array.isArray(result.content)) {
-      throw new Error("Expected timestamped transcript chunks but received plain text");
-    }
-
-    return result.content;
   }
 
   private async pollForTranscript(jobId: string): Promise<TranscriptChunk[]> {
     const startMs = Date.now();
+    let attempt = 0;
 
     while (Date.now() - startMs < MAX_POLL_DURATION_MS) {
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      const delay = Math.min(INITIAL_POLL_DELAY_MS * Math.pow(2, attempt), MAX_POLL_DELAY_MS);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      attempt++;
 
       const job = await this.client.transcript.getJobStatus(jobId);
 
@@ -81,6 +93,8 @@ export class YouTubeTranscriptExtractor implements ContentExtractor {
     );
   }
 
+  // Uses YouTube oEmbed (free, no API key) instead of Supadata metadata API
+  // to avoid consuming Supadata credits for title-only fetches.
   private async fetchVideoTitle(url: string): Promise<string | undefined> {
     try {
       const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
@@ -110,17 +124,13 @@ export class YouTubeTranscriptExtractor implements ContentExtractor {
       lines.push(`# ${title}`, "");
     }
 
-    if (segments.length > 0) {
-      let lastHeaderMs = -Infinity;
-      for (const segment of segments) {
-        if (segment.startMs - lastHeaderMs >= 60_000) {
-          lines.push("", `## [${formatTimestampMs(segment.startMs)}]`, "");
-          lastHeaderMs = segment.startMs;
-        }
-        lines.push(segment.text);
+    let lastHeaderMs = -Infinity;
+    for (const segment of segments) {
+      if (segment.startMs - lastHeaderMs >= 60_000) {
+        lines.push("", `## [${formatTimestampMs(segment.startMs)}]`, "");
+        lastHeaderMs = segment.startMs;
       }
-    } else {
-      lines.push(normalizeTranscriptText("No transcript content available."));
+      lines.push(segment.text);
     }
 
     return lines.join("\n").trim();
