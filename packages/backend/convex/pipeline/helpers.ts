@@ -67,8 +67,9 @@ export function createArticleExtractor(): ContentExtractor {
 
 export function createYouTubeExtractor(): ContentExtractor {
   if (process.env.USE_STUB_EXTRACTORS === "true") return new StubYouTubeExtractor();
-  const apifyApiToken = process.env.APIFY_API_TOKEN ?? undefined;
-  return new YouTubeTranscriptExtractor({ apifyApiToken });
+  const apiKey = process.env.SUPADATA_API_KEY;
+  if (!apiKey) throw new Error("SUPADATA_API_KEY environment variable is not set");
+  return new YouTubeTranscriptExtractor({ apiKey });
 }
 
 /** Convert a Convex document ID to a deterministic UUID for Qdrant. */

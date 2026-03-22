@@ -1,34 +1,18 @@
-/**
- * YouTubeTranscriptExtractor — 3-level HTTP-only fallback chain.
- *
- * Ported from @steipete/summarize-core by Peter Steinberger.
- * Original: https://github.com/steipete/summarize/tree/main/packages/core/src/content/transcript/providers/youtube/
- * License: MIT — https://github.com/steipete/summarize/blob/main/LICENSE
- */
+import { Supadata, SupadataError, type TranscriptChunk } from "@supadata/js";
 
 import type { ContentExtractor, ExtractResult } from "../types";
 
-import { extractYoutubeiTranscriptConfig, fetchTranscriptFromTranscriptEndpoint } from "./api";
-import { fetchTranscriptWithApify } from "./apify";
-import { fetchTranscriptFromCaptionTracks } from "./captions";
-import {
-  type TranscriptSegment,
-  extractYouTubeVideoId,
-  formatTimestampMs,
-  normalizeTranscriptText,
-} from "./utils";
+import { type TranscriptSegment, extractYouTubeVideoId, formatTimestampMs } from "./utils";
 
-const WATCH_PAGE_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
-  Accept: "text/html,application/xhtml+xml",
-};
+const INITIAL_POLL_DELAY_MS = 1_000;
+const MAX_POLL_DELAY_MS = 30_000;
+const MAX_POLL_DURATION_MS = 300_000;
 
 export class YouTubeTranscriptExtractor implements ContentExtractor {
-  private apifyApiToken: string | null;
+  private client: Supadata;
 
-  constructor(options?: { apifyApiToken?: string }) {
-    this.apifyApiToken = options?.apifyApiToken ?? null;
+  constructor(options: { apiKey: string }) {
+    this.client = new Supadata({ apiKey: options.apiKey });
   }
 
   async extract(url: string): Promise<ExtractResult> {
@@ -37,120 +21,116 @@ export class YouTubeTranscriptExtractor implements ContentExtractor {
       throw new Error(`Could not extract video ID from URL: ${url}`);
     }
 
-    // Fetch the YouTube watch page HTML
-    const htmlText = await this.fetchWatchPageHtml(url);
-    if (!htmlText) {
-      throw new Error("Failed to fetch YouTube watch page");
+    const [transcript, title] = await Promise.all([
+      this.fetchTranscript(url),
+      this.fetchVideoTitle(url),
+    ]);
+
+    const segments = this.mapToSegments(transcript);
+    if (segments.length === 0) {
+      throw new Error(
+        `No transcript segments found for video: ${videoId}. The video may not have captions.`,
+      );
     }
 
-    // Extract video title from HTML
-    const title = this.extractTitle(htmlText);
+    const markdown = this.transcriptToMarkdown(segments, title);
 
-    // Level 1: YouTubei transcript endpoint
-    const config = extractYoutubeiTranscriptConfig(htmlText);
-    if (config) {
-      const result = await fetchTranscriptFromTranscriptEndpoint(config, url);
-      if (result?.text) {
-        const markdown = this.transcriptToMarkdown(result.text, result.segments, title);
-        return {
-          markdown,
-          title,
-          metadata: { provider: "youtubei", videoId, segments: result.segments },
-        };
+    return {
+      markdown,
+      title,
+      metadata: { provider: "supadata", videoId, segments },
+    };
+  }
+
+  private async fetchTranscript(url: string): Promise<TranscriptChunk[]> {
+    try {
+      const result = await this.client.transcript({ url, text: false, lang: "en" });
+
+      // Videos >20 min return async jobId - poll until complete
+      if ("jobId" in result) {
+        return this.pollForTranscript(result.jobId);
       }
-    }
 
-    // Level 2: Caption tracks (player API + Android fallback)
-    const captionResult = await fetchTranscriptFromCaptionTracks({
-      html: htmlText,
-      originalUrl: url,
-      videoId,
-    });
-    if (captionResult?.text) {
-      const markdown = this.transcriptToMarkdown(captionResult.text, captionResult.segments, title);
-      return {
-        markdown,
-        title,
-        metadata: { provider: "captionTracks", videoId, segments: captionResult.segments },
-      };
-    }
+      if (!Array.isArray(result.content)) {
+        throw new Error("Expected timestamped transcript chunks but received plain text");
+      }
 
-    // Level 3: Apify (optional, requires token)
-    if (this.apifyApiToken) {
-      const apifyText = await fetchTranscriptWithApify(this.apifyApiToken, url);
-      if (apifyText) {
-        const markdown = this.transcriptToMarkdown(apifyText, null, title);
-        return {
-          markdown,
-          title,
-          metadata: { provider: "apify", videoId },
-        };
+      return result.content;
+    } catch (error) {
+      if (error instanceof SupadataError) {
+        throw new Error(`Supadata ${error.error}: ${error.message} (${error.details})`);
+      }
+      throw error;
+    }
+  }
+
+  private async pollForTranscript(jobId: string): Promise<TranscriptChunk[]> {
+    const startMs = Date.now();
+    let attempt = 0;
+
+    while (Date.now() - startMs < MAX_POLL_DURATION_MS) {
+      const delay = Math.min(INITIAL_POLL_DELAY_MS * Math.pow(2, attempt), MAX_POLL_DELAY_MS);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      attempt++;
+
+      const job = await this.client.transcript.getJobStatus(jobId);
+
+      if (job.status === "completed" && job.result) {
+        if (!Array.isArray(job.result.content)) {
+          throw new Error("Expected timestamped transcript chunks but received plain text");
+        }
+        return job.result.content;
+      }
+
+      if (job.status === "failed") {
+        const message = job.error?.message ?? "Transcript job failed";
+        throw new Error(`Supadata transcript job failed: ${message}`);
       }
     }
 
     throw new Error(
-      "No transcript available for this video. The video may not have captions, or it may be private/age-restricted.",
+      `Supadata transcript job ${jobId} timed out after ${MAX_POLL_DURATION_MS / 1000}s`,
     );
   }
 
-  private async fetchWatchPageHtml(url: string): Promise<string | null> {
+  // Uses YouTube oEmbed (free, no API key) instead of Supadata metadata API
+  // to avoid consuming Supadata credits for title-only fetches.
+  private async fetchVideoTitle(url: string): Promise<string | undefined> {
     try {
-      const response = await fetch(url, { headers: WATCH_PAGE_HEADERS });
-      if (!response.ok) return null;
-      return await response.text();
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      const response = await fetch(oembedUrl);
+      if (!response.ok) return undefined;
+      const data = (await response.json()) as { title?: string };
+      return data.title || undefined;
     } catch {
-      return null;
+      return undefined;
     }
   }
 
-  private extractTitle(html: string): string | undefined {
-    // Try og:title meta tag
-    const ogMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/);
-    if (ogMatch?.[1]) return this.decodeHtml(ogMatch[1]);
-
-    // Try <title> tag
-    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-    if (titleMatch?.[1]) {
-      const raw = titleMatch[1].replace(/ - YouTube$/, "").trim();
-      if (raw) return this.decodeHtml(raw);
-    }
-
-    return undefined;
+  private mapToSegments(chunks: TranscriptChunk[]): TranscriptSegment[] {
+    return chunks
+      .filter((chunk) => chunk.text.trim().length > 0)
+      .map((chunk) => ({
+        startMs: chunk.offset,
+        endMs: chunk.offset + chunk.duration,
+        text: chunk.text.replace(/\s+/g, " ").trim(),
+      }));
   }
 
-  private decodeHtml(input: string): string {
-    return input
-      .replaceAll("&amp;", "&")
-      .replaceAll("&lt;", "<")
-      .replaceAll("&gt;", ">")
-      .replaceAll("&quot;", '"')
-      .replaceAll("&#39;", "'");
-  }
-
-  private transcriptToMarkdown(
-    text: string,
-    segments: TranscriptSegment[] | null,
-    title?: string,
-  ): string {
-    const normalized = normalizeTranscriptText(text);
+  private transcriptToMarkdown(segments: TranscriptSegment[], title?: string): string {
     const lines: string[] = [];
 
     if (title) {
       lines.push(`# ${title}`, "");
     }
 
-    if (segments && segments.length > 0) {
-      // Format with timestamp section headers every ~60 seconds
-      let lastHeaderMs = -Infinity;
-      for (const segment of segments) {
-        if (segment.startMs - lastHeaderMs >= 60_000) {
-          lines.push("", `## [${formatTimestampMs(segment.startMs)}]`, "");
-          lastHeaderMs = segment.startMs;
-        }
-        lines.push(segment.text.replace(/\s+/g, " ").trim());
+    let lastHeaderMs = -Infinity;
+    for (const segment of segments) {
+      if (segment.startMs - lastHeaderMs >= 60_000) {
+        lines.push("", `## [${formatTimestampMs(segment.startMs)}]`, "");
+        lastHeaderMs = segment.startMs;
       }
-    } else {
-      lines.push(normalized);
+      lines.push(segment.text);
     }
 
     return lines.join("\n").trim();
