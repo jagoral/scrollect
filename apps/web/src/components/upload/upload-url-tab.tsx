@@ -62,7 +62,7 @@ export function UploadUrlTab() {
         toast.success(
           <span>
             Submitted for processing.{" "}
-            <Link to="/library" className="underline">
+            <Link to="/app/library" className="underline">
               View in library
             </Link>
           </span>,

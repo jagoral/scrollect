@@ -126,13 +126,13 @@ test.describe("Connection card rendering (seeded)", () => {
     const linkA = sheet.locator('[data-testid="connection-source-a-link"]');
     await expect(linkA).toBeVisible({ timeout: 10000 });
     const hrefA = await linkA.getAttribute("href");
-    expect(hrefA).toMatch(/\/library\/.+/);
+    expect(hrefA).toMatch(/\/app\/library\/.+/);
 
     // Source B link
     const linkB = sheet.locator('[data-testid="connection-source-b-link"]');
     await expect(linkB).toBeVisible({ timeout: 10000 });
     const hrefB = await linkB.getAttribute("href");
-    expect(hrefB).toMatch(/\/library\/.+/);
+    expect(hrefB).toMatch(/\/app\/library\/.+/);
   });
 
   test("connection card expand button also shows source chunks", async ({ page }) => {

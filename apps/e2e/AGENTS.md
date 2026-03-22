@@ -35,7 +35,7 @@ test.afterEach(async () => {
 
 test("my interaction test", async ({ page }) => {
   await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-  await page.goto("/feed?noAutoGenerate"); // prevents auto-generation
+  await page.goto("/app/feed?noAutoGenerate"); // prevents auto-generation
   // ... test interactions
 });
 ```

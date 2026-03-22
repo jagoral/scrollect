@@ -79,7 +79,7 @@ export function UploadTextTab() {
         toast.success(
           <span>
             Added <strong>{trimmedTitle}</strong>.{" "}
-            <Link to="/library" className="underline">
+            <Link to="/app/library" className="underline">
               View in library
             </Link>
           </span>,

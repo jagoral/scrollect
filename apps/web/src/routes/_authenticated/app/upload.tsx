@@ -6,7 +6,8 @@ import { UploadUrlTab } from "@/components/upload/upload-url-tab";
 import { UploadTextTab } from "@/components/upload/upload-text-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const Route = createFileRoute("/_authenticated/upload")({
+export const Route = createFileRoute("/_authenticated/app/upload")({
+  ssr: false,
   head: () => ({
     meta: [{ title: "Upload | Scrollect" }],
   }),

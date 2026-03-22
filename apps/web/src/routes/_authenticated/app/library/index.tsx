@@ -19,7 +19,8 @@ type LibrarySearch = {
   tags?: string[];
 };
 
-export const Route = createFileRoute("/_authenticated/library/")({
+export const Route = createFileRoute("/_authenticated/app/library/")({
+  ssr: false,
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(convexQuery(api.tags.listUserTags, {}));
   },
@@ -111,7 +112,7 @@ function LibraryPage() {
           </p>
         </div>
         {hasDocuments && (
-          <Button size="sm" variant="outline" render={<Link to="/upload" />}>
+          <Button size="sm" variant="outline" render={<Link to="/app/upload" />}>
             <Upload className="size-4" />
             Upload
           </Button>
@@ -136,7 +137,7 @@ function LibraryPage() {
               Upload your first file to get started.
             </p>
           </div>
-          <Button render={<Link to="/upload" />}>
+          <Button render={<Link to="/app/upload" />}>
             <Upload className="size-4" />
             Upload your first file
           </Button>
@@ -159,7 +160,7 @@ function LibraryPage() {
               return (
                 <Link
                   key={doc._id}
-                  to="/library/$documentId"
+                  to="/app/library/$documentId"
                   params={{ documentId: doc._id }}
                   className="block"
                 >

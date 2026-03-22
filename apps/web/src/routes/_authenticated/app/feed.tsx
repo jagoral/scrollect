@@ -21,7 +21,8 @@ type FeedSearch = {
   noAutoGenerate?: boolean;
 };
 
-export const Route = createFileRoute("/_authenticated/feed")({
+export const Route = createFileRoute("/_authenticated/app/feed")({
+  ssr: false,
   head: () => ({
     meta: [{ title: "Feed | Scrollect" }],
   }),

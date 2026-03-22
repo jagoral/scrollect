@@ -44,12 +44,12 @@ test.describe("Feed interactions and pagination", () => {
     // Navigate to /saved via client-side navigation to keep the Convex WebSocket
     // alive — a full page.goto() can kill the connection before the mutation flushes.
     await page.getByRole("navigation").getByRole("button", { name: /saved/i }).click();
-    await page.waitForURL(/\/saved/);
+    await page.waitForURL(/\/app\/saved/);
     await expect(page.getByRole("heading", { name: /saved/i })).toBeVisible();
     await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible({ timeout: 30000 });
 
     // Back to /feed → scroll to bottom → verify "all caught up"
-    await page.goto("/feed?noAutoGenerate");
+    await page.goto("/app/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
     await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
 

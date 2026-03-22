@@ -31,7 +31,7 @@ test.describe(
     test("upload page renders three tabs with Upload File selected by default", async ({
       page,
     }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -48,7 +48,7 @@ test.describe(
     });
 
     test("switching tabs shows the correct content panel", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -112,7 +112,7 @@ test.describe(
       },
       async ({ page }) => {
         await test.step("submit article URL", async () => {
-          await page.goto("/upload");
+          await page.goto("/app/upload");
           await page.waitForLoadState("networkidle");
           await page.getByRole("tab", { name: /paste url/i }).click();
           await page.locator('[data-testid="url-input"]').fill("https://example.com/article");
@@ -124,9 +124,9 @@ test.describe(
         });
 
         await test.step("verify document appears in library", async () => {
-          await page.goto("/library");
+          await page.goto("/app/library");
           await page.waitForLoadState("networkidle");
-          await expect(page.locator("a[href^='/library/']").first()).toBeVisible({
+          await expect(page.locator("a[href^='/app/library/']").first()).toBeVisible({
             timeout: 10000,
           });
         });
@@ -140,7 +140,7 @@ test.describe(
       },
       async ({ page }) => {
         await test.step("submit YouTube URL", async () => {
-          await page.goto("/upload");
+          await page.goto("/app/upload");
           await page.waitForLoadState("networkidle");
           await page.getByRole("tab", { name: /paste url/i }).click();
           await page
@@ -156,9 +156,9 @@ test.describe(
         });
 
         await test.step("verify document appears in library", async () => {
-          await page.goto("/library");
+          await page.goto("/app/library");
           await page.waitForLoadState("networkidle");
-          await expect(page.locator("a[href^='/library/']").first()).toBeVisible({
+          await expect(page.locator("a[href^='/app/library/']").first()).toBeVisible({
             timeout: 10000,
           });
         });
@@ -194,7 +194,7 @@ test.describe(
 
     for (const url of youtubeUrls) {
       test(`YouTube URL format detected with badge: ${url}`, async ({ page }) => {
-        await page.goto("/upload");
+        await page.goto("/app/upload");
         await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
@@ -242,7 +242,7 @@ test.describe(
         annotation: { type: "criteria", description: "P0-7" },
       },
       async ({ page }) => {
-        await page.goto("/upload");
+        await page.goto("/app/upload");
         await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
@@ -256,7 +256,7 @@ test.describe(
         annotation: { type: "criteria", description: "P0-7" },
       },
       async ({ page }) => {
-        await page.goto("/upload");
+        await page.goto("/app/upload");
         await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
@@ -274,7 +274,7 @@ test.describe(
         annotation: { type: "criteria", description: "P0-7" },
       },
       async ({ page }) => {
-        await page.goto("/upload");
+        await page.goto("/app/upload");
         await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
@@ -301,7 +301,7 @@ test.describe(
         ],
       },
       async ({ page }) => {
-        await page.goto("/upload");
+        await page.goto("/app/upload");
         await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
 
@@ -343,7 +343,7 @@ test.describe(
 
     test("submitting title and text body creates a document in the library", async ({ page }) => {
       await test.step("fill in title and text content", async () => {
-        await page.goto("/upload");
+        await page.goto("/app/upload");
         await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste text/i }).click();
         await page.getByLabel(/title/i).fill("My Test Notes");
@@ -361,7 +361,7 @@ test.describe(
       });
 
       await test.step("verify document appears in library", async () => {
-        await page.goto("/library");
+        await page.goto("/app/library");
         await page.waitForLoadState("networkidle");
         await expect(page.getByText("My Test Notes")).toBeVisible({ timeout: 10000 });
       });
@@ -388,7 +388,7 @@ test.describe(
     });
 
     test("Add to Library button is disabled when title is empty", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
@@ -398,7 +398,7 @@ test.describe(
     });
 
     test("Add to Library button is disabled when text body is empty", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
@@ -410,7 +410,7 @@ test.describe(
     test("inline validation shows 'Title is required' on blur when title is empty", async ({
       page,
     }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
@@ -447,7 +447,7 @@ test.describe(
     });
 
     test("file upload still works on the Upload File tab after tab refactor", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
 
       await expect(page.getByRole("tab", { name: /upload file/i })).toHaveAttribute(
@@ -463,7 +463,7 @@ test.describe(
     });
 
     test("file upload rejects unsupported file types on Upload File tab", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
 
       await page.locator('[data-testid="file-input"]').setInputFiles({
@@ -501,7 +501,7 @@ test.describe(
     });
 
     test("URL tab shows spinner and disables input during processing", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste url/i }).click();
 
@@ -516,7 +516,7 @@ test.describe(
     });
 
     test("Text tab shows spinner and disables fields during processing", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
@@ -562,7 +562,7 @@ test.describe(
     });
 
     test("URL tab success toast contains library link", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste url/i }).click();
 
@@ -577,7 +577,7 @@ test.describe(
     });
 
     test("Text tab success toast contains entered title and library link", async ({ page }) => {
-      await page.goto("/upload");
+      await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /paste text/i }).click();
 
@@ -619,7 +619,7 @@ test.describe(
       page,
     }) => {
       await test.step("create a URL-based document", async () => {
-        await page.goto("/upload");
+        await page.goto("/app/upload");
         await page.waitForLoadState("networkidle");
         await page.getByRole("tab", { name: /paste url/i }).click();
         await page.locator('[data-testid="url-input"]').fill("https://example.com/article");
@@ -628,15 +628,15 @@ test.describe(
       });
 
       await test.step("verify document renders in library", async () => {
-        await page.goto("/library");
+        await page.goto("/app/library");
         await page.waitForLoadState("networkidle");
-        const docLink = page.locator("a[href^='/library/']").first();
+        const docLink = page.locator("a[href^='/app/library/']").first();
         await expect(docLink).toBeVisible({ timeout: 10000 });
         await docLink.click();
       });
 
       await test.step("verify detail page renders without errors", async () => {
-        await expect(page).toHaveURL(/\/library\/.+/);
+        await expect(page).toHaveURL(/\/app\/library\/.+/);
         await expect(page.getByText(/back to library/i)).toBeVisible();
         await expect(page.locator("text=Something went wrong")).not.toBeVisible();
         await expect(page.locator("text=undefined")).not.toBeVisible();

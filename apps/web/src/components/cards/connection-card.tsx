@@ -112,7 +112,7 @@ function SourcePanel({ source, side, isLoading }: SourcePanelProps) {
         <FileText className="size-3 shrink-0 text-violet-500/50" />
         {documentId ? (
           <Link
-            to="/library/$documentId"
+            to="/app/library/$documentId"
             params={{ documentId }}
             data-testid={`connection-source-${side}-link`}
             className="truncate text-xs font-medium text-foreground/80 transition-colors hover:text-violet-600 dark:hover:text-violet-400"
@@ -163,7 +163,7 @@ function ConnectionProvenance({ sourceA, sourceB, isWithinDocument }: Connection
           Sections in:{" "}
           {sourceA.documentId ? (
             <Link
-              to="/library/$documentId"
+              to="/app/library/$documentId"
               params={{ documentId: sourceA.documentId }}
               className="underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
             >
@@ -187,7 +187,7 @@ function ConnectionProvenance({ sourceA, sourceB, isWithinDocument }: Connection
         Connecting:{" "}
         {sourceA.documentId ? (
           <Link
-            to="/library/$documentId"
+            to="/app/library/$documentId"
             params={{ documentId: sourceA.documentId }}
             className="underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
             aria-label={`Source: ${sourceA.titleHint}`}
@@ -200,7 +200,7 @@ function ConnectionProvenance({ sourceA, sourceB, isWithinDocument }: Connection
         {" + "}
         {sourceB.documentId ? (
           <Link
-            to="/library/$documentId"
+            to="/app/library/$documentId"
             params={{ documentId: sourceB.documentId }}
             className="underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
             aria-label={`Source: ${sourceB.titleHint}`}

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /ingest/
+
+Sitemap: https://scrollect.app/sitemap.xml

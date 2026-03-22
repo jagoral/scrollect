@@ -43,11 +43,11 @@ export const Route = createRootRouteWithContext<{
       },
       {
         property: "og:image",
-        content: "https://scrollect.ai/og-image.png",
+        content: "https://scrollect.app/og-image.png",
       },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:url", content: "https://scrollect.ai" },
+      { property: "og:url", content: "https://scrollect.app" },
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "en_US" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -62,7 +62,7 @@ export const Route = createRootRouteWithContext<{
       },
       {
         name: "twitter:image",
-        content: "https://scrollect.ai/og-image.png",
+        content: "https://scrollect.app/og-image.png",
       },
     ],
     links: [
