@@ -26,7 +26,7 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto">
+    <div className="flex flex-1 flex-col">
       <HeroSection />
       <CardTypesSection />
       <HowItWorksSection />
