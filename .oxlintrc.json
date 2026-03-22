@@ -48,5 +48,5 @@
     "builtin": true
   },
   "globals": {},
-  "ignorePatterns": ["packages/backend/convex/_generated/**"]
+  "ignorePatterns": ["packages/backend/convex/_generated/**", "apps/web/src/routeTree.gen.ts"]
 }
