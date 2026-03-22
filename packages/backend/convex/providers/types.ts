@@ -1,3 +1,37 @@
+export type TokenUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+
+export interface CardGenerationService {
+  generateCards(opts: { systemPrompt: string; userPrompt: string }): Promise<{
+    cards: Record<string, unknown>[];
+    usage: TokenUsage;
+  }>;
+}
+
+export interface AnalyticsService {
+  captureEvent(opts: {
+    distinctId: string;
+    event: string;
+    properties?: Record<string, unknown>;
+  }): Promise<void>;
+
+  captureAiUsage(opts: {
+    distinctId: string;
+    operation: string;
+    usage: TokenUsage;
+    modelType: "llm" | "embedding";
+    documentId?: string;
+    model?: string;
+  }): Promise<void>;
+}
+
+export interface ContentFetcher {
+  fetchContent(chunkIds: string[]): Promise<Map<string, string>>;
+}
+
 export interface ExtractResult {
   /** Extracted content as markdown. */
   markdown: string;
