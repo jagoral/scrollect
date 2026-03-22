@@ -110,20 +110,20 @@ export async function signIn(page: Page, email: string, password: string) {
 
 export async function signInToSeededFeed(page: Page) {
   await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-  await page.goto("/feed?noAutoGenerate");
+  await page.goto("/app/feed?noAutoGenerate");
   await page.waitForLoadState("networkidle");
   await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
 }
 
 export async function goToFirstDocument(page: Page) {
-  await page.goto("/library");
+  await page.goto("/app/library");
   await page.waitForLoadState("networkidle");
-  const docLink = page.locator("a[href^='/library/']").first();
+  const docLink = page.locator("a[href^='/app/library/']").first();
   await expect(docLink).toBeVisible({ timeout: 15000 });
   const href = await docLink.getAttribute("href");
   await page.goto(href!);
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/library\/.+/);
+  await expect(page).toHaveURL(/\/app\/library\/.+/);
   await expect(page.getByText(/back to library/i)).toBeVisible();
 }
 

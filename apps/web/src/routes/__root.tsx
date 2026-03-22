@@ -12,6 +12,10 @@ import type { ConvexReactClient } from "convex/react";
 import { PostHogProvider, usePostHog } from "posthog-js/react";
 import { env } from "@scrollect/env/web";
 
+import geistSans400 from "@fontsource/geist-sans/files/geist-sans-latin-400-normal.woff2?url";
+import geistSans600 from "@fontsource/geist-sans/files/geist-sans-latin-600-normal.woff2?url";
+import geistSans700 from "@fontsource/geist-sans/files/geist-sans-latin-700-normal.woff2?url";
+import fraunces600 from "@fontsource/fraunces/files/fraunces-latin-600-normal.woff2?url";
 import appCss from "@/index.css?url";
 import Footer from "@/components/footer";
 import Header from "@/components/header";
@@ -43,11 +47,11 @@ export const Route = createRootRouteWithContext<{
       },
       {
         property: "og:image",
-        content: "https://scrollect.ai/og-image.png",
+        content: "https://scrollect.app/og-image.png",
       },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:url", content: "https://scrollect.ai" },
+      { property: "og:url", content: "https://scrollect.app" },
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "en_US" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -62,7 +66,7 @@ export const Route = createRootRouteWithContext<{
       },
       {
         name: "twitter:image",
-        content: "https://scrollect.ai/og-image.png",
+        content: "https://scrollect.app/og-image.png",
       },
     ],
     links: [
@@ -74,7 +78,7 @@ export const Route = createRootRouteWithContext<{
   component: RootComponent,
 });
 
-function CookieConsentInit() {
+function AnalyticsInit() {
   const posthog = usePostHog();
   useCookieConsent(posthog);
   return null;
@@ -84,6 +88,35 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Raw JSX preloads - TanStack head() links only support {rel, href}, not as/type/crossOrigin */}
+        <link
+          rel="preload"
+          href={geistSans400}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href={geistSans600}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href={geistSans700}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href={fraunces600}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         <HeadContent />
       </head>
       <body className="font-sans antialiased">
@@ -93,12 +126,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             api_host: "/ingest",
             ui_host: env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
             capture_exceptions: true,
+            capture_performance: { web_vitals: true },
             person_profiles: "identified_only",
             opt_out_capturing_by_default: true,
             persistence: "memory",
           }}
         >
-          <CookieConsentInit />
+          <AnalyticsInit />
           {children}
         </PostHogProvider>
         <Scripts />

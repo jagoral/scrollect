@@ -104,32 +104,30 @@ test.describe("Tagging — document detail: manual operations (seeded account)",
       timeout: 10000,
     });
 
-    // Navigate to the second document via full page load (same pattern as goToFirstDocument)
-    // to ensure Convex auth token propagation
-    await page.goto("/library");
-    await page.waitForLoadState("networkidle");
-    const docLinks = page.locator("a[href^='/library/']");
+    // Navigate to the second document via client-side navigation (Link clicks)
+    // to preserve the Convex WebSocket connection. Full-page navigation (page.goto)
+    // causes a race: the tag mutation may not have propagated to the new subscription
+    // by the time the combobox opens.
+    await page.getByText(/back to library/i).click();
+    await page.waitForURL(/\/app\/library$/);
+    const docLinks = page.locator("a[href^='/app/library/']");
     await expect(docLinks.first()).toBeVisible({ timeout: 10000 });
     const count = await docLinks.count();
     expect(count).toBeGreaterThan(1);
-
-    const secondHref = await docLinks.nth(1).getAttribute("href");
-    await page.goto(secondHref!);
-    await page.waitForLoadState("networkidle");
-    await expect(page).toHaveURL(/\/library\/.+/);
+    await docLinks.nth(1).click();
+    await expect(page).toHaveURL(/\/app\/library\/.+/);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
 
-    // Open combobox and search for the tag we created — cmdk needs search text to show filtered results
+    // Open combobox and search for the tag we created on doc 1.
     await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
-
-    // The tag should appear as an existing option (not "Create" since it already exists).
-    // Allow extra time for the Convex subscription to deliver the allUserTags data
-    // after the full-page navigation.
     await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
       timeout: 10000,
+    });
+    await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
+    await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
+      timeout: 5000,
     });
     await page.locator('[data-testid="tag-option-existing-tag-test"]').click();
     await expect(
@@ -314,7 +312,7 @@ test.describe("Tagging — library filtering (seeded account)", () => {
 
   // P0-10: Library page tag filter bar with AND logic, clear-all button
   test("library shows tag filter bar and filters documents by tag", async ({ page }) => {
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator('[data-testid="tag-filter-bar"]')).toBeVisible();
@@ -325,28 +323,28 @@ test.describe("Tagging — library filtering (seeded account)", () => {
     );
     await expect(filterButtons.first()).toBeVisible({ timeout: 10000 });
 
-    const allDocs = page.locator("a[href^='/library/']");
+    const allDocs = page.locator("a[href^='/app/library/']");
     const totalCount = await allDocs.count();
     expect(totalCount).toBeGreaterThan(0);
 
     await filterButtons.first().click();
     await expect(page.locator('[data-testid="clear-tag-filters"]')).toBeVisible();
 
-    const filteredCount = await page.locator("a[href^='/library/']").count();
+    const filteredCount = await page.locator("a[href^='/app/library/']").count();
     expect(filteredCount).toBeLessThanOrEqual(totalCount);
 
     await page.locator('[data-testid="clear-tag-filters"]').click();
     await expect(page.locator('[data-testid="clear-tag-filters"]')).not.toBeVisible();
-    const resetCount = await page.locator("a[href^='/library/']").count();
+    const resetCount = await page.locator("a[href^='/app/library/']").count();
     expect(resetCount).toBe(totalCount);
   });
 
   // P0-11: Document cards show max 2 tags + "+N" overflow
   test("library document cards show max 2 tags with overflow indicator", async ({ page }) => {
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
 
-    const docCard = page.locator("a[href^='/library/']").first();
+    const docCard = page.locator("a[href^='/app/library/']").first();
     await expect(docCard).toBeVisible({ timeout: 10000 });
 
     // Seeded doc 1 has 3 tags, doc 2 has 3 tags — at least one should show tag-list
@@ -374,7 +372,7 @@ test.describe("Tagging — feed cards (seeded account)", () => {
   // P0-12: Feed cards show up to 3 tags from source document + "+N" overflow
   test("feed cards display tag chips from source document", async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    await page.goto("/feed?noAutoGenerate");
+    await page.goto("/app/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
 
     const firstCard = page.locator('[data-testid="post-card"]').first();
@@ -396,12 +394,12 @@ test.describe("Tagging — feed cards (seeded account)", () => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
 
     // Add extra tags to the seeded document to ensure > 3 total
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/library/']").first();
+    const docLink = page.locator("a[href^='/app/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();
-    await expect(page).toHaveURL(/\/library\/.+/);
+    await expect(page).toHaveURL(/\/app\/library\/.+/);
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -419,9 +417,9 @@ test.describe("Tagging — feed cards (seeded account)", () => {
     }
 
     // Capture which document we tagged from the URL
-    const _taggedDocId = page.url().split("/library/")[1];
+    const _taggedDocId = page.url().split("/app/library/")[1];
 
-    await page.goto("/feed?noAutoGenerate");
+    await page.goto("/app/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
 
     // Find a feed card sourced from the document we tagged (not necessarily the first card)
@@ -458,18 +456,18 @@ test.describe("Tagging — AI auto-suggest (ephemeral account)", () => {
 
   // P0-3: AI auto-suggests 3-5 tags when document reaches "ready" status
   test("AI auto-suggests tags after document upload and processing", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/library/']").first();
+    const docLink = page.locator("a[href^='/app/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();
-    await expect(page).toHaveURL(/\/library\/.+/);
+    await expect(page).toHaveURL(/\/app\/library\/.+/);
 
     // Wait for processing to complete
     await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 90000 });

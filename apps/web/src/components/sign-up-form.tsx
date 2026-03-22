@@ -33,7 +33,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
         {
           onSuccess: () => {
             posthog.capture("user.signed_up");
-            navigate({ to: "/library" });
+            navigate({ to: "/app/library" });
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);

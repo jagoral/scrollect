@@ -24,11 +24,11 @@ export function NotFound({ children }: { children?: React.ReactNode }) {
           <Home data-icon="inline-start" />
           Go home
         </Button>
-        <Button variant="outline" render={<Link to="/feed" />}>
+        <Button variant="outline" render={<Link to="/app/feed" />}>
           <Rss data-icon="inline-start" />
           Browse feed
         </Button>
-        <Button variant="outline" render={<Link to="/library" />}>
+        <Button variant="outline" render={<Link to="/app/library" />}>
           <BookOpen data-icon="inline-start" />
           View library
         </Button>

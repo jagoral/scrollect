@@ -18,7 +18,7 @@ test.describe("EPUB file upload", () => {
   });
 
   test("user can upload an EPUB file and sees success message", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -30,7 +30,7 @@ test.describe("EPUB file upload", () => {
   });
 
   test("EPUB document reaches ready status and produces chunks", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
@@ -40,18 +40,18 @@ test.describe("EPUB file upload", () => {
 
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
-    await page.goto("/library");
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/library/']").first();
+    const docLink = page.locator("a[href^='/app/library/']").first();
     await expect(docLink).toBeVisible({ timeout: 10000 });
     await docLink.click();
-    await expect(page).toHaveURL(/\/library\/.+/);
+    await expect(page).toHaveURL(/\/app\/library\/.+/);
 
     await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 90000 });
   });
 
   test("upload page help text mentions epub", async ({ page }) => {
-    await page.goto("/upload");
+    await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText(/\.epub/)).toBeVisible();
   });

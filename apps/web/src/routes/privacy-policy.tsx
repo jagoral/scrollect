@@ -6,6 +6,7 @@ import content from "@/content/legal/privacy-policy.md?raw";
 export const Route = createFileRoute("/privacy-policy")({
   head: () => ({
     meta: [{ title: "Privacy Policy - Scrollect" }],
+    links: [{ rel: "canonical", href: "https://scrollect.app/privacy-policy" }],
   }),
   component: PrivacyPolicyPage,
 });

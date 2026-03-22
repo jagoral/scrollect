@@ -1,8 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource/geist-sans/latin.css";
-@import "@fontsource/geist-mono/latin.css";
+@import "@fontsource/geist-sans/latin-400.css";
+@import "@fontsource/geist-sans/latin-500.css";
+@import "@fontsource/geist-sans/latin-600.css";
+@import "@fontsource/geist-sans/latin-700.css";
+@import "@fontsource/geist-mono/latin-400.css";
 @import "@fontsource/fraunces/latin-600.css";
 @import "vanilla-cookieconsent/dist/cookieconsent.css";
 @import "./styles/cookie-consent.css";
@@ -15,7 +18,7 @@
   --card-foreground: oklch(0.18 0.02 230);
   --popover: oklch(0.995 0.003 200);
   --popover-foreground: oklch(0.18 0.02 230);
-  --primary: oklch(0.55 0.13 185);
+  --primary: oklch(0.47 0.14 185);
   --primary-foreground: oklch(0.98 0.005 185);
   --secondary: oklch(0.96 0.015 185);
   --secondary-foreground: oklch(0.28 0.05 185);
@@ -26,8 +29,8 @@
   --destructive: oklch(0.58 0.22 27);
   --border: oklch(0.92 0.01 200);
   --input: oklch(0.92 0.01 200);
-  --ring: oklch(0.55 0.13 185);
-  --chart-1: oklch(0.55 0.13 185);
+  --ring: oklch(0.47 0.14 185);
+  --chart-1: oklch(0.47 0.14 185);
   --chart-2: oklch(0.78 0.11 55);
   --chart-3: oklch(0.65 0.12 185);
   --chart-4: oklch(0.45 0.1 185);
@@ -35,12 +38,12 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.98 0.005 200);
   --sidebar-foreground: oklch(0.18 0.02 230);
-  --sidebar-primary: oklch(0.55 0.13 185);
+  --sidebar-primary: oklch(0.47 0.14 185);
   --sidebar-primary-foreground: oklch(0.98 0.005 185);
   --sidebar-accent: oklch(0.96 0.015 185);
   --sidebar-accent-foreground: oklch(0.28 0.05 185);
   --sidebar-border: oklch(0.92 0.01 200);
-  --sidebar-ring: oklch(0.55 0.13 185);
+  --sidebar-ring: oklch(0.47 0.14 185);
   --background: oklch(0.99 0.004 200);
   --foreground: oklch(0.18 0.02 230);
 }

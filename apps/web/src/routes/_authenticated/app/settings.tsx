@@ -7,7 +7,8 @@ import { Mail, User } from "lucide-react";
 import { DeleteAccountDialog } from "@/components/delete-account-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 
-export const Route = createFileRoute("/_authenticated/settings")({
+export const Route = createFileRoute("/_authenticated/app/settings")({
+  ssr: false,
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(convexQuery(api.auth.getCurrentUser, {}));
   },

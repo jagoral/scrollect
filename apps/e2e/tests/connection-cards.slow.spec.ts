@@ -10,7 +10,7 @@ function cardOfType(type: string) {
 }
 
 async function uploadMarkdownFile(page: import("@playwright/test").Page, filename: string) {
-  await page.goto("/upload");
+  await page.goto("/app/upload");
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, filename));
@@ -18,10 +18,10 @@ async function uploadMarkdownFile(page: import("@playwright/test").Page, filenam
 }
 
 async function waitForDocumentReady(page: import("@playwright/test").Page) {
-  await page.goto("/library");
+  await page.goto("/app/library");
   await page.waitForLoadState("networkidle");
 
-  const docLinks = page.locator("a[href^='/library/']");
+  const docLinks = page.locator("a[href^='/app/library/']");
   const count = await docLinks.count();
 
   for (let i = 0; i < count; i++) {
@@ -61,7 +61,7 @@ test.describe("Connection cards - full pipeline (slow)", () => {
     await waitForDocumentReady(page);
 
     // Step 3: Generate the feed (request enough cards to increase connection likelihood)
-    await page.goto("/feed?count=7");
+    await page.goto("/app/feed?count=7");
     await page.waitForLoadState("networkidle");
 
     // Step 4: Wait for feed cards to appear (generation takes time with real LLM)
@@ -116,7 +116,7 @@ test.describe("Connection cards - full pipeline (slow)", () => {
     await waitForDocumentReady(page);
 
     // Generate feed - request more cards to increase odds of a connection appearing
-    await page.goto("/feed?count=7");
+    await page.goto("/app/feed?count=7");
     await page.waitForLoadState("networkidle");
 
     // Wait for cards to render
