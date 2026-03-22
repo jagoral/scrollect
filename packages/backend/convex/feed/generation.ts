@@ -8,9 +8,9 @@ import { action } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import { requireAuth } from "../lib/functions";
 import { WideEvent } from "../lib/logging";
-import type { ChunkMetadata, PostSourceRecord, SectionSummaryInfo } from "./sampling";
-import { generateFeed, buildTypeData } from "./generateFeed";
-import type { FeedInputData } from "./generateFeed";
+import type { ChunkMetadata, PostSourceRecord, SectionSummaryInfo } from "./logic/sampling";
+import { generateFeed, buildTypeData } from "./logic/generateFeed";
+import type { FeedInputData } from "./logic/generateFeed";
 import { createFeedServiceContext } from "./services";
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;

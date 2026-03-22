@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import { discoverConnections, DEFAULT_SIMILARITY_THRESHOLD } from "./discovery";
-import type { ChunkInfo } from "./sampling";
-import type { EmbeddingProvider, VectorSearchResult, VectorStore } from "../providers/types";
+import { discoverConnections, DEFAULT_SIMILARITY_THRESHOLD } from "../discovery";
+import type { ChunkInfo } from "../sampling";
+import type { EmbeddingProvider, VectorSearchResult, VectorStore } from "../../../providers/types";
 
 function makeChunk(overrides: Partial<ChunkInfo> & { _id: string; documentId: string }): ChunkInfo {
   return {

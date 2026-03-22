@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { FRESHNESS_DECAY_WINDOW_MS } from "../convex/feed/constants";
+import { FRESHNESS_DECAY_WINDOW_MS } from "../convex/feed/logic/constants";
 import {
   buildSummaryContext,
   filterChunksBySemantic,
   type LearningGoalEntry,
   rankByUsage,
-} from "../convex/feed/selectionLogic";
+} from "../convex/feed/logic/selectionLogic";
 
 const chunk = (id: string, docId: string, section?: string) => ({
   _id: id,

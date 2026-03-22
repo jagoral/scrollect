@@ -8,8 +8,8 @@ import type {
   TokenUsage,
   VectorSearchResult,
   VectorStore,
-} from "../../providers/types";
-import type { FeedServiceContext } from "../services";
+} from "../../../providers/types";
+import type { FeedServiceContext } from "../../services";
 
 const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import type { RawCard } from "./validation";
-import { validateCard } from "./validation";
-import type { ChunkLike } from "./selectionLogic";
+import type { RawCard } from "../validation";
+import { validateCard } from "../validation";
+import type { ChunkLike } from "../selectionLogic";
 
 function makeChunk(id: string, documentId: string): ChunkLike {
   return {

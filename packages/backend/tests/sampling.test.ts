@@ -5,14 +5,14 @@ import {
   FRESHNESS_DECAY_WINDOW_MS,
   FRESHNESS_BOOST_FACTOR,
   computeRecencyBoost,
-} from "../convex/feed/constants";
+} from "../convex/feed/logic/constants";
 import {
   buildChunkUsageMap,
   buildTypeCoverageHint,
   frontLoadFreshChunks,
   weightedSample,
-} from "../convex/feed/sampling";
-import type { ChunkInfo, PostSourceRecord } from "../convex/feed/sampling";
+} from "../convex/feed/logic/sampling";
+import type { ChunkInfo, PostSourceRecord } from "../convex/feed/logic/sampling";
 
 const chunk = (id: string, docId: string, section?: string): ChunkInfo => ({
   _id: id,

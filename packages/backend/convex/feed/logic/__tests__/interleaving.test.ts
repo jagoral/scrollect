@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { interleaveCards } from "./interleaving";
-import { MAX_CONSECUTIVE_SAME_TYPE } from "./constants";
+import { interleaveCards } from "../interleaving";
+import { MAX_CONSECUTIVE_SAME_TYPE } from "../constants";
 
 type TestCard = { id: string; type: string };
 

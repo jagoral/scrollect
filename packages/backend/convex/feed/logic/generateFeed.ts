@@ -22,7 +22,7 @@ import {
 } from "./connectionEnrichment";
 import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
-import type { FeedServiceContext } from "./services";
+import type { FeedServiceContext } from "../services";
 
 const SATURATION_THRESHOLD = 0.8;
 
