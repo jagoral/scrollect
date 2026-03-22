@@ -39,6 +39,7 @@ import {
   enrichConnectionCard,
   mergeConnectionChunks,
 } from "./connectionEnrichment";
+import { MIN_HIGHLIGHT_MATCH_LENGTH } from "./constants";
 import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
 
@@ -188,6 +189,44 @@ export const generate = action({
         throw new Error("No chunks available to generate feed from.");
       }
 
+      const allHighlights = await ctx.runQuery(internal.feed.queries.listHighlightsForDocuments, {
+        userId: user._id,
+        documentIds: documents.map((d) => d._id),
+      });
+      evt.set("totalHighlights", allHighlights.length);
+
+      // Build set of highlighted chunk IDs by matching highlight text to chunk content.
+      // Only fetch content for documents that actually have highlights.
+      let highlightedChunkIds: Set<string> | undefined;
+      if (allHighlights.length > 0) {
+        const normalizedHighlights = allHighlights
+          .map((h) => ({ ...h, normalizedText: h.text.toLowerCase() }))
+          .filter((h) => h.normalizedText.length >= MIN_HIGHLIGHT_MATCH_LENGTH);
+
+        if (normalizedHighlights.length > 0) {
+          const highlightedDocIds = new Set(allHighlights.map((h) => h.documentId as string));
+          const highlightDocChunkIds = allChunks
+            .filter((c) => highlightedDocIds.has(c.documentId))
+            .map((c) => c._id);
+
+          if (highlightDocChunkIds.length > 0) {
+            const highlightContentMap = await fetchContent(highlightDocChunkIds);
+            highlightedChunkIds = new Set<string>();
+
+            for (const [chunkId, chunkContent] of highlightContentMap) {
+              const normalizedChunk = chunkContent.toLowerCase();
+              for (const highlight of normalizedHighlights) {
+                if (normalizedChunk.includes(highlight.normalizedText)) {
+                  highlightedChunkIds.add(chunkId);
+                  break;
+                }
+              }
+            }
+            evt.set("highlightedChunks", highlightedChunkIds.size);
+          }
+        }
+      }
+
       const [recentSources, recentPosts, recentHashList] = await Promise.all([
         ctx.runQuery(internal.feed.queries.listRecentPostSources, {
           userId: user._id,
@@ -256,6 +295,7 @@ export const generate = action({
           docSummaries,
           chunkUsageMap,
           docCreatedAtMap,
+          highlightedChunkIds,
           count: sampleSize,
           userId: user._id,
           embedder,
@@ -268,6 +308,7 @@ export const generate = action({
         selected = weightedSample({
           chunks: allChunks,
           chunkUsageMap,
+          highlightedChunkIds,
           docCreatedAtMap,
           count: sampleSize,
           now,
@@ -339,8 +380,11 @@ export const generate = action({
         learningGoals,
       });
 
+      const highlightContext = buildHighlightContext(allHighlights, selectedDocIds);
+
       const userPrompt =
         summaryContext +
+        highlightContext +
         hydratedChunks
           .map((chunk, i) => `Chunk ${i} (from "${chunk.documentTitle}"):\n${chunk.content}`)
           .join("\n\n---\n\n") +
@@ -514,4 +558,29 @@ function buildTypeData(card: RawCard): TypeData {
         connectionType: card.connectionType ?? "cross_document",
       };
   }
+}
+
+type HighlightLike = {
+  documentId: string;
+  text: string;
+  note?: string;
+};
+
+function buildHighlightContext(highlights: HighlightLike[], selectedDocIds: Set<string>): string {
+  const relevant = highlights.filter((h) => selectedDocIds.has(h.documentId));
+  if (relevant.length === 0) return "";
+
+  const lines = relevant
+    .slice(0, 20) // Cap to avoid prompt bloat
+    .map((h) => {
+      const base = `- "${h.text}"`;
+      return h.note ? `${base} (user note: ${h.note})` : base;
+    });
+
+  return (
+    "\n\nUSER HIGHLIGHTS (the user specifically highlighted these passages - they found them important. " +
+    "Prioritize generating cards related to or building upon these highlighted concepts):\n" +
+    lines.join("\n") +
+    "\n\n"
+  );
 }

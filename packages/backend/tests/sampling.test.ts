@@ -4,6 +4,7 @@ import {
   FRESHNESS_WINDOW_MS,
   FRESHNESS_DECAY_WINDOW_MS,
   FRESHNESS_BOOST_FACTOR,
+  HIGHLIGHT_BOOST,
   computeRecencyBoost,
 } from "../convex/feed/constants";
 import {
@@ -150,6 +151,70 @@ describe("weightedSample", () => {
     });
 
     expect(result).toHaveLength(2);
+  });
+
+  test("highlighted chunks are selected more frequently", () => {
+    const now = Date.now();
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+
+    // c1 weight = 1.0 * 2.5 (type diversity) = 2.5
+    // c2 weight = 3.0 * 2.5 (type diversity) = 7.5
+    // totalWeight = 10.0
+    // randomFn returning 0.3 => rand = 0.3 * 10 = 3.0
+    // Walk: c1 (2.5) => rand = 0.5; c2 (7.5) => rand = -7.0 => picks c2
+    const result = weightedSample({
+      chunks,
+      chunkUsageMap: new Map(),
+      docCreatedAtMap: new Map([
+        ["d1", now],
+        ["d2", now],
+      ]),
+      highlightedChunkIds: new Set(["c2"]),
+      count: 1,
+      now,
+      randomFn: () => 0.3,
+    });
+
+    // randomFn=0.3 lands in c2's range (c2 has 75% of total weight)
+    expect(result[0]!._id).toBe("c2");
+  });
+
+  test("without highlightedChunkIds, behavior is unchanged", () => {
+    callIndex = 0;
+    const now = Date.now();
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+
+    const resultWithout = weightedSample({
+      chunks,
+      chunkUsageMap: new Map(),
+      docCreatedAtMap: new Map([
+        ["d1", now],
+        ["d2", now],
+      ]),
+      count: 2,
+      now,
+      randomFn: deterministicRandom,
+    });
+
+    callIndex = 0;
+    const resultWithEmpty = weightedSample({
+      chunks,
+      chunkUsageMap: new Map(),
+      docCreatedAtMap: new Map([
+        ["d1", now],
+        ["d2", now],
+      ]),
+      highlightedChunkIds: new Set(),
+      count: 2,
+      now,
+      randomFn: deterministicRandom,
+    });
+
+    expect(resultWithout.map((c) => c._id)).toEqual(resultWithEmpty.map((c) => c._id));
+  });
+
+  test("HIGHLIGHT_BOOST constant equals 3.0", () => {
+    expect(HIGHLIGHT_BOOST).toBe(3.0);
   });
 
   test("cross-document diversity enforcement", () => {

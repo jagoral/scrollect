@@ -1,4 +1,4 @@
-import { computeRecencyBoost } from "./constants";
+import { HIGHLIGHT_BOOST, computeRecencyBoost } from "./constants";
 
 export type ChunkMetadata = {
   _id: string;
@@ -48,6 +48,7 @@ export type RankArgs = {
   chunks: ChunkMetadata[];
   usageMap: Map<string, UsageInfo>;
   docCreatedAtMap?: Map<string, number>;
+  highlightedChunkIds?: Set<string>;
   now?: number;
   count: number;
   allChunksForDiversity?: ChunkMetadata[];
@@ -59,6 +60,7 @@ export function rankByUsage(args: RankArgs): ChunkMetadata[] {
     chunks,
     usageMap,
     docCreatedAtMap,
+    highlightedChunkIds,
     now,
     count,
     allChunksForDiversity,
@@ -69,12 +71,13 @@ export function rankByUsage(args: RankArgs): ChunkMetadata[] {
     const usage = usageMap.get(chunk._id);
     const totalUsage = usage?.totalCount ?? 0;
     const usageWeight = 1 / (1 + totalUsage);
+    const highlightBoost = highlightedChunkIds?.has(chunk._id) ? HIGHLIGHT_BOOST : 1.0;
     if (docCreatedAtMap && now !== undefined) {
       const docCreatedAt = docCreatedAtMap.get(chunk.documentId) ?? 0;
       const recencyBoost = computeRecencyBoost(docCreatedAt, now);
-      return { chunk, weight: usageWeight * recencyBoost };
+      return { chunk, weight: usageWeight * recencyBoost * highlightBoost };
     }
-    return { chunk, weight: usageWeight };
+    return { chunk, weight: usageWeight * highlightBoost };
   });
 
   weighted.sort((a, b) => b.weight - a.weight);

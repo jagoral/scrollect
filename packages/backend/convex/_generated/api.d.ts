@@ -26,6 +26,7 @@ import type * as feed_sampling from "../feed/sampling.js";
 import type * as feed_selectionLogic from "../feed/selectionLogic.js";
 import type * as feed_validation from "../feed/validation.js";
 import type * as healthCheck from "../healthCheck.js";
+import type * as highlights from "../highlights.js";
 import type * as http from "../http.js";
 import type * as lib_e2e from "../lib/e2e.js";
 import type * as lib_fileSizeLimits from "../lib/fileSizeLimits.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   "feed/selectionLogic": typeof feed_selectionLogic;
   "feed/validation": typeof feed_validation;
   healthCheck: typeof healthCheck;
+  highlights: typeof highlights;
   http: typeof http;
   "lib/e2e": typeof lib_e2e;
   "lib/fileSizeLimits": typeof lib_fileSizeLimits;

@@ -2,7 +2,7 @@ const MB = 1024 * 1024;
 
 export const FILE_SIZE_LIMITS = {
   pdf: 50 * MB,
-  epub: 10 * MB,
+  epub: 30 * MB,
   md: 5 * MB,
   text: 5 * MB,
 } as const;

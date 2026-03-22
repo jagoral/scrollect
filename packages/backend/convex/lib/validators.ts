@@ -33,6 +33,9 @@ export const failedAtStage = v.union(
 
 export const reactionType = v.union(v.literal("like"), v.literal("dislike"));
 
+export const highlightSource = v.union(v.literal("pocketbook"));
+export type HighlightSource = Infer<typeof highlightSource>;
+
 export const tagSource = v.union(v.literal("ai"), v.literal("manual"));
 
 export type TagSource = Infer<typeof tagSource>;

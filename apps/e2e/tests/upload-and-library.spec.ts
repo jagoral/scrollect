@@ -164,7 +164,7 @@ test.describe("File upload size validation", { tag: "@fast" }, () => {
     const helpText = page.locator('[data-testid="file-drop-zone"]').getByText(/accepts/i);
     await expect(helpText).toBeVisible();
     await expect(helpText).toContainText("50.0 MB");
-    await expect(helpText).toContainText("10.0 MB");
+    await expect(helpText).toContainText("30.0 MB");
     await expect(helpText).toContainText("5.0 MB");
   });
 });

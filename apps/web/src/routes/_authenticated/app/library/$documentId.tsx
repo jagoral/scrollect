@@ -11,6 +11,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { fileTypeIcons, StatusBadge } from "@/components/document-status";
+import { HighlightsSection } from "@/components/documents/highlights-section";
+import { ImportHighlightsDialog } from "@/components/documents/import-highlights-dialog";
 import { LearningGoalSection } from "@/components/documents/learning-goal-section";
 import { NotFound } from "@/components/not-found";
 import { DocumentTagSection } from "@/components/tags/document-tag-section";
@@ -110,7 +112,8 @@ function DocumentDetailPage() {
           )}
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-end gap-2">
+          {document.status === "ready" && <ImportHighlightsDialog documentId={document._id} />}
           <AlertDialog
             open={deleteDialogOpen}
             onOpenChange={(open) => {
@@ -156,6 +159,7 @@ function DocumentDetailPage() {
         <>
           <DocumentTagSection documentId={document._id} />
           <LearningGoalSection documentId={document._id} initialGoal={document.learningGoal} />
+          <HighlightsSection documentId={document._id} />
         </>
       )}
 
