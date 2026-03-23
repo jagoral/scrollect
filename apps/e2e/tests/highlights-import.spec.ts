@@ -162,7 +162,7 @@ test.describe("Pocketbook highlights import (seeded account)", () => {
     // Confirm deletion in dialog
     const confirmDialog = page.getByRole("alertdialog");
     await expect(confirmDialog).toBeVisible({ timeout: 5000 });
-    await confirmDialog.getByRole("button", { name: /^(remove|delete)$/i }).click();
+    await confirmDialog.locator('[data-testid="confirm-remove-highlights"]').click();
 
     // Highlights section should be gone
     await expect(highlightsSection).not.toBeVisible({ timeout: 15000 });
