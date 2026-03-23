@@ -10,7 +10,8 @@ import { requireAuth } from "../lib/functions";
 import { WideEvent } from "../lib/logging";
 import type { ChunkMetadata, PostSourceRecord, SectionSummaryInfo } from "./logic/sampling";
 import { generateFeed, buildTypeData } from "./logic/generateFeed";
-import type { FeedInputData } from "./logic/generateFeed";
+import type { FeedInputData, HighlightLike } from "./logic/generateFeed";
+import { MIN_HIGHLIGHT_MATCH_LENGTH } from "./logic/constants";
 import { createFeedServiceContext } from "./services";
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
@@ -47,6 +48,7 @@ export const generate = action({
       const data = await loadFeedData(ctx, user._id);
       evt.set("readyDocuments", data.documents.length);
       evt.set("totalChunks", data.allChunks.length);
+      evt.set("totalHighlights", data.highlights.length);
 
       if (data.documents.length === 0) {
         throw new Error("No ready documents found. Upload and process a document first.");
@@ -131,38 +133,79 @@ async function loadFeedData(ctx: ActionCtx, userId: string): Promise<FeedInputDa
   );
   const allChunks: ChunkMetadata[] = metadataArrays.flat();
 
-  const [recentSources, recentPosts, recentHashList, ...sectionArrays] = await Promise.all([
-    ctx.runQuery(internal.feed.queries.listRecentPostSources, {
-      userId,
-      sinceTs: now - NINETY_DAYS_MS,
-    }) as Promise<PostSourceRecord[]>,
-    ctx.runQuery(internal.feed.queries.listRecentPosts, {
-      userId,
-      sinceTs: now - NINETY_DAYS_MS,
-    }) as Promise<{ _id: string; postType: string }[]>,
-    ctx.runQuery(internal.feed.queries.listRecentChunkHashes, {
-      userId,
-      sinceTs: now - THIRTY_DAYS_MS,
-    }),
-    ...documents
-      .filter((doc) => doc.summary)
-      .map(async (doc) => {
-        const sections = await ctx.runQuery(internal.feed.queries.listSectionSummaries, {
-          documentId: doc._id,
-        });
-        return sections.map((s) => ({
-          documentId: doc._id as string,
-          sectionTitle: s.sectionTitle,
-          summary: s.summary,
-          chunkStartIndex: s.chunkStartIndex,
-          chunkEndIndex: s.chunkEndIndex,
-        }));
+  const [recentSources, recentPosts, recentHashList, allHighlights, ...sectionArrays] =
+    await Promise.all([
+      ctx.runQuery(internal.feed.queries.listRecentPostSources, {
+        userId,
+        sinceTs: now - NINETY_DAYS_MS,
+      }) as Promise<PostSourceRecord[]>,
+      ctx.runQuery(internal.feed.queries.listRecentPosts, {
+        userId,
+        sinceTs: now - NINETY_DAYS_MS,
+      }) as Promise<{ _id: string; postType: string }[]>,
+      ctx.runQuery(internal.feed.queries.listRecentChunkHashes, {
+        userId,
+        sinceTs: now - THIRTY_DAYS_MS,
       }),
-  ]);
+      ctx.runQuery(internal.feed.queries.listHighlightsForDocuments, {
+        userId,
+        documentIds: documents.map((d) => d._id),
+      }),
+      ...documents
+        .filter((doc) => doc.summary)
+        .map(async (doc) => {
+          const sections = await ctx.runQuery(internal.feed.queries.listSectionSummaries, {
+            documentId: doc._id,
+          });
+          return sections.map((s) => ({
+            documentId: doc._id as string,
+            sectionTitle: s.sectionTitle,
+            summary: s.summary,
+            chunkStartIndex: s.chunkStartIndex,
+            chunkEndIndex: s.chunkEndIndex,
+          }));
+        }),
+    ]);
 
   const allSectionSummaries: SectionSummaryInfo[] = (
     sectionArrays as SectionSummaryInfo[][]
   ).flat();
+
+  // Match highlights to chunks by substring containment
+  let highlightedChunkIds: Set<string> | undefined;
+  const typedHighlights = allHighlights as HighlightLike[];
+  if (typedHighlights.length > 0) {
+    const normalizedHighlights = typedHighlights
+      .map((h) => ({ ...h, normalizedText: h.text.toLowerCase() }))
+      .filter((h) => h.normalizedText.length >= MIN_HIGHLIGHT_MATCH_LENGTH);
+
+    if (normalizedHighlights.length > 0) {
+      const highlightedDocIds = new Set(typedHighlights.map((h) => h.documentId as string));
+      const highlightDocChunkIds = allChunks
+        .filter((c) => highlightedDocIds.has(c.documentId))
+        .map((c) => c._id);
+
+      if (highlightDocChunkIds.length > 0) {
+        // Fetch content for chunks in highlighted documents to match highlights
+        const chunkContents = await ctx.runQuery(internal.feed.queries.getChunksByIds, {
+          chunkIds: highlightDocChunkIds as unknown as Id<"chunks">[],
+        });
+        highlightedChunkIds = new Set<string>();
+
+        for (let i = 0; i < highlightDocChunkIds.length; i++) {
+          const chunk = chunkContents[i];
+          if (!chunk) continue;
+          const normalizedChunk = chunk.content.toLowerCase();
+          for (const highlight of normalizedHighlights) {
+            if (normalizedChunk.includes(highlight.normalizedText)) {
+              highlightedChunkIds.add(highlightDocChunkIds[i]!);
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
 
   return {
     documents: documents.map((d) => ({
@@ -178,6 +221,8 @@ async function loadFeedData(ctx: ActionCtx, userId: string): Promise<FeedInputDa
     recentPosts,
     recentHashes: new Set(recentHashList as string[]),
     sectionSummaries: allSectionSummaries,
+    highlights: typedHighlights,
+    highlightedChunkIds,
     userId: userId as string,
     now,
   };

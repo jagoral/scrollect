@@ -47,6 +47,14 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
     await ctx.db.delete(tag._id);
   }
 
+  const highlights = await ctx.db
+    .query("highlights")
+    .withIndex("by_userId_documentId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const highlight of highlights) {
+    await ctx.db.delete(highlight._id);
+  }
+
   const documents = await ctx.db
     .query("documents")
     .withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -105,6 +113,7 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
     deleted: {
       bookmarks: bookmarks.length,
       bookmarkLists: bookmarkLists.length,
+      highlights: highlights.length,
       tags: tags.length,
       documents: documents.length,
       posts: posts.length,

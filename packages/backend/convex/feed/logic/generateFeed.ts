@@ -36,6 +36,12 @@ export type DocumentInfo = {
   learningGoal?: string;
 };
 
+export type HighlightLike = {
+  documentId: string;
+  text: string;
+  note?: string;
+};
+
 export type FeedInputData = {
   documents: DocumentInfo[];
   allChunks: ChunkMetadata[];
@@ -43,6 +49,8 @@ export type FeedInputData = {
   recentPosts: { _id: string; postType: string }[];
   recentHashes: ReadonlySet<string>;
   sectionSummaries: SectionSummaryInfo[];
+  highlights: HighlightLike[];
+  highlightedChunkIds?: Set<string>;
   userId: string;
   now: number;
 };
@@ -80,7 +88,17 @@ export async function generateFeed(opts: {
   cardCount: number;
 }): Promise<GenerateFeedResult> {
   const { data, services, cardCount } = opts;
-  const { documents, allChunks, recentSources, recentPosts, sectionSummaries, userId, now } = data;
+  const {
+    documents,
+    allChunks,
+    recentSources,
+    recentPosts,
+    sectionSummaries,
+    highlights,
+    highlightedChunkIds,
+    userId,
+    now,
+  } = data;
   const metrics: GenerateFeedMetrics = {};
 
   if (allChunks.length === 0) {
@@ -117,6 +135,7 @@ export async function generateFeed(opts: {
       docSummaries,
       chunkUsageMap,
       docCreatedAtMap,
+      highlightedChunkIds,
       count: sampleSize,
       userId,
       embedder: services.embedder,
@@ -128,6 +147,7 @@ export async function generateFeed(opts: {
     selected = weightedSample({
       chunks: allChunks,
       chunkUsageMap,
+      highlightedChunkIds,
       docCreatedAtMap,
       count: sampleSize,
       now,
@@ -188,8 +208,11 @@ export async function generateFeed(opts: {
     learningGoals,
   });
 
+  const highlightContext = buildHighlightContext(highlights, selectedDocIds);
+
   const userPrompt =
     summaryContext +
+    highlightContext +
     hydratedChunks
       .map((chunk, i) => `Chunk ${i} (from "${chunk.documentTitle}"):\n${chunk.content}`)
       .join("\n\n---\n\n") +
@@ -311,6 +334,25 @@ For ALL cards:
 Return a JSON object: { "cards": [ { type, content, sourceChunkIndices, ...type-specific fields } ] }
 
 Produce exactly ${cardCount} cards from the ${chunkCount} chunks provided. Ensure variety in types.`;
+}
+
+function buildHighlightContext(highlights: HighlightLike[], selectedDocIds: Set<string>): string {
+  const relevant = highlights.filter((h) => selectedDocIds.has(h.documentId));
+  if (relevant.length === 0) return "";
+
+  const lines = relevant
+    .slice(0, 20) // Cap to avoid prompt bloat
+    .map((h) => {
+      const base = `- "${h.text}"`;
+      return h.note ? `${base} (user note: ${h.note})` : base;
+    });
+
+  return (
+    "\n\nUSER HIGHLIGHTS (the user specifically highlighted these passages - they found them important. " +
+    "Prioritize generating cards related to or building upon these highlighted concepts):\n" +
+    lines.join("\n") +
+    "\n\n"
+  );
 }
 
 export function buildTypeData(card: RawCard): TypeData {
