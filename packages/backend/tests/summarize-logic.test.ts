@@ -4,7 +4,7 @@ import {
   buildSummaryVectorPoints,
   groupChunksBySection,
   truncateSectionText,
-} from "../convex/pipeline/summarizeLogic";
+} from "../convex/pipeline/logic/summarizeLogic";
 
 describe("groupChunksBySection", () => {
   test("groups chunks with the same sectionTitle together", () => {

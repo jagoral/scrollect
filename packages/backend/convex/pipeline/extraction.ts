@@ -6,7 +6,9 @@ import type { ActionCtx } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 import { captureEvent } from "../providers/analytics";
 
-import { createArticleExtractor, createYouTubeExtractor, storeMarkdownBlob } from "./helpers";
+import { storeMarkdownBlob } from "./helpers";
+import { extractContentLogic } from "./logic/extraction";
+import { createExtractionServiceContext } from "./services";
 
 interface ExtractionArgs {
   ctx: ActionCtx;
@@ -31,10 +33,13 @@ export async function extractArticleImpl({
     if (!doc) throw new Error(`Document ${documentId} not found`);
     if (doc.status === "deleting") return;
 
-    const extractor = createArticleExtractor();
-    const result = await extractor.extract(sourceUrl);
+    const services = createExtractionServiceContext();
+    const { result, metrics } = await extractContentLogic({
+      input: { sourceUrl, extractorType: "article" },
+      services,
+    });
 
-    evt.set("markdownLength", result.markdown.length);
+    evt.set("markdownLength", metrics.markdownLength);
 
     if (result.title) {
       await ctx.runMutation(internal.documents.updateTitle, {
@@ -95,12 +100,15 @@ export async function extractYouTubeImpl({
     if (!doc) throw new Error(`Document ${documentId} not found`);
     if (doc.status === "deleting") return;
 
-    const extractor = createYouTubeExtractor();
-    const result = await extractor.extract(sourceUrl);
+    const services = createExtractionServiceContext();
+    const { result, metrics } = await extractContentLogic({
+      input: { sourceUrl, extractorType: "youtube" },
+      services,
+    });
 
     evt.set({
-      markdownLength: result.markdown.length,
-      provider: (result.metadata as Record<string, unknown>)?.provider,
+      markdownLength: metrics.markdownLength,
+      provider: metrics.provider,
     });
 
     if (result.title) {

@@ -32,7 +32,7 @@ Use ALL of these Convex skills during review to verify code against platform bes
 - `ai-sdk` — AI SDK usage: generateText, streamText, tools, provider configuration
 - `better-auth-best-practices` — auth server setup, database adapters, session management
 
-Note: Backend tests use **vitest** (not bun:test). Config at `packages/backend/vitest.config.ts`. Shared mock factories at `feed/__tests__/mocks.ts`.
+Note: Backend tests use **vitest** (not bun:test). Config at `packages/backend/vitest.config.ts`. Shared mock factories at `feed/logic/__tests__/mocks.ts` (base), `pipeline/logic/__tests__/mocks.ts` (pipeline), and `logic/__tests__/mocks.ts` (deletion).
 
 ## Convex Patterns
 
@@ -52,29 +52,51 @@ Note: Backend tests use **vitest** (not bun:test). Config at `packages/backend/v
 
 ## Service Layer Anti-Patterns (flag on sight)
 
-The project uses a controller-orchestration-service pattern (ADR-012). Review new actions against these rules:
+The project uses a controller-orchestration-service pattern (ADR-012) across all modules with external I/O. Service context factories live in `feed/services.ts` and `pipeline/services.ts`. Review new actions against these rules:
 
-- **Hardcoded provider creation inside business logic** - `getAI()`, `createVectorStore()`, `createEmbeddingProvider()` should only appear in service context factories (`feed/services.ts`, `pipeline/helpers.ts`), never in orchestration functions. The orchestration function should receive providers via a `ServiceContext` parameter.
-- **Business logic depending on Convex `ctx`** - orchestration functions should receive plain data objects (`FeedInputData`), not `ctx`. Only the controller and data-loading functions should touch `ctx`. If `ctx` leaks into orchestration, the code can't be unit-tested.
+- **Hardcoded provider creation inside business logic** - `getAI()`, `createVectorStore()`, `createEmbeddingProvider()`, `createDocumentParser()`, `createArticleExtractor()`, `createYouTubeExtractor()` should only appear in service context factories (`feed/services.ts`, `pipeline/services.ts`), never in orchestration functions. The orchestration function should receive providers via a typed `ServiceContext` parameter.
+- **Business logic depending on Convex `ctx`** - orchestration functions should receive plain data objects, not `ctx`. Only the controller and data-loading functions should touch `ctx`. If `ctx` leaks into orchestration, the code can't be unit-tested.
+- **Missing `logic/` subdirectory** - every module with external I/O must separate pure logic into a `logic/` subdirectory. Controllers stay at the module root, orchestration goes in `logic/`. Files in `logic/` must NOT have `"use node"` or import from `_generated/`.
 - **WideEvent threading through business logic** - phase functions should return `{ result, metrics }` objects. The controller aggregates metrics into `WideEvent`. Business logic should not import or reference `WideEvent`.
 - **Missing ContentFetcher abstraction** - any lazy data loading that wraps `ctx.runQuery` should go through the `ContentFetcher` interface in the service context, not be an inline closure in the action handler.
-- **Inline mock factories in test files** - shared mock factories live in `feed/__tests__/mocks.ts`. Use `createMockServices({ overrides })` instead of duplicating mock construction. Check `discovery.test.ts` still uses its local mocks - flag for migration to shared factories.
+- **Raw AI SDK calls in orchestration** - `generateText()`, `Output.object()`, etc. should be behind a function-level seam interface (e.g., `SummarizingLlm.generateSectionSummary()`, `TaggingLlm.suggestTags()`). The provider handles AI SDK details; orchestration receives semantic parameters.
+- **Bloated shared ServiceContext** - each module should have its own typed context with only the services it needs (e.g., `SummarizingServiceContext = { llm, embedder, summaryStore }`). No single `PipelineServiceContext` with everything.
+- **Inline mock factories in test files** - shared mock factories live in `feed/logic/__tests__/mocks.ts` (base), `pipeline/logic/__tests__/mocks.ts` (pipeline), and `logic/__tests__/mocks.ts` (deletion). Use `createMock*Services({ overrides })` instead of duplicating mock construction.
 - **Action handlers over ~50 lines** - complex actions should delegate to an orchestration function. The action handler should only do: auth, rate limit, create services, load data, call orchestration, persist results, capture analytics.
 
 **FAIL - provider created in orchestration:**
 
 ```ts
-async function generateFeed(data: FeedInputData) {
+async function summarizeDocument(chunks: Chunk[]) {
   const embedder = createEmbeddingProvider(); // hardcoded
-  const selected = await semanticSelect({ embedder, ... });
+  const vectors = await embedder.embed(texts);
 }
 ```
 
 **PASS - provider injected via service context:**
 
 ```ts
-async function generateFeed(opts: { data: FeedInputData; services: FeedServiceContext }) {
-  const selected = await semanticSelect({ embedder: opts.services.embedder, ... });
+async function summarizeDocumentLogic(opts: {
+  input: SummarizingInput;
+  services: SummarizingServiceContext;
+}) {
+  const vectors = await opts.services.embedder.embed(texts);
+}
+```
+
+**FAIL - raw AI SDK in orchestration:**
+
+```ts
+async function suggestTags(chunks: Chunk[]) {
+  const { output } = await generateText({ model: getAI().languageModel("fast"), ... });
+}
+```
+
+**PASS - function-level seam via interface:**
+
+```ts
+async function suggestTagsLogic(opts: { input: TaggingInput; services: TaggingServiceContext }) {
+  const { tags } = await opts.services.llm.suggestTags({ prompt });
 }
 ```
 

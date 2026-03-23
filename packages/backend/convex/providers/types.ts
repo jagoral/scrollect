@@ -165,3 +165,48 @@ export interface SummaryVectorStore {
   /** Delete summary vectors by ID. */
   delete(ids: string[]): Promise<void>;
 }
+
+export interface SummarizingLlm {
+  generateSectionSummary(opts: {
+    sectionTitle: string;
+    combinedText: string;
+  }): Promise<{ summary: string; usage: TokenUsage }>;
+
+  generateDocumentSummary(opts: {
+    sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+    documentTitle: string;
+  }): Promise<{ summary: string; usage: TokenUsage }>;
+}
+
+export interface TaggingLlm {
+  suggestTags(opts: { prompt: string }): Promise<{ tags: string[]; usage: TokenUsage }>;
+}
+
+export type SummarizingServiceContext = {
+  llm: SummarizingLlm;
+  embedder: EmbeddingProvider;
+  summaryStore: SummaryVectorStore;
+};
+
+export type EmbeddingServiceContext = {
+  embedder: EmbeddingProvider;
+  vectorStore: VectorStore;
+};
+
+export type ParsingServiceContext = {
+  parser: DocumentParser;
+};
+
+export type ExtractionServiceContext = {
+  articleExtractor: ContentExtractor;
+  youtubeExtractor: ContentExtractor;
+};
+
+export type TaggingServiceContext = {
+  llm: TaggingLlm;
+};
+
+export type VectorDeletionServices = {
+  vectorStore: VectorStore;
+  summaryStore: SummaryVectorStore;
+};
