@@ -33,6 +33,7 @@ function makeInputData(overrides?: Partial<FeedInputData>): FeedInputData {
     recentPosts: [],
     recentHashes: new Set(),
     sectionSummaries: [],
+    highlights: [],
     userId: "user1",
     now: Date.now(),
     ...overrides,
