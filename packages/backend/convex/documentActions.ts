@@ -8,7 +8,8 @@ import type { ActionCtx } from "./_generated/server";
 import { action, internalAction } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
-import { createSummaryVectorStore, createVectorStore } from "./pipeline/helpers";
+import { deleteDocumentVectors } from "./logic/documentDeletion";
+import { createVectorDeletionServices } from "./pipeline/services";
 
 type DeletionData = {
   document: {
@@ -40,30 +41,31 @@ async function executeDeletionCascade(
     status: "deleting",
   });
 
-  const summaryVectorIds = [
-    ...data.sectionSummaryEmbeddingIds,
-    ...(data.document.summaryEmbeddingId ? [data.document.summaryEmbeddingId] : []),
-  ];
+  const services = createVectorDeletionServices();
+  const deletionResult = await deleteDocumentVectors({
+    input: {
+      chunkEmbeddingIds: data.chunkEmbeddingIds,
+      sectionSummaryEmbeddingIds: data.sectionSummaryEmbeddingIds,
+      documentSummaryEmbeddingId: data.document.summaryEmbeddingId,
+    },
+    services,
+  });
 
   evt.set({
-    chunkVectorCount: data.chunkEmbeddingIds.length,
-    summaryVectorCount: summaryVectorIds.length,
+    chunkVectorCount: deletionResult.deletedChunkVectorCount,
+    summaryVectorCount: deletionResult.deletedSummaryVectorCount,
   });
 
-  // Vector store deletes are idempotent — Qdrant silently ignores missing IDs,
-  // making retries safe even after partial completion.
-  const vectorStore = createVectorStore();
-  const summaryVectorStore = createSummaryVectorStore();
-
-  await Promise.all([
-    vectorStore.delete(data.chunkEmbeddingIds),
-    summaryVectorStore.delete(summaryVectorIds),
+  const [highlightResult, postResult] = await Promise.all([
+    ctx.runMutation(internal.highlights.cascadeDeleteHighlights, {
+      documentId,
+      userId,
+    }),
+    ctx.runMutation(internal.documents.cascadeDeletePosts, {
+      documentId,
+      userId,
+    }),
   ]);
-
-  const postResult = await ctx.runMutation(internal.documents.cascadeDeletePosts, {
-    documentId,
-    userId,
-  });
 
   const chunkResult = await ctx.runMutation(internal.documents.cascadeDeleteChunksAndSummaries, {
     documentId,
@@ -75,6 +77,7 @@ async function executeDeletionCascade(
 
   evt.set({
     deleted: {
+      highlights: highlightResult.deletedHighlights,
       posts: postResult.deletedPosts,
       postSources: postResult.deletedPostSources,
       bookmarks: postResult.deletedBookmarks,

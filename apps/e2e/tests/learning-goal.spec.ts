@@ -1,13 +1,12 @@
 import { test, expect } from "@playwright/test";
 
-import { SEEDED_USER, goToFirstDocument, reseedAccount, signIn } from "./helpers";
+import { goToFirstDocument, reseedAccount } from "./helpers";
 
-test.describe("Learning goal - document detail (seeded account)", () => {
+test.describe("Learning goal - document detail (seeded account)", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     await reseedAccount();
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
   });
 
   test.afterEach(async () => {

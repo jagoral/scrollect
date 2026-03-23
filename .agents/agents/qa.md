@@ -49,19 +49,30 @@ Use these skills when writing and reviewing tests:
 - Only use real providers in Tier 2 (merge-to-main).
 - Be cost-conscious about OpenAI embedding calls — fewer chunks in test data means cheaper CI.
 
-## Test Tiers
+## Test Projects & Tags
 
-| Tier   | Account   | Cost | Use for                         |
-| ------ | --------- | ---- | ------------------------------- |
-| Fast   | Seeded    | $0   | UI interactions, card rendering |
-| Medium | Ephemeral | Low  | Upload flow, library mutations  |
-| Slow   | Ephemeral | High | Full pipeline (avoid in CI)     |
+Tests are split into two Playwright projects using the `@seeded` tag:
+
+| Project     | Tag       | Account   | Cost | Use for                         | Workers    |
+| ----------- | --------- | --------- | ---- | ------------------------------- | ---------- |
+| `seeded`    | `@seeded` | Seeded    | $0   | UI interactions, card rendering | 1 (serial) |
+| `ephemeral` | (none)    | Ephemeral | Low  | Upload flow, library mutations  | default    |
+
+**Routing rule**: `test.describe` blocks with `{ tag: "@seeded" }` run in the `seeded` project (serial, single worker). Everything else runs in `ephemeral` (parallel).
+
+**Adding new tests**:
+
+- Read-only / interaction tests against pre-populated data: add `{ tag: "@seeded" }` to the describe block
+- Tests that upload, create, or mutate data: use ephemeral accounts (`signUp`), no tag needed
+- Mixed files are fine - tag only the seeded describe blocks
+
+**CI jobs**: `e2e-seeded` and `e2e-ephemeral` run in parallel on separate GitHub Actions runners. The `e2e-build` job builds the app and seeds the database before both.
 
 ## Writing Tests
 
 - Use `getByRole` and `getByText` over CSS selectors.
 - Always clean up: `resetTestData` for seeded, `cleanupTestData` for ephemeral. `cleanupTestData` handles already-deleted accounts gracefully - safe to call unconditionally in `afterEach`.
-- @fast tests that only exercise client-side validation should use the seeded account (`signIn` + `SEEDED_USER`), not ephemeral accounts. Always include `afterEach` with `resetTestData` even for read-only tests as a safety net.
+- Tests that only exercise client-side validation should use the seeded account (`signIn` + `SEEDED_USER`), not ephemeral accounts. Always include `afterEach` with `resetTestData` even for read-only tests as a safety net.
 - Target Sonner toast assertions with `page.locator('[data-sonner-toast]').getByText()` to avoid false matches from other page elements.
 - Use `Buffer.alloc(limit + 1)` for file size limit tests - 1 byte over is sufficient. Don't allocate large buffers.
 - Before running: `kill -9 $(lsof -t -i:3001)` to free the port.

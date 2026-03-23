@@ -1,3 +1,37 @@
+export type TokenUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+
+export interface CardGenerationService {
+  generateCards(opts: { systemPrompt: string; userPrompt: string }): Promise<{
+    cards: Record<string, unknown>[];
+    usage: TokenUsage;
+  }>;
+}
+
+export interface AnalyticsService {
+  captureEvent(opts: {
+    distinctId: string;
+    event: string;
+    properties?: Record<string, unknown>;
+  }): Promise<void>;
+
+  captureAiUsage(opts: {
+    distinctId: string;
+    operation: string;
+    usage: TokenUsage;
+    modelType: "llm" | "embedding";
+    documentId?: string;
+    model?: string;
+  }): Promise<void>;
+}
+
+export interface ContentFetcher {
+  fetchContent(chunkIds: string[]): Promise<Map<string, string>>;
+}
+
 export interface ExtractResult {
   /** Extracted content as markdown. */
   markdown: string;
@@ -105,6 +139,15 @@ export interface VectorStore {
   delete(ids: string[]): Promise<void>;
 }
 
+export type FeedServiceContext = {
+  cardGenerator: CardGenerationService;
+  embedder: EmbeddingProvider;
+  vectorStore: VectorStore;
+  summaryStore: SummaryVectorStore;
+  analytics: AnalyticsService;
+  contentFetcher: ContentFetcher;
+};
+
 export interface SummaryVectorStore {
   /** Ensure the summary collection exists. Idempotent. */
   ensureCollection(): Promise<void>;
@@ -122,3 +165,48 @@ export interface SummaryVectorStore {
   /** Delete summary vectors by ID. */
   delete(ids: string[]): Promise<void>;
 }
+
+export interface SummarizingLlm {
+  generateSectionSummary(opts: {
+    sectionTitle: string;
+    combinedText: string;
+  }): Promise<{ summary: string; usage: TokenUsage }>;
+
+  generateDocumentSummary(opts: {
+    sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+    documentTitle: string;
+  }): Promise<{ summary: string; usage: TokenUsage }>;
+}
+
+export interface TaggingLlm {
+  suggestTags(opts: { prompt: string }): Promise<{ tags: string[]; usage: TokenUsage }>;
+}
+
+export type SummarizingServiceContext = {
+  llm: SummarizingLlm;
+  embedder: EmbeddingProvider;
+  summaryStore: SummaryVectorStore;
+};
+
+export type EmbeddingServiceContext = {
+  embedder: EmbeddingProvider;
+  vectorStore: VectorStore;
+};
+
+export type ParsingServiceContext = {
+  parser: DocumentParser;
+};
+
+export type ExtractionServiceContext = {
+  articleExtractor: ContentExtractor;
+  youtubeExtractor: ContentExtractor;
+};
+
+export type TaggingServiceContext = {
+  llm: TaggingLlm;
+};
+
+export type VectorDeletionServices = {
+  vectorStore: VectorStore;
+  summaryStore: SummaryVectorStore;
+};

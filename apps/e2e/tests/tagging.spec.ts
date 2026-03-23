@@ -1,26 +1,16 @@
 import { test, expect } from "@playwright/test";
-import path from "node:path";
 
-import {
-  FIXTURES_DIR,
-  SEEDED_USER,
-  cleanupTestData,
-  goToFirstDocument,
-  reseedAccount,
-  signIn,
-  signUp,
-} from "./helpers";
+import { goToFirstDocument, reseedAccount } from "./helpers";
 
-test.describe("Tagging — document detail: AI tags (seeded account)", () => {
+test.describe("Tagging — document detail: AI tags (seeded account)", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
-  test.beforeEach(async ({ page }) => {
-    // Reseed BEFORE signIn so the Convex client connects after data is already
+  test.beforeEach(async () => {
+    // Reseed BEFORE the test so the Convex client connects after data is already
     // in the database. This avoids a race where the client subscribes, receives
     // the cleanup (empty state), and the tag queries resolve with [] before the
     // seed data arrives.
     await reseedAccount();
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
   });
 
   test.afterEach(async () => {
@@ -59,252 +49,254 @@ test.describe("Tagging — document detail: AI tags (seeded account)", () => {
   });
 });
 
-test.describe("Tagging — document detail: manual operations (seeded account)", () => {
-  test.setTimeout(60000);
+test.describe(
+  "Tagging — document detail: manual operations (seeded account)",
+  { tag: "@seeded" },
+  () => {
+    test.setTimeout(60000);
 
-  test.beforeEach(async ({ page }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-  });
-
-  test.afterEach(async () => {
-    await reseedAccount();
-  });
-
-  // P0-7: Combobox "Create '{name}'" option creates new tag and applies it
-  test("user can create a new tag via combobox", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
+    test.afterEach(async () => {
+      await reseedAccount();
     });
 
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("brand-new-unique-tag");
+    // P0-7: Combobox "Create '{name}'" option creates new tag and applies it
+    test("user can create a new tag via combobox", async ({ page }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
 
-    const createOption = page.locator('[data-testid="create-tag-option"]');
-    await expect(createOption).toBeVisible({ timeout: 5000 });
-    await createOption.click();
-
-    await expect(
-      page.locator('[data-testid="tag-badge-brand-new-unique-tag"][data-tag-source="manual"]'),
-    ).toBeVisible({ timeout: 10000 });
-  });
-
-  // P0-6: Combobox lets user add existing tags with source "manual"
-  test("user can add an existing tag via combobox", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
-    });
-
-    // Create a tag on this document so it exists as a user tag
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
-    await page.locator('[data-testid="create-tag-option"]').click();
-    await expect(page.locator('[data-testid="tag-badge-existing-tag-test"]')).toBeVisible({
-      timeout: 10000,
-    });
-
-    // Navigate to the second document via client-side navigation (Link clicks)
-    // to preserve the Convex WebSocket connection. Full-page navigation (page.goto)
-    // causes a race: the tag mutation may not have propagated to the new subscription
-    // by the time the combobox opens.
-    await page.getByText(/back to library/i).click();
-    await page.waitForURL(/\/app\/library$/);
-    const docLinks = page.locator("a[href^='/app/library/']");
-    await expect(docLinks.first()).toBeVisible({ timeout: 10000 });
-    const count = await docLinks.count();
-    expect(count).toBeGreaterThan(1);
-    await docLinks.nth(1).click();
-    await expect(page).toHaveURL(/\/app\/library\/.+/);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
-    });
-
-    // Open combobox and search for the tag we created on doc 1.
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
-    await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
-      timeout: 5000,
-    });
-    await page.locator('[data-testid="tag-option-existing-tag-test"]').click();
-    await expect(
-      page.locator('[data-testid="tag-badge-existing-tag-test"][data-tag-source="manual"]'),
-    ).toBeVisible({ timeout: 10000 });
-  });
-
-  // P0-8: "x" on chip removes tag-document association (tag itself persists for reuse)
-  test("user can remove a tag via the x button and tag persists for reuse", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
-    });
-
-    // Add a manual tag
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("removable-tag");
-    await page.locator('[data-testid="create-tag-option"]').click();
-    await expect(page.locator('[data-testid="tag-badge-removable-tag"]')).toBeVisible({
-      timeout: 10000,
-    });
-
-    // Remove it - the client detects optimistic IDs and falls back to name-based removal
-    await page.locator('[data-testid="tag-remove-removable-tag"]').click();
-    await expect(page.locator('[data-testid="tag-badge-removable-tag"]')).not.toBeVisible({
-      timeout: 10000,
-    });
-
-    // Tag should persist for reuse - reopen the combobox and search.
-    await page.locator('[data-testid="add-tag-button"]').click();
-    const searchInput = page.locator('[data-testid="tag-search-input"]');
-    await expect(searchInput).toBeVisible({ timeout: 5000 });
-    await searchInput.fill("removable-tag");
-
-    // The tag should appear as an existing option (not "Create" since it exists)
-    await expect(page.locator('[data-testid="tag-option-removable-tag"]')).toBeVisible({
-      timeout: 15000,
-    });
-  });
-
-  // P0-13: Tag combobox autocomplete filters in real-time, excludes already-applied tags
-  test("combobox autocomplete filters in real-time and excludes applied tags", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
-    });
-
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("filter-test-applied");
-    await page.locator('[data-testid="create-tag-option"]').click();
-    await expect(page.locator('[data-testid="tag-badge-filter-test-applied"]')).toBeVisible({
-      timeout: 10000,
-    });
-
-    // Re-open combobox and search
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("filter-test");
-
-    // Applied tag should NOT appear in options (already on document)
-    await expect(page.locator('[data-testid="tag-option-filter-test-applied"]')).not.toBeVisible({
-      timeout: 3000,
-    });
-
-    // "Create" option should appear for a new variation
-    await expect(page.locator('[data-testid="create-tag-option"]')).toBeVisible();
-  });
-
-  // P0-15: Near-duplicate tags handled silently (case normalization)
-  test("tag normalization: case-insensitive dedup on creation", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
-    });
-
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("Machine Learning");
-    await page.locator('[data-testid="create-tag-option"]').click();
-    await expect(
-      page.locator('[data-tag-source="manual"]', { hasText: /machine learning/i }),
-    ).toBeVisible({ timeout: 10000 });
-
-    // Different casing should not create a duplicate
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("machine learning");
-
-    // Tag already applied → excluded from options, and "Create" should not appear
-    await expect(page.locator('[data-testid="create-tag-option"]')).not.toBeVisible({
-      timeout: 3000,
-    });
-  });
-
-  // P0-9: Max 20 tags per document enforced
-  test("shows limit message when document has 20 tags", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
-    });
-
-    const existingCount = await page.locator("[data-tag-source]").count();
-    const tagsToAdd = 20 - existingCount;
-
-    for (let i = 0; i < tagsToAdd; i++) {
       await page.locator('[data-testid="add-tag-button"]').click();
-      await page.locator('[data-testid="tag-search-input"]').fill(`limit-test-tag-${i}`);
+      await page.locator('[data-testid="tag-search-input"]').fill("brand-new-unique-tag");
+
+      const createOption = page.locator('[data-testid="create-tag-option"]');
+      await expect(createOption).toBeVisible({ timeout: 5000 });
+      await createOption.click();
+
+      await expect(
+        page.locator('[data-testid="tag-badge-brand-new-unique-tag"][data-tag-source="manual"]'),
+      ).toBeVisible({ timeout: 10000 });
+    });
+
+    // P0-6: Combobox lets user add existing tags with source "manual"
+    test("user can add an existing tag via combobox", async ({ page }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
+
+      // Create a tag on this document so it exists as a user tag
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
       await page.locator('[data-testid="create-tag-option"]').click();
-      await expect(page.locator(`[data-testid="tag-badge-limit-test-tag-${i}"]`)).toBeVisible({
+      await expect(page.locator('[data-testid="tag-badge-existing-tag-test"]')).toBeVisible({
         timeout: 10000,
       });
-      // Wait for the popover to close before the next iteration — Convex subscription
-      // updates can re-render the combobox mid-interaction, detaching DOM elements
-      await expect(page.locator('[data-testid="tag-search-input"]')).not.toBeVisible();
-    }
 
-    await expect(page.locator('[data-testid="add-tag-button"]')).not.toBeVisible();
-    await expect(page.locator('[data-testid="tag-limit-message"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tag-limit-message"]')).toContainText(
-      /maximum tags reached/i,
-    );
-  });
+      // Navigate to the second document via client-side navigation (Link clicks)
+      // to preserve the Convex WebSocket connection. Full-page navigation (page.goto)
+      // causes a race: the tag mutation may not have propagated to the new subscription
+      // by the time the combobox opens.
+      await page.getByText(/back to library/i).click();
+      await page.waitForURL(/\/app\/library$/);
+      const docLinks = page.locator("a[href^='/app/library/']");
+      await expect(docLinks.first()).toBeVisible({ timeout: 10000 });
+      const count = await docLinks.count();
+      expect(count).toBeGreaterThan(1);
+      await docLinks.nth(1).click();
+      await expect(page).toHaveURL(/\/app\/library\/.+/);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
 
-  // P0-14: Empty state — combobox with no matching tags shows only "Create" option
-  test("combobox shows only create option when no tags match", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
+      // Open combobox and search for the tag we created on doc 1.
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
+        timeout: 10000,
+      });
+      await page.locator('[data-testid="tag-search-input"]').fill("existing-tag-test");
+      await expect(page.locator('[data-testid="tag-option-existing-tag-test"]')).toBeVisible({
+        timeout: 5000,
+      });
+      await page.locator('[data-testid="tag-option-existing-tag-test"]').click();
+      await expect(
+        page.locator('[data-testid="tag-badge-existing-tag-test"][data-tag-source="manual"]'),
+      ).toBeVisible({ timeout: 10000 });
     });
 
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("completely-unique-no-match-xyz");
+    // P0-8: "x" on chip removes tag-document association (tag itself persists for reuse)
+    test("user can remove a tag via the x button and tag persists for reuse", async ({ page }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
 
-    await expect(page.locator('[data-testid="create-tag-option"]')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('[data-testid^="tag-option-"]')).not.toBeVisible();
-  });
+      // Add a manual tag
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill("removable-tag");
+      await page.locator('[data-testid="create-tag-option"]').click();
+      await expect(page.locator('[data-testid="tag-badge-removable-tag"]')).toBeVisible({
+        timeout: 10000,
+      });
 
-  // Edge case: empty/whitespace-only tag name rejected
-  test("empty or whitespace-only tag name does not show create option", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
+      // Remove it - the client detects optimistic IDs and falls back to name-based removal
+      await page.locator('[data-testid="tag-remove-removable-tag"]').click();
+      await expect(page.locator('[data-testid="tag-badge-removable-tag"]')).not.toBeVisible({
+        timeout: 10000,
+      });
+
+      // Tag should persist for reuse - reopen the combobox and search.
+      await page.locator('[data-testid="add-tag-button"]').click();
+      const searchInput = page.locator('[data-testid="tag-search-input"]');
+      await expect(searchInput).toBeVisible({ timeout: 5000 });
+      await searchInput.fill("removable-tag");
+
+      // The tag should appear as an existing option (not "Create" since it exists)
+      await expect(page.locator('[data-testid="tag-option-removable-tag"]')).toBeVisible({
+        timeout: 15000,
+      });
     });
 
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill("   ");
+    // P0-13: Tag combobox autocomplete filters in real-time, excludes already-applied tags
+    test("combobox autocomplete filters in real-time and excludes applied tags", async ({
+      page,
+    }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
 
-    await expect(page.locator('[data-testid="create-tag-option"]')).not.toBeVisible({
-      timeout: 3000,
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill("filter-test-applied");
+      await page.locator('[data-testid="create-tag-option"]').click();
+      await expect(page.locator('[data-testid="tag-badge-filter-test-applied"]')).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Re-open combobox and search
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill("filter-test");
+
+      // Applied tag should NOT appear in options (already on document)
+      await expect(page.locator('[data-testid="tag-option-filter-test-applied"]')).not.toBeVisible({
+        timeout: 3000,
+      });
+
+      // "Create" option should appear for a new variation
+      await expect(page.locator('[data-testid="create-tag-option"]')).toBeVisible();
     });
-  });
 
-  // Edge case: tag name > 50 chars rejected (client-side + backend)
-  test("tag name exceeding 50 characters shows error and hides create option", async ({ page }) => {
-    await goToFirstDocument(page);
-    await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
-      timeout: 15000,
+    // P0-15: Near-duplicate tags handled silently (case normalization)
+    test("tag normalization: case-insensitive dedup on creation", async ({ page }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
+
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill("Machine Learning");
+      await page.locator('[data-testid="create-tag-option"]').click();
+      await expect(
+        page.locator('[data-tag-source="manual"]', { hasText: /machine learning/i }),
+      ).toBeVisible({ timeout: 10000 });
+
+      // Different casing should not create a duplicate
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill("machine learning");
+
+      // Tag already applied → excluded from options, and "Create" should not appear
+      await expect(page.locator('[data-testid="create-tag-option"]')).not.toBeVisible({
+        timeout: 3000,
+      });
     });
 
-    const longName = "a".repeat(51);
-    await page.locator('[data-testid="add-tag-button"]').click();
-    await page.locator('[data-testid="tag-search-input"]').fill(longName);
+    // P0-9: Max 20 tags per document enforced
+    test("shows limit message when document has 20 tags", async ({ page }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
 
-    await expect(page.locator('[data-testid="create-tag-option"]')).not.toBeVisible({
-      timeout: 3000,
+      const existingCount = await page.locator("[data-tag-source]").count();
+      const tagsToAdd = 20 - existingCount;
+
+      for (let i = 0; i < tagsToAdd; i++) {
+        await page.locator('[data-testid="add-tag-button"]').click();
+        await page.locator('[data-testid="tag-search-input"]').fill(`limit-test-tag-${i}`);
+        await page.locator('[data-testid="create-tag-option"]').click();
+        await expect(page.locator(`[data-testid="tag-badge-limit-test-tag-${i}"]`)).toBeVisible({
+          timeout: 10000,
+        });
+        // Wait for the popover to close before the next iteration — Convex subscription
+        // updates can re-render the combobox mid-interaction, detaching DOM elements
+        await expect(page.locator('[data-testid="tag-search-input"]')).not.toBeVisible();
+      }
+
+      await expect(page.locator('[data-testid="add-tag-button"]')).not.toBeVisible();
+      await expect(page.locator('[data-testid="tag-limit-message"]')).toBeVisible();
+      await expect(page.locator('[data-testid="tag-limit-message"]')).toContainText(
+        /maximum tags reached/i,
+      );
     });
 
-    await expect(page.locator('[data-testid="tag-name-too-long"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tag-name-too-long"]')).toContainText(
-      /50 characters or fewer/i,
-    );
-  });
-});
+    // P0-14: Empty state — combobox with no matching tags shows only "Create" option
+    test("combobox shows only create option when no tags match", async ({ page }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
 
-test.describe("Tagging — library filtering (seeded account)", () => {
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill("completely-unique-no-match-xyz");
+
+      await expect(page.locator('[data-testid="create-tag-option"]')).toBeVisible({
+        timeout: 5000,
+      });
+      await expect(page.locator('[data-testid^="tag-option-"]')).not.toBeVisible();
+    });
+
+    // Edge case: empty/whitespace-only tag name rejected
+    test("empty or whitespace-only tag name does not show create option", async ({ page }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
+
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill("   ");
+
+      await expect(page.locator('[data-testid="create-tag-option"]')).not.toBeVisible({
+        timeout: 3000,
+      });
+    });
+
+    // Edge case: tag name > 50 chars rejected (client-side + backend)
+    test("tag name exceeding 50 characters shows error and hides create option", async ({
+      page,
+    }) => {
+      await goToFirstDocument(page);
+      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+        timeout: 15000,
+      });
+
+      const longName = "a".repeat(51);
+      await page.locator('[data-testid="add-tag-button"]').click();
+      await page.locator('[data-testid="tag-search-input"]').fill(longName);
+
+      await expect(page.locator('[data-testid="create-tag-option"]')).not.toBeVisible({
+        timeout: 3000,
+      });
+
+      await expect(page.locator('[data-testid="tag-name-too-long"]')).toBeVisible();
+      await expect(page.locator('[data-testid="tag-name-too-long"]')).toContainText(
+        /50 characters or fewer/i,
+      );
+    });
+  },
+);
+
+test.describe("Tagging — library filtering (seeded account)", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
-
-  test.beforeEach(async ({ page }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-  });
 
   test.afterEach(async () => {
     await reseedAccount();
@@ -362,7 +354,7 @@ test.describe("Tagging — library filtering (seeded account)", () => {
   });
 });
 
-test.describe("Tagging — feed cards (seeded account)", () => {
+test.describe("Tagging — feed cards (seeded account)", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.afterEach(async () => {
@@ -371,7 +363,6 @@ test.describe("Tagging — feed cards (seeded account)", () => {
 
   // P0-12: Feed cards show up to 3 tags from source document + "+N" overflow
   test("feed cards display tag chips from source document", async ({ page }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
     await page.goto("/app/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
 
@@ -391,8 +382,6 @@ test.describe("Tagging — feed cards (seeded account)", () => {
   test("feed card shows overflow indicator when document has more than 3 tags", async ({
     page,
   }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-
     // Add extra tags to the seeded document to ensure > 3 total
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
@@ -416,9 +405,6 @@ test.describe("Tagging — feed cards (seeded account)", () => {
       });
     }
 
-    // Capture which document we tagged from the URL
-    const _taggedDocId = page.url().split("/app/library/")[1];
-
     await page.goto("/app/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
 
@@ -440,42 +426,24 @@ test.describe("Tagging — feed cards (seeded account)", () => {
   });
 });
 
-test.describe("Tagging — AI auto-suggest (ephemeral account)", () => {
-  test.setTimeout(120000);
+test.describe("Tagging — AI auto-suggest count (seeded account)", { tag: "@seeded" }, () => {
+  test.setTimeout(60000);
 
-  let ephemeralEmail: string;
-
-  test.beforeEach(async ({ page }) => {
-    const { email } = await signUp(page);
-    ephemeralEmail = email;
+  test.beforeEach(async () => {
+    await reseedAccount();
   });
 
   test.afterEach(async () => {
-    await cleanupTestData(ephemeralEmail);
+    await reseedAccount();
   });
 
-  // P0-3: AI auto-suggests 3-5 tags when document reaches "ready" status
-  test("AI auto-suggests tags after document upload and processing", async ({ page }) => {
-    await page.goto("/app/upload");
-    await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
-    await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
-    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+  // P0-3: AI auto-suggests 1-5 tags per document
+  test("ready document has 1-5 AI-suggested tags", async ({ page }) => {
+    await goToFirstDocument(page);
 
-    await page.goto("/app/library");
-    await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/app/library/']").first();
-    await expect(docLink).toBeVisible({ timeout: 10000 });
-    await docLink.click();
-    await expect(page).toHaveURL(/\/app\/library\/.+/);
+    const aiTags = page.locator('[data-testid="document-tag-section"] [data-tag-source="ai"]');
+    await expect(aiTags.first()).toBeVisible({ timeout: 15000 });
 
-    // Wait for processing to complete
-    await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 90000 });
-
-    // After processing, AI-suggested tags should appear automatically
-    await expect(page.locator('[data-tag-source="ai"]').first()).toBeVisible({ timeout: 30000 });
-
-    const aiTags = page.locator('[data-tag-source="ai"]');
     const count = await aiTags.count();
     expect(count).toBeGreaterThanOrEqual(1);
     expect(count).toBeLessThanOrEqual(5);

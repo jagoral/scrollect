@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import path from "node:path";
 
 export const FIXTURES_DIR = path.join(__dirname, "..", "fixtures");
+export const SEEDED_AUTH_FILE = path.join(__dirname, ".auth", "seeded.json");
 
 export const SEEDED_USER = {
   name: "E2E Seeded",
@@ -109,7 +110,6 @@ export async function signIn(page: Page, email: string, password: string) {
 }
 
 export async function signInToSeededFeed(page: Page) {
-  await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
   await page.goto("/app/feed?noAutoGenerate");
   await page.waitForLoadState("networkidle");
   await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();

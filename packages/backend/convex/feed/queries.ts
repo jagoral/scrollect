@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { requireAuth, optionalAuth } from "../lib/functions";
 import { postType, reactionInput, typeData } from "../lib/validators";
-import { FRESHNESS_WINDOW_MS } from "./constants";
+import { FRESHNESS_WINDOW_MS } from "./logic/constants";
 
 export const list = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -147,6 +147,26 @@ export const getLastGeneratedAt = query({
       .first();
 
     return newest?.createdAt ?? null;
+  },
+});
+
+export const listHighlightsForDocuments = internalQuery({
+  args: {
+    userId: v.string(),
+    documentIds: v.array(v.id("documents")),
+  },
+  handler: async (ctx, args) => {
+    const results = await Promise.all(
+      args.documentIds.map((docId) =>
+        ctx.db
+          .query("highlights")
+          .withIndex("by_userId_documentId", (q) =>
+            q.eq("userId", args.userId).eq("documentId", docId),
+          )
+          .take(500),
+      ),
+    );
+    return results.flat();
   },
 });
 

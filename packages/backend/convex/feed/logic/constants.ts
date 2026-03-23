@@ -1,4 +1,4 @@
-import type { PostType } from "../lib/validators";
+import type { PostType } from "../../lib/validators";
 
 export const HOOK_CARD_TYPES: readonly PostType[] = ["quiz", "connection"];
 export const MAX_CONSECUTIVE_SAME_TYPE = 3;
@@ -6,6 +6,11 @@ export const MAX_CONSECUTIVE_SAME_TYPE = 3;
 export const FRESHNESS_WINDOW_MS = 48 * 60 * 60 * 1000;
 export const FRESHNESS_BOOST_FACTOR = 2.0;
 export const FRESHNESS_DECAY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+export const HIGHLIGHT_BOOST = 3.0;
+
+/** Short highlights (< 20 chars) produce too many false substring matches against chunk content */
+export const MIN_HIGHLIGHT_MATCH_LENGTH = 20;
 
 export function computeRecencyBoost(docCreatedAt: number, now: number): number {
   const age = now - docCreatedAt;

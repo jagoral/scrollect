@@ -37,6 +37,46 @@ Use the `backend-development` skill for project-specific patterns, and Convex sk
 - Functions must not have more than 3 parameters — use object params.
 - Place public API at the top of the file.
 
+## Service Layer & Testability (ADR-012)
+
+Complex Convex actions follow the **controller-orchestration-service** pattern:
+
+1. **Controller** (Convex action in `*.ts`): auth, rate limiting, data loading via `ctx.runQuery`, persistence via `ctx.runMutation`, scheduling, analytics. Thin - ~50 lines. Has `"use node"`.
+2. **Orchestration** (pure function in `logic/*.ts`): business logic with zero Convex `ctx` dependency. Receives a typed `ServiceContext` + plain input data. No `"use node"`, no Convex `_generated/` imports.
+3. **Services** (injected interfaces from `providers/types.ts`): `EmbeddingProvider`, `VectorStore`, `SummaryVectorStore`, `SummarizingLlm`, `TaggingLlm`, `DocumentParser`, `ContentExtractor`, etc.
+
+### Directory structure pattern
+
+Every module with external I/O follows this layout:
+
+```
+module/
+  someAction.ts              # Controller (Convex action)
+  services.ts                # ServiceContext factories: createXxxServiceContext()
+  logic/
+    someLogic.ts             # Pure orchestration function
+    __tests__/
+      mocks.ts               # Mock factories for this module's services
+      someLogic.test.ts      # Unit tests with injected mocks
+```
+
+Existing implementations:
+
+- `feed/` - `FeedServiceContext` via `feed/services.ts`
+- `pipeline/` - per-stage contexts (`SummarizingServiceContext`, `EmbeddingServiceContext`, `TaggingServiceContext`, `ParsingServiceContext`, `ExtractionServiceContext`) via `pipeline/services.ts`
+- `logic/` (top-level) - `VectorDeletionServices` for `documentActions.ts` and `accountActions.ts`
+
+### Key rules
+
+- **Every new action with external I/O** (LLM, Qdrant, external APIs) MUST use this pattern. No hardcoded `getAI()`, `createVectorStore()`, etc. inside orchestration logic.
+- **Per-module ServiceContext types** in `providers/types.ts` - each module gets exactly the services it needs, no bloated shared context.
+- **LLM interfaces at function-level seams** - e.g., `SummarizingLlm.generateSectionSummary({ sectionTitle, combinedText })` not raw `generateText()`. The provider handles AI SDK details; the logic receives semantic parameters.
+- Each orchestration function returns `{ result, metrics }` - business logic stays logging-unaware, controller aggregates metrics into `WideEvent`.
+- Data loading functions return plain data objects - no `ctx` leaks into business logic.
+- Provider interfaces in `providers/types.ts`, implementations in `providers/*.ts`.
+- Mock factories: `feed/logic/__tests__/mocks.ts` (base), `pipeline/logic/__tests__/mocks.ts` (pipeline-specific), `logic/__tests__/mocks.ts` (deletion). Use `createMock*Services({ overrides })` pattern.
+- Tests use vitest (not bun:test). Config at `packages/backend/vitest.config.ts`.
+
 ## Pipeline Pattern
 
 Document processing uses scheduler-based resilience:

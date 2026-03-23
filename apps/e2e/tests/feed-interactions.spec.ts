@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
 
-test.describe("Feed interactions and pagination", () => {
+test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {

@@ -1,5 +1,5 @@
 import type { ChunkMetadata } from "./sampling";
-import type { EmbeddingProvider, VectorStore } from "../providers/types";
+import type { EmbeddingProvider, VectorStore } from "../../providers/types";
 
 export const DEFAULT_SIMILARITY_THRESHOLD = 0.82;
 const SEARCH_TOP_K = 20;

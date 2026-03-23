@@ -10,12 +10,13 @@ import { WideEvent } from "../lib/logging";
 import { captureEvent } from "../providers/analytics";
 
 import {
-  createDocumentParser,
   getPollDelay,
   INITIAL_POLL_DELAY_MS,
   MAX_POLL_DURATION_MS,
   storeMarkdownBlob,
 } from "./helpers";
+import { interpretPollResult, submitForParsing } from "./logic/parsing";
+import { createParsingServiceContext } from "./services";
 
 interface DatalabSubmitArgs {
   ctx: ActionCtx;
@@ -36,10 +37,9 @@ export async function submitDatalabParsingImpl({
     const fileUrl = await ctx.storage.getUrl(storageId);
     if (!fileUrl) throw new Error("File not found in storage");
 
-    const parser = createDocumentParser();
-    const checkUrl = await parser.submit(fileUrl);
+    const services = createParsingServiceContext();
+    const { checkUrl } = await submitForParsing({ fileUrl, services });
 
-    // Persist checkpoint BEFORE polling starts
     await ctx.runMutation(internal.documents.setDatalabCheckUrl, {
       id: documentId,
       checkUrl,
@@ -84,6 +84,7 @@ export const pollDatalabResult = internalAction({
     attempt: v.number(),
     startedAt: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, { documentId, checkUrl, attempt, startedAt }) => {
     const evt = new WideEvent("pipeline.pollDatalabResult");
     evt.set({ documentId, attempt });
@@ -98,80 +99,87 @@ export const pollDatalabResult = internalAction({
       const elapsed = Date.now() - startedAt;
       evt.set("elapsedMs", elapsed);
 
-      if (elapsed > MAX_POLL_DURATION_MS) {
-        evt.set("pollResult", "timeout");
-        await ctx.runMutation(internal.documents.updateStatus, {
-          id: documentId,
-          status: "error",
-          errorMessage: "Document parsing timed out after 5 minutes",
-          failedAt: "parsing",
-        });
-        await captureEvent({
-          distinctId: doc.userId,
-          event: "pipeline.stage_failed",
-          properties: {
-            stage: "parsing",
-            document_id: documentId,
-            file_type: doc.fileType,
-            error: "Document parsing timed out after 5 minutes",
-          },
-        });
-        return;
-      }
-
-      const parser = createDocumentParser();
-      const result = await parser.poll(checkUrl);
-
-      if (result.status === "complete") {
-        evt.set("pollResult", "complete");
-        const markdownStorageId = await storeMarkdownBlob(ctx, result.markdown!);
-        await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
-          documentId,
-          markdownStorageId,
-        });
-        await captureEvent({
-          distinctId: doc.userId,
-          event: "pipeline.stage_completed",
-          properties: {
-            stage: "parsing",
-            document_id: documentId,
-            file_type: doc.fileType,
-            duration_ms: elapsed,
-          },
-        });
-        return;
-      }
-
-      if (result.status === "error") {
-        evt.set("pollResult", "error");
-        await ctx.runMutation(internal.documents.updateStatus, {
-          id: documentId,
-          status: "error",
-          errorMessage: result.errorMessage ?? "Document parsing failed",
-          failedAt: "parsing",
-        });
-        await captureEvent({
-          distinctId: doc.userId,
-          event: "pipeline.stage_failed",
-          properties: {
-            stage: "parsing",
-            document_id: documentId,
-            file_type: doc.fileType,
-            error: result.errorMessage ?? "Document parsing failed",
-          },
-        });
-        return;
-      }
-
-      evt.set("pollResult", "pending");
-      // Still pending - schedule next poll with exponential backoff
-      const nextDelay = getPollDelay(attempt);
-      await ctx.scheduler.runAfter(nextDelay, internal.pipeline.parsing.pollDatalabResult, {
-        documentId,
-        checkUrl,
-        attempt: attempt + 1,
-        startedAt,
+      const services = createParsingServiceContext();
+      const pollResult = await services.parser.poll(checkUrl);
+      const interpreted = interpretPollResult({
+        pollResult,
+        elapsedMs: elapsed,
+        maxDurationMs: MAX_POLL_DURATION_MS,
       });
+
+      evt.set("pollResult", interpreted.status);
+
+      switch (interpreted.status) {
+        case "complete": {
+          const markdownStorageId = await storeMarkdownBlob(ctx, interpreted.markdown);
+          await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
+            documentId,
+            markdownStorageId,
+          });
+          await captureEvent({
+            distinctId: doc.userId,
+            event: "pipeline.stage_completed",
+            properties: {
+              stage: "parsing",
+              document_id: documentId,
+              file_type: doc.fileType,
+              duration_ms: elapsed,
+            },
+          });
+          return;
+        }
+
+        case "error": {
+          await ctx.runMutation(internal.documents.updateStatus, {
+            id: documentId,
+            status: "error",
+            errorMessage: interpreted.errorMessage,
+            failedAt: "parsing",
+          });
+          await captureEvent({
+            distinctId: doc.userId,
+            event: "pipeline.stage_failed",
+            properties: {
+              stage: "parsing",
+              document_id: documentId,
+              file_type: doc.fileType,
+              error: interpreted.errorMessage,
+            },
+          });
+          return;
+        }
+
+        case "timeout": {
+          await ctx.runMutation(internal.documents.updateStatus, {
+            id: documentId,
+            status: "error",
+            errorMessage: "Document parsing timed out after 5 minutes",
+            failedAt: "parsing",
+          });
+          await captureEvent({
+            distinctId: doc.userId,
+            event: "pipeline.stage_failed",
+            properties: {
+              stage: "parsing",
+              document_id: documentId,
+              file_type: doc.fileType,
+              error: "Document parsing timed out after 5 minutes",
+            },
+          });
+          return;
+        }
+
+        case "pending": {
+          const nextDelay = getPollDelay(attempt);
+          await ctx.scheduler.runAfter(nextDelay, internal.pipeline.parsing.pollDatalabResult, {
+            documentId,
+            checkUrl,
+            attempt: attempt + 1,
+            startedAt,
+          });
+          return;
+        }
+      }
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Polling failed";

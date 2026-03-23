@@ -7,13 +7,14 @@
   "scripts": {
     "dev": "convex dev",
     "dev:setup": "convex dev --configure --until-success",
-    "test": "bun test tests/"
+    "test": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
     "@convex-dev/better-auth": "^0.10.13",
     "@convex-dev/migrations": "^0.3.1",
     "@convex-dev/rate-limiter": "^0.3.2",
+    "@supadata/js": "^1.4.0",
     "ai": "^6.0.116",
     "better-auth": "catalog:",
     "convex": "catalog:",
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@scrollect/config": "workspace:*",
     "@types/node": "^24.3.0",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^4.1.0"
   }
 }

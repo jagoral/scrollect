@@ -6,7 +6,8 @@ import { components, internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
-import { createSummaryVectorStore, createVectorStore } from "./pipeline/helpers";
+import { deleteDocumentVectors } from "./logic/documentDeletion";
+import { createVectorDeletionServices } from "./pipeline/services";
 
 export const deleteAccount = action({
   args: {},
@@ -23,8 +24,7 @@ export const deleteAccount = action({
       });
       evt.set("documentCount", documentIds.length);
 
-      const vectorStore = createVectorStore();
-      const summaryVectorStore = createSummaryVectorStore();
+      const services = createVectorDeletionServices();
       const failedDocuments: string[] = [];
 
       for (const documentId of documentIds) {
@@ -35,15 +35,14 @@ export const deleteAccount = action({
           if (!data) continue;
           if (data.document.userId !== user._id) continue;
 
-          const summaryVectorIds = [
-            ...data.sectionSummaryEmbeddingIds,
-            ...(data.document.summaryEmbeddingId ? [data.document.summaryEmbeddingId] : []),
-          ];
-
-          await Promise.all([
-            vectorStore.delete(data.chunkEmbeddingIds),
-            summaryVectorStore.delete(summaryVectorIds),
-          ]);
+          await deleteDocumentVectors({
+            input: {
+              chunkEmbeddingIds: data.chunkEmbeddingIds,
+              sectionSummaryEmbeddingIds: data.sectionSummaryEmbeddingIds,
+              documentSummaryEmbeddingId: data.document.summaryEmbeddingId,
+            },
+            services,
+          });
 
           await ctx.runMutation(internal.documents.cascadeDeletePosts, {
             documentId,

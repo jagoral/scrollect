@@ -8,7 +8,7 @@ function cardOfType(type: string) {
   return `${CARD}[data-card-type="${type}"]`;
 }
 
-test.describe("Multi-type cards and source provenance", () => {
+test.describe("Multi-type cards and source provenance", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {

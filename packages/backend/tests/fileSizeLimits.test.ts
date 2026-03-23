@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { FILE_SIZE_LIMITS, formatFileSize, getFileSizeLimit } from "../convex/lib/fileSizeLimits";
 
@@ -6,7 +6,7 @@ describe("FILE_SIZE_LIMITS", () => {
   test("matches expected limits", () => {
     expect(FILE_SIZE_LIMITS).toEqual({
       pdf: 52428800,
-      epub: 10485760,
+      epub: 31457280,
       md: 5242880,
       text: 5242880,
     });
@@ -52,8 +52,8 @@ describe("getFileSizeLimit", () => {
     expect(getFileSizeLimit("pdf")).toBe(52428800);
   });
 
-  test("epub returns 10 MB", () => {
-    expect(getFileSizeLimit("epub")).toBe(10485760);
+  test("epub returns 30 MB", () => {
+    expect(getFileSizeLimit("epub")).toBe(31457280);
   });
 
   test("md returns 5 MB", () => {

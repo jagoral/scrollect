@@ -62,24 +62,25 @@ Two implementations for Phase 1:
 
 **Raw text** does not need a new mutation. The frontend uploads the text as a blob via the existing `generateUploadUrl` → `create` flow with `fileType: "text"`.
 
-### 3. Article extraction via markdown.new, YouTube via 3-level fallback
+### 3. Article extraction via markdown.new, YouTube via Supadata API
 
-**Article extraction** uses [markdown.new](https://markdown.new/) — a 3-tier Cloudflare pipeline that converts web pages to markdown:
+**Article extraction** uses [markdown.new](https://markdown.new/) - a 3-tier Cloudflare pipeline that converts web pages to markdown:
 
 - Free, no API key, 500 req/day/IP
-- One HTTP call, 0.1–0.6s response times, ~80% token reduction vs raw HTML
+- One HTTP call, 0.1-0.6s response times, ~80% token reduction vs raw HTML
 - Handles JS-heavy pages via Cloudflare headless Browser Rendering API
-- If unreliable, swap in Jina Reader API (`r.jina.ai/{url}`) behind the same `ContentExtractor` interface — one-file change
+- If unreliable, swap in Jina Reader API (`r.jina.ai/{url}`) behind the same `ContentExtractor` interface - one-file change
 
-**YouTube transcript extraction** uses a 3-level HTTP-only fallback chain ported from the [summarize](https://github.com/steipete/summarize) project (MIT-licensed, pure TypeScript, zero dependencies):
+**YouTube transcript extraction** uses the [Supadata API](https://supadata.ai/) (`@supadata/js` SDK):
 
-- **Level 1: YouTubei API** — Fetch the watch page HTML, extract bootstrap config, call `/youtubei/v1/get_transcript`. Returns transcript with timestamps.
-- **Level 2: Caption tracks** — Extract `captionTracks` from the player response, fetch the caption track URL directly (XML with timestamps). Falls back to Android player endpoint.
-- **Level 3: Apify** (optional last resort) — Only attempted if `APIFY_API_TOKEN` env var is set.
+- Managed service that handles YouTube page scraping, caption extraction, and fallback to AI-generated transcripts
+- `mode: "auto"` (default) tries native captions first, falls back to AI generation - effectively a 2-level fallback within the API
+- Returns timestamped transcript chunks (`{ text, offset, duration }` per segment)
+- Videos >20 min trigger async processing (HTTP 202 with `jobId`) - poll `transcript.getJobStatus()` at 1s intervals
+- Video title retrieved via YouTube oEmbed endpoint (free, stable, no API key)
+- Requires `SUPADATA_API_KEY` environment variable (set in Convex dev and prod)
 
-All methods are pure `fetch()` — runs in Convex default runtime. Transcript segments are converted to markdown with timestamp section headers, sized by natural breaks (pauses > 2s or topic shifts).
-
-**Why not npm packages:** `youtube-transcript` is abandoned (last commit Apr 2021, 20 open issues). `youtubei.js` is 14.9MB for one feature. `youtube-transcript-api` reverse-engineers a third-party service, abandoned since Sept 2023. YouTube Data API v3 requires OAuth 2.0, only downloads captions from videos the user owns, and has a 50 downloads/day quota.
+**Why Supadata over self-hosted scraping:** YouTube regularly changes its page structure, breaking bootstrap config parsing. Maintaining ~750 lines of scraping code (3-level fallback chain with YouTubei API, caption tracks, and Apify) is not our domain. Supadata abstracts this fragility as a managed service, supports AI-generated transcripts for videos without captions, and reduces maintenance burden to a single SDK call.
 
 ### 4. Pipeline routing
 
@@ -99,20 +100,21 @@ URL type detection runs client-side by checking the hostname (`youtube.com`, `yo
 ### Alternatives considered
 
 - **Extend `PdfParser` interface for URLs** — Forces URL extraction into an async submit/poll pattern that doesn't fit. URL extraction is synchronous — one call, one result.
-- **Use `youtube-transcript` npm package** — Abandoned (last commit Apr 2021), 20 open issues, breaks in production. Other npm options are similarly unmaintained or too large.
-- **YouTube Data API v3** — Requires OAuth 2.0 (not just API key), can only download captions from videos the user owns, 50 downloads/day quota.
+- **Use `youtube-transcript` npm package** - Abandoned (last commit Apr 2021), 20 open issues, breaks in production. Other npm options are similarly unmaintained or too large.
+- **YouTube Data API v3** - Requires OAuth 2.0 (not just API key), can only download captions from videos the user owns, 50 downloads/day quota.
+- **Self-hosted YouTube scraping (3-level fallback chain)** - Previously used, but ~750 lines of brittle code that breaks when YouTube changes page structure. Outsourced to Supadata to reduce maintenance burden.
 
 ## Consequences
 
 - **Zero impact on downstream pipeline**: Chunking, embedding, and card generation are unchanged. URL extraction produces a markdown blob — the same input format as existing processing
-- **No new environment variables for Phase 1**: markdown.new is free/keyless. YouTube extraction is pure HTTP. Apify (Level 3) is optional and only attempted if `APIFY_API_TOKEN` is set
+- **One environment variable for YouTube**: `SUPADATA_API_KEY` is required for YouTube transcript extraction (already set in Convex dev and prod). markdown.new is free/keyless
 - **`storageId` optionality is the riskiest change**: 6 read sites identified in the codebase — all guarded by `fileType` dispatch or explicit optional checks. Invariant enforced by the mutation layer (`create` requires it, `createFromUrl` doesn't set it)
 - **Rate limits not a concern at personal scale**: markdown.new 500 req/day/IP, YouTube has no formal limit. For a personal tool with single-digit daily ingestions, neither is relevant. If Scrollect grows to shared-IP scale, swap to Jina Reader or self-hosted behind the same interface
-- **YouTube extraction fragility**: YouTube regularly changes page structure, which can break bootstrap config parsing. The 3-level fallback provides resilience — if Level 1 breaks, Levels 2 and 3 still work. We own the code and can fix immediately (unlike abandoned npm packages)
+- **YouTube extraction delegated to Supadata**: Scraping fragility is now Supadata's problem. Their `mode: "auto"` provides native + AI-generated fallback. If Supadata becomes unreliable, swap behind the same `ContentExtractor` interface
 - **Extractor swappability**: The `ContentExtractor` interface ensures any extractor can be replaced without touching the pipeline — one-file change in `providers/`
 
 ## More Information
 
 - ADR-005 covers the E2E testing strategy for URL ingestion (stub vs real extractors).
 - See `providers/types.ts` for the `ContentExtractor` and `ExtractResult` interface definitions.
-- Source files for YouTube extraction ported from `summarize/packages/core/src/content/transcript/providers/youtube/` (MIT-licensed).
+- YouTube transcription uses Supadata API (`@supadata/js` SDK). See [docs.supadata.ai](https://docs.supadata.ai) for API reference.

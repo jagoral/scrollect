@@ -1,12 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
-import { FRESHNESS_DECAY_WINDOW_MS } from "../convex/feed/constants";
+import { FRESHNESS_DECAY_WINDOW_MS } from "../convex/feed/logic/constants";
 import {
   buildSummaryContext,
   filterChunksBySemantic,
   type LearningGoalEntry,
   rankByUsage,
-} from "../convex/feed/selectionLogic";
+} from "../convex/feed/logic/selectionLogic";
 
 const chunk = (id: string, docId: string, section?: string) => ({
   _id: id,
@@ -194,6 +194,94 @@ describe("rankByUsage", () => {
     const result = rankByUsage({ chunks, usageMap, count: 2 });
 
     expect(result[0]!._id).toBe("c1");
+  });
+
+  test("highlighted chunks rank higher than non-highlighted with equal usage", () => {
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+
+    const result = rankByUsage({
+      chunks,
+      usageMap: new Map(),
+      highlightedChunkIds: new Set(["c2"]),
+      count: 2,
+    });
+
+    // c2 gets HIGHLIGHT_BOOST (3.0x), c1 gets 1.0 - c2 should rank first
+    expect(result[0]!._id).toBe("c2");
+  });
+
+  test("highlight boost stacks with recency boost", () => {
+    const now = Date.now();
+    const freshDocTime = now - 1000;
+    const oldDocTime = now - FRESHNESS_DECAY_WINDOW_MS - 1000;
+
+    // c1: old doc, highlighted (1.0 recency * 3.0 highlight = 3.0)
+    // c2: fresh doc, not highlighted (2.0 recency * 1.0 highlight = 2.0)
+    const chunks = [chunk("c1", "d_old"), chunk("c2", "d_fresh")];
+
+    const result = rankByUsage({
+      chunks,
+      usageMap: new Map(),
+      docCreatedAtMap: new Map([
+        ["d_old", oldDocTime],
+        ["d_fresh", freshDocTime],
+      ]),
+      highlightedChunkIds: new Set(["c1"]),
+      now,
+      count: 2,
+    });
+
+    // Highlight boost (3.0) outweighs freshness boost (2.0)
+    expect(result[0]!._id).toBe("c1");
+  });
+
+  test("without highlightedChunkIds, ranking is unchanged", () => {
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+    const usageMap = new Map([["c1", { types: new Set(["insight"]), totalCount: 2 }]]);
+
+    const resultWithout = rankByUsage({ chunks, usageMap, count: 2 });
+    const resultWithUndefined = rankByUsage({
+      chunks,
+      usageMap,
+      highlightedChunkIds: undefined,
+      count: 2,
+    });
+
+    expect(resultWithout.map((c) => c._id)).toEqual(resultWithUndefined.map((c) => c._id));
+  });
+
+  test("empty highlightedChunkIds set has no effect", () => {
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+    const usageMap = new Map([["c1", { types: new Set(["insight"]), totalCount: 2 }]]);
+
+    const resultWithout = rankByUsage({ chunks, usageMap, count: 2 });
+    const resultWithEmpty = rankByUsage({
+      chunks,
+      usageMap,
+      highlightedChunkIds: new Set(),
+      count: 2,
+    });
+
+    expect(resultWithout.map((c) => c._id)).toEqual(resultWithEmpty.map((c) => c._id));
+  });
+
+  test("heavily used highlighted chunk can still be outranked by unused non-highlighted", () => {
+    const chunks = [chunk("c1", "d1"), chunk("c2", "d2")];
+    const usageMap = new Map([
+      ["c1", { types: new Set(["insight", "quiz", "quote", "summary"]), totalCount: 20 }],
+    ]);
+
+    const result = rankByUsage({
+      chunks,
+      usageMap,
+      highlightedChunkIds: new Set(["c1"]),
+      count: 2,
+    });
+
+    // c1 weight: (1/(1+20)) * 3.0 = 0.143
+    // c2 weight: (1/(1+0)) * 1.0 = 1.0
+    // c2 should rank first despite c1 being highlighted
+    expect(result[0]!._id).toBe("c2");
   });
 });
 

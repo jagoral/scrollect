@@ -5,6 +5,7 @@ import {
   documentStatus,
   failedAtStage,
   fileType,
+  highlightSource,
   postType,
   reactionType,
   tagSource,
@@ -119,6 +120,20 @@ export default defineSchema({
     chunkEndIndex: v.number(),
     createdAt: v.number(),
   }).index("by_documentId", ["documentId"]),
+
+  highlights: defineTable({
+    documentId: v.id("documents"),
+    text: v.string(),
+    note: v.optional(v.string()),
+    pageNumber: v.optional(v.number()),
+    externalId: v.string(),
+    source: highlightSource,
+    sourceMetadata: v.optional(v.record(v.string(), v.string())),
+    userId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_userId_documentId", ["userId", "documentId"])
+    .index("by_userId_externalId", ["userId", "externalId"]),
 
   tags: defineTable({
     name: v.string(),
