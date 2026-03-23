@@ -11,14 +11,14 @@
 
 Tests are split into two Playwright projects using the `@seeded` tag:
 
-| Project    | Tag       | Account   | Cost | Use for                         | Workers    |
-| ---------- | --------- | --------- | ---- | ------------------------------- | ---------- |
-| `seeded`   | `@seeded` | Seeded    | $0   | UI interactions, card rendering | 1 (serial) |
-| `chromium` | (none)    | Ephemeral | Low  | Upload flow, library mutations  | default    |
+| Project     | Tag       | Account   | Cost | Use for                         | Workers    |
+| ----------- | --------- | --------- | ---- | ------------------------------- | ---------- |
+| `seeded`    | `@seeded` | Seeded    | $0   | UI interactions, card rendering | 1 (serial) |
+| `ephemeral` | (none)    | Ephemeral | Low  | Upload flow, library mutations  | default    |
 
-**Routing rule**: `test.describe` blocks with `{ tag: "@seeded" }` run in the `seeded` project. Everything else runs in `chromium`.
+**Routing rule**: `test.describe` blocks with `{ tag: "@seeded" }` run in the `seeded` project. Everything else runs in `ephemeral`.
 
-**CI strategy**: `e2e-build` job builds the app and seeds the database. `e2e-seeded` and `e2e-chromium` jobs run in parallel on separate runners. All tests use stub extractors (`USE_STUB_EXTRACTORS=true`).
+**CI strategy**: `e2e-build` job builds the app and seeds the database. `e2e-seeded` and `e2e-ephemeral` jobs run in parallel on separate runners. All tests use stub extractors (`USE_STUB_EXTRACTORS=true`).
 
 ## Writing new tests
 
@@ -93,7 +93,7 @@ cd apps/e2e && npx playwright test
 
 # Single project
 npx playwright test --project=seeded
-npx playwright test --project=chromium
+npx playwright test --project=ephemeral
 
 # Single file
 npx playwright test feed-interactions.spec.ts

@@ -53,12 +53,12 @@ Use these skills when writing and reviewing tests:
 
 Tests are split into two Playwright projects using the `@seeded` tag:
 
-| Project    | Tag       | Account   | Cost | Use for                         | Workers    |
-| ---------- | --------- | --------- | ---- | ------------------------------- | ---------- |
-| `seeded`   | `@seeded` | Seeded    | $0   | UI interactions, card rendering | 1 (serial) |
-| `chromium` | (none)    | Ephemeral | Low  | Upload flow, library mutations  | default    |
+| Project     | Tag       | Account   | Cost | Use for                         | Workers    |
+| ----------- | --------- | --------- | ---- | ------------------------------- | ---------- |
+| `seeded`    | `@seeded` | Seeded    | $0   | UI interactions, card rendering | 1 (serial) |
+| `ephemeral` | (none)    | Ephemeral | Low  | Upload flow, library mutations  | default    |
 
-**Routing rule**: `test.describe` blocks with `{ tag: "@seeded" }` run in the `seeded` project (serial, single worker). Everything else runs in `chromium` (parallel).
+**Routing rule**: `test.describe` blocks with `{ tag: "@seeded" }` run in the `seeded` project (serial, single worker). Everything else runs in `ephemeral` (parallel).
 
 **Adding new tests**:
 
@@ -66,7 +66,7 @@ Tests are split into two Playwright projects using the `@seeded` tag:
 - Tests that upload, create, or mutate data: use ephemeral accounts (`signUp`), no tag needed
 - Mixed files are fine - tag only the seeded describe blocks
 
-**CI jobs**: `e2e-seeded` and `e2e-chromium` run in parallel on separate GitHub Actions runners. The `e2e-build` job builds the app and seeds the database before both.
+**CI jobs**: `e2e-seeded` and `e2e-ephemeral` run in parallel on separate GitHub Actions runners. The `e2e-build` job builds the app and seeds the database before both.
 
 ## Writing Tests
 

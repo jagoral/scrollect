@@ -33,7 +33,7 @@ export default defineConfig({
       workers: 1,
     },
     {
-      name: "chromium",
+      name: "ephemeral",
       grepInvert: /@seeded/,
       use: { ...devices["Desktop Chrome"] },
       testIgnore: [/global-setup\.ts/],
