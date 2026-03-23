@@ -303,6 +303,62 @@ export const listDocumentsByTag = query({
   },
 });
 
+export const addTagsToDocumentBatch = internalMutation({
+  args: {
+    documentId: v.id("documents"),
+    userId: v.string(),
+    names: v.array(v.string()),
+    source: tagSource,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) return null;
+    if (doc.userId !== args.userId) return null;
+
+    let tagIds = doc.tagIds ?? [];
+    let sources = doc.tagSources ?? [];
+    assertTagParity(args.documentId, tagIds, sources);
+
+    for (const name of args.names) {
+      const normalized = normalizeTagName(name);
+      if (normalized.length === 0) continue;
+      if (normalized.length > MAX_TAG_NAME_LENGTH) continue;
+      if (tagIds.length >= MAX_TAGS_PER_DOCUMENT) break;
+
+      let tag = await ctx.db
+        .query("tags")
+        .withIndex("by_userId_normalizedName", (q) =>
+          q.eq("userId", args.userId).eq("normalizedName", normalized),
+        )
+        .first();
+
+      if (!tag) {
+        const tagId = await ctx.db.insert("tags", {
+          name: name.trim(),
+          normalizedName: normalized,
+          userId: args.userId,
+          createdAt: Date.now(),
+        });
+        tag = (await ctx.db.get(tagId))!;
+      }
+
+      if (tagIds.includes(tag._id)) continue;
+
+      tagIds = [...tagIds, tag._id];
+      sources = [...sources, args.source];
+    }
+
+    assertTagParity(args.documentId, tagIds, sources);
+    await ctx.db.patch(args.documentId, {
+      tagIds,
+      tagSources: sources,
+    });
+
+    return null;
+  },
+});
+
 export const addTagToDocumentInternal = internalMutation({
   args: {
     documentId: v.id("documents"),

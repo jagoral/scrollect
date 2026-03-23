@@ -14,6 +14,7 @@ export const autoSuggest = internalAction({
   args: {
     documentId: v.id("documents"),
   },
+  returns: v.null(),
   handler: async (ctx, { documentId }) => {
     const evt = new WideEvent("pipeline.autoSuggestTags");
     evt.set({ documentId });
@@ -57,14 +58,12 @@ export const autoSuggest = internalAction({
         suggestedTags: metrics.suggestedTags,
       });
 
-      for (const tagName of validTags) {
-        await ctx.runMutation(internal.tags.addTagToDocumentInternal, {
-          documentId,
-          userId: doc.userId,
-          name: tagName,
-          source: "ai",
-        });
-      }
+      await ctx.runMutation(internal.tags.addTagsToDocumentBatch, {
+        documentId,
+        userId: doc.userId,
+        names: validTags,
+        source: "ai",
+      });
 
       evt.set("storedTags", validTags.length);
 

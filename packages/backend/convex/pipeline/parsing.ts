@@ -84,6 +84,7 @@ export const pollDatalabResult = internalAction({
     attempt: v.number(),
     startedAt: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, { documentId, checkUrl, attempt, startedAt }) => {
     const evt = new WideEvent("pipeline.pollDatalabResult");
     evt.set({ documentId, attempt });

@@ -25,6 +25,7 @@ export async function resumeSummarizing(ctx: ActionCtx, documentId: Id<"document
 
 export const summarizeDocument = internalAction({
   args: { documentId: v.id("documents") },
+  returns: v.null(),
   handler: async (ctx, { documentId }) => {
     const evt = new WideEvent("pipeline.summarizeDocument");
     evt.set({ documentId });

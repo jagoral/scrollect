@@ -51,6 +51,7 @@ export const embedBatch = internalAction({
     chunkIds: v.array(v.id("chunks")),
     retryCount: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, { jobId, documentId, chunkIds, retryCount }) => {
     const evt = new WideEvent("pipeline.embedBatch");
     evt.set({ jobId, documentId, chunkCount: chunkIds.length, retryCount });
