@@ -1,6 +1,7 @@
 "use node";
 
 import { ConvexError, v } from "convex/values";
+import { chunk as chunked, keyBy } from "es-toolkit";
 
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -10,12 +11,13 @@ import { requireAuth } from "../lib/functions";
 import { WideEvent } from "../lib/logging";
 import type { ChunkMetadata, PostSourceRecord, SectionSummaryInfo } from "./logic/sampling";
 import { generateFeed, buildTypeData } from "./logic/generateFeed";
-import type { FeedInputData, HighlightLike } from "./logic/generateFeed";
-import { MIN_HIGHLIGHT_MATCH_LENGTH } from "./logic/constants";
+import type { FeedInputData, HighlightLike, ValidatedCard } from "./logic/generateFeed";
+import { matchHighlightsToChunks } from "./logic/highlightMatching";
 import { createFeedServiceContext } from "./services";
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const CHUNK_BATCH_SIZE = 200;
 
 export const generate = action({
   args: { count: v.optional(v.number()) },
@@ -57,33 +59,12 @@ export const generate = action({
       const result = await generateFeed({ data, services, cardCount });
       evt.set(result.metrics);
 
-      const docMap = new Map<string, string>(data.documents.map((d) => [d._id, d.title]));
-
-      // Insert in reverse so the first interleaved card (hook) is inserted last,
-      // giving it the highest _creationTime. The feed query uses by_userId DESC,
-      // so higher _creationTime = appears first. Do NOT replace with Promise.all
-      // as that would lose deterministic ordering.
-      const reversed = [...result.cards].reverse();
-
-      const postIds: Id<"posts">[] = [];
-      for (const { card, chunks: cardChunks } of reversed) {
-        const primaryChunk = cardChunks[0]!;
-        const id = await ctx.runMutation(internal.feed.queries.insertPost, {
-          content: card.content,
-          postType: card.type,
-          typeData: buildTypeData(card),
-          primarySourceDocumentId: primaryChunk.documentId as Id<"documents">,
-          primarySourceDocumentTitle: docMap.get(primaryChunk.documentId) ?? "Unknown",
-          primarySourceChunkId: primaryChunk._id as Id<"chunks">,
-          primarySourceSectionTitle: primaryChunk.sectionTitle,
-          primarySourcePageNumber: primaryChunk.pageNumber,
-          sourceChunkIds: cardChunks.map((c) => c._id as Id<"chunks">),
-          sourceDocumentIds: cardChunks.map((c) => c.documentId as Id<"documents">),
-          userId: user._id,
-        });
-        postIds.push(id);
-      }
-      postIds.reverse();
+      const docLookup = keyBy(data.documents, (d) => d._id);
+      const postIds = await insertPostsSequentially(ctx, {
+        cards: result.cards,
+        docLookup,
+        userId: user._id,
+      });
 
       await Promise.all([
         services.analytics.captureAiUsage({
@@ -112,28 +93,50 @@ export const generate = action({
   },
 });
 
+async function insertPostsSequentially(
+  ctx: ActionCtx,
+  opts: {
+    cards: ValidatedCard[];
+    docLookup: Record<string, { _id: string; title: string }>;
+    userId: string;
+  },
+): Promise<Id<"posts">[]> {
+  // Insert in reverse so the first interleaved card (hook) is inserted last,
+  // giving it the highest _creationTime. The feed query uses by_userId DESC,
+  // so higher _creationTime = appears first. Do NOT replace with Promise.all
+  // as that would lose deterministic ordering.
+  const reversed = [...opts.cards].reverse();
+
+  const postIds: Id<"posts">[] = [];
+  for (const { card, chunks: cardChunks } of reversed) {
+    const primaryChunk = cardChunks[0]!;
+    const id = await ctx.runMutation(internal.feed.queries.insertPost, {
+      content: card.content,
+      postType: card.type,
+      typeData: buildTypeData(card),
+      primarySourceDocumentId: primaryChunk.documentId as Id<"documents">,
+      primarySourceDocumentTitle: opts.docLookup[primaryChunk.documentId]?.title ?? "Unknown",
+      primarySourceChunkId: primaryChunk._id as Id<"chunks">,
+      primarySourceSectionTitle: primaryChunk.sectionTitle,
+      primarySourcePageNumber: primaryChunk.pageNumber,
+      sourceChunkIds: cardChunks.map((c) => c._id as Id<"chunks">),
+      sourceDocumentIds: cardChunks.map((c) => c.documentId as Id<"documents">),
+      userId: opts.userId,
+    });
+    postIds.push(id);
+  }
+
+  postIds.reverse();
+  return postIds;
+}
+
 async function loadFeedData(ctx: ActionCtx, userId: string): Promise<FeedInputData> {
   const documents = await ctx.runQuery(internal.feed.queries.listReadyDocuments, { userId });
   const now = Date.now();
 
-  const metadataArrays = await Promise.all(
-    documents.map(async (doc) => {
-      const chunks = await ctx.runQuery(internal.feed.queries.listChunkMetadataForDocument, {
-        documentId: doc._id,
-      });
-      return chunks.map((chunk) => ({
-        _id: chunk._id as string,
-        documentId: doc._id as string,
-        documentTitle: doc.title,
-        sectionTitle: chunk.sectionTitle,
-        pageNumber: chunk.pageNumber,
-        chunkIndex: chunk.chunkIndex,
-      }));
-    }),
-  );
-  const allChunks: ChunkMetadata[] = metadataArrays.flat();
+  const allChunks = await loadChunkMetadata(ctx, documents);
 
-  const [recentSources, recentPosts, recentHashList, allHighlights, ...sectionArrays] =
+  const [recentSources, recentPosts, recentHashList, allHighlights, sectionSummaries] =
     await Promise.all([
       ctx.runQuery(internal.feed.queries.listRecentPostSources, {
         userId,
@@ -151,61 +154,14 @@ async function loadFeedData(ctx: ActionCtx, userId: string): Promise<FeedInputDa
         userId,
         documentIds: documents.map((d) => d._id),
       }),
-      ...documents
-        .filter((doc) => doc.summary)
-        .map(async (doc) => {
-          const sections = await ctx.runQuery(internal.feed.queries.listSectionSummaries, {
-            documentId: doc._id,
-          });
-          return sections.map((s) => ({
-            documentId: doc._id as string,
-            sectionTitle: s.sectionTitle,
-            summary: s.summary,
-            chunkStartIndex: s.chunkStartIndex,
-            chunkEndIndex: s.chunkEndIndex,
-          }));
-        }),
+      loadSectionSummaries(ctx, documents),
     ]);
 
-  const allSectionSummaries: SectionSummaryInfo[] = (
-    sectionArrays as SectionSummaryInfo[][]
-  ).flat();
-
-  // Match highlights to chunks by substring containment
-  let highlightedChunkIds: Set<string> | undefined;
   const typedHighlights = allHighlights as HighlightLike[];
-  if (typedHighlights.length > 0) {
-    const normalizedHighlights = typedHighlights
-      .map((h) => ({ ...h, normalizedText: h.text.toLowerCase() }))
-      .filter((h) => h.normalizedText.length >= MIN_HIGHLIGHT_MATCH_LENGTH);
-
-    if (normalizedHighlights.length > 0) {
-      const highlightedDocIds = new Set(typedHighlights.map((h) => h.documentId as string));
-      const highlightDocChunkIds = allChunks
-        .filter((c) => highlightedDocIds.has(c.documentId))
-        .map((c) => c._id);
-
-      if (highlightDocChunkIds.length > 0) {
-        // Fetch content for chunks in highlighted documents to match highlights
-        const chunkContents = await ctx.runQuery(internal.feed.queries.getChunksByIds, {
-          chunkIds: highlightDocChunkIds as unknown as Id<"chunks">[],
-        });
-        highlightedChunkIds = new Set<string>();
-
-        for (let i = 0; i < highlightDocChunkIds.length; i++) {
-          const chunk = chunkContents[i];
-          if (!chunk) continue;
-          const normalizedChunk = chunk.content.toLowerCase();
-          for (const highlight of normalizedHighlights) {
-            if (normalizedChunk.includes(highlight.normalizedText)) {
-              highlightedChunkIds.add(highlightDocChunkIds[i]!);
-              break;
-            }
-          }
-        }
-      }
-    }
-  }
+  const highlightedChunkIds = await resolveHighlightedChunks(ctx, {
+    highlights: typedHighlights,
+    allChunks,
+  });
 
   return {
     documents: documents.map((d) => ({
@@ -220,10 +176,101 @@ async function loadFeedData(ctx: ActionCtx, userId: string): Promise<FeedInputDa
     recentSources,
     recentPosts,
     recentHashes: new Set(recentHashList as string[]),
-    sectionSummaries: allSectionSummaries,
+    sectionSummaries,
     highlights: typedHighlights,
     highlightedChunkIds,
     userId: userId as string,
     now,
   };
+}
+
+async function loadChunkMetadata(
+  ctx: ActionCtx,
+  documents: Array<{ _id: Id<"documents">; title: string }>,
+): Promise<ChunkMetadata[]> {
+  const metadataArrays = await Promise.all(
+    documents.map(async (doc) => {
+      const chunks = await ctx.runQuery(internal.feed.queries.listChunkMetadataForDocument, {
+        documentId: doc._id,
+      });
+      return chunks.map((chunk) => ({
+        _id: chunk._id as string,
+        documentId: doc._id as string,
+        documentTitle: doc.title,
+        sectionTitle: chunk.sectionTitle,
+        pageNumber: chunk.pageNumber,
+        chunkIndex: chunk.chunkIndex,
+      }));
+    }),
+  );
+  return metadataArrays.flat();
+}
+
+async function loadSectionSummaries(
+  ctx: ActionCtx,
+  documents: Array<{ _id: Id<"documents">; summary?: string }>,
+): Promise<SectionSummaryInfo[]> {
+  const docsWithSummaries = documents.filter((doc) => doc.summary);
+
+  const sectionArrays = await Promise.all(
+    docsWithSummaries.map(async (doc) => {
+      const sections = await ctx.runQuery(internal.feed.queries.listSectionSummaries, {
+        documentId: doc._id,
+      });
+      return sections.map((s) => ({
+        documentId: doc._id as string,
+        sectionTitle: s.sectionTitle,
+        summary: s.summary,
+        chunkStartIndex: s.chunkStartIndex,
+        chunkEndIndex: s.chunkEndIndex,
+      }));
+    }),
+  );
+
+  return sectionArrays.flat();
+}
+
+async function resolveHighlightedChunks(
+  ctx: ActionCtx,
+  opts: { highlights: HighlightLike[]; allChunks: ChunkMetadata[] },
+): Promise<Set<string> | undefined> {
+  if (opts.highlights.length === 0) return undefined;
+
+  const highlightedDocIds = new Set(opts.highlights.map((h) => h.documentId));
+  const candidateChunkIds = opts.allChunks
+    .filter((c) => highlightedDocIds.has(c.documentId))
+    .map((c) => c._id);
+
+  if (candidateChunkIds.length === 0) return undefined;
+
+  const chunkContents = await fetchChunkContentsBatched(ctx, candidateChunkIds);
+
+  return matchHighlightsToChunks({
+    highlights: opts.highlights,
+    allChunks: opts.allChunks,
+    chunkContents,
+  });
+}
+
+async function fetchChunkContentsBatched(
+  ctx: ActionCtx,
+  chunkIds: string[],
+): Promise<Array<{ id: string; content: string }>> {
+  const batches = chunked(chunkIds, CHUNK_BATCH_SIZE);
+  const results = (
+    await Promise.all(
+      batches.map((batch) =>
+        ctx.runQuery(internal.feed.queries.getChunksByIds, {
+          chunkIds: batch as unknown as Id<"chunks">[],
+        }),
+      ),
+    )
+  ).flat();
+
+  return chunkIds
+    .map((id, i) => {
+      const chunk = results[i];
+      return chunk ? { id, content: chunk.content } : null;
+    })
+    .filter((item): item is { id: string; content: string } => item !== null);
 }

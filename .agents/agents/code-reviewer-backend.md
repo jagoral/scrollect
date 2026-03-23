@@ -164,6 +164,24 @@ convex/pipeline/helpers.ts    // pipeline-specific retry logic
 convex/providers/youtube/utils.ts  // YouTube URL parsing
 ```
 
+## es-toolkit Usage (flag on sight)
+
+The project uses `es-toolkit` (`packages/backend/package.json`). Flag hand-rolled implementations of common utilities that es-toolkit already provides:
+
+- **Manual groupBy** - loops building `Map<string, T[]>` by a key property. Use `groupBy()` from es-toolkit.
+- **Manual partition** - dual-array push loops splitting items by a predicate. Use `partition()`.
+- **Manual shuffle** - Fisher-Yates or similar. Use `shuffle()`.
+- **Manual sortBy** - `.sort((a, b) => a.prop - b.prop)` for simple ascending numeric sorts. Use `sortBy(arr, [(x) => x.prop])`. Keep manual `.sort()` for descending or multi-key sorts.
+- **Manual maxBy/minBy** - `.reduce()` comparing a single property to find min/max. Use `maxBy()` or `minBy()`.
+- **Manual keyBy** - `.reduce()` or `new Map(arr.map(x => [x.key, x]))` building a lookup. Use `keyBy()`.
+- **Manual chunk** - `.slice()` loops batching arrays. Use `chunk()`.
+
+**Do NOT flag** these patterns - they are intentional:
+
+- `[...new Set(arr.map(x => x.id))]` - extracts unique scalars, not objects. `uniqBy` is the wrong tool.
+- `.filter((x): x is T => ...)` with type guards - `compact()` loses TypeScript narrowing.
+- `sample()`/`sampleSize()`/`shuffle()` replacements where code injects a custom `randomFn` for testability.
+
 ## Analytics
 
 - Verify pipeline actions capture `pipeline.stage_completed` / `pipeline.stage_failed` events

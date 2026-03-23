@@ -9,6 +9,6 @@ pre-commit:
       run: bun oxlint --fix {staged_files}
       stage_fixed: true
     - name: oxfmt
-      glob: "*.{js,jsx,ts,tsx}"
+      glob: "*.{js,jsx,ts,tsx,md}"
       run: bun oxfmt --write {staged_files}
       stage_fixed: true

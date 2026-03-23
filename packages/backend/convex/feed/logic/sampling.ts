@@ -1,3 +1,5 @@
+import { partition, shuffle } from "es-toolkit";
+
 import { ALL_POST_TYPES } from "../../lib/validators";
 import type { EmbeddingProvider, SummaryVectorStore } from "../../providers/types";
 
@@ -153,15 +155,6 @@ export function buildTypeCoverageHint(chunkUsageMap: Map<string, ChunkUsage>): s
   return `\n\nType coverage hint: The following types have been used least recently and should be preferred: ${underused.join(", ")}.`;
 }
 
-export function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j]!, a[i]!];
-  }
-  return a;
-}
-
 export type SemanticSelectArgs = {
   allChunks: ChunkMetadata[];
   docSummaries: DocumentSummaryInfo[];
@@ -259,18 +252,11 @@ export type FrontLoadArgs = {
 
 export function frontLoadFreshChunks(args: FrontLoadArgs): ChunkMetadata[] {
   const { chunks, docCreatedAtMap, now, maxFresh } = args;
-  const fresh: ChunkMetadata[] = [];
-  const rest: ChunkMetadata[] = [];
 
-  for (const chunk of chunks) {
+  const [fresh, rest] = partition(chunks, (chunk) => {
     const docCreatedAt = docCreatedAtMap.get(chunk.documentId) ?? 0;
-    const age = now - docCreatedAt;
-    if (age < FRESHNESS_WINDOW_MS) {
-      fresh.push(chunk);
-    } else {
-      rest.push(chunk);
-    }
-  }
+    return now - docCreatedAt < FRESHNESS_WINDOW_MS;
+  });
 
   const cap = maxFresh !== undefined ? Math.floor(maxFresh / 2) : fresh.length;
   return [...fresh.slice(0, cap), ...rest, ...fresh.slice(cap)];

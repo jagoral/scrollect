@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { sortBy } from "es-toolkit";
 
 import { internalMutation, mutation, query } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
@@ -122,7 +123,7 @@ export const listByDocument = query({
       )
       .take(200);
 
-    return highlights.sort((a, b) => (a.pageNumber ?? 0) - (b.pageNumber ?? 0));
+    return sortBy(highlights, [(h) => h.pageNumber ?? 0]);
   },
 });
 
