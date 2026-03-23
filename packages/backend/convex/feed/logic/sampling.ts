@@ -1,5 +1,5 @@
-import { ALL_POST_TYPES } from "../lib/validators";
-import type { EmbeddingProvider, SummaryVectorStore } from "../providers/types";
+import { ALL_POST_TYPES } from "../../lib/validators";
+import type { EmbeddingProvider, SummaryVectorStore } from "../../providers/types";
 
 import { FRESHNESS_WINDOW_MS, HIGHLIGHT_BOOST, computeRecencyBoost } from "./constants";
 import type { ChunkLike, ChunkMetadata, UsageInfo } from "./selectionLogic";

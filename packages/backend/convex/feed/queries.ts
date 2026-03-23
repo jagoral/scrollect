@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { requireAuth, optionalAuth } from "../lib/functions";
 import { postType, reactionInput, typeData } from "../lib/validators";
-import { FRESHNESS_WINDOW_MS } from "./constants";
+import { FRESHNESS_WINDOW_MS } from "./logic/constants";
 
 export const list = query({
   args: { paginationOpts: paginationOptsValidator },

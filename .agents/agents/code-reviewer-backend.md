@@ -32,6 +32,8 @@ Use ALL of these Convex skills during review to verify code against platform bes
 - `ai-sdk` — AI SDK usage: generateText, streamText, tools, provider configuration
 - `better-auth-best-practices` — auth server setup, database adapters, session management
 
+Note: Backend tests use **vitest** (not bun:test). Config at `packages/backend/vitest.config.ts`. Shared mock factories at `feed/__tests__/mocks.ts`.
+
 ## Convex Patterns
 
 - **Validators:** Every function must have `args` and `returns` validators. No inline validator duplication — use `lib/validators.ts`.
@@ -47,6 +49,34 @@ Use ALL of these Convex skills during review to verify code against platform bes
 - **Collocation:** Related functions belong together. Pipeline stages in `pipeline/`, feed logic in `feed/`, providers in `providers/`.
 - **No coincidental cohesion:** No `helpers.ts` or `utils.ts` grab-bag files. If a helper is used by one module, put it in that module. If shared, create a domain-specific file.
 - **SOLID:** Single responsibility per file. Functions behind interfaces when there are multiple implementations (see provider pattern in `providers/types.ts`). Depend on abstractions.
+
+## Service Layer Anti-Patterns (flag on sight)
+
+The project uses a controller-orchestration-service pattern (ADR-012). Review new actions against these rules:
+
+- **Hardcoded provider creation inside business logic** - `getAI()`, `createVectorStore()`, `createEmbeddingProvider()` should only appear in service context factories (`feed/services.ts`, `pipeline/helpers.ts`), never in orchestration functions. The orchestration function should receive providers via a `ServiceContext` parameter.
+- **Business logic depending on Convex `ctx`** - orchestration functions should receive plain data objects (`FeedInputData`), not `ctx`. Only the controller and data-loading functions should touch `ctx`. If `ctx` leaks into orchestration, the code can't be unit-tested.
+- **WideEvent threading through business logic** - phase functions should return `{ result, metrics }` objects. The controller aggregates metrics into `WideEvent`. Business logic should not import or reference `WideEvent`.
+- **Missing ContentFetcher abstraction** - any lazy data loading that wraps `ctx.runQuery` should go through the `ContentFetcher` interface in the service context, not be an inline closure in the action handler.
+- **Inline mock factories in test files** - shared mock factories live in `feed/__tests__/mocks.ts`. Use `createMockServices({ overrides })` instead of duplicating mock construction. Check `discovery.test.ts` still uses its local mocks - flag for migration to shared factories.
+- **Action handlers over ~50 lines** - complex actions should delegate to an orchestration function. The action handler should only do: auth, rate limit, create services, load data, call orchestration, persist results, capture analytics.
+
+**FAIL - provider created in orchestration:**
+
+```ts
+async function generateFeed(data: FeedInputData) {
+  const embedder = createEmbeddingProvider(); // hardcoded
+  const selected = await semanticSelect({ embedder, ... });
+}
+```
+
+**PASS - provider injected via service context:**
+
+```ts
+async function generateFeed(opts: { data: FeedInputData; services: FeedServiceContext }) {
+  const selected = await semanticSelect({ embedder: opts.services.embedder, ... });
+}
+```
 
 ## Performance Anti-Patterns (flag on sight)
 

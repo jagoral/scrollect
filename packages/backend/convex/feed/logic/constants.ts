@@ -1,4 +1,4 @@
-import type { PostType } from "../lib/validators";
+import type { PostType } from "../../lib/validators";
 
 export const HOOK_CARD_TYPES: readonly PostType[] = ["quiz", "connection"];
 export const MAX_CONSECUTIVE_SAME_TYPE = 3;

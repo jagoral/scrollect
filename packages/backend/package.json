@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "convex dev",
     "dev:setup": "convex dev --configure --until-success",
-    "test": "bun test tests/"
+    "test": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
@@ -26,6 +26,7 @@
   "devDependencies": {
     "@scrollect/config": "workspace:*",
     "@types/node": "^24.3.0",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^4.1.0"
   }
 }

@@ -1,13 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import {
   mergeConnectionChunks,
   buildConnectionPairMap,
   enrichConnectionCard,
-} from "./connectionEnrichment";
-import type { ConnectionPair } from "./discovery";
-import type { ChunkInfo } from "./sampling";
-import type { RawCard } from "./validation";
+} from "../connectionEnrichment";
+import type { ConnectionPair } from "../discovery";
+import type { ChunkInfo } from "../sampling";
+import type { RawCard } from "../validation";
 
 function makeChunk(id: string, documentId: string, title?: string): ChunkInfo {
   return {
