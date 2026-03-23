@@ -1,7 +1,7 @@
 import { ALL_POST_TYPES } from "../lib/validators";
 import type { EmbeddingProvider, SummaryVectorStore } from "../providers/types";
 
-import { FRESHNESS_WINDOW_MS, computeRecencyBoost } from "./constants";
+import { FRESHNESS_WINDOW_MS, HIGHLIGHT_BOOST, computeRecencyBoost } from "./constants";
 import type { ChunkLike, ChunkMetadata, UsageInfo } from "./selectionLogic";
 import { filterChunksBySemantic, rankByUsage } from "./selectionLogic";
 
@@ -56,13 +56,22 @@ export type WeightedSampleArgs = {
   chunks: ChunkMetadata[];
   chunkUsageMap: Map<string, ChunkUsage>;
   docCreatedAtMap: Map<string, number>;
+  highlightedChunkIds?: Set<string>;
   count: number;
   now: number;
   randomFn?: () => number;
 };
 
 export function weightedSample(args: WeightedSampleArgs): ChunkMetadata[] {
-  const { chunks, chunkUsageMap, docCreatedAtMap, count, now, randomFn = Math.random } = args;
+  const {
+    chunks,
+    chunkUsageMap,
+    docCreatedAtMap,
+    highlightedChunkIds,
+    count,
+    now,
+    randomFn = Math.random,
+  } = args;
   const base = 1.0;
   const weights = chunks.map((chunk) => {
     const usage = chunkUsageMap.get(chunk._id);
@@ -70,8 +79,13 @@ export function weightedSample(args: WeightedSampleArgs): ChunkMetadata[] {
     const totalUsage = usage?.totalCount ?? 0;
     const docCreatedAt = docCreatedAtMap.get(chunk.documentId) ?? 0;
     const recencyBoost = computeRecencyBoost(docCreatedAt, now);
+    const highlightBoost = highlightedChunkIds?.has(chunk._id) ? HIGHLIGHT_BOOST : 1.0;
     return (
-      base * recencyBoost * (1 / (1 + totalUsage)) * (1 + (ALL_POST_TYPES.length - typesUsed) * 0.3)
+      base *
+      recencyBoost *
+      highlightBoost *
+      (1 / (1 + totalUsage)) *
+      (1 + (ALL_POST_TYPES.length - typesUsed) * 0.3)
     );
   });
 
@@ -153,6 +167,7 @@ export type SemanticSelectArgs = {
   docSummaries: DocumentSummaryInfo[];
   chunkUsageMap: Map<string, ChunkUsage>;
   docCreatedAtMap: Map<string, number>;
+  highlightedChunkIds?: Set<string>;
   count: number;
   userId: string;
   embedder: EmbeddingProvider;
@@ -228,6 +243,7 @@ export async function semanticSelect(args: SemanticSelectArgs): Promise<ChunkMet
     chunks: semanticChunks,
     usageMap: chunkUsageMap,
     docCreatedAtMap,
+    highlightedChunkIds: args.highlightedChunkIds,
     now,
     count,
     allChunksForDiversity: allChunks,

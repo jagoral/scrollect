@@ -150,6 +150,26 @@ export const getLastGeneratedAt = query({
   },
 });
 
+export const listHighlightsForDocuments = internalQuery({
+  args: {
+    userId: v.string(),
+    documentIds: v.array(v.id("documents")),
+  },
+  handler: async (ctx, args) => {
+    const results = await Promise.all(
+      args.documentIds.map((docId) =>
+        ctx.db
+          .query("highlights")
+          .withIndex("by_userId_documentId", (q) =>
+            q.eq("userId", args.userId).eq("documentId", docId),
+          )
+          .take(500),
+      ),
+    );
+    return results.flat();
+  },
+});
+
 export const listReadyDocuments = internalQuery({
   args: { userId: v.string() },
   handler: async (ctx, args) => {

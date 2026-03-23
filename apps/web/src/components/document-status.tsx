@@ -65,7 +65,7 @@ export const fileTypeIcons: Record<string, ReactNode> = {
 export function StatusBadge({ status }: { status: keyof typeof statusConfig }) {
   const config = statusConfig[status];
   return (
-    <Badge variant="outline" className={config.className}>
+    <Badge variant="outline" className={config.className} data-testid={`status-${status}`}>
       <span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${config.dotClassName}`} />
       {config.label}
     </Badge>
