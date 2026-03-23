@@ -5,7 +5,7 @@ import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
 const CARD = '[data-testid="post-card"]';
 const NEW_BADGE = '[data-testid="new-badge"]';
 
-test.describe("Freshness badge on feed cards", () => {
+test.describe("Freshness badge on feed cards", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {

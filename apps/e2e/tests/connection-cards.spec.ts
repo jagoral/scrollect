@@ -8,7 +8,7 @@ function cardOfType(type: string) {
   return `${CARD}[data-card-type="${type}"]`;
 }
 
-test.describe("Connection card rendering (seeded)", () => {
+test.describe("Connection card rendering (seeded)", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {

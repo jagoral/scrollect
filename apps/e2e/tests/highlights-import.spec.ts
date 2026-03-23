@@ -1,14 +1,13 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, SEEDED_USER, goToFirstDocument, reseedAccount, signIn } from "./helpers";
+import { FIXTURES_DIR, goToFirstDocument, reseedAccount } from "./helpers";
 
-test.describe("Pocketbook highlights import (seeded account)", () => {
+test.describe("Pocketbook highlights import (seeded account)", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     await reseedAccount();
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
   });
 
   test.afterEach(async () => {

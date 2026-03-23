@@ -1,14 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import {
-  FIXTURES_DIR,
-  SEEDED_USER,
-  cleanupTestData,
-  resetTestData,
-  signIn,
-  signUp,
-} from "./helpers";
+import { FIXTURES_DIR, SEEDED_USER, cleanupTestData, resetTestData, signUp } from "./helpers";
 
 test.describe("Upload and Content Library flow", () => {
   test.setTimeout(120000);
@@ -116,11 +109,7 @@ test.describe("Upload and Content Library flow", () => {
   });
 });
 
-test.describe("File upload size validation", { tag: "@fast" }, () => {
-  test.beforeEach(async ({ page }) => {
-    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-  });
-
+test.describe("File upload size validation", { tag: "@seeded" }, () => {
   test.afterEach(async () => {
     await resetTestData(SEEDED_USER.email);
   });
