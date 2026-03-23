@@ -4,7 +4,7 @@ import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
 
 const CARD = '[data-testid="post-card"]';
 
-test.describe("Feed interleaving rules", () => {
+test.describe("Feed interleaving rules", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {

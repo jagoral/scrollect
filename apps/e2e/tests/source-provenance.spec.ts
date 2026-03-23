@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
 
-test.describe("Source provenance on feed cards", () => {
+test.describe("Source provenance on feed cards", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {

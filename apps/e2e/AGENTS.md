@@ -7,36 +7,38 @@
 - **Ephemeral accounts** (via `testUser()`) are used when tests need clean state (e.g., upload tests)
 - Shared helpers live in `tests/helpers.ts` — never duplicate auth/data helpers across spec files
 
-## Test tiers
+## Test projects & tag routing
 
-| Tier   | Account type | Data setup                      | OpenAI cost     | Example                    |
-| ------ | ------------ | ------------------------------- | --------------- | -------------------------- |
-| Fast   | Seeded       | Pre-populated via `seedE2EData` | $0              | Feed interactions, card UI |
-| Medium | Ephemeral    | Upload + wait for processing    | Embedding only  | Upload flow, library       |
-| Slow   | Ephemeral    | Upload + process + generate     | Embedding + GPT | Full pipeline (avoid)      |
+Tests are split into two Playwright projects using the `@seeded` tag:
 
-Prefer **fast** tests. Only use medium/slow when testing the actual upload or generation pipeline.
+| Project     | Tag       | Account   | Cost | Use for                         | Workers    |
+| ----------- | --------- | --------- | ---- | ------------------------------- | ---------- |
+| `seeded`    | `@seeded` | Seeded    | $0   | UI interactions, card rendering | 1 (serial) |
+| `ephemeral` | (none)    | Ephemeral | Low  | Upload flow, library mutations  | default    |
 
-## 2-tier CI strategy
+**Routing rule**: `test.describe` blocks with `{ tag: "@seeded" }` run in the `seeded` project. Everything else runs in `ephemeral`.
 
-- **Tier 1 (every PR)**: Runs `npx playwright test` — uses stub extractors (`USE_STUB_EXTRACTORS=true` on Convex). Fast, deterministic, no external API calls. Excludes `*.slow.spec.ts` files via `testIgnore` in `playwright.config.ts`.
-- **Tier 2 (merge-to-dev or merge-to-main)**: Runs `npx playwright test url-ingestion.slow.spec.ts` — uses real extractors (markdown.new, YouTube transcript). Requires `USE_STUB_EXTRACTORS` unset. Tests real provider implementations end-to-end (extraction + chunking + embedding, no GPT).
+**CI strategy**: `e2e-build` job builds the app and seeds the database. `e2e-seeded` and `e2e-ephemeral` jobs run in parallel on separate runners. All tests use stub extractors (`USE_STUB_EXTRACTORS=true`).
 
 ## Writing new tests
 
 ### Use the seeded account for read-only / interaction tests
 
+Add `{ tag: "@seeded" }` to the describe block so it routes to the seeded project.
+
 ```ts
 import { SEEDED_USER, signIn, resetTestData } from "./helpers";
 
-test.afterEach(async () => {
-  await resetTestData(SEEDED_USER.email); // clears reactions/bookmarks, preserves posts
-});
+test.describe("my seeded tests", { tag: "@seeded" }, () => {
+  test.afterEach(async () => {
+    await resetTestData(SEEDED_USER.email); // clears reactions/bookmarks, preserves posts
+  });
 
-test("my interaction test", async ({ page }) => {
-  await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-  await page.goto("/app/feed?noAutoGenerate"); // prevents auto-generation
-  // ... test interactions
+  test("my interaction test", async ({ page }) => {
+    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
+    await page.goto("/app/feed?noAutoGenerate"); // prevents auto-generation
+    // ... test interactions
+  });
 });
 ```
 
@@ -86,17 +88,15 @@ All routes are on the Convex site URL (`VITE_CONVEX_SITE_URL`), require the `x-e
 ## Running tests
 
 ```bash
-# Full suite (Tier 1 — excludes *.slow.spec.ts)
+# Full suite
 cd apps/e2e && npx playwright test
+
+# Single project
+npx playwright test --project=seeded
+npx playwright test --project=ephemeral
 
 # Single file
 npx playwright test feed-interactions.spec.ts
-
-# Tier 2 integration tests (real extractors — requires USE_STUB_EXTRACTORS unset)
-npx playwright test url-ingestion.slow.spec.ts
-
-# CI mode
-npx playwright test --workers=1 --retries=2
 
 # View report
 npx playwright show-report

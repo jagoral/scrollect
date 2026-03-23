@@ -1,29 +1,18 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import {
-  FIXTURES_DIR,
-  SEEDED_USER,
-  cleanupTestData,
-  resetTestData,
-  signIn,
-  signUp,
-} from "./helpers";
+import { FIXTURES_DIR, SEEDED_USER, cleanupTestData, resetTestData, signUp } from "./helpers";
 
 test.describe(
   "Upload page tab structure",
   {
-    tag: "@fast",
+    tag: "@seeded",
     annotation: {
       type: "criteria",
       description: "P0-1: Upload page shows three tabs; Upload File is default",
     },
   },
   () => {
-    test.beforeEach(async ({ page }) => {
-      await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    });
-
     test.afterEach(async () => {
       await resetTestData(SEEDED_USER.email);
     });
@@ -170,17 +159,13 @@ test.describe(
 test.describe(
   "Paste URL — YouTube auto-detection",
   {
-    tag: "@fast",
+    tag: "@seeded",
     annotation: {
       type: "criteria",
       description: "P0-4: YouTube badge appears for all YouTube URL formats",
     },
   },
   () => {
-    test.beforeEach(async ({ page }) => {
-      await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    });
-
     test.afterEach(async () => {
       await resetTestData(SEEDED_USER.email);
     });
@@ -218,7 +203,7 @@ test.describe(
 test.describe(
   "Paste URL — validation and errors",
   {
-    tag: "@fast",
+    tag: "@seeded",
     annotation: [
       {
         type: "criteria",
@@ -228,10 +213,6 @@ test.describe(
     ],
   },
   () => {
-    test.beforeEach(async ({ page }) => {
-      await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    });
-
     test.afterEach(async () => {
       await resetTestData(SEEDED_USER.email);
     });
@@ -372,17 +353,13 @@ test.describe(
 test.describe(
   "Paste Text — validation",
   {
-    tag: "@fast",
+    tag: "@seeded",
     annotation: {
       type: "criteria",
       description: "P0-10: Submit disabled when title or body empty; inline validation on blur",
     },
   },
   () => {
-    test.beforeEach(async ({ page }) => {
-      await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    });
-
     test.afterEach(async () => {
       await resetTestData(SEEDED_USER.email);
     });
