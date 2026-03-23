@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { sortBy } from "es-toolkit";
 
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -54,7 +55,7 @@ export const summarizeDocument = internalAction({
         return;
       }
 
-      const sortedChunks = [...allChunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
+      const sortedChunks = sortBy(allChunks, [(c) => c.chunkIndex]);
 
       const oldSections = await ctx.runQuery(internal.sectionSummaries.listByDocument, {
         documentId,

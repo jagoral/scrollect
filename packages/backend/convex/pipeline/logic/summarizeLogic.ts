@@ -1,3 +1,5 @@
+import { groupBy } from "es-toolkit";
+
 import type { SummaryVectorPoint } from "../../providers/types";
 
 export type ChunkGroup<T> = {
@@ -8,22 +10,11 @@ export type ChunkGroup<T> = {
 export function groupChunksBySection<T extends { chunkIndex: number; sectionTitle?: string }>(
   chunks: T[],
 ): ChunkGroup<T>[] {
-  const groups = new Map<string, ChunkGroup<T>>();
-
-  for (const chunk of chunks) {
-    const title = chunk.sectionTitle ?? "(ungrouped)";
-    const existing = groups.get(title);
-    if (existing) {
-      existing.chunks.push(chunk);
-    } else {
-      groups.set(title, {
-        sectionTitle: title,
-        chunks: [chunk],
-      });
-    }
-  }
-
-  return Array.from(groups.values());
+  const grouped = groupBy(chunks, (c) => c.sectionTitle ?? "(ungrouped)");
+  return Object.entries(grouped).map(([sectionTitle, sectionChunks]) => ({
+    sectionTitle,
+    chunks: sectionChunks,
+  }));
 }
 
 export function truncateSectionText(chunks: Array<{ content: string }>, maxChars: number): string {

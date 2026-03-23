@@ -1,3 +1,5 @@
+import { groupBy } from "es-toolkit";
+
 import type { ChunkMetadata } from "./sampling";
 import type { EmbeddingProvider, VectorStore } from "../../providers/types";
 
@@ -121,19 +123,11 @@ type SelectSeedArgs = {
 function selectSeedChunks(args: SelectSeedArgs): ChunkMetadata[] {
   const { chunks, count, randomFn } = args;
 
-  const byDoc = new Map<string, ChunkMetadata[]>();
-  for (const chunk of chunks) {
-    const docChunks = byDoc.get(chunk.documentId);
-    if (docChunks) {
-      docChunks.push(chunk);
-    } else {
-      byDoc.set(chunk.documentId, [chunk]);
-    }
-  }
+  const byDoc = groupBy(chunks, (c) => c.documentId);
 
   const seeds: ChunkMetadata[] = [];
   const seedIds = new Set<string>();
-  const docEntries = Array.from(byDoc.entries());
+  const docEntries = Object.entries(byDoc);
 
   let docIndex = 0;
   while (seeds.length < count && seeds.length < chunks.length) {

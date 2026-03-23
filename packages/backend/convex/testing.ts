@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import type { GenericMutationCtx } from "convex/server";
+import { maxBy } from "es-toolkit";
 
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
@@ -164,9 +165,7 @@ async function resetUserData(ctx: MutationCtx, userId: string) {
   }
 
   if (posts.length > 0) {
-    const newestPost = posts.reduce((newest, post) =>
-      post.createdAt > newest.createdAt ? post : newest,
-    );
+    const newestPost = maxBy(posts, (p) => p.createdAt)!;
     await ctx.db.patch(newestPost._id, { createdAt: Date.now() });
   }
 

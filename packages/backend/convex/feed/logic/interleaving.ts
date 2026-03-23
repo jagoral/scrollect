@@ -1,3 +1,5 @@
+import { groupBy } from "es-toolkit";
+
 import { HOOK_CARD_TYPES, MAX_CONSECUTIVE_SAME_TYPE } from "./constants";
 
 type InterleaveArgs<T> = {
@@ -43,17 +45,7 @@ export function interleaveCards<T>(args: InterleaveArgs<T>): T[] {
 }
 
 function buildTypeBuckets<T>(cards: T[], getType: (card: T) => string): Map<string, T[]> {
-  const buckets = new Map<string, T[]>();
-  for (const card of cards) {
-    const type = getType(card);
-    const bucket = buckets.get(type);
-    if (bucket) {
-      bucket.push(card);
-    } else {
-      buckets.set(type, [card]);
-    }
-  }
-  return buckets;
+  return new Map(Object.entries(groupBy(cards, getType)));
 }
 
 function pickHookCard<T>(buckets: Map<string, T[]>): T | null {

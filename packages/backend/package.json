@@ -19,6 +19,7 @@
     "better-auth": "catalog:",
     "convex": "catalog:",
     "dotenv": "catalog:",
+    "es-toolkit": "^1.45.1",
     "posthog-node": "^4.4.1",
     "unpdf": "^1.4.0",
     "zod": "catalog:"
