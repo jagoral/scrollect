@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { summarizeDocumentLogic } from "../summarizing";
-import { createMockSummarizingServices } from "./mocks";
+import { createMockSummarizingServices, createMockEmbedder, createMockSummaryStore } from "./mocks";
 
 function makeChunk(
   overrides?: Partial<{ content: string; chunkIndex: number; sectionTitle: string }>,
@@ -21,20 +21,15 @@ describe("summarizeDocumentLogic", () => {
     const deleteFn = vi.fn();
     const upsertFn = vi.fn();
     const services = createMockSummarizingServices({
-      embedder: {
+      embedder: createMockEmbedder({
         dimensions: 2,
         lastUsage: { tokens: 42 },
         embed: vi.fn().mockResolvedValue([
           [0.1, 0.2],
           [0.3, 0.4],
         ]),
-      },
-      summaryStore: {
-        ensureCollection: async () => {},
-        upsert: upsertFn,
-        search: async () => [],
-        delete: deleteFn,
-      },
+      }),
+      summaryStore: createMockSummaryStore({ upsert: upsertFn, delete: deleteFn }),
     });
 
     const result = await summarizeDocumentLogic({
@@ -158,19 +153,14 @@ describe("summarizeDocumentLogic", () => {
   it("skips stale vector deletion when staleVectorIds is empty", async () => {
     const deleteFn = vi.fn();
     const services = createMockSummarizingServices({
-      embedder: {
+      embedder: createMockEmbedder({
         dimensions: 2,
         embed: vi.fn().mockResolvedValue([
           [0.1, 0.2],
           [0.3, 0.4],
         ]),
-      },
-      summaryStore: {
-        ensureCollection: async () => {},
-        upsert: async () => {},
-        search: async () => [],
-        delete: deleteFn,
-      },
+      }),
+      summaryStore: createMockSummaryStore({ delete: deleteFn }),
     });
 
     await summarizeDocumentLogic({

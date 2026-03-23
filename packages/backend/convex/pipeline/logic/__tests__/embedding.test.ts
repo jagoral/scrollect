@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { embedBatchLogic } from "../embedding";
-import { createMockEmbeddingServices } from "./mocks";
+import { createMockEmbeddingServices, createMockEmbedder, createMockVectorStore } from "./mocks";
 
 function makeChunk(
   overrides?: Partial<{ _id: string; content: string; chunkIndex: number; embedded: boolean }>,
@@ -21,21 +21,15 @@ describe("embedBatchLogic", () => {
   it("embeds valid chunks, builds points with correct IDs, and upserts", async () => {
     const upsertFn = vi.fn();
     const services = createMockEmbeddingServices({
-      embedder: {
+      embedder: createMockEmbedder({
         dimensions: 2,
         lastUsage: { tokens: 10 },
         embed: vi.fn().mockResolvedValue([
           [0.1, 0.2],
           [0.3, 0.4],
         ]),
-      },
-      vectorStore: {
-        ensureCollection: async () => {},
-        upsert: upsertFn,
-        search: async () => [],
-        searchExcludingDocument: async () => [],
-        delete: async () => {},
-      },
+      }),
+      vectorStore: createMockVectorStore({ upsert: upsertFn }),
     });
 
     const result = await embedBatchLogic({
@@ -98,17 +92,8 @@ describe("embedBatchLogic", () => {
     const embedFn = vi.fn();
     const upsertFn = vi.fn();
     const services = createMockEmbeddingServices({
-      embedder: {
-        dimensions: 2,
-        embed: embedFn,
-      },
-      vectorStore: {
-        ensureCollection: async () => {},
-        upsert: upsertFn,
-        search: async () => [],
-        searchExcludingDocument: async () => [],
-        delete: async () => {},
-      },
+      embedder: createMockEmbedder({ embed: embedFn }),
+      vectorStore: createMockVectorStore({ upsert: upsertFn }),
     });
 
     const result = await embedBatchLogic({
