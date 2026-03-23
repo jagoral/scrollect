@@ -177,6 +177,7 @@ The project uses `es-toolkit` (`packages/backend/package.json`). Flag hand-rolle
 - **Manual chunk** - `.slice()` loops batching arrays. Use `chunk()`.
 
 **Do NOT flag** these patterns - they are intentional:
+
 - `[...new Set(arr.map(x => x.id))]` - extracts unique scalars, not objects. `uniqBy` is the wrong tool.
 - `.filter((x): x is T => ...)` with type guards - `compact()` loses TypeScript narrowing.
 - `sample()`/`sampleSize()`/`shuffle()` replacements where code injects a custom `randomFn` for testability.
