@@ -91,8 +91,11 @@ test.describe("Upload and Content Library flow", () => {
     await docLink.click();
     await expect(page).toHaveURL(/\/app\/library\/.+/);
 
-    // Wait for processing to complete — should show chunk count in metadata
-    await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 90000 });
+    // Wait for processing to complete (ready or error — fail fast on error)
+    await expect(
+      page.locator('[data-testid="status-ready"], [data-testid="status-error"]').first(),
+    ).toBeVisible({ timeout: 90000 });
+    await expect(page.locator('[data-testid="status-ready"]')).toBeVisible();
   });
 
   test("upload page rejects unsupported file types", async ({ page }) => {

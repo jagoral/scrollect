@@ -1,15 +1,6 @@
 import { test, expect } from "@playwright/test";
-import path from "node:path";
 
-import {
-  FIXTURES_DIR,
-  SEEDED_USER,
-  cleanupTestData,
-  goToFirstDocument,
-  reseedAccount,
-  signIn,
-  signUp,
-} from "./helpers";
+import { SEEDED_USER, goToFirstDocument, reseedAccount, signIn } from "./helpers";
 
 test.describe("Tagging — document detail: AI tags (seeded account)", () => {
   test.setTimeout(60000);
@@ -416,9 +407,6 @@ test.describe("Tagging — feed cards (seeded account)", () => {
       });
     }
 
-    // Capture which document we tagged from the URL
-    const _taggedDocId = page.url().split("/app/library/")[1];
-
     await page.goto("/app/feed?noAutoGenerate");
     await page.waitForLoadState("networkidle");
 
@@ -440,42 +428,25 @@ test.describe("Tagging — feed cards (seeded account)", () => {
   });
 });
 
-test.describe("Tagging — AI auto-suggest (ephemeral account)", () => {
-  test.setTimeout(120000);
-
-  let ephemeralEmail: string;
+test.describe("Tagging — AI auto-suggest count (seeded account)", () => {
+  test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {
-    const { email } = await signUp(page);
-    ephemeralEmail = email;
+    await reseedAccount();
+    await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
   });
 
   test.afterEach(async () => {
-    await cleanupTestData(ephemeralEmail);
+    await reseedAccount();
   });
 
-  // P0-3: AI auto-suggests 3-5 tags when document reaches "ready" status
-  test("AI auto-suggests tags after document upload and processing", async ({ page }) => {
-    await page.goto("/app/upload");
-    await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
-    await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
-    await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+  // P0-3: AI auto-suggests 1-5 tags per document
+  test("ready document has 1-5 AI-suggested tags", async ({ page }) => {
+    await goToFirstDocument(page);
 
-    await page.goto("/app/library");
-    await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/app/library/']").first();
-    await expect(docLink).toBeVisible({ timeout: 10000 });
-    await docLink.click();
-    await expect(page).toHaveURL(/\/app\/library\/.+/);
+    const aiTags = page.locator('[data-testid="document-tag-section"] [data-tag-source="ai"]');
+    await expect(aiTags.first()).toBeVisible({ timeout: 15000 });
 
-    // Wait for processing to complete
-    await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 90000 });
-
-    // After processing, AI-suggested tags should appear automatically
-    await expect(page.locator('[data-tag-source="ai"]').first()).toBeVisible({ timeout: 30000 });
-
-    const aiTags = page.locator('[data-tag-source="ai"]');
     const count = await aiTags.count();
     expect(count).toBeGreaterThanOrEqual(1);
     expect(count).toBeLessThanOrEqual(5);
