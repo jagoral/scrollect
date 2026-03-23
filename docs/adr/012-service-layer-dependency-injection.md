@@ -33,6 +33,7 @@ type FeedServiceContext = {
 Convex actions become thin controllers that (1) authenticate, (2) create the service context, (3) load data from Convex, (4) call the orchestration function, and (5) persist results. The orchestration function receives `FeedServiceContext` as a parameter and has no Convex `ctx` dependency.
 
 New interfaces added to `providers/types.ts`:
+
 - `CardGenerationService` - wraps LLM structured output generation behind a function-level seam
 - `AnalyticsService` - wraps PostHog event capture and AI token usage tracking
 - `ContentFetcher` - wraps lazy chunk content loading with caching
