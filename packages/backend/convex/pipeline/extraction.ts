@@ -6,7 +6,9 @@ import type { ActionCtx } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 import { captureEvent } from "../providers/analytics";
 
-import { createArticleExtractor, createYouTubeExtractor, storeMarkdownBlob } from "./helpers";
+import { storeMarkdownBlob } from "./helpers";
+import { extractContentLogic } from "./logic/extraction";
+import { createExtractionServiceContext } from "./services";
 
 interface ExtractionArgs {
   ctx: ActionCtx;
@@ -15,15 +17,17 @@ interface ExtractionArgs {
   userId: string;
   fileType: string;
   evt: WideEvent;
+  extractorType: "article" | "youtube";
 }
 
-export async function extractArticleImpl({
+export async function extractContentImpl({
   ctx,
   documentId,
   sourceUrl,
   userId,
   fileType,
   evt,
+  extractorType,
 }: ExtractionArgs) {
   const startMs = Date.now();
   try {
@@ -31,76 +35,15 @@ export async function extractArticleImpl({
     if (!doc) throw new Error(`Document ${documentId} not found`);
     if (doc.status === "deleting") return;
 
-    const extractor = createArticleExtractor();
-    const result = await extractor.extract(sourceUrl);
-
-    evt.set("markdownLength", result.markdown.length);
-
-    if (result.title) {
-      await ctx.runMutation(internal.documents.updateTitle, {
-        id: documentId,
-        title: result.title,
-      });
-    }
-
-    const markdownStorageId = await storeMarkdownBlob(ctx, result.markdown);
-    await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
-      documentId,
-      markdownStorageId,
+    const services = createExtractionServiceContext();
+    const { result, metrics } = await extractContentLogic({
+      input: { sourceUrl, extractorType },
+      services,
     });
-
-    await captureEvent({
-      distinctId: userId,
-      event: "pipeline.stage_completed",
-      properties: {
-        stage: "parsing",
-        document_id: documentId,
-        file_type: fileType,
-        duration_ms: Date.now() - startMs,
-      },
-    });
-  } catch (error) {
-    evt.setError(error);
-    const message = error instanceof Error ? error.message : "Article extraction failed";
-    await ctx.runMutation(internal.documents.updateStatus, {
-      id: documentId,
-      status: "error",
-      errorMessage: message,
-      failedAt: "parsing",
-    });
-    await captureEvent({
-      distinctId: userId,
-      event: "pipeline.stage_failed",
-      properties: {
-        stage: "parsing",
-        document_id: documentId,
-        file_type: "article",
-        error: message,
-      },
-    });
-  }
-}
-
-export async function extractYouTubeImpl({
-  ctx,
-  documentId,
-  sourceUrl,
-  userId,
-  fileType,
-  evt,
-}: ExtractionArgs) {
-  const startMs = Date.now();
-  try {
-    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-    if (!doc) throw new Error(`Document ${documentId} not found`);
-    if (doc.status === "deleting") return;
-
-    const extractor = createYouTubeExtractor();
-    const result = await extractor.extract(sourceUrl);
 
     evt.set({
-      markdownLength: result.markdown.length,
-      provider: (result.metadata as Record<string, unknown>)?.provider,
+      markdownLength: metrics.markdownLength,
+      ...(metrics.provider ? { provider: metrics.provider } : {}),
     });
 
     if (result.title) {
@@ -128,7 +71,7 @@ export async function extractYouTubeImpl({
     });
   } catch (error) {
     evt.setError(error);
-    const message = error instanceof Error ? error.message : "YouTube extraction failed";
+    const message = error instanceof Error ? error.message : `${extractorType} extraction failed`;
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
       status: "error",
@@ -141,9 +84,17 @@ export async function extractYouTubeImpl({
       properties: {
         stage: "parsing",
         document_id: documentId,
-        file_type: "youtube",
+        file_type: extractorType,
         error: message,
       },
     });
   }
+}
+
+export async function extractArticleImpl(args: Omit<ExtractionArgs, "extractorType">) {
+  return extractContentImpl({ ...args, extractorType: "article" });
+}
+
+export async function extractYouTubeImpl(args: Omit<ExtractionArgs, "extractorType">) {
+  return extractContentImpl({ ...args, extractorType: "youtube" });
 }
