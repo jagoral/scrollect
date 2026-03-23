@@ -3,7 +3,7 @@ name: issue-to-pr
 description: |
   End-to-end workflow that takes a GitHub issue and delivers a pull request. Reads the issue,
   spins up an agent team (via the team-agent-prompt skill), manages issue status with labels,
-  runs the team to implement the feature, creates a PR, and closes the issue.
+  runs the team to implement the feature, and creates a PR.
 argument-hint: "<issue-number-or-url>"
 disable-model-invocation: true
 ---
@@ -12,7 +12,8 @@ disable-model-invocation: true
 
 Take a GitHub issue from assignment through implementation to a merged-ready pull request.
 This skill orchestrates the full lifecycle: read the issue, plan the work, spin up an agent
-team, implement, create a PR, and close the issue.
+team, implement, and create a PR. The issue is closed automatically by GitHub when the PR
+merges (via `Closes #<number>` in the PR body).
 
 ## Prerequisites
 
@@ -198,9 +199,11 @@ Then use the `/pull-request` skill to create the PR:
 - Body: reference the issue, summarize changes, include test plan
 - The PR body should include `Closes #<issue-number>` so GitHub auto-closes the issue on merge
 
-### Step 7: Enable auto-merge and close the issue
+### Step 7: Enable auto-merge and clean up labels
 
-After the PR is created, enable auto-merge so it merges automatically once CI passes:
+After the PR is created, enable auto-merge so it merges automatically once CI passes.
+The issue will be closed automatically by GitHub when the PR merges (because the PR body
+contains `Closes #<number>`).
 
 ```bash
 # Enable auto-merge (squash) on the PR
@@ -209,9 +212,8 @@ gh pr merge <pr-number> --auto --squash
 # Remove in-progress label
 gh issue edit <number> --remove-label "in-progress"
 
-# Comment with the PR link and close
+# Comment with the PR link
 gh issue comment <number> --body "PR ready for review: <pr-url>"
-gh issue close <number> --reason completed
 ```
 
 ## Error handling
