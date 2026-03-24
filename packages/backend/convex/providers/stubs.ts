@@ -5,6 +5,7 @@ import type {
   DocumentParser,
   ExtractResult,
   PollResult,
+  ThematicLlm,
   TokenUsage,
 } from "./types";
 
@@ -238,6 +239,27 @@ export class StubCardDraftLlm implements CardDraftLlm {
   }> {
     return {
       card: STUB_DRAFTS[opts.cardType](opts.sectionTitle),
+      usage: ZERO_USAGE,
+    };
+  }
+}
+
+export class StubThematicLlm implements ThematicLlm {
+  async discoverThemes(_opts: {
+    sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+    documentTitle: string;
+  }): Promise<{
+    themes: Array<{ title: string; description: string; relevantSections: string[] }>;
+    usage: TokenUsage;
+  }> {
+    return {
+      themes: [
+        {
+          title: "Stub Cross-Cutting Theme",
+          description: "A stub theme that connects multiple sections for testing.",
+          relevantSections: _opts.sectionSummaries.slice(0, 2).map((s) => s.sectionTitle),
+        },
+      ],
       usage: ZERO_USAGE,
     };
   }
