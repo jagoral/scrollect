@@ -29,6 +29,11 @@ export const statusConfig = {
     className: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400",
     dotClassName: "bg-violet-500 animate-pulse",
   },
+  generating_cards: {
+    label: "Generating Cards",
+    className: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400",
+    dotClassName: "bg-violet-500 animate-pulse",
+  },
   ready: {
     label: "Ready",
     className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",

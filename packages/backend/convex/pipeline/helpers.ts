@@ -72,6 +72,10 @@ export function createYouTubeExtractor(): ContentExtractor {
   return new YouTubeTranscriptExtractor({ apiKey });
 }
 
+export function computeContentHash(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
 /** Convert a Convex document ID to a deterministic UUID for Qdrant. */
 export function convexIdToUuid(id: string): string {
   const hex = createHash("sha256").update(id).digest("hex");

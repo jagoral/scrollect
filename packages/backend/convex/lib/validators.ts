@@ -18,6 +18,7 @@ export const documentStatus = v.union(
   v.literal("chunking"),
   v.literal("embedding"),
   v.literal("summarizing"),
+  v.literal("generating_cards"),
   v.literal("ready"),
   v.literal("deleting"),
   v.literal("error"),
@@ -28,7 +29,21 @@ export const failedAtStage = v.union(
   v.literal("chunking"),
   v.literal("embedding"),
   v.literal("summarizing"),
+  v.literal("generating_cards"),
   v.literal("deleting"),
+);
+
+export const cardDraftStatus = v.union(
+  v.literal("pending"),
+  v.literal("used"),
+  v.literal("rejected"),
+);
+
+export const cardDraftStrategy = v.union(
+  v.literal("section"),
+  v.literal("thematic"),
+  v.literal("highlight"),
+  v.literal("connection"),
 );
 
 export const reactionType = v.union(v.literal("like"), v.literal("dislike"));
@@ -90,3 +105,7 @@ export type TypeData = Infer<typeof typeData>;
 
 // Must be kept in sync with the postType union above.
 export const ALL_POST_TYPES: PostType[] = ["insight", "quiz", "quote", "summary", "connection"];
+
+// Card types eligible for draft generation. Excludes "connection" because connection
+// drafts require cross-document discovery (sub-increment 1c), not section-scoped generation.
+export type DraftCardType = Exclude<PostType, "connection">;

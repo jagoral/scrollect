@@ -2,6 +2,8 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 import {
+  cardDraftStatus,
+  cardDraftStrategy,
   documentStatus,
   failedAtStage,
   fileType,
@@ -143,4 +145,26 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_normalizedName", ["userId", "normalizedName"]),
+
+  cardDrafts: defineTable({
+    documentId: v.id("documents"),
+    sectionSummaryId: v.optional(v.id("sectionSummaries")),
+    userId: v.string(),
+    cardType: postType,
+    content: v.string(),
+    typeData,
+    sourceChunkIds: v.array(v.id("chunks")),
+    contentHash: v.string(),
+    qualityScore: v.number(),
+    status: cardDraftStatus,
+    generationBatch: v.number(),
+    strategy: cardDraftStrategy,
+    rejectionReason: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_documentId", ["documentId"])
+    .index("by_userId_status", ["userId", "status"])
+    .index("by_documentId_status", ["documentId", "status"])
+    .index("by_userId_contentHash", ["userId", "contentHash"])
+    .index("by_userId_status_cardType", ["userId", "status", "cardType"]),
 });

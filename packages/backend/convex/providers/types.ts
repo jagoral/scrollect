@@ -182,6 +182,22 @@ export interface TaggingLlm {
   suggestTags(opts: { prompt: string }): Promise<{ tags: string[]; usage: TokenUsage }>;
 }
 
+export type { DraftCardType } from "../lib/validators";
+import type { DraftCardType } from "../lib/validators";
+
+export interface CardDraftLlm {
+  generateDraft(opts: {
+    cardType: DraftCardType;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> };
+    usage: TokenUsage;
+  }>;
+}
+
 export type SummarizingServiceContext = {
   llm: SummarizingLlm;
   embedder: EmbeddingProvider;
@@ -204,6 +220,10 @@ export type ExtractionServiceContext = {
 
 export type TaggingServiceContext = {
   llm: TaggingLlm;
+};
+
+export type DraftGenerationServiceContext = {
+  llm: CardDraftLlm;
 };
 
 export type VectorDeletionServices = {

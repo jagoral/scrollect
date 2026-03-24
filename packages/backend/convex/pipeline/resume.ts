@@ -85,6 +85,19 @@ export const resumeProcessing = internalAction({
           await resumeSummarizing(ctx, documentId);
           break;
 
+        case "generating_cards":
+          evt.set("resumePath", "resumeGeneratingCards");
+          await ctx.runMutation(internal.documents.updateStatus, {
+            id: documentId,
+            status: "generating_cards",
+          });
+          await ctx.scheduler.runAfter(
+            0,
+            internal.pipeline.cardDraftGeneration.generateDraftsForDocument,
+            { documentId },
+          );
+          break;
+
         case "deleting":
           evt.set("resumePath", "retryDeleteDocument");
           await ctx.scheduler.runAfter(0, internal.documentActions.retryDeleteDocument, {
