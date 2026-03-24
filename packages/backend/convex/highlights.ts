@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { sortBy } from "es-toolkit";
 
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
 import { highlightSource } from "./lib/validators";
@@ -81,6 +82,27 @@ export const importHighlights = mutation({
         ),
       );
       imported = toInsert.length;
+
+      if (imported > 0) {
+        const hasSections = await ctx.db
+          .query("sectionSummaries")
+          .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+          .first();
+
+        if (hasSections) {
+          await ctx.scheduler.runAfter(
+            0,
+            internal.pipeline.highlightDraftGeneration.generateHighlightDraftsForDocument,
+            {
+              documentId: args.documentId,
+              userId: user._id,
+              batchNumber: 1,
+              retryCount: 0,
+            },
+          );
+          evt.set("scheduledHighlightDraftGeneration", true);
+        }
+      }
 
       evt.set({ imported, skipped });
       return { imported, skipped, total: args.highlights.length };
@@ -185,5 +207,44 @@ export const cascadeDeleteHighlights = internalMutation({
     }
 
     return { deletedHighlights: highlights.length };
+  },
+});
+
+export const listUnprocessedByDocument = internalQuery({
+  args: {
+    documentId: v.id("documents"),
+    limit: v.number(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("highlights"),
+      text: v.string(),
+      pageNumber: v.optional(v.number()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const highlights = await ctx.db
+      .query("highlights")
+      .withIndex("by_documentId_draftGenerated", (q) =>
+        q.eq("documentId", args.documentId).eq("draftGenerated", undefined),
+      )
+      .take(args.limit);
+
+    return highlights.map((h) => ({
+      _id: h._id,
+      text: h.text,
+      pageNumber: h.pageNumber,
+    }));
+  },
+});
+
+export const markDraftGenerated = internalMutation({
+  args: {
+    highlightIds: v.array(v.id("highlights")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await Promise.all(args.highlightIds.map((id) => ctx.db.patch(id, { draftGenerated: true })));
+    return null;
   },
 });

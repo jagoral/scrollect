@@ -5,6 +5,7 @@ import type {
   DraftCardType,
   DocumentParser,
   ExtractResult,
+  HighlightDraftLlm,
   PollResult,
   ThematicLlm,
   TokenUsage,
@@ -297,5 +298,31 @@ export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
       },
       usage: ZERO_USAGE,
     };
+  }
+}
+
+export class StubHighlightDraftLlm implements HighlightDraftLlm {
+  async generateDraftsFromHighlights(opts: {
+    highlights: Array<{ highlightId: string; highlightText: string }>;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+  }): Promise<{
+    cards: Array<{
+      highlightId: string;
+      content: string;
+      cardType: DraftCardType;
+      typeData: Record<string, unknown>;
+    }>;
+    usage: TokenUsage;
+  }> {
+    const cards = opts.highlights.map((h) => ({
+      highlightId: h.highlightId,
+      content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}...`,
+      cardType: "insight" as DraftCardType,
+      typeData: { type: "insight" },
+    }));
+    return { cards, usage: ZERO_USAGE };
   }
 }

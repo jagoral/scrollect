@@ -14,6 +14,8 @@ import type {
   EmbeddingServiceContext,
   ExtractResult,
   ExtractionServiceContext,
+  HighlightDraftGenerationServiceContext,
+  HighlightDraftLlm,
   ParsingServiceContext,
   PollResult,
   SummarizingLlm,
@@ -246,6 +248,32 @@ export function createMockConnectionDiscoveryServices(
     llm: createMockConnectionDiscoveryLlm(),
     summaryStore: createMockSummaryStore(),
     embedder: createMockEmbedder(),
+    ...overrides,
+  };
+}
+
+export function createMockHighlightDraftLlm(
+  overrides?: Partial<HighlightDraftLlm>,
+): HighlightDraftLlm {
+  return {
+    generateDraftsFromHighlights: async (opts) => ({
+      cards: opts.highlights.map((h) => ({
+        highlightId: h.highlightId,
+        content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}`,
+        cardType: "insight" as DraftCardType,
+        typeData: { type: "insight" },
+      })),
+      usage: ZERO_USAGE,
+    }),
+    ...overrides,
+  };
+}
+
+export function createMockHighlightDraftGenerationServices(
+  overrides?: Partial<HighlightDraftGenerationServiceContext>,
+): HighlightDraftGenerationServiceContext {
+  return {
+    llm: createMockHighlightDraftLlm(),
     ...overrides,
   };
 }

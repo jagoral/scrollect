@@ -5,6 +5,7 @@ import type {
   DraftGenerationServiceContext,
   EmbeddingServiceContext,
   ExtractionServiceContext,
+  HighlightDraftGenerationServiceContext,
   ParsingServiceContext,
   SummarizingServiceContext,
   TaggingServiceContext,
@@ -13,8 +14,14 @@ import type {
 } from "../providers/types";
 import { AiSdkCardDraftLlm } from "../providers/cardDraftLlm";
 import { AiSdkConnectionDiscoveryLlm } from "../providers/connectionDiscoveryLlm";
+import { AiSdkHighlightDraftLlm } from "../providers/highlightDraftLlm";
 import { AiSdkSummarizingLlm } from "../providers/summarizingLlm";
-import { StubCardDraftLlm, StubConnectionDiscoveryLlm, StubThematicLlm } from "../providers/stubs";
+import {
+  StubCardDraftLlm,
+  StubConnectionDiscoveryLlm,
+  StubHighlightDraftLlm,
+  StubThematicLlm,
+} from "../providers/stubs";
 import { AiSdkTaggingLlm } from "../providers/taggingLlm";
 import { AiSdkThematicLlm } from "../providers/thematicLlm";
 
@@ -105,4 +112,11 @@ export function createConnectionDiscoveryServiceContext(): ConnectionDiscoverySe
     summaryStore: createSummaryVectorStore(),
     embedder: createEmbeddingProvider(),
   };
+}
+
+export function createHighlightDraftGenerationServiceContext(): HighlightDraftGenerationServiceContext {
+  if (process.env.USE_STUB_EXTRACTORS === "true") {
+    return { llm: new StubHighlightDraftLlm() };
+  }
+  return { llm: new AiSdkHighlightDraftLlm() };
 }

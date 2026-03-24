@@ -133,11 +133,13 @@ export default defineSchema({
     externalId: v.string(),
     source: highlightSource,
     sourceMetadata: v.optional(v.record(v.string(), v.string())),
+    draftGenerated: v.optional(v.boolean()),
     userId: v.string(),
     createdAt: v.number(),
   })
     .index("by_userId_documentId", ["userId", "documentId"])
-    .index("by_userId_externalId", ["userId", "externalId"]),
+    .index("by_userId_externalId", ["userId", "externalId"])
+    .index("by_documentId_draftGenerated", ["documentId", "draftGenerated"]),
 
   tags: defineTable({
     name: v.string(),

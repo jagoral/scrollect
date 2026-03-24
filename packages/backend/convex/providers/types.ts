@@ -271,6 +271,28 @@ export type ConnectionDiscoveryServiceContext = {
   embedder: EmbeddingProvider;
 };
 
+export interface HighlightDraftLlm {
+  generateDraftsFromHighlights(opts: {
+    highlights: Array<{ highlightId: string; highlightText: string }>;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+  }): Promise<{
+    cards: Array<{
+      highlightId: string;
+      content: string;
+      cardType: DraftCardType;
+      typeData: Record<string, unknown>;
+    }>;
+    usage: TokenUsage;
+  }>;
+}
+
+export type HighlightDraftGenerationServiceContext = {
+  llm: HighlightDraftLlm;
+};
+
 export type VectorDeletionServices = {
   vectorStore: VectorStore;
   summaryStore: SummaryVectorStore;
