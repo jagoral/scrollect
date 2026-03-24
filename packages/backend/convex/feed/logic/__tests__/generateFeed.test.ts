@@ -258,6 +258,27 @@ describe("generateFeed", () => {
     expect(result.cards).toHaveLength(0);
   });
 
+  test("system prompt includes language matching instruction", async () => {
+    let capturedSystemPrompt = "";
+    const services = createMockServices({
+      cardGenerator: createMockCardGenerator({
+        generateCards: async (opts) => {
+          capturedSystemPrompt = opts.systemPrompt;
+          return {
+            cards: [{ type: "insight", content: "Card.", sourceChunkIndices: [0] }],
+            usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
+          };
+        },
+      }),
+      contentFetcher: createMapContentFetcher(contentMap),
+    });
+
+    await generateFeed({ data: makeInputData(), services, cardCount: 1 });
+
+    expect(capturedSystemPrompt).toContain("LANGUAGE RULE");
+    expect(capturedSystemPrompt).toContain("same language as its source chunks");
+  });
+
   test("throws when no chunks are available", async () => {
     const services = createMockServices();
 

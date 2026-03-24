@@ -1,3 +1,4 @@
+import { shuffle } from "es-toolkit";
 import type { ConnectionPair } from "./discovery";
 import { discoverConnections } from "./discovery";
 import type {
@@ -233,6 +234,7 @@ export async function generateFeed(opts: {
     const { cards: rawCards, usage } = await services.cardGenerator.generateCards({
       systemPrompt,
       userPrompt,
+      cardCount,
     });
     generationTokens.inputTokens += usage.inputTokens;
     generationTokens.outputTokens += usage.outputTokens;
@@ -302,34 +304,38 @@ export async function generateFeed(opts: {
 
 function buildMultiTypePrompt(chunkCount: number, cardCount: number): string {
   return `You are an AI learning assistant for Scrollect, a personal learning feed app.
-Your job is to transform raw text chunks from documents into engaging, bite-sized learning cards of MIXED types.
+Your job is to surface specific, memorable fragments from documents as bite-sized learning cards.
+
+CONTENT PHILOSOPHY: Stay close to the source. Prefer exact wordings, specific facts, surprising details, and concrete examples over generic summaries or interpretations. The user wants to re-encounter the actual content they saved - not a paraphrased version. When user highlights are provided, prioritize building cards directly from those highlighted passages.
 
 Card types you MUST produce (aim for variety - use at least 3 different types):
 
-1. **insight** - A concise insight or key takeaway (2-4 sentences). Use **bold** for key terms.
-2. **quiz** - A question testing understanding. Include:
+1. **insight** - A specific fact, surprising detail, or concrete example from the source (2-4 sentences). Use **bold** for key terms. Prefer verbatim phrases and exact numbers/names from the text over generalizations.
+2. **quiz** - A question testing recall of specific details from the source. Include:
    - variant: "multiple_choice" or "true_false"
-   - question: the question text
+   - question: the question text (ask about concrete facts, names, numbers - not vague concepts)
    - options: array of 4 choices (or 2 for true_false: ["True", "False"])
    - correctIndex: 0-based index of the correct option
-   - explanation: brief explanation of the correct answer
-3. **quote** - A notable quote from the source. Include:
-   - quotedText: the exact quoted text
+   - explanation: brief explanation referencing the exact source detail
+3. **quote** - A notable, memorable, or thought-provoking passage from the source. Include:
+   - quotedText: the exact quoted text (copy verbatim, do not paraphrase)
    - attribution: (optional) author or source name
-4. **summary** - A bullet-point summary combining ideas from MULTIPLE chunks. Include:
-   - bulletPoints: array of 2-5 bullet point strings
+4. **summary** - Bullet points listing specific takeaways from MULTIPLE chunks. Include:
+   - bulletPoints: array of 2-5 bullet point strings (each should reference a concrete detail, not abstract generalizations)
    - IMPORTANT: summaries MUST reference at least 2 different chunks via sourceChunkIndices
-5. **connection** - Links concepts across different sources. Include:
+5. **connection** - Links specific ideas across different sources. Include:
    - sourceATitleHint: title/topic of the first source
    - sourceBTitleHint: title/topic of the second source
-   - sourceAKeyIdea: one sentence describing the key idea from the first source that forms the connection
-   - sourceBKeyIdea: one sentence describing the key idea from the second source that forms the connection
+   - sourceAKeyIdea: one sentence with the specific idea from the first source
+   - sourceBKeyIdea: one sentence with the specific idea from the second source
    - IMPORTANT: connections MUST reference at least 2 chunks via sourceChunkIndices
    - QUALITY GATE: Only create a connection if the relationship is genuinely insightful and non-obvious. If two chunks merely discuss the same topic without a deeper conceptual bridge, do NOT create a connection card - use a different type instead.
 
 For ALL cards:
-- content: 2-4 sentences of engaging text (the main card body)
+- content: 2-4 sentences that stay faithful to the source text (the main card body)
 - sourceChunkIndices: array of 0-based indices into the provided chunks that this card draws from
+
+LANGUAGE RULE: Write each card in the same language as its source chunks. If the source chunks are in Polish, write content, questions, options, explanations, bullet points, and key ideas in Polish. If they are in English, write in English. Always match the source language - never translate to English. Quote text (quotedText) must be kept verbatim from the source.
 
 Return a JSON object: { "cards": [ { type, content, sourceChunkIndices, ...type-specific fields } ] }
 
@@ -340,12 +346,11 @@ function buildHighlightContext(highlights: HighlightLike[], selectedDocIds: Set<
   const relevant = highlights.filter((h) => selectedDocIds.has(h.documentId));
   if (relevant.length === 0) return "";
 
-  const lines = relevant
-    .slice(0, 20) // Cap to avoid prompt bloat
-    .map((h) => {
-      const base = `- "${h.text}"`;
-      return h.note ? `${base} (user note: ${h.note})` : base;
-    });
+  const sampled = shuffle(relevant).slice(0, 20);
+  const lines = sampled.map((h) => {
+    const base = `- "${h.text}"`;
+    return h.note ? `${base} (user note: ${h.note})` : base;
+  });
 
   return (
     "\n\nUSER HIGHLIGHTS (the user specifically highlighted these passages - they found them important. " +

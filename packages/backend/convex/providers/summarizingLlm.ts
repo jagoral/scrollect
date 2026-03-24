@@ -17,6 +17,7 @@ Rules:
 - Capture the main concepts and their relationships
 - Be specific - include key terms, names, and numbers
 - Write in third person
+- Always write in English, even if the source text is in another language
 
 Return a JSON object: { "summary": "..." }`;
 }
@@ -30,6 +31,7 @@ Rules:
 - Capture the document's main thesis and key arguments
 - Mention the most important concepts across sections
 - Write in third person
+- Always write in English, even if the source text is in another language
 
 Return a JSON object: { "summary": "..." }`;
 }

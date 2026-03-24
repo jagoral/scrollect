@@ -12,8 +12,8 @@ export function getAI(): Provider {
     const openai = createOpenAI({ apiKey });
     _ai = customProvider({
       languageModels: {
-        fast: openai("gpt-4o-mini"),
-        powerful: openai("gpt-4o"),
+        fast: openai("gpt-5-nano"),
+        powerful: openai("gpt-5-mini"),
       },
       embeddingModels: {
         default: openai.embeddingModel("text-embedding-3-small"),

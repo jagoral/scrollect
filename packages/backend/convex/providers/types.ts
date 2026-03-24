@@ -5,7 +5,7 @@ export type TokenUsage = {
 };
 
 export interface CardGenerationService {
-  generateCards(opts: { systemPrompt: string; userPrompt: string }): Promise<{
+  generateCards(opts: { systemPrompt: string; userPrompt: string; cardCount: number }): Promise<{
     cards: Record<string, unknown>[];
     usage: TokenUsage;
   }>;
