@@ -7,11 +7,14 @@ import type {
   ParsingServiceContext,
   SummarizingServiceContext,
   TaggingServiceContext,
+  ThematicDraftGenerationServiceContext,
   VectorDeletionServices,
 } from "../providers/types";
 import { AiSdkCardDraftLlm } from "../providers/cardDraftLlm";
 import { AiSdkSummarizingLlm } from "../providers/summarizingLlm";
+import { StubCardDraftLlm, StubThematicLlm } from "../providers/stubs";
 import { AiSdkTaggingLlm } from "../providers/taggingLlm";
+import { AiSdkThematicLlm } from "../providers/thematicLlm";
 
 import {
   createArticleExtractor,
@@ -64,7 +67,25 @@ export function createVectorDeletionServices(): VectorDeletionServices {
 }
 
 export function createDraftGenerationServiceContext(): DraftGenerationServiceContext {
+  if (process.env.USE_STUB_EXTRACTORS === "true") {
+    return { llm: new StubCardDraftLlm() };
+  }
+  return { llm: new AiSdkCardDraftLlm() };
+}
+
+export function createThematicDraftGenerationServiceContext(): ThematicDraftGenerationServiceContext {
+  if (process.env.USE_STUB_EXTRACTORS === "true") {
+    return {
+      thematicLlm: new StubThematicLlm(),
+      draftLlm: new StubCardDraftLlm(),
+      embedder: createEmbeddingProvider(),
+      vectorStore: createVectorStore(),
+    };
+  }
   return {
-    llm: new AiSdkCardDraftLlm(),
+    thematicLlm: new AiSdkThematicLlm(),
+    draftLlm: new AiSdkCardDraftLlm(),
+    embedder: createEmbeddingProvider(),
+    vectorStore: createVectorStore(),
   };
 }
