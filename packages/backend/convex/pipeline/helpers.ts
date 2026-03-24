@@ -121,6 +121,7 @@ export async function transitionToReady(opts: {
   });
 
   await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
+  await ctx.scheduler.runAfter(0, internal.pipeline.connectionDiscovery.discover, { documentId });
 
   if (userId) {
     await captureEvent({

@@ -209,6 +209,27 @@ export interface ThematicLlm {
   }>;
 }
 
+export interface ConnectionDiscoveryLlm {
+  /** Generate a connection card from two related sections. Returns null if the LLM rejects the pair as trivial. */
+  generateConnectionDraft(opts: {
+    sectionA: {
+      title: string;
+      summary: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+    };
+    sectionB: {
+      title: string;
+      summary: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+    };
+    documentATitle: string;
+    documentBTitle: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> } | null;
+    usage: TokenUsage;
+  }>;
+}
+
 export type SummarizingServiceContext = {
   llm: SummarizingLlm;
   embedder: EmbeddingProvider;
@@ -242,6 +263,12 @@ export type ThematicDraftGenerationServiceContext = {
   draftLlm: CardDraftLlm;
   embedder: EmbeddingProvider;
   vectorStore: VectorStore;
+};
+
+export type ConnectionDiscoveryServiceContext = {
+  llm: ConnectionDiscoveryLlm;
+  summaryStore: SummaryVectorStore;
+  embedder: EmbeddingProvider;
 };
 
 export type VectorDeletionServices = {

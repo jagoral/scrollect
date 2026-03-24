@@ -347,6 +347,16 @@ export const getInternal = internalQuery({
   },
 });
 
+export const listReadyByUser = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("documents")
+      .withIndex("by_userId_status", (q) => q.eq("userId", args.userId).eq("status", "ready"))
+      .collect();
+  },
+});
+
 export const getDocumentDeletionData = internalQuery({
   args: { documentId: v.id("documents") },
   returns: v.union(

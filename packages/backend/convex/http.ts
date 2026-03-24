@@ -84,4 +84,26 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/api/e2e-connection-drafts",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!isE2EEnabled()) return e2eNotFound();
+    try {
+      const email = await parseEmail(request);
+      const user = await ctx.runQuery(internal.testing.findUserByEmail, { email });
+      if (!user) {
+        throw new Error(`User not found for email: ${email}`);
+      }
+      const drafts = await ctx.runQuery(internal.testing.listConnectionDraftsByUserId, {
+        userId: user._id as string,
+      });
+      return Response.json({ drafts });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Query failed";
+      return Response.json({ error: message }, { status: 500 });
+    }
+  }),
+});
+
 export default http;

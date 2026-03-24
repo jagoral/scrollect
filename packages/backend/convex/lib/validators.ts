@@ -46,6 +46,14 @@ export const cardDraftStrategy = v.union(
   v.literal("connection"),
 );
 
+export const connectionType = v.union(v.literal("cross_document"), v.literal("within_document"));
+
+export const connectionPairStatus = v.union(
+  v.literal("pending"),
+  v.literal("drafted"),
+  v.literal("failed"),
+);
+
 export const reactionType = v.union(v.literal("like"), v.literal("dislike"));
 
 export const highlightSource = v.union(v.literal("pocketbook"));
@@ -95,7 +103,7 @@ export const typeData = v.union(
     sourceAKeyIdea: v.optional(v.string()),
     sourceBKeyIdea: v.optional(v.string()),
     similarityScore: v.optional(v.number()),
-    connectionType: v.optional(v.union(v.literal("cross_document"), v.literal("within_document"))),
+    connectionType: v.optional(connectionType),
   }),
 );
 

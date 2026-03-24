@@ -5,6 +5,8 @@ import {
 } from "../../../feed/logic/__tests__/mocks";
 import type {
   CardDraftLlm,
+  ConnectionDiscoveryLlm,
+  ConnectionDiscoveryServiceContext,
   ContentExtractor,
   DocumentParser,
   DraftCardType,
@@ -212,6 +214,38 @@ export function createMockThematicDraftGenerationServices(
     draftLlm: createMockCardDraftLlm(),
     embedder: createMockEmbedder(),
     vectorStore: createMockVectorStore(),
+    ...overrides,
+  };
+}
+
+export function createMockConnectionDiscoveryLlm(
+  overrides?: Partial<ConnectionDiscoveryLlm>,
+): ConnectionDiscoveryLlm {
+  return {
+    generateConnectionDraft: async (opts) => ({
+      card: {
+        content: `Connection between "${opts.sectionA.title}" and "${opts.sectionB.title}": meaningful conceptual link.`,
+        typeData: {
+          type: "connection",
+          sourceATitleHint: opts.documentATitle,
+          sourceBTitleHint: opts.documentBTitle,
+          sourceAKeyIdea: `Key idea from ${opts.sectionA.title}`,
+          sourceBKeyIdea: `Key idea from ${opts.sectionB.title}`,
+        },
+      },
+      usage: ZERO_USAGE,
+    }),
+    ...overrides,
+  };
+}
+
+export function createMockConnectionDiscoveryServices(
+  overrides?: Partial<ConnectionDiscoveryServiceContext>,
+): ConnectionDiscoveryServiceContext {
+  return {
+    llm: createMockConnectionDiscoveryLlm(),
+    summaryStore: createMockSummaryStore(),
+    embedder: createMockEmbedder(),
     ...overrides,
   };
 }

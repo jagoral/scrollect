@@ -201,6 +201,28 @@ export const countUserDocuments = internalQuery({
   },
 });
 
+export const listConnectionDraftsByUserId = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const drafts = await ctx.db
+      .query("cardDrafts")
+      .withIndex("by_userId_status", (q) => q.eq("userId", args.userId).eq("status", "pending"))
+      .collect();
+
+    const connectionDrafts = drafts.filter((d) => d.strategy === "connection");
+
+    return connectionDrafts.map((d) => ({
+      _id: d._id,
+      documentId: d.documentId,
+      cardType: d.cardType,
+      strategy: d.strategy,
+      sourceChunkIds: d.sourceChunkIds,
+      typeData: d.typeData,
+      content: d.content,
+    }));
+  },
+});
+
 export const insertSeededData = internalMutation({
   args: {
     userId: v.string(),

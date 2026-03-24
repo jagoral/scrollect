@@ -1,6 +1,7 @@
 "use node";
 
 import type {
+  ConnectionDiscoveryServiceContext,
   DraftGenerationServiceContext,
   EmbeddingServiceContext,
   ExtractionServiceContext,
@@ -11,8 +12,9 @@ import type {
   VectorDeletionServices,
 } from "../providers/types";
 import { AiSdkCardDraftLlm } from "../providers/cardDraftLlm";
+import { AiSdkConnectionDiscoveryLlm } from "../providers/connectionDiscoveryLlm";
 import { AiSdkSummarizingLlm } from "../providers/summarizingLlm";
-import { StubCardDraftLlm, StubThematicLlm } from "../providers/stubs";
+import { StubCardDraftLlm, StubConnectionDiscoveryLlm, StubThematicLlm } from "../providers/stubs";
 import { AiSdkTaggingLlm } from "../providers/taggingLlm";
 import { AiSdkThematicLlm } from "../providers/thematicLlm";
 
@@ -87,5 +89,20 @@ export function createThematicDraftGenerationServiceContext(): ThematicDraftGene
     draftLlm: new AiSdkCardDraftLlm(),
     embedder: createEmbeddingProvider(),
     vectorStore: createVectorStore(),
+  };
+}
+
+export function createConnectionDiscoveryServiceContext(): ConnectionDiscoveryServiceContext {
+  if (process.env.USE_STUB_EXTRACTORS === "true") {
+    return {
+      llm: new StubConnectionDiscoveryLlm(),
+      summaryStore: createSummaryVectorStore(),
+      embedder: createEmbeddingProvider(),
+    };
+  }
+  return {
+    llm: new AiSdkConnectionDiscoveryLlm(),
+    summaryStore: createSummaryVectorStore(),
+    embedder: createEmbeddingProvider(),
   };
 }
