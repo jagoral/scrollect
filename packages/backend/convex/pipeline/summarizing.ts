@@ -49,9 +49,13 @@ export const summarizeDocument = internalAction({
       if (allChunks.length === 0) {
         await ctx.runMutation(internal.documents.updateStatus, {
           id: documentId,
-          status: "ready",
+          status: "generating_cards",
         });
-        await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
+        await ctx.scheduler.runAfter(
+          0,
+          internal.pipeline.cardDraftGeneration.generateDraftsForDocument,
+          { documentId },
+        );
         return;
       }
 
@@ -81,9 +85,13 @@ export const summarizeDocument = internalAction({
       if (!result) {
         await ctx.runMutation(internal.documents.updateStatus, {
           id: documentId,
-          status: "ready",
+          status: "generating_cards",
         });
-        await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
+        await ctx.scheduler.runAfter(
+          0,
+          internal.pipeline.cardDraftGeneration.generateDraftsForDocument,
+          { documentId },
+        );
         return;
       }
 
@@ -97,7 +105,7 @@ export const summarizeDocument = internalAction({
 
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
-        status: "ready",
+        status: "generating_cards",
         summary: result.docSummary,
         summaryEmbeddingId: result.docEmbeddingId,
       });
@@ -128,7 +136,11 @@ export const summarizeDocument = internalAction({
         },
       });
 
-      await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.pipeline.cardDraftGeneration.generateDraftsForDocument,
+        { documentId },
+      );
     } catch (error) {
       evt.setError(error);
       const message = error instanceof Error ? error.message : "Summarization failed";

@@ -1,4 +1,12 @@
-import type { ContentExtractor, DocumentParser, ExtractResult, PollResult } from "./types";
+import type {
+  CardDraftLlm,
+  ContentExtractor,
+  DraftCardType,
+  DocumentParser,
+  ExtractResult,
+  PollResult,
+  TokenUsage,
+} from "./types";
 
 const STUB_ARTICLE_MARKDOWN = `# Understanding Software Architecture Patterns
 
@@ -173,6 +181,64 @@ export class StubYouTubeExtractor implements ContentExtractor {
       markdown: STUB_YOUTUBE_MARKDOWN,
       title: `Stub YouTube Video (${videoId})`,
       metadata: { provider: "stub" },
+    };
+  }
+}
+
+const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+
+const STUB_DRAFTS: Record<
+  DraftCardType,
+  (sectionTitle: string) => { content: string; typeData: Record<string, unknown> }
+> = {
+  insight: (sectionTitle) => ({
+    content: `Key insight from "${sectionTitle}": this section reveals an important concept about the topic.`,
+    typeData: { type: "insight" },
+  }),
+  quiz: (sectionTitle) => ({
+    content: `Quiz about "${sectionTitle}"`,
+    typeData: {
+      type: "quiz",
+      variant: "multiple_choice",
+      question: `What is the main concept discussed in "${sectionTitle}"?`,
+      options: ["Option A", "Option B", "Option C", "Option D"],
+      correctIndex: 0,
+      explanation: `The correct answer relates to the key idea from "${sectionTitle}".`,
+    },
+  }),
+  quote: (sectionTitle) => ({
+    content: `Notable passage from "${sectionTitle}".`,
+    typeData: {
+      type: "quote",
+      quotedText: `This is a representative quote from the "${sectionTitle}" section.`,
+    },
+  }),
+  summary: (sectionTitle) => ({
+    content: `Summary of key points from "${sectionTitle}".`,
+    typeData: {
+      type: "summary",
+      bulletPoints: [
+        `First key takeaway from "${sectionTitle}"`,
+        `Second key takeaway from "${sectionTitle}"`,
+      ],
+    },
+  }),
+};
+
+export class StubCardDraftLlm implements CardDraftLlm {
+  async generateDraft(opts: {
+    cardType: DraftCardType;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> };
+    usage: TokenUsage;
+  }> {
+    return {
+      card: STUB_DRAFTS[opts.cardType](opts.sectionTitle),
+      usage: ZERO_USAGE,
     };
   }
 }

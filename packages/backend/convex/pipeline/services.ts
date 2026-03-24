@@ -1,6 +1,7 @@
 "use node";
 
 import type {
+  DraftGenerationServiceContext,
   EmbeddingServiceContext,
   ExtractionServiceContext,
   ParsingServiceContext,
@@ -8,6 +9,7 @@ import type {
   TaggingServiceContext,
   VectorDeletionServices,
 } from "../providers/types";
+import { AiSdkCardDraftLlm } from "../providers/cardDraftLlm";
 import { AiSdkSummarizingLlm } from "../providers/summarizingLlm";
 import { AiSdkTaggingLlm } from "../providers/taggingLlm";
 
@@ -58,5 +60,11 @@ export function createVectorDeletionServices(): VectorDeletionServices {
   return {
     vectorStore: createVectorStore(),
     summaryStore: createSummaryVectorStore(),
+  };
+}
+
+export function createDraftGenerationServiceContext(): DraftGenerationServiceContext {
+  return {
+    llm: new AiSdkCardDraftLlm(),
   };
 }

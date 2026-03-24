@@ -4,8 +4,11 @@ import {
   createMockVectorStore,
 } from "../../../feed/logic/__tests__/mocks";
 import type {
+  CardDraftLlm,
   ContentExtractor,
   DocumentParser,
+  DraftCardType,
+  DraftGenerationServiceContext,
   EmbeddingServiceContext,
   ExtractResult,
   ExtractionServiceContext,
@@ -125,6 +128,60 @@ export function createMockTaggingServices(
 ): TaggingServiceContext {
   return {
     llm: createMockTaggingLlm(),
+    ...overrides,
+  };
+}
+
+export function createMockCardDraftLlm(overrides?: Partial<CardDraftLlm>): CardDraftLlm {
+  return {
+    generateDraft: async (opts: {
+      cardType: DraftCardType;
+      sectionSummary: string;
+      sectionTitle: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+      documentTitle: string;
+    }) => ({
+      card: {
+        content: `Draft ${opts.cardType} for "${opts.sectionTitle}": a useful learning card.`,
+        typeData: buildMockTypeData(opts.cardType),
+      },
+      usage: ZERO_USAGE,
+    }),
+    ...overrides,
+  };
+}
+
+function buildMockTypeData(cardType: DraftCardType): Record<string, unknown> {
+  switch (cardType) {
+    case "insight":
+      return { type: "insight" };
+    case "quiz":
+      return {
+        type: "quiz",
+        variant: "multiple_choice",
+        question: "What is the key concept?",
+        options: ["Option A", "Option B", "Option C", "Option D"],
+        correctIndex: 0,
+        explanation: "Option A is correct because of the key concept.",
+      };
+    case "quote":
+      return {
+        type: "quote",
+        quotedText: "This is a notable passage from the source material.",
+      };
+    case "summary":
+      return {
+        type: "summary",
+        bulletPoints: ["First key takeaway", "Second key takeaway"],
+      };
+  }
+}
+
+export function createMockDraftGenerationServices(
+  overrides?: Partial<DraftGenerationServiceContext>,
+): DraftGenerationServiceContext {
+  return {
+    llm: createMockCardDraftLlm(),
     ...overrides,
   };
 }

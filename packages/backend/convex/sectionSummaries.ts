@@ -35,6 +35,13 @@ export const createBatch = internalMutation({
   },
 });
 
+export const getInternal = internalQuery({
+  args: { id: v.id("sectionSummaries") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
 export const listByDocument = internalQuery({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => {

@@ -492,6 +492,7 @@ export const cascadeDeleteChunksAndSummaries = internalMutation({
     deletedChunks: v.number(),
     deletedSectionSummaries: v.number(),
     deletedProcessingJobs: v.number(),
+    deletedCardDrafts: v.number(),
   }),
   handler: async (ctx, args) => {
     const chunks = await ctx.db
@@ -518,10 +519,19 @@ export const cascadeDeleteChunksAndSummaries = internalMutation({
       await ctx.db.delete(job._id);
     }
 
+    const cardDrafts = await ctx.db
+      .query("cardDrafts")
+      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+      .collect();
+    for (const draft of cardDrafts) {
+      await ctx.db.delete(draft._id);
+    }
+
     return {
       deletedChunks: chunks.length,
       deletedSectionSummaries: sectionSummaries.length,
       deletedProcessingJobs: processingJobs.length,
+      deletedCardDrafts: cardDrafts.length,
     };
   },
 });

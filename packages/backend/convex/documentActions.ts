@@ -84,6 +84,7 @@ async function executeDeletionCascade(
       chunks: chunkResult.deletedChunks,
       sectionSummaries: chunkResult.deletedSectionSummaries,
       processingJobs: chunkResult.deletedProcessingJobs,
+      cardDrafts: chunkResult.deletedCardDrafts,
       orphanedTags: docResult.deletedOrphanedTags,
     },
   });
