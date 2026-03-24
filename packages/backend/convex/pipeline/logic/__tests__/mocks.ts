@@ -18,6 +18,8 @@ import type {
   SummarizingServiceContext,
   TaggingLlm,
   TaggingServiceContext,
+  ThematicDraftGenerationServiceContext,
+  ThematicLlm,
   TokenUsage,
 } from "../../../providers/types";
 
@@ -182,6 +184,34 @@ export function createMockDraftGenerationServices(
 ): DraftGenerationServiceContext {
   return {
     llm: createMockCardDraftLlm(),
+    ...overrides,
+  };
+}
+
+export function createMockThematicLlm(overrides?: Partial<ThematicLlm>): ThematicLlm {
+  return {
+    discoverThemes: async ({ sectionSummaries }) => ({
+      themes: [
+        {
+          title: "Core Concepts",
+          description: "The fundamental ideas that connect multiple sections.",
+          relevantSections: sectionSummaries.slice(0, 2).map((s) => s.sectionTitle),
+        },
+      ],
+      usage: ZERO_USAGE,
+    }),
+    ...overrides,
+  };
+}
+
+export function createMockThematicDraftGenerationServices(
+  overrides?: Partial<ThematicDraftGenerationServiceContext>,
+): ThematicDraftGenerationServiceContext {
+  return {
+    thematicLlm: createMockThematicLlm(),
+    draftLlm: createMockCardDraftLlm(),
+    embedder: createMockEmbedder(),
+    vectorStore: createMockVectorStore(),
     ...overrides,
   };
 }

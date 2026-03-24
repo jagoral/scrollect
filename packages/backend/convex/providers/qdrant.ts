@@ -132,14 +132,19 @@ export class QdrantVectorStore implements VectorStore {
     filter: VectorFilter,
     topK: number,
   ): Promise<VectorSearchResult[]> {
+    const must: Array<Record<string, unknown>> = [
+      { key: "userId", match: { value: filter.userId } },
+    ];
+    if (filter.documentId) {
+      must.push({ key: "documentId", match: { value: filter.documentId } });
+    }
+
     const data = (await this.client.request(`/collections/${COLLECTION_NAME}/points/search`, {
       method: "POST",
       body: JSON.stringify({
         vector,
         limit: topK,
-        filter: {
-          must: [{ key: "userId", match: { value: filter.userId } }],
-        },
+        filter: { must },
         with_payload: true,
       }),
     })) as { result: Array<{ id: string; score: number; payload: VectorPoint["payload"] }> };

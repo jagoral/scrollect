@@ -7,11 +7,13 @@ import type {
   ParsingServiceContext,
   SummarizingServiceContext,
   TaggingServiceContext,
+  ThematicDraftGenerationServiceContext,
   VectorDeletionServices,
 } from "../providers/types";
 import { AiSdkCardDraftLlm } from "../providers/cardDraftLlm";
 import { AiSdkSummarizingLlm } from "../providers/summarizingLlm";
 import { AiSdkTaggingLlm } from "../providers/taggingLlm";
+import { AiSdkThematicLlm } from "../providers/thematicLlm";
 
 import {
   createArticleExtractor,
@@ -66,5 +68,14 @@ export function createVectorDeletionServices(): VectorDeletionServices {
 export function createDraftGenerationServiceContext(): DraftGenerationServiceContext {
   return {
     llm: new AiSdkCardDraftLlm(),
+  };
+}
+
+export function createThematicDraftGenerationServiceContext(): ThematicDraftGenerationServiceContext {
+  return {
+    thematicLlm: new AiSdkThematicLlm(),
+    draftLlm: new AiSdkCardDraftLlm(),
+    embedder: createEmbeddingProvider(),
+    vectorStore: createVectorStore(),
   };
 }

@@ -96,6 +96,7 @@ export interface SummaryVectorPoint {
 
 export interface VectorFilter {
   userId: string;
+  documentId?: string;
 }
 
 export interface SummaryVectorFilter extends VectorFilter {
@@ -198,6 +199,16 @@ export interface CardDraftLlm {
   }>;
 }
 
+export interface ThematicLlm {
+  discoverThemes(opts: {
+    sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+    documentTitle: string;
+  }): Promise<{
+    themes: Array<{ title: string; description: string; relevantSections: string[] }>;
+    usage: TokenUsage;
+  }>;
+}
+
 export type SummarizingServiceContext = {
   llm: SummarizingLlm;
   embedder: EmbeddingProvider;
@@ -224,6 +235,13 @@ export type TaggingServiceContext = {
 
 export type DraftGenerationServiceContext = {
   llm: CardDraftLlm;
+};
+
+export type ThematicDraftGenerationServiceContext = {
+  thematicLlm: ThematicLlm;
+  draftLlm: CardDraftLlm;
+  embedder: EmbeddingProvider;
+  vectorStore: VectorStore;
 };
 
 export type VectorDeletionServices = {

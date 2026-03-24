@@ -10,11 +10,12 @@ import { WideEvent } from "../lib/logging";
 import type { TokenUsage } from "../providers/types";
 import { captureAiUsage, captureEvent } from "../providers/analytics";
 
-import { computeContentHash } from "./helpers";
+import { computeContentHash, transitionToReady } from "./helpers";
 import { generateDraftsForSection } from "./logic/cardDraftGeneration";
 import { createDraftGenerationServiceContext } from "./services";
 
 const MAX_DRAFT_RETRIES = 3;
+const MIN_SECTIONS_FOR_THEMATIC = 3;
 
 export const generateDraftsForDocument = internalAction({
   args: { documentId: v.id("documents") },
@@ -244,8 +245,6 @@ async function checkCompletion(opts: {
     return;
   }
 
-  await transitionToReady({ ctx, documentId, userId: resolvedUserId, evt });
-
   if (job.failedBatches > 0) {
     evt.set("partialFailure", {
       failedBatches: job.failedBatches,
@@ -265,34 +264,18 @@ async function checkCompletion(opts: {
       });
     }
   }
-}
 
-async function transitionToReady(opts: {
-  ctx: ActionCtx;
-  documentId: Id<"documents">;
-  userId: string | undefined;
-  evt: WideEvent;
-}) {
-  const { ctx, documentId, userId, evt } = opts;
-  await ctx.runMutation(internal.documents.updateStatus, {
-    id: documentId,
-    status: "ready",
-  });
-
-  await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
-
-  if (userId) {
-    await captureEvent({
-      distinctId: userId,
-      event: "pipeline.stage_completed",
-      properties: {
-        stage: "generating_cards",
-        document_id: documentId,
-      },
-    });
+  if (job.totalBatches >= MIN_SECTIONS_FOR_THEMATIC && job.completedBatches > 0) {
+    evt.set("schedulingThematicGeneration", true);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.pipeline.thematicDraftGeneration.generateThematicDraftsForDocument,
+      { documentId },
+    );
+    return;
   }
 
-  evt.set("transitionedToReady", true);
+  await transitionToReady({ ctx, documentId, userId: resolvedUserId, evt });
 }
 
 async function resolveUserId(

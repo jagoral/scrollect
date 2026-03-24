@@ -3,7 +3,7 @@ status: proposed
 date: 2026-03-24
 ---
 
-# ADR-013: Draft generation pipeline (Feed v2, sub-increment 1a)
+# ADR-013: Draft generation pipeline (Feed v2, sub-increments 1a + 1b)
 
 ## Context
 
@@ -11,7 +11,7 @@ Issue #141. The current feed generation system (`feed/logic/generateFeed.ts`) ru
 
 Feed v2 moves card generation to write-time. During the document processing pipeline, after summarization completes, we generate focused card drafts scoped to individual sections. Each LLM call targets one section and one card type, producing near-zero rejection rates. Feed serving (sub-increment 2) reads from this pre-computed pool.
 
-This ADR covers sub-increment 1a only: section-scoped draft generation for insight, quiz, quote, and summary card types. Connection drafts (1c), thematic drafts (1b), and highlight-triggered drafts (1d) are deferred but the schema must not preclude them.
+This ADR covers sub-increments 1a and 1b: section-scoped draft generation (insight, quiz, quote, summary) and thematic draft generation (insight, summary across sections). Connection drafts (1c) and highlight-triggered drafts (1d) are deferred but the schema must not preclude them.
 
 ## Decision
 
@@ -54,7 +54,7 @@ cardDrafts: defineTable({
 
 **Why `generationBatch`:** Simple integer starting at 1. When feed serving exhausts all `pending` drafts for a document, it can trigger generation of batch 2. Without this field, regeneration would require a migration. The regeneration trigger logic is deferred but the schema is ready.
 
-**Why `strategy`:** Distinguishes how a draft was produced. In 1a only `"section"` is used. Future increments add `"thematic"` (1b), `"connection"` (1c), and `"highlight"` (1d). This enables strategy-specific analytics and regeneration behavior.
+**Why `strategy`:** Distinguishes how a draft was produced. Section-scoped drafts (1a) use `"section"`, thematic drafts (1b) use `"thematic"`. Future increments add `"connection"` (1c) and `"highlight"` (1d). This enables strategy-specific analytics and regeneration behavior.
 
 ### 2. `"generating_cards"` pipeline stage
 
@@ -65,7 +65,7 @@ parsing -> chunking -> embedding -> summarizing -> generating_cards -> ready
                                                                         \-> (fire-and-forget) tagging
 ```
 
-After summarizing completes, instead of transitioning directly to `ready`, transition to `generating_cards` and schedule draft generation. After all batches complete via `processingJobs.checkCompletion`, transition to `ready` and trigger tagging.
+After summarizing completes, instead of transitioning directly to `ready`, transition to `generating_cards` and schedule draft generation. After all section batches complete via `processingJobs.checkCompletion`, trigger thematic generation (if 3+ sections) and then transition to `ready` and trigger tagging.
 
 The resume handler (`pipeline/resume.ts`) gets a new `"generating_cards"` case that re-triggers draft generation, mirroring the `"summarizing"` resume path.
 
@@ -79,7 +79,7 @@ One `processingJobs` row per document, one batch per section. This mirrors the p
 4. For each section, schedule a `generateDraftsForSection` action via `ctx.scheduler.runAfter(0, ...)`
 5. Each batch generates drafts for all 4 card types for that section (4 parallel LLM calls via `Promise.allSettled` within one action)
 6. On batch completion, call `processingJobs.markBatchComplete`
-7. On all batches complete (including partial failures), transition to `ready`
+7. On all batches complete (including partial failures), trigger thematic generation (section 8) or transition to `ready` if below the 3-section threshold
 
 **Why one batch per section (not per section x card type):** Reduces `processingJobs` row count and scheduler overhead. A document with 10 sections creates 10 batches, not 40. Each batch makes 4 LLM calls in parallel via `Promise.allSettled` - individual call failures are isolated without affecting the other card types in the same batch.
 
@@ -146,6 +146,96 @@ Score is 0.0-1.0, computed as weighted average:
 
 Drafts with `qualityScore < 0.3` are discarded (not stored). This threshold filters out structurally invalid or degenerate content while preserving reasonable drafts for feed serving to rank.
 
+### 8. Thematic draft generation (sub-increment 1b)
+
+After all section batches complete, the pipeline discovers cross-section themes and generates drafts that synthesize content across multiple sections. This produces higher-level "insight" and "summary" cards that surface patterns a section-scoped approach cannot.
+
+#### ThematicLlm interface
+
+New interface in `providers/types.ts`, separate from `CardDraftLlm`:
+
+```ts
+interface ThematicLlm {
+  discoverThemes(opts: {
+    sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+    documentTitle: string;
+  }): Promise<{
+    themes: Array<{ title: string; description: string; relevantSections: string[] }>;
+    usage: TokenUsage;
+  }>;
+}
+```
+
+**Why a separate interface from `CardDraftLlm`:** Different input/output shapes - `discoverThemes` takes the full set of section summaries and returns structured theme objects, while `generateDraft` takes a single section with chunks and returns a card. Interface segregation keeps both contracts focused. Per-theme card generation reuses `CardDraftLlm.generateDraft` (insight and summary types only) since the card shape is identical to section-scoped drafts.
+
+**Why only insight and summary card types:** Quiz and quote types require single-section grounding - quizzes need specific facts from one section, and quotes need verbatim text from one chunk. Thematic drafts synthesize across sections, making these types unreliable.
+
+#### ThematicDraftGenerationServiceContext
+
+```ts
+type ThematicDraftGenerationServiceContext = {
+  thematicLlm: ThematicLlm;
+  draftLlm: CardDraftLlm;
+  embedder: EmbeddingProvider;
+  vectorStore: VectorStore;
+};
+```
+
+The embedder and vectorStore are needed to find representative chunks for each theme via semantic search within the document's chunks in Qdrant.
+
+#### VectorFilter extension
+
+Add optional `documentId` to `VectorFilter` for searching within a single document's chunks:
+
+```ts
+interface VectorFilter {
+  userId: string;
+  documentId?: string;
+}
+```
+
+This enables theme-to-chunk matching: embed the theme description, search against only the source document's chunks, and use the top results as `sourceChunkIds` for the generated draft. Existing callers that omit `documentId` are unaffected.
+
+#### Integration with the pipeline
+
+`checkCompletion` in `cardDraftGeneration.ts` triggers thematic generation after ALL section batches complete, BEFORE transitioning to `ready`. The flow becomes:
+
+```
+section batches complete -> checkCompletion -> thematic generation -> transitionToReady
+```
+
+Thematic generation runs as a single scheduled action (not batched via `processingJobs`). A document with 10 sections typically produces 5-10 themes, each generating 2 card drafts (insight + summary) - 10-20 LLM calls total, handled within one action via `Promise.allSettled`.
+
+**Minimum section threshold:** Documents with fewer than 3 sections skip thematic generation entirely. Cross-section themes require sufficient breadth to be meaningful - a 2-section document has no emergent themes beyond what section-scoped drafts already cover.
+
+**The thematic action calls `transitionToReady()` itself on completion.** When `checkCompletion` detects all section batches are done, it schedules the thematic action instead of calling `transitionToReady` directly. The thematic action owns the final transition.
+
+#### Failure isolation
+
+Thematic failure must not block pipeline completion. The failure hierarchy is:
+
+1. **Theme discovery failure** (the `discoverThemes` call fails): Skip all theme processing, call `transitionToReady` immediately. Section drafts are fully preserved.
+2. **Per-theme card generation failure**: Isolated via `Promise.allSettled`. If 3 of 8 themes fail, the 5 successful themes' drafts are stored. The action still transitions to `ready`.
+3. **Thematic action-level failure** (unexpected crash): `transitionToReady` is called in a `finally` block, ensuring the document never gets stuck in `generating_cards`.
+
+Section drafts are preserved regardless of thematic outcomes. The thematic step is strictly additive.
+
+#### DraftRecord shape for thematic drafts
+
+Thematic drafts use the existing `cardDrafts` schema with these field values:
+
+- `strategy`: `"thematic"`
+- `sectionSummaryId`: `undefined` (themes span multiple sections, no single section scope)
+- `sourceChunkIds`: populated from Qdrant semantic search results (may span multiple sections)
+- `generationBatch`: `1` (same generation round as section drafts)
+- `cardType`: `"insight"` or `"summary"` only
+
+#### New files
+
+- `providers/thematicLlm.ts` - `AiSdkThematicLlm` implementation using Vercel AI SDK
+- `pipeline/logic/thematicDraftGeneration.ts` - pure orchestration logic (theme discovery, chunk retrieval, draft generation, dedup)
+- `pipeline/thematicDraftGeneration.ts` - Convex action controller (separate from `cardDraftGeneration.ts` to keep section and thematic concerns isolated)
+
 ### Alternatives considered
 
 - **Mixed-type generation (one call per section, all types at once)** - This is the current approach in `generateFeed.ts`. Achieves ~20% acceptance rate because the LLM struggles to satisfy multiple type contracts simultaneously. Per-type calls are more predictable and cheaper per accepted card.
@@ -162,13 +252,22 @@ Drafts with `qualityScore < 0.3` are discarded (not stored). This threshold filt
 
 - **Read-time generation with caching** - Per-type prompts could be executed at read-time with results cached, making the first load slow but subsequent loads instant. Rejected for three reasons: (a) first-load latency remains unacceptable for UX - users expect immediate feed content, (b) cache invalidation complexity when prompts or section summaries change, (c) write-time pre-computation enables draft pool analytics, quality scoring, and regeneration workflows that a cache layer cannot support.
 
+- **Batch thematic generation via `processingJobs` (one batch per theme)** - Would mirror the section-scoped pattern exactly. Rejected because theme count (5-10) is too small to justify the `processingJobs` overhead, and themes are discovered dynamically (batch count unknown upfront). A single action with `Promise.allSettled` is simpler and sufficient.
+
+- **Extend `CardDraftLlm` with a `discoverThemes` method** - Keeps one interface. Rejected because theme discovery has a fundamentally different contract (section summaries in, structured themes out) than draft generation (section + chunks in, card out). A combined interface violates interface segregation and makes stubbing harder in tests.
+
+- **Generate all 4 card types for thematic drafts** - Would maximize draft pool variety. Rejected because quiz and quote types require single-section grounding for accuracy. A thematic quiz question without a clear source section creates attribution problems in the UI.
+
+- **Run thematic generation in parallel with section batches** - Would reduce total pipeline time. Rejected because thematic generation needs section summaries as input, which are only guaranteed stable after summarization completes. Running them in parallel with section draft generation is feasible but adds coordination complexity with no meaningful latency benefit (thematic adds ~20-30s after section batches).
+
 ## Consequences
 
-- **Pipeline duration**: Draft generation adds ~60-80 seconds for a 10-section document (4 LLM calls per section, ~15-20s each, parallelized across sections). Acceptable for a write-time operation that runs once per document
-- **Draft volume**: A 10-section document produces ~20-40 drafts (4 types per section, minus dedup and quality filtering). A 700-page book (~30 sections) produces ~60-100 drafts
+- **Pipeline duration**: Section draft generation adds ~60-80 seconds for a 10-section document (4 LLM calls per section, ~15-20s each, parallelized across sections). Thematic generation adds ~20-30 seconds after section batches complete (theme discovery + 10-20 parallel card generation calls). Total pipeline time for a 10-section document: ~80-110 seconds. Acceptable for a write-time operation that runs once per document
+- **Draft volume**: A 10-section document produces ~20-40 section-scoped drafts (4 types per section, minus dedup and quality filtering) plus ~10-20 thematic drafts (5-10 themes x 2 types). A 700-page book (~30 sections) produces ~80-140 total drafts
 - **Feed serving becomes instant**: Sub-increment 2 reads from the `cardDrafts` pool instead of generating on-the-fly. Feed latency drops from ~4 minutes to milliseconds
-- **Schema extensibility**: `strategy`, `generationBatch`, and `status` fields support 1b/1c/1d and the feedback loop without migration. Connection drafts add `strategy: "connection"`, thematic add `strategy: "thematic"`, highlight-triggered add `strategy: "highlight"`
-- **Testability**: `CardDraftLlm` interface enables unit testing the generation logic with stub responses. The `{ input, services }` pattern from ADR-012 applies to the new `generateDraftsForSection` logic module
+- **Schema extensibility**: `strategy`, `generationBatch`, and `status` fields support 1c/1d and the feedback loop without migration. Connection drafts add `strategy: "connection"`, highlight-triggered add `strategy: "highlight"`. Thematic drafts (1b) now use `strategy: "thematic"` with `sectionSummaryId: undefined`
+- **Testability**: `CardDraftLlm` and `ThematicLlm` interfaces enable unit testing both generation paths with stub responses. The `{ input, services }` pattern from ADR-012 applies to both `generateDraftsForSection` and thematic generation logic modules
+- **VectorFilter widening**: Adding optional `documentId` to `VectorFilter` is backward compatible but requires updating all `VectorStore.search` implementations (currently `QdrantVectorStore`) to conditionally apply the document filter. Stub implementations in tests need the same update
 - **Cascade delete**: Document deletion must cascade to `cardDrafts` via the `by_documentId` index, added to the existing delete flow in `documentActions.ts`
 - **Resume path**: `pipeline/resume.ts` needs a `"generating_cards"` case. If draft generation failed, re-query sections and re-trigger batch generation. Already-stored drafts from successful batches are preserved (idempotent via content hash dedup)
 
@@ -178,4 +277,4 @@ Drafts with `qualityScore < 0.3` are discarded (not stored). This threshold filt
 - ADR-008 defines connection discovery - deferred to sub-increment 1c, but `strategy: "connection"` is ready in the schema
 - ADR-012 establishes the service layer DI pattern (`{ input, services }`) used for `generateDraftsForSection`
 - The existing `validateCard()` in `feed/logic/validation.ts` provides the reference for structural validation rules, but a purpose-built `validateDraft()` is needed due to the `sourceChunkIndices` vs `sourceChunkIds` signature mismatch
-- Follow-up issues needed: 1b (thematic drafts), 1c (connection pipeline stage), 1d (highlight-triggered regeneration), sub-increment 2 (ranking queue + feed serving), sub-increment 3 (feedback loop + rejection UI)
+- Follow-up issues needed: 1c (connection pipeline stage), 1d (highlight-triggered regeneration), sub-increment 2 (ranking queue + feed serving), sub-increment 3 (feedback loop + rejection UI)
