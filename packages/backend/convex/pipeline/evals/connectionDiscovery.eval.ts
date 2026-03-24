@@ -94,51 +94,55 @@ function buildConnectionData(): ConnectionInput[] {
 evalite("Connection Discovery", {
   data: () => buildConnectionData().map((d) => ({ input: d })),
   task: async (input) => {
-    const { card } = await llm.generateConnectionDraft({
-      sectionA: {
-        title: input.sectionATitle,
-        summary: input.sectionASummary,
-        chunks: input.sectionAChunks,
-      },
-      sectionB: {
-        title: input.sectionBTitle,
-        summary: input.sectionBSummary,
-        chunks: input.sectionBChunks,
-      },
-      documentATitle: input.documentATitle,
-      documentBTitle: input.documentBTitle,
-    });
-
     const allChunks = [
       ...input.sectionAChunks.map((c) => c.content),
       ...input.sectionBChunks.map((c) => c.content),
     ];
 
-    if (!card) {
+    const emptyResult: ConnectionOutput = {
+      content: "",
+      typeData: {},
+      sourceChunks: allChunks,
+      isGenuineConnection: false,
+      expectedLanguage: input.expectedLanguage,
+      sectionATitle: input.sectionATitle,
+      sectionASummary: input.sectionASummary,
+      sectionBTitle: input.sectionBTitle,
+      sectionBSummary: input.sectionBSummary,
+    };
+
+    try {
+      const { card } = await llm.generateConnectionDraft({
+        sectionA: {
+          title: input.sectionATitle,
+          summary: input.sectionASummary,
+          chunks: input.sectionAChunks,
+        },
+        sectionB: {
+          title: input.sectionBTitle,
+          summary: input.sectionBSummary,
+          chunks: input.sectionBChunks,
+        },
+        documentATitle: input.documentATitle,
+        documentBTitle: input.documentBTitle,
+      });
+
+      if (!card) return emptyResult;
+
       return {
-        content: "",
-        typeData: {},
+        content: card.content,
+        typeData: card.typeData,
         sourceChunks: allChunks,
-        isGenuineConnection: false,
+        isGenuineConnection: true,
         expectedLanguage: input.expectedLanguage,
         sectionATitle: input.sectionATitle,
         sectionASummary: input.sectionASummary,
         sectionBTitle: input.sectionBTitle,
         sectionBSummary: input.sectionBSummary,
       } satisfies ConnectionOutput;
+    } catch {
+      return emptyResult;
     }
-
-    return {
-      content: card.content,
-      typeData: card.typeData,
-      sourceChunks: allChunks,
-      isGenuineConnection: true,
-      expectedLanguage: input.expectedLanguage,
-      sectionATitle: input.sectionATitle,
-      sectionASummary: input.sectionASummary,
-      sectionBTitle: input.sectionBTitle,
-      sectionBSummary: input.sectionBSummary,
-    } satisfies ConnectionOutput;
   },
   scorers: [contentSpecificity, languageMatch, connectionGenuineness],
   trialCount: 3,

@@ -94,20 +94,24 @@ function buildThematicData(): ThematicInput[] {
 evalite("Thematic Discovery", {
   data: () => buildThematicData().map((d) => ({ input: d })),
   task: async (input) => {
-    const { themes } = await llm.discoverThemes({
-      sectionSummaries: input.sectionSummaries,
-      documentTitle: input.documentTitle,
-    });
-
     const allSummaryText = input.sectionSummaries
       .map((s) => `${s.sectionTitle}: ${s.summary}`)
       .join("\n");
 
-    return {
-      themes,
-      content: themes.map((t) => `${t.title}: ${t.description}`).join("\n\n"),
-      sourceChunks: [allSummaryText],
-    } satisfies ThematicOutput;
+    try {
+      const { themes } = await llm.discoverThemes({
+        sectionSummaries: input.sectionSummaries,
+        documentTitle: input.documentTitle,
+      });
+
+      return {
+        themes,
+        content: themes.map((t) => `${t.title}: ${t.description}`).join("\n\n"),
+        sourceChunks: [allSummaryText],
+      } satisfies ThematicOutput;
+    } catch {
+      return { themes: [], content: "", sourceChunks: [allSummaryText] };
+    }
   },
   scorers: [thematicLanguageMatch, sectionCoverage, themeCount, thematicSpecificity],
   trialCount: 3,

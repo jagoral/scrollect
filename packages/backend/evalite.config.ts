@@ -1,4 +1,7 @@
+import { config } from "dotenv";
 import { defineConfig } from "evalite/config";
+
+config({ path: ".env.local" });
 
 export default defineConfig({
   testTimeout: 120_000,
