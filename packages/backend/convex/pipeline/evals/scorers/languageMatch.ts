@@ -1,6 +1,6 @@
 import { createScorer } from "evalite";
 
-function detectLanguage(text: string): "pl" | "en" {
+export function detectLanguage(text: string): "pl" | "en" {
   const polishChars = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g;
   const matches = text.match(polishChars);
   if (!matches) return "en";
@@ -12,9 +12,13 @@ export const languageMatch = createScorer<any, any, any>({
   name: "Language Match",
   description: "Checks if card output language matches the expected source language",
   scorer: ({ input, output }) => {
+    if (!output.content) {
+      return {
+        score: 1,
+        metadata: { rationale: "No content to evaluate (e.g. rejected connection)" },
+      };
+    }
     const detected = detectLanguage(output.content);
     return detected === input.expectedLanguage ? 1 : 0;
   },
 });
-
-export { detectLanguage };

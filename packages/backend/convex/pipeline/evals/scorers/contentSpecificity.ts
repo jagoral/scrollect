@@ -17,6 +17,13 @@ export const contentSpecificity = createScorer<any, any, any>({
   name: "Content Specificity",
   description: "LLM-as-judge: penalizes generic filler, rewards specific names, numbers, quotes",
   scorer: async ({ output }) => {
+    if (!output.content) {
+      return {
+        score: 1,
+        metadata: { rationale: "No content to evaluate (e.g. rejected connection)" },
+      };
+    }
+
     const { output: result } = await generateText({
       model: getAI().languageModel("fast"),
       output: Output.object({ schema: ratingSchema }),
