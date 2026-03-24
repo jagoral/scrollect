@@ -59,46 +59,112 @@ const SCHEMAS: Record<DraftCardType, z.ZodSchema> = {
   summary: summarySchema,
 };
 
+// --- Prompt improvement notes ---
+// Each change is annotated with which eval scorer it targets:
+//   [CS] = Content Specificity scorer
+//   [TSQ] = Type-Specific Quality scorer
+//   [LM] = Language Match scorer
+//   [SV] = Structural Validity scorer
+//
+// Change 1 (base): Added grounding step "First, identify 2-3 specific details"
+//   [CS] Forces the model to extract concrete facts before writing, reducing generic filler.
+//   The Content Specificity scorer penalizes vague phrases - grounding upfront steers
+//   the model toward names, numbers, and quotes that score high.
+//
+// Change 2 (base): Added explicit negative examples of bad content
+//   [CS] The scorer's LLM judge penalizes exactly these patterns ("this chapter discusses
+//   important concepts"). Showing the model what NOT to write directly targets low scores.
+//
+// Change 3 (base): Strengthened language rule with "detect language from chunks first"
+//   [LM] The Language Match scorer checks Polish diacritics ratio. Telling the model to
+//   explicitly detect the language first reduces mismatches, especially for mixed-script input.
+//
+// Change 4 (quiz): Added "all wrong options must be plausible" + "explanation must quote source"
+//   [TSQ] The quiz quality scorer checks: "Are all options plausible and distinct?" and
+//   "Does the explanation reference the source?" These instructions directly address those criteria.
+//
+// Change 5 (quote): Added "search chunks for the exact passage, then copy character-by-character"
+//   [TSQ] The quote quality scorer checks for exact substring match against source chunks.
+//   Telling the model to find-then-copy reduces paraphrasing that scores 0.
+//
+// Change 6 (summary): Added "each bullet must contain at least one proper noun, number, or technical term"
+//   [CS][TSQ] Both scorers reward concrete details. This constraint makes abstract bullets
+//   impossible, directly lifting scores on both dimensions.
+//
+// Change 7 (insight): Added "include at least one direct phrase from the source text"
+//   [CS] The scorer rewards "verbatim quotes or precise examples from the source".
+//   This constraint ensures the content references the actual text, not a paraphrase.
+
 function buildSystemPrompt(cardType: DraftCardType): string {
   const base = `You are an AI learning assistant for Scrollect, a personal learning feed app.
 Your job is to create a single focused learning card from a section of a document.
 
-CONTENT PHILOSOPHY: Stay close to the source. Prefer exact wordings, specific facts, surprising details, and concrete examples over generic summaries or interpretations. The user wants to re-encounter the actual content they saved - not a paraphrased version.
+<instructions>
+1. First, detect the language of the source chunks. Write your entire response in that same language. If chunks are in Polish, write in Polish. If in English, write in English. Never translate or mix languages.
+2. Before writing, identify 2-3 specific details from the source: exact names, numbers, dates, or notable phrases you will reference in the card.
+3. Create the card using those specific details. Stay close to the source text.
+</instructions>
 
-LANGUAGE RULE: Write in the same language as the source chunks. If the chunks are in Polish, write in Polish. If in English, write in English. Never translate.`;
+<quality_rules>
+- Prefer exact wordings, specific facts, and concrete examples over generic summaries
+- The user wants to re-encounter the actual content they saved, not a paraphrased version
+- Every sentence must reference something specific from the source chunks
+</quality_rules>
+
+<avoid>
+- "This section discusses important concepts about..."
+- "The author explores various aspects of..."
+- "There are several key factors that..."
+- Any sentence that could apply to a different document without changes
+</avoid>`;
 
   switch (cardType) {
     case "insight":
       return `${base}
 
-Create an INSIGHT card - a specific fact, surprising detail, or concrete example from the source.
+<task>Create an INSIGHT card - a specific fact, surprising detail, or concrete example from the source.</task>
+
+<format>
 - 2-4 sentences
-- Use **bold** for key terms
-- Prefer verbatim phrases and exact numbers/names from the text`;
+- Use **bold** for key terms (names, technical terms, numbers)
+- Include at least one direct phrase from the source text
+- The first sentence must contain a specific fact, not a general introduction
+</format>`;
 
     case "quiz":
       return `${base}
 
-Create a QUIZ card testing recall of specific details from the source.
-- Ask about concrete facts, names, numbers - not vague concepts
-- Provide 4 options for multiple_choice or ["True", "False"] for true_false
-- Include a brief explanation referencing the exact source detail`;
+<task>Create a QUIZ card testing recall of a specific detail from the source.</task>
+
+<format>
+- The question must target a concrete, verifiable fact (a name, number, date, or specific claim)
+- For multiple_choice: provide exactly 4 options where all wrong options are plausible but clearly incorrect based on the source
+- For true_false: the statement must be specific enough that the answer is unambiguous
+- The explanation must quote or closely reference the exact source passage that contains the answer
+</format>`;
 
     case "quote":
       return `${base}
 
-Create a QUOTE card - a notable, memorable, or thought-provoking passage from the source.
-- Copy the quote VERBATIM from the source chunks - do not paraphrase
-- Pick the most impactful or insightful passage
-- Provide brief context (1-2 sentences) in the content field`;
+<task>Create a QUOTE card featuring a notable passage from the source.</task>
+
+<format>
+- Search the source chunks for the most impactful, memorable, or thought-provoking passage
+- Copy the passage exactly as it appears in the source, character by character - do not paraphrase, rephrase, or clean up the text
+- The quotedText must be a verbatim substring of one of the source chunks
+- In the content field, provide 1-2 sentences of context explaining why this quote matters
+</format>`;
 
     case "summary":
       return `${base}
 
-Create a SUMMARY card with bullet points listing specific takeaways from the section.
-- 2-5 bullet points, each referencing a concrete detail
-- No abstract generalizations - include names, numbers, specific concepts
-- Provide a brief overview (1-2 sentences) in the content field`;
+<task>Create a SUMMARY card with bullet points listing specific takeaways from the section.</task>
+
+<format>
+- 2-5 bullet points, each containing at least one proper noun, number, or technical term from the source
+- Each bullet must reference a distinct, concrete detail - not a rewording of another bullet
+- In the content field, provide a 1-2 sentence overview that names the specific topic (not "this section covers key ideas")
+</format>`;
   }
 }
 

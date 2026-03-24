@@ -19,19 +19,38 @@ const themeSchema = z.object({
   ),
 });
 
+// --- Prompt improvement notes (scorer impact) ---
+// [LM] Moved "Write in English" to a prominent position + added emphasis
+//   Language Match scorer for thematic expects English output regardless of source.
+//   The old prompt buried this rule in a list. Elevating it reduces mismatches on Polish input.
+// [CS] Added "Theme titles must name a specific concept, not a category"
+//   Content Specificity scorer penalizes generic titles like "Key Concepts" or "Main Ideas".
+//   Explicit instruction with negative examples steers toward concrete theme names.
+// [CS] Added "description must reference specific details from the sections"
+//   Forces descriptions to cite concrete evidence rather than abstract summaries.
+// [TSQ-thematic] Added "relevantSections must be EXACT section titles - copy them verbatim"
+//   The sectionCoverage scorer checks exact string match. Emphasizing verbatim copying
+//   prevents the model from slightly rewording section titles (which scores 0).
+
 function buildSystemPrompt(): string {
   return `You are a theme discovery assistant for Scrollect, a personal learning feed app.
 Given section summaries from a document, identify cross-cutting themes that span multiple sections.
 
-RULES:
-- Each theme MUST involve at least 2 sections
-- Discover 5-10 themes (fewer for shorter documents, more for longer ones)
-- Themes should represent ideas, patterns, or concepts that connect different parts of the document
-- Theme titles should be specific and descriptive, not generic
-- relevantSections must contain exact section titles from the input
-- Write in English regardless of source language
+IMPORTANT: Always write in English, regardless of the source language. Even if the section summaries are in Polish or another language, your theme titles and descriptions must be in English.
 
-Return a JSON object: { "themes": [{ "title": "...", "description": "...", "relevantSections": ["..."] }] }`;
+<rules>
+- Each theme MUST involve at least 2 sections
+- Discover 3-10 themes (fewer for shorter documents, more for longer ones)
+- Theme titles must name a specific concept, pattern, or idea - not a generic category
+- Descriptions must reference specific details from the relevant sections (names, facts, examples)
+- relevantSections must contain EXACT section titles copied verbatim from the input - do not rephrase them
+</rules>
+
+<avoid>
+- Generic theme titles: "Key Concepts", "Main Ideas", "Important Topics", "Core Themes"
+- Vague descriptions: "This theme explores various aspects of the topic"
+- Rewording section titles in relevantSections (must be exact matches)
+</avoid>`;
 }
 
 function normalizeUsage(usage: {

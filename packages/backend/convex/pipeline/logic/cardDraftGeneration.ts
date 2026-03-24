@@ -96,7 +96,7 @@ export function computeQualityScore(opts: {
   return structuralScore * 0.4 + lengthScore * 0.3 + coverageScore * 0.3;
 }
 
-function computeStructuralScore(opts: {
+export function computeStructuralScore(opts: {
   cardType: DraftCardType;
   typeData: Record<string, unknown>;
 }): number {
