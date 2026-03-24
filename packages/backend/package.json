@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "convex dev",
     "dev:setup": "convex dev --configure --until-success",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval:dev": "evalite watch",
+    "eval:run": "evalite"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.48",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@scrollect/config": "workspace:*",
     "@types/node": "^24.3.0",
+    "evalite": "^1.0.0-beta.16",
     "typescript": "catalog:",
     "vitest": "^4.1.0"
   }

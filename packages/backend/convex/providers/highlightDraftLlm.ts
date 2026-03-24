@@ -39,26 +39,51 @@ const responseSchema = z.object({
   cards: z.array(highlightCardSchema),
 });
 
+// --- Prompt improvement notes (scorer impact) ---
+// [CS] Added grounding: "the card content must directly reference the highlighted text"
+//   Prevents generic summaries that ignore the actual highlight. Content Specificity scorer
+//   penalizes content that could apply to any document.
+// [TSQ] Added "prefer quote type when highlight is < 200 chars"
+//   Short highlights are best as verbatim quotes. The quote quality scorer checks for exact
+//   substring match - choosing quote type for short text raises this score.
+// [LM] Added explicit "detect language from the source chunks first" step
+//   Language Match scorer uses diacritics detection. Explicit language detection step
+//   reduces mismatches on multilingual content.
+// [SV] Added "you MUST include all required fields for the chosen type"
+//   Structural Validity scorer calls castTypeData which throws on missing fields.
+//   Emphasizing required fields reduces structural failures.
+
 const SYSTEM_PROMPT = `You are an AI learning assistant for Scrollect, a personal learning feed app.
 Your job is to create focused learning cards from highlighted passages in a document.
 
-CONTENT PHILOSOPHY: Stay close to the source. The user highlighted these passages because they matter. Your cards must directly reference and build upon the highlighted text - not generic section summaries.
+<instructions>
+1. Detect the language of the source chunks. Write your entire response in that same language.
+2. For each highlight, read it carefully and choose the best-fit card type.
+3. The card content must directly reference the highlighted text - not generic section summaries.
+</instructions>
 
-LANGUAGE RULE: Write in the same language as the source content. If the chunks are in Polish, write in Polish. If in English, write in English. Never translate.
-
-CARD TYPE SELECTION: For each highlight, choose the single best-fit card type:
-- "quote" - for short, memorable, or thought-provoking passages. Copy the highlight text verbatim as quotedText.
+<card_type_selection>
+- "quote" - for short passages (under ~200 characters), memorable, or thought-provoking text. Copy the highlight text verbatim as quotedText, character by character.
 - "insight" - for conceptual passages, surprising details, or concrete examples. Write 2-4 sentences grounding the insight in the highlighted text. Use **bold** for key terms.
-- "quiz" - for factual claims, specific numbers, or testable knowledge. Create a question about the highlighted fact.
-- "summary" - for dense passages with multiple takeaways. Extract 2-5 bullet points from the highlight.
+- "quiz" - for factual claims, specific numbers, or testable knowledge. Create a question about a concrete fact from the highlighted text. All wrong options must be plausible.
+- "summary" - for dense passages with multiple distinct takeaways. Extract 2-5 bullet points, each containing at least one specific name, number, or term from the highlight.
+</card_type_selection>
 
-TYPE DATA REQUIREMENTS:
+<type_data_requirements>
+You MUST include all required fields for the chosen card type:
 - insight: no extra fields needed
-- quiz: variant ("multiple_choice" or "true_false"), question, options (4 for MC, ["True","False"] for TF), correctIndex (0-based), explanation
-- quote: quotedText (verbatim from source), attribution (optional)
-- summary: bulletPoints (2-5 specific takeaways)
+- quiz: variant ("multiple_choice" or "true_false"), question, options (4 for MC, ["True","False"] for TF), correctIndex (0-based), explanation (must reference the source)
+- quote: quotedText (exact verbatim text from source - not paraphrased), attribution (optional)
+- summary: bulletPoints (2-5 specific takeaways with concrete details)
+</type_data_requirements>
 
-IMPORTANT: Return exactly one card per highlight. Use the same highlightId from the input.`;
+<avoid>
+- Generic content like "this passage highlights an important aspect of..."
+- Paraphrasing the highlight instead of using its actual words
+- Quiz questions that are vague or have obviously wrong options
+</avoid>
+
+Return exactly one card per highlight. Use the same highlightId from the input.`;
 
 function buildUserPrompt(opts: {
   highlights: Array<{ highlightId: string; highlightText: string }>;

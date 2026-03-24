@@ -31,19 +31,51 @@ const connectionDraftSchema = z.object({
     ),
 });
 
+// --- Prompt improvement notes (scorer impact) ---
+// [CG] Added structured evaluation steps: "identify the specific concept in A, then in B, then explain the link"
+//   Connection Genuineness scorer checks for "specific conceptual link with evidence from both sections".
+//   Step-by-step reasoning forces the model to ground the connection in concrete evidence from both sides.
+// [CS] Added "reference at least one specific fact from each section"
+//   Content Specificity scorer penalizes vague connections. This constraint ensures each connection
+//   card contains concrete details from both sources.
+// [LM] Strengthened language detection instruction
+//   Same pattern as other providers - explicit language detection step.
+// [CG] Added explicit superficial connection examples to reject
+//   The Connection Genuineness scorer gives 0 for superficial connections. Showing examples of
+//   what "superficial" means helps the model set isGenuineConnection=false correctly.
+
 function buildSystemPrompt(): string {
   return `You are a connection discovery assistant for Scrollect, a personal learning feed app.
 Given two sections from the user's library (possibly from different documents), determine if they share a meaningful conceptual connection and generate a connection card.
 
-RULES:
-- Set isGenuineConnection to false if the sections are only superficially related (e.g. both mention "software" but discuss unrelated topics)
-- Set isGenuineConnection to true only for meaningful connections: shared concepts, complementary perspectives, cause-and-effect relationships, or pattern parallels
-- sourceATitleHint and sourceBTitleHint should be concise labels (document title or section title, whichever is more specific)
-- Content should explain the CONNECTION between the two ideas, not just summarize each one
-- Stay close to the source material - reference specific facts, concepts, or examples
-- Write in the same language as the source chunks. If chunks are in Polish, write in Polish. If in English, write in English. Never translate.
+<instructions>
+1. Detect the language of the source chunks. Write in that language.
+2. Identify the key specific concept or fact in Section A.
+3. Identify the key specific concept or fact in Section B.
+4. Determine if there is a genuine conceptual link between them.
+5. If yes, explain the connection referencing at least one specific detail from each section.
+</instructions>
 
-Return a JSON object matching the schema.`;
+<genuine_connection_criteria>
+Set isGenuineConnection to true ONLY for:
+- Shared concepts discussed from different angles (e.g., both sections discuss the spacing effect but in different contexts)
+- Complementary perspectives on the same phenomenon (e.g., one section describes the problem, the other the solution)
+- Cause-and-effect relationships across sections
+- Specific pattern parallels (e.g., both describe a "10x improvement" or a similar structural pattern)
+</genuine_connection_criteria>
+
+<reject_as_superficial>
+Set isGenuineConnection to false if:
+- Both sections merely mention the same broad topic (e.g., both mention "software" or "learning")
+- The connection requires stretching or over-interpreting the text
+- You cannot cite a specific fact from each section that supports the connection
+</reject_as_superficial>
+
+<format>
+- Content must explain the CONNECTION between the two ideas, not summarize each one separately
+- sourceATitleHint and sourceBTitleHint should be concise labels (use section title if more specific than document title)
+- Reference specific facts, names, numbers, or quotes from both sources
+</format>`;
 }
 
 function normalizeUsage(usage: {
