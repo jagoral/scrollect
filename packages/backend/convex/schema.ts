@@ -4,6 +4,8 @@ import { v } from "convex/values";
 import {
   cardDraftStatus,
   cardDraftStrategy,
+  connectionPairStatus,
+  connectionType,
   documentStatus,
   failedAtStage,
   fileType,
@@ -167,4 +169,20 @@ export default defineSchema({
     .index("by_documentId_status", ["documentId", "status"])
     .index("by_userId_contentHash", ["userId", "contentHash"])
     .index("by_userId_status_cardType", ["userId", "status", "cardType"]),
+
+  connectionPairs: defineTable({
+    userId: v.string(),
+    sectionSummaryIdA: v.id("sectionSummaries"),
+    sectionSummaryIdB: v.id("sectionSummaries"),
+    documentIdA: v.id("documents"),
+    documentIdB: v.id("documents"),
+    similarityScore: v.number(),
+    connectionType,
+    status: connectionPairStatus,
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_documentIdA", ["documentIdA"])
+    .index("by_documentIdB", ["documentIdB"])
+    .index("by_userId_status", ["userId", "status"]),
 });

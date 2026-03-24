@@ -52,6 +52,21 @@ export const listByDocument = internalQuery({
   },
 });
 
+export const listByDocuments = internalQuery({
+  args: { documentIds: v.array(v.id("documents")) },
+  handler: async (ctx, args) => {
+    const results = await Promise.all(
+      args.documentIds.map((docId) =>
+        ctx.db
+          .query("sectionSummaries")
+          .withIndex("by_documentId", (q) => q.eq("documentId", docId))
+          .collect(),
+      ),
+    );
+    return results.flat();
+  },
+});
+
 export const deleteByDocument = internalMutation({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => {

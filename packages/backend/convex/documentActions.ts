@@ -56,7 +56,7 @@ async function executeDeletionCascade(
     summaryVectorCount: deletionResult.deletedSummaryVectorCount,
   });
 
-  const [highlightResult, postResult] = await Promise.all([
+  const [highlightResult, postResult, connectionPairResult] = await Promise.all([
     ctx.runMutation(internal.highlights.cascadeDeleteHighlights, {
       documentId,
       userId,
@@ -64,6 +64,9 @@ async function executeDeletionCascade(
     ctx.runMutation(internal.documents.cascadeDeletePosts, {
       documentId,
       userId,
+    }),
+    ctx.runMutation(internal.connectionPairs.cascadeDeleteByDocumentId, {
+      documentId,
     }),
   ]);
 
@@ -81,6 +84,7 @@ async function executeDeletionCascade(
       posts: postResult.deletedPosts,
       postSources: postResult.deletedPostSources,
       bookmarks: postResult.deletedBookmarks,
+      connectionPairs: connectionPairResult.deletedConnectionPairs,
       chunks: chunkResult.deletedChunks,
       sectionSummaries: chunkResult.deletedSectionSummaries,
       processingJobs: chunkResult.deletedProcessingJobs,
