@@ -168,6 +168,7 @@ async function loadFeedData(ctx: ActionCtx, userId: string): Promise<FeedInputDa
       _id: d._id as string,
       title: d.title,
       createdAt: d.createdAt,
+      language: d.language,
       summary: d.summary,
       summaryEmbeddingId: d.summaryEmbeddingId,
       learningGoal: d.learningGoal,

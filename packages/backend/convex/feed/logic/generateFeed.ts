@@ -25,6 +25,7 @@ import type { RawCard } from "./validation";
 import { validateCard } from "./validation";
 import type { FeedServiceContext } from "../../providers/types";
 import type { TypeData } from "../../lib/validators";
+import { buildLanguageInstruction } from "../../providers/promptUtils";
 
 const SATURATION_THRESHOLD = 0.8;
 
@@ -32,6 +33,7 @@ export type DocumentInfo = {
   _id: string;
   title: string;
   createdAt: number;
+  language?: string;
   summary?: string;
   summaryEmbeddingId?: string;
   learningGoal?: string;
@@ -69,6 +71,8 @@ export type GenerateFeedMetrics = {
   connectionPairsFound?: number;
   connectionDiscoveryFailed?: boolean;
   connectionDiscoveryError?: string;
+  feedLanguage?: string;
+  mixedLanguages?: boolean;
   hydratedChunks?: number;
   finalCardCount?: number;
   dedupSkipped?: number;
@@ -191,8 +195,17 @@ export async function generateFeed(opts: {
     content: contentMap.get(c._id) ?? "",
   }));
 
+  const docLanguageMap = new Map<string, string | undefined>(
+    documents.map((d) => [d._id, d.language]),
+  );
+  const { language: feedLanguage, mixed } = resolveLanguage(hydratedChunks, docLanguageMap);
+  if (feedLanguage) metrics.feedLanguage = feedLanguage;
+  if (mixed) metrics.mixedLanguages = true;
+
   const typeCoverageHint = buildTypeCoverageHint(chunkUsageMap);
-  const systemPrompt = buildMultiTypePrompt(hydratedChunks.length, cardCount) + typeCoverageHint;
+  const systemPrompt =
+    buildMultiTypePrompt({ chunkCount: hydratedChunks.length, cardCount, language: feedLanguage }) +
+    typeCoverageHint;
 
   const selectedDocIds = new Set(hydratedChunks.map((c) => c.documentId));
   const learningGoals = new Map<string, LearningGoalEntry>();
@@ -235,6 +248,7 @@ export async function generateFeed(opts: {
       systemPrompt,
       userPrompt,
       cardCount,
+      language: feedLanguage,
     });
     generationTokens.inputTokens += usage.inputTokens;
     generationTokens.outputTokens += usage.outputTokens;
@@ -302,7 +316,27 @@ export async function generateFeed(opts: {
   };
 }
 
-function buildMultiTypePrompt(chunkCount: number, cardCount: number): string {
+function resolveLanguage(
+  chunks: Array<{ documentId: string }>,
+  docLanguageMap: Map<string, string | undefined>,
+): { language: string | undefined; mixed: boolean } {
+  const languages = new Set<string>();
+  for (const chunk of chunks) {
+    const lang = docLanguageMap.get(chunk.documentId);
+    if (lang) languages.add(lang);
+  }
+  if (languages.size === 1) return { language: [...languages][0], mixed: false };
+  return { language: undefined, mixed: languages.size > 1 };
+}
+
+function buildMultiTypePrompt(opts: {
+  chunkCount: number;
+  cardCount: number;
+  language?: string;
+}): string {
+  const { chunkCount, cardCount, language } = opts;
+  const languageRule = buildLanguageInstruction(language);
+
   return `You are an AI learning assistant for Scrollect, a personal learning feed app.
 Your job is to surface specific, memorable fragments from documents as bite-sized learning cards.
 
@@ -335,7 +369,7 @@ For ALL cards:
 - content: 2-4 sentences that stay faithful to the source text (the main card body)
 - sourceChunkIndices: array of 0-based indices into the provided chunks that this card draws from
 
-LANGUAGE RULE: Write each card in the same language as its source chunks. If the source chunks are in Polish, write content, questions, options, explanations, bullet points, and key ideas in Polish. If they are in English, write in English. Always match the source language - never translate to English. Quote text (quotedText) must be kept verbatim from the source.
+LANGUAGE RULE: ${languageRule} Quote text (quotedText) must be kept verbatim from the source.
 
 Return a JSON object: { "cards": [ { type, content, sourceChunkIndices, ...type-specific fields } ] }
 

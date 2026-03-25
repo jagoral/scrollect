@@ -25,6 +25,7 @@ export class AiSdkCardGenerator implements CardGenerationService {
     systemPrompt: string;
     userPrompt: string;
     cardCount: number;
+    language?: string;
   }): Promise<{ cards: Record<string, unknown>[]; usage: TokenUsage }> {
     const { output, usage } = await generateText({
       model: getAI().languageModel("premium"),

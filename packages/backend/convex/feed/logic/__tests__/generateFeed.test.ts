@@ -258,7 +258,7 @@ describe("generateFeed", () => {
     expect(result.cards).toHaveLength(0);
   });
 
-  test("system prompt includes language matching instruction", async () => {
+  test("system prompt uses generic language instruction when no document language set", async () => {
     let capturedSystemPrompt = "";
     const services = createMockServices({
       cardGenerator: createMockCardGenerator({
@@ -276,7 +276,77 @@ describe("generateFeed", () => {
     await generateFeed({ data: makeInputData(), services, cardCount: 1 });
 
     expect(capturedSystemPrompt).toContain("LANGUAGE RULE");
-    expect(capturedSystemPrompt).toContain("same language as its source chunks");
+    expect(capturedSystemPrompt).toContain("Write in the same language as the source text");
+  });
+
+  test("system prompt uses explicit language when all documents share the same language", async () => {
+    let capturedSystemPrompt = "";
+    let capturedLanguage: string | undefined;
+    const services = createMockServices({
+      cardGenerator: createMockCardGenerator({
+        generateCards: async (opts) => {
+          capturedSystemPrompt = opts.systemPrompt;
+          capturedLanguage = opts.language;
+          return {
+            cards: [{ type: "insight", content: "Karta.", sourceChunkIndices: [0] }],
+            usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
+          };
+        },
+      }),
+      contentFetcher: createMapContentFetcher(contentMap),
+    });
+
+    await generateFeed({
+      data: makeInputData({
+        documents: [{ _id: "d1", title: "Polish Doc", createdAt: Date.now(), language: "pl" }],
+      }),
+      services,
+      cardCount: 1,
+    });
+
+    expect(capturedSystemPrompt).toContain("LANGUAGE RULE");
+    expect(capturedSystemPrompt).toContain("Polish");
+    expect(capturedSystemPrompt).not.toContain("same language as the source text");
+    expect(capturedLanguage).toBe("pl");
+  });
+
+  test("falls back to generic language when documents have mixed languages", async () => {
+    let capturedLanguage: string | undefined = "sentinel";
+    const services = createMockServices({
+      cardGenerator: createMockCardGenerator({
+        generateCards: async (opts) => {
+          capturedLanguage = opts.language;
+          return {
+            cards: [{ type: "insight", content: "Card.", sourceChunkIndices: [0] }],
+            usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
+          };
+        },
+      }),
+      contentFetcher: createMapContentFetcher(
+        new Map([
+          ["c1", "Polish content"],
+          ["c2", "English content"],
+        ]),
+      ),
+    });
+
+    const result = await generateFeed({
+      data: makeInputData({
+        documents: [
+          { _id: "d1", title: "Polish Doc", createdAt: Date.now(), language: "pl" },
+          { _id: "d2", title: "English Doc", createdAt: Date.now(), language: "en" },
+        ],
+        allChunks: [
+          makeChunk("c1", "d1", { chunkIndex: 0 }),
+          makeChunk("c2", "d2", { chunkIndex: 0 }),
+        ],
+      }),
+      services,
+      cardCount: 1,
+    });
+
+    expect(capturedLanguage).toBeUndefined();
+    expect(result.metrics.mixedLanguages).toBe(true);
   });
 
   test("throws when no chunks are available", async () => {
