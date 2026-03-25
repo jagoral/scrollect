@@ -140,22 +140,5 @@ test.describe("Multi-type cards and source provenance", { tag: "@seeded" }, () =
       await expect(provenance).toContainText("E2E Seed Document");
       await expect(provenance).toContainText("E2E Seed Document 2");
     });
-
-    test("expand sheet shows source chunks with primary marker", async ({ page }) => {
-      // Use an insight card for deterministic single-source sheet
-      const card = page.locator(cardOfType("insight")).first();
-      await expect(card).toBeVisible();
-
-      await card.locator('[data-testid="expand-button"]').click();
-
-      const sheet = page.locator('[data-testid="source-sheet"]');
-      await expect(sheet).toBeVisible({ timeout: 10000 });
-
-      const primary = sheet.locator('[data-testid="source-chunk"][data-primary="true"]');
-      await expect(primary).toBeVisible({ timeout: 10000 });
-
-      const chunks = sheet.locator('[data-testid="source-chunk"]');
-      expect(await chunks.count()).toBeGreaterThanOrEqual(1);
-    });
   });
 });

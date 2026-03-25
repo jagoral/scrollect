@@ -38,6 +38,7 @@ export const createBatch = internalMutation({
         ...draft,
         userId: args.userId,
         status: "pending" as const,
+        servedCount: 0,
         createdAt: now,
       });
       ids.push(id);
@@ -65,6 +66,7 @@ export const listByDocumentStatus = internalQuery({
       contentHash: v.string(),
       qualityScore: v.number(),
       status: cardDraftStatus,
+      servedCount: v.optional(v.number()),
       generationBatch: v.number(),
       strategy: cardDraftStrategy,
       rejectionReason: v.optional(v.string()),

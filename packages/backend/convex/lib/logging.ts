@@ -22,8 +22,12 @@ export class WideEvent {
     return this;
   }
 
+  getElapsedMs(): number {
+    return Date.now() - this.startTime;
+  }
+
   emit(): void {
-    this.fields.durationMs = Date.now() - this.startTime;
+    this.fields.durationMs = this.getElapsedMs();
     console.log(JSON.stringify(this.fields));
   }
 }

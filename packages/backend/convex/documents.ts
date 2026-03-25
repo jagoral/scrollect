@@ -416,7 +416,6 @@ export const cascadeDeletePosts = internalMutation({
   },
   returns: v.object({
     deletedPosts: v.number(),
-    deletedPostSources: v.number(),
     deletedBookmarks: v.number(),
   }),
   handler: async (ctx, args) => {
@@ -426,77 +425,49 @@ export const cascadeDeletePosts = internalMutation({
     if (!docCheck) {
       evt.set("skipped", true);
       evt.emit();
-      return { deletedPosts: 0, deletedPostSources: 0, deletedBookmarks: 0 };
+      return { deletedPosts: 0, deletedBookmarks: 0 };
     }
 
-    const postSources = await ctx.db
-      .query("postSources")
-      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .collect();
 
-    const postIds = [...new Set(postSources.map((ps) => ps.postId))];
-
-    for (const ps of postSources) {
-      await ctx.db.delete(ps._id);
-    }
+    const documentPosts = posts.filter((p) => p.primarySourceDocumentId === args.documentId);
 
     let deletedPosts = 0;
     let deletedBookmarks = 0;
-    let additionalPostSources = 0;
 
-    for (const postId of postIds) {
-      const post = await ctx.db.get(postId);
-      if (!post) continue;
+    for (const post of documentPosts) {
+      const bookmarks = await ctx.db
+        .query("bookmarks")
+        .withIndex("by_userId_post", (q) => q.eq("userId", args.userId).eq("postId", post._id))
+        .collect();
 
-      if (post.primarySourceDocumentId === args.documentId) {
-        const remainingPostSources = await ctx.db
-          .query("postSources")
-          .withIndex("by_postId", (q) => q.eq("postId", postId))
-          .collect();
-
-        for (const rps of remainingPostSources) {
-          await ctx.db.delete(rps._id);
-          additionalPostSources++;
-        }
-
-        const bookmarks = await ctx.db
-          .query("bookmarks")
-          .withIndex("by_userId_post", (q) => q.eq("userId", args.userId).eq("postId", postId))
-          .collect();
-
-        for (const bookmark of bookmarks) {
-          await ctx.db.delete(bookmark._id);
-          deletedBookmarks++;
-        }
-
-        if (post.assetStorageId) {
-          try {
-            await ctx.storage.delete(post.assetStorageId);
-          } catch (error) {
-            evt.set({
-              warning: "post_asset_storage_delete_failed",
-              failedPostId: postId,
-              storageDeleteError: error instanceof Error ? error.message : String(error),
-            });
-          }
-        }
-
-        await ctx.db.delete(postId);
-        deletedPosts++;
+      for (const bookmark of bookmarks) {
+        await ctx.db.delete(bookmark._id);
+        deletedBookmarks++;
       }
+
+      if (post.assetStorageId) {
+        try {
+          await ctx.storage.delete(post.assetStorageId);
+        } catch (error) {
+          evt.set({
+            warning: "post_asset_storage_delete_failed",
+            failedPostId: post._id,
+            storageDeleteError: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      await ctx.db.delete(post._id);
+      deletedPosts++;
     }
 
-    evt.set({
-      deletedPosts,
-      deletedPostSources: postSources.length + additionalPostSources,
-      deletedBookmarks,
-    });
+    evt.set({ deletedPosts, deletedBookmarks });
     evt.emit();
-    return {
-      deletedPosts,
-      deletedPostSources: postSources.length + additionalPostSources,
-      deletedBookmarks,
-    };
+    return { deletedPosts, deletedBookmarks };
   },
 });
 

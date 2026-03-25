@@ -1,24 +1,22 @@
-import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useAction, usePaginatedQuery } from "convex/react";
-import { CheckCircle, Loader2, Rss, Sparkles } from "lucide-react";
+import { useMutation, usePaginatedQuery } from "convex/react";
+import { CheckCircle, FileUp, Loader2, Rss, Sparkles, Timer } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { PostCard } from "@/components/post-card";
 import { buildTagMap } from "@/components/tags";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAutoGenerate } from "@/hooks/use-auto-generate";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 type FeedSearch = {
-  count?: number;
-  noAutoGenerate?: boolean;
+  noAutoServe?: boolean;
 };
 
 export const Route = createFileRoute("/_authenticated/app/feed")({
@@ -27,8 +25,10 @@ export const Route = createFileRoute("/_authenticated/app/feed")({
     meta: [{ title: "Feed | Scrollect" }],
   }),
   validateSearch: (search: Record<string, unknown>): FeedSearch => ({
-    count: search.count ? Number(search.count) : undefined,
-    noAutoGenerate:
+    noAutoServe:
+      search.noAutoServe === true ||
+      search.noAutoServe === "true" ||
+      search.noAutoServe === "" ||
       search.noAutoGenerate === true ||
       search.noAutoGenerate === "true" ||
       search.noAutoGenerate === "",
@@ -37,45 +37,78 @@ export const Route = createFileRoute("/_authenticated/app/feed")({
 });
 
 function FeedPage() {
-  const { count, noAutoGenerate } = Route.useSearch();
+  const { noAutoServe } = Route.useSearch();
 
   const { results, status, loadMore } = usePaginatedQuery(
     api.feed.queries.list,
     {},
     { initialNumItems: 10 },
   );
-  const { data: lastGeneratedAt } = useQuery({
-    ...convexQuery(api.feed.queries.getLastGeneratedAt, {}),
-  });
-  const generateFeed = useAction(api.feed.generation.generate);
+  const serveFeed = useMutation(api.feed.serving.serveFeed);
 
-  const { generating, error, generate, isRateLimited } = useAutoGenerate(
-    lastGeneratedAt,
-    generateFeed,
-    {
-      disabled: noAutoGenerate,
-      count,
-    },
-  );
+  const [serving, setServing] = useState(false);
+  const [serveReason, setServeReason] = useState<"no_drafts" | "processing" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const autoServedRef = useRef(false);
+
   const posthog = usePostHog();
-  const handleGenerate = useCallback(() => {
-    posthog.capture("feed.generate_clicked", { existing_card_count: results.length });
-    generate();
-  }, [posthog, generate, results.length]);
+
+  const servingRef = useRef(false);
+
+  const serve = useCallback(async () => {
+    if (servingRef.current) return;
+    servingRef.current = true;
+    setServing(true);
+    setError(null);
+    setServeReason(null);
+    try {
+      const result = await serveFeed({});
+      posthog.capture("feed.served", {
+        card_count: result.posts.length,
+        reason: result.reason ?? null,
+      });
+      if (result.reason) {
+        setServeReason(result.reason);
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to load feed";
+      setError(message);
+      posthog.captureException(e instanceof Error ? e : new Error(message));
+    } finally {
+      servingRef.current = false;
+      setServing(false);
+    }
+  }, [serveFeed, posthog]);
+
+  useEffect(() => {
+    if (noAutoServe) return;
+    if (autoServedRef.current) return;
+    if (status === "LoadingFirstPage") return;
+    if (results.length > 0) return;
+
+    autoServedRef.current = true;
+    serve();
+  }, [noAutoServe, status, results.length, serve]);
+
+  const handleServe = useCallback(() => {
+    posthog.capture("feed.serve_clicked", { existing_card_count: results.length });
+    serve();
+  }, [posthog, serve, results.length]);
 
   const sentinelRef = useInfiniteScroll(status, loadMore);
 
+  const docIdKey = results.map((p) => p.primarySourceDocumentId).join(",");
   const uniqueDocumentIds = useMemo(
     () => [...new Set(results.map((p) => p.primarySourceDocumentId))] as Id<"documents">[],
-    [results],
+    [docIdKey], // eslint-disable-line react-hooks/exhaustive-deps -- stabilized via serialized key
   );
 
-  const { data: tagsBatch } = useQuery({
-    ...convexQuery(
+  const { data: tagsBatch } = useQuery(
+    convexQuery(
       api.tags.getDocumentTagsBatch,
       results.length > 0 ? { documentIds: uniqueDocumentIds } : "skip",
     ),
-  });
+  );
 
   const tagsByDocId = useMemo(() => buildTagMap(tagsBatch), [tagsBatch]);
 
@@ -122,8 +155,8 @@ function FeedPage() {
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
         </div>
-        <Button onClick={handleGenerate} disabled={generating || isRateLimited} size="sm">
-          {generating ? (
+        <Button onClick={handleServe} disabled={serving} size="sm" data-testid="feed-serve-button">
+          {serving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Sparkles className="mr-2 h-4 w-4" />
@@ -138,22 +171,8 @@ function FeedPage() {
         </Alert>
       )}
 
-      {enrichedResults.length === 0 && !generating ? (
-        <div className="mt-12 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
-            <Rss className="h-8 w-8 text-primary/70" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold">No posts yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Click &quot;Generate&quot; to create learning cards from your documents.
-            </p>
-          </div>
-          <Button onClick={handleGenerate} disabled={generating || isRateLimited}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generate your first feed
-          </Button>
-        </div>
+      {enrichedResults.length === 0 && !serving ? (
+        <FeedEmptyState reason={serveReason} onServe={handleServe} serving={serving} />
       ) : (
         <div className="animate-stagger-in grid gap-4">
           {enrichedResults.map((post) => (
@@ -183,6 +202,79 @@ function FeedPage() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+interface FeedEmptyStateProps {
+  reason: "no_drafts" | "processing" | null;
+  onServe: () => void;
+  serving: boolean;
+}
+
+function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
+  if (reason === "processing") {
+    return (
+      <div
+        data-testid="feed-processing-state"
+        className="mt-12 flex flex-col items-center gap-4 text-center"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-500/5 ring-1 ring-amber-500/10">
+          <Timer className="h-8 w-8 text-amber-500/70" />
+        </div>
+        <div>
+          <p className="text-lg font-semibold">Your documents are being processed</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Learning cards will appear here once processing completes. This usually takes a few
+            minutes.
+          </p>
+        </div>
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (reason === "no_drafts") {
+    return (
+      <div
+        data-testid="feed-empty-state"
+        className="mt-12 flex flex-col items-center gap-4 text-center"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+          <FileUp className="h-8 w-8 text-primary/70" />
+        </div>
+        <div>
+          <p className="text-lg font-semibold">No content yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Upload documents to your library and we&apos;ll generate learning cards from them.
+          </p>
+        </div>
+        <Button render={<Link to="/app/library" />} data-testid="feed-upload-cta">
+          <FileUp className="mr-2 h-4 w-4" />
+          Go to Library
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-testid="feed-empty-state"
+      className="mt-12 flex flex-col items-center gap-4 text-center"
+    >
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+        <Rss className="h-8 w-8 text-primary/70" />
+      </div>
+      <div>
+        <p className="text-lg font-semibold">No posts yet</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Click &quot;Generate&quot; to create learning cards from your documents.
+        </p>
+      </div>
+      <Button onClick={onServe} disabled={serving} data-testid="feed-serve-button">
+        <Sparkles className="mr-2 h-4 w-4" />
+        Generate your first feed
+      </Button>
     </div>
   );
 }

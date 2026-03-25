@@ -35,6 +35,7 @@ export const failedAtStage = v.union(
 
 export const cardDraftStatus = v.union(
   v.literal("pending"),
+  v.literal("served"),
   v.literal("used"),
   v.literal("rejected"),
 );

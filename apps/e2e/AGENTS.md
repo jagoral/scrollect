@@ -36,7 +36,7 @@ test.describe("my seeded tests", { tag: "@seeded" }, () => {
 
   test("my interaction test", async ({ page }) => {
     await signIn(page, SEEDED_USER.email, SEEDED_USER.password);
-    await page.goto("/app/feed?noAutoGenerate"); // prevents auto-generation
+    await page.goto("/app/feed?noAutoServe"); // prevents auto-serve (noAutoGenerate also works)
     // ... test interactions
   });
 });
@@ -61,7 +61,7 @@ test.afterEach(async () => {
 
 ## Query params for test control
 
-- `?noAutoGenerate` — prevents the feed auto-generation hook from firing (saves OpenAI calls)
+- `?noAutoServe` — prevents the feed auto-serve hook from firing (saves AI calls). `?noAutoGenerate` is accepted as a backward-compatible alias
 - `?count=N` — limits feed generation to N posts (useful for tests that need generation but fewer posts)
 
 ## Common pitfalls
