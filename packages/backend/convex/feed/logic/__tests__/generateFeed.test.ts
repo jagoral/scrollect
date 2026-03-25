@@ -281,12 +281,10 @@ describe("generateFeed", () => {
 
   test("system prompt uses explicit language when all documents share the same language", async () => {
     let capturedSystemPrompt = "";
-    let capturedLanguage: string | undefined;
     const services = createMockServices({
       cardGenerator: createMockCardGenerator({
         generateCards: async (opts) => {
           capturedSystemPrompt = opts.systemPrompt;
-          capturedLanguage = opts.language;
           return {
             cards: [{ type: "insight", content: "Karta.", sourceChunkIndices: [0] }],
             usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
@@ -307,15 +305,14 @@ describe("generateFeed", () => {
     expect(capturedSystemPrompt).toContain("LANGUAGE RULE");
     expect(capturedSystemPrompt).toContain("Polish");
     expect(capturedSystemPrompt).not.toContain("same language as the source text");
-    expect(capturedLanguage).toBe("pl");
   });
 
-  test("uses dominant language when documents have mixed languages", async () => {
-    let capturedLanguage: string | undefined;
+  test("system prompt uses dominant language when documents have mixed languages", async () => {
+    let capturedSystemPrompt = "";
     const services = createMockServices({
       cardGenerator: createMockCardGenerator({
         generateCards: async (opts) => {
-          capturedLanguage = opts.language;
+          capturedSystemPrompt = opts.systemPrompt;
           return {
             cards: [{ type: "insight", content: "Card.", sourceChunkIndices: [0] }],
             usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
@@ -347,7 +344,8 @@ describe("generateFeed", () => {
       cardCount: 1,
     });
 
-    expect(capturedLanguage).toBe("pl");
+    expect(capturedSystemPrompt).toContain("Polish");
+    expect(capturedSystemPrompt).not.toContain("same language as the source text");
   });
 
   test("throws when no chunks are available", async () => {
