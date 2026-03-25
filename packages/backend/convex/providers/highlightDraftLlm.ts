@@ -22,15 +22,15 @@ const highlightCardSchema = z.object({
     .object({
       variant: z
         .enum(["multiple_choice", "true_false"])
-        .optional()
+        .nullable()
         .describe("Required for quiz cards"),
-      question: z.string().optional().describe("Required for quiz cards"),
-      options: z.array(z.string()).optional().describe("Required for quiz cards"),
-      correctIndex: z.number().optional().describe("Required for quiz cards"),
-      explanation: z.string().optional().describe("Required for quiz cards"),
-      quotedText: z.string().optional().describe("Required for quote cards - exact verbatim text"),
-      attribution: z.string().optional().describe("Optional for quote cards"),
-      bulletPoints: z.array(z.string()).optional().describe("Required for summary cards"),
+      question: z.string().nullable().describe("Required for quiz cards"),
+      options: z.array(z.string()).nullable().describe("Required for quiz cards"),
+      correctIndex: z.number().nullable().describe("Required for quiz cards"),
+      explanation: z.string().nullable().describe("Required for quiz cards"),
+      quotedText: z.string().nullable().describe("Required for quote cards - exact verbatim text"),
+      attribution: z.string().nullable().describe("Optional for quote cards"),
+      bulletPoints: z.array(z.string()).nullable().describe("Required for summary cards"),
     })
     .describe("Type-specific data matching the chosen cardType"),
 });

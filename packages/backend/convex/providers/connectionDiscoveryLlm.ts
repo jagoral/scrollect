@@ -18,11 +18,11 @@ const connectionDraftSchema = z.object({
   sourceBTitleHint: z.string().describe("Short label for the second source (document or section)"),
   sourceAKeyIdea: z
     .string()
-    .optional()
+    .nullable()
     .describe("The key idea from source A relevant to this connection"),
   sourceBKeyIdea: z
     .string()
-    .optional()
+    .nullable()
     .describe("The key idea from source B relevant to this connection"),
   isGenuineConnection: z
     .boolean()
