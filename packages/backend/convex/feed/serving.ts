@@ -57,6 +57,11 @@ export const serveFeed = mutation({
       const docs = await Promise.all(uniqueDocIds.map((id) => ctx.db.get(id)));
       const docMap = new Map(uniqueDocIds.map((id, i) => [id, docs[i]]));
 
+      const draftsPerDocument = new Map<string, number>();
+      for (const d of draftsToScore) {
+        draftsPerDocument.set(d.documentId, (draftsPerDocument.get(d.documentId) ?? 0) + 1);
+      }
+
       const scoringInput: ScoredDraft[] = draftsToScore.map((d) => ({
         id: d._id,
         documentId: d.documentId,
@@ -64,6 +69,7 @@ export const serveFeed = mutation({
         strategy: d.strategy,
         qualityScore: d.qualityScore,
         servedCount: d.servedCount ?? 0,
+        totalDraftsForDocument: draftsPerDocument.get(d.documentId) ?? 1,
         documentCreatedAt: docMap.get(d.documentId)?.createdAt ?? d.createdAt,
       }));
 
@@ -127,6 +133,14 @@ export const serveFeed = mutation({
         replenishmentTriggered,
       });
 
+      const draftCounts = [...draftsPerDocument.values()];
+      const draftsPerDocumentStats = {
+        min: Math.min(...draftCounts),
+        max: Math.max(...draftCounts),
+        avg: draftCounts.reduce((sum, n) => sum + n, 0) / draftCounts.length,
+        documentCount: draftCounts.length,
+      };
+
       await ctx.scheduler.runAfter(0, internal.feed.servingAnalytics.captureServingAnalytics, {
         userId,
         cardCount: postIds.length,
@@ -134,6 +148,7 @@ export const serveFeed = mutation({
         isDepleted,
         remainingPending,
         replenishmentTriggered,
+        draftsPerDocumentStats,
       });
 
       return { posts: postIds };

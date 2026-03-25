@@ -23,6 +23,7 @@ export type ScoredDraft = {
   strategy: string;
   qualityScore: number;
   servedCount: number;
+  totalDraftsForDocument: number;
   documentCreatedAt: number;
 };
 
@@ -38,7 +39,7 @@ export function scoreDrafts(opts: {
   const scored = drafts.map((draft) => {
     const recencyBoost = computeRecencyBoost(draft.documentCreatedAt, now);
     const highlightMultiplier = draft.strategy === "highlight" ? config.highlightBoost : 1.0;
-    const saturationPenalty = 1 / (1 + draft.servedCount);
+    const saturationPenalty = 1 / (1 + draft.servedCount / draft.totalDraftsForDocument);
     const score = draft.qualityScore * recencyBoost * highlightMultiplier * saturationPenalty;
     return { ...draft, score };
   });

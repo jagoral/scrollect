@@ -26,6 +26,7 @@ function makeDraft(overrides: Partial<ScoredDraft> = {}): ScoredDraft {
     strategy: "section",
     qualityScore: 0.8,
     servedCount: 0,
+    totalDraftsForDocument: 1,
     documentCreatedAt: THREE_DAYS_AGO,
     ...overrides,
   };
@@ -385,9 +386,106 @@ describe("scoreDrafts", () => {
       expect(result[0]!.id).toBe("perfect-storm");
       // 1.0 * 2.0 * 3.0 / 1 = 6.0
       expect(result[0]!.score).toBeCloseTo(1.0 * FRESHNESS_BOOST_FACTOR * HIGHLIGHT_BOOST, 2);
-      // 1.0 * 1.0 * 1.0 / 6 = 0.167
+      // 1.0 * 1.0 * 1.0 / (1 + 5/1) = 0.167
       expect(result[1]!.id).toBe("stale-seen");
       expect(result[1]!.score).toBeCloseTo(1.0 / 6, 2);
+    });
+  });
+
+  describe("normalized saturation by document size", () => {
+    it("scores a draft from a large document higher than one from a small document at same servedCount", () => {
+      const base = {
+        qualityScore: 0.8,
+        documentCreatedAt: THIRTY_DAYS_AGO,
+        servedCount: 15,
+      };
+      const drafts = [
+        makeDraft({ id: "book", documentId: "doc-book", totalDraftsForDocument: 80, ...base }),
+        makeDraft({ id: "video", documentId: "doc-video", totalDraftsForDocument: 20, ...base }),
+      ];
+
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+
+      expect(result[0]!.id).toBe("book");
+      expect(result[1]!.id).toBe("video");
+      // Book: 0.8 * 1/(1 + 15/80) = 0.8 * 1/1.1875 = 0.674
+      expect(result[0]!.score).toBeCloseTo(0.8 / (1 + 15 / 80), 3);
+      // Video: 0.8 * 1/(1 + 15/20) = 0.8 * 1/1.75 = 0.457
+      expect(result[1]!.score).toBeCloseTo(0.8 / (1 + 15 / 20), 3);
+    });
+
+    it("produces proportional representation: 1 large doc vs 3 small docs", () => {
+      const base = { qualityScore: 0.8, documentCreatedAt: THIRTY_DAYS_AGO };
+
+      const bookDrafts = Array.from({ length: 20 }, (_, i) =>
+        makeDraft({
+          id: `book-${i}`,
+          documentId: "doc-book",
+          totalDraftsForDocument: 80,
+          servedCount: i < 15 ? 1 : 0,
+          ...base,
+        }),
+      );
+
+      const videoDrafts = Array.from({ length: 3 }, (_, vidIdx) =>
+        Array.from({ length: 7 }, (_, j) =>
+          makeDraft({
+            id: `video-${vidIdx}-${j}`,
+            documentId: `doc-video-${vidIdx}`,
+            totalDraftsForDocument: 20,
+            servedCount: j < 5 ? 1 : 0,
+            ...base,
+          }),
+        ),
+      ).flat();
+
+      const drafts = [...bookDrafts, ...videoDrafts];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      const topBatch = result.slice(0, 15);
+
+      const bookInBatch = topBatch.filter((d) => d.documentId === "doc-book").length;
+      const videoInBatch = topBatch.filter((d) => d.documentId.startsWith("doc-video")).length;
+
+      // Book should get meaningful representation, not be drowned out by 3 video documents
+      expect(bookInBatch).toBeGreaterThanOrEqual(4);
+      // Videos combined shouldn't completely dominate
+      expect(videoInBatch).toBeLessThanOrEqual(11);
+    });
+
+    it("with totalDraftsForDocument=1, behaves like the original formula", () => {
+      const base = {
+        qualityScore: 1.0,
+        documentCreatedAt: THIRTY_DAYS_AGO,
+        totalDraftsForDocument: 1,
+      };
+      const drafts = [
+        makeDraft({ id: "fresh", servedCount: 0, ...base }),
+        makeDraft({ id: "once", servedCount: 1, ...base }),
+        makeDraft({ id: "twice", servedCount: 2, ...base }),
+      ];
+
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+
+      expect(result[0]!.score).toBeCloseTo(1.0, 2);
+      expect(result[1]!.score).toBeCloseTo(0.5, 2);
+      expect(result[2]!.score).toBeCloseTo(1 / 3, 2);
+    });
+
+    it("large document pool softens the saturation penalty", () => {
+      const drafts = [
+        makeDraft({
+          id: "large-pool",
+          servedCount: 10,
+          totalDraftsForDocument: 100,
+          qualityScore: 1.0,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+        }),
+      ];
+
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+
+      // 1/(1 + 10/100) = 1/1.1 = 0.909
+      expect(result[0]!.score).toBeCloseTo(1 / 1.1, 3);
     });
   });
 });

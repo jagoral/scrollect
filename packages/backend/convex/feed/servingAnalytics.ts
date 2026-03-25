@@ -13,6 +13,14 @@ export const captureServingAnalytics = internalAction({
     isDepleted: v.boolean(),
     remainingPending: v.number(),
     replenishmentTriggered: v.boolean(),
+    draftsPerDocumentStats: v.optional(
+      v.object({
+        min: v.number(),
+        max: v.number(),
+        avg: v.number(),
+        documentCount: v.number(),
+      }),
+    ),
   },
   returns: v.null(),
   handler: async (_ctx, args) => {
@@ -22,6 +30,12 @@ export const captureServingAnalytics = internalAction({
       properties: {
         count: args.cardCount,
         time_ms: args.elapsedMs,
+        ...(args.draftsPerDocumentStats && {
+          drafts_per_document_min: args.draftsPerDocumentStats.min,
+          drafts_per_document_max: args.draftsPerDocumentStats.max,
+          drafts_per_document_avg: args.draftsPerDocumentStats.avg,
+          document_count: args.draftsPerDocumentStats.documentCount,
+        }),
       },
     });
 
