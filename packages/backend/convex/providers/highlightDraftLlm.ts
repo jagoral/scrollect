@@ -277,7 +277,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
     let totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
     const { output: classificationOutput, usage: classificationUsage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("classify"),
       output: Output.object({ schema: classificationSchema }),
       system: CLASSIFICATION_SYSTEM,
       prompt: buildClassificationPrompt({
@@ -300,7 +300,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
       const schema = TYPE_SCHEMAS[cardType];
 
       const { output, usage } = await generateText({
-        model: getAI().languageModel("fast"),
+        model: getAI().languageModel("generate"),
         output: Output.object({ schema }),
         system: buildGenerationSystem(cardType),
         prompt: buildGenerationPrompt({

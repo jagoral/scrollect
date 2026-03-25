@@ -203,7 +203,7 @@ ${chunkText}`;
 
     const schema = SCHEMAS[opts.cardType];
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("generate"),
       output: Output.object({ schema }),
       system: buildSystemPrompt(opts.cardType),
       prompt,

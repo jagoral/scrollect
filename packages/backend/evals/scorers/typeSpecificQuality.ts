@@ -54,7 +54,7 @@ export const typeSpecificQuality = createScorer<any, any, any>({
       : "";
 
     const { output: result } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
       system: `You are a learning card quality evaluator. Be strict and specific in your assessment.`,
       prompt: `${buildTypePrompt(output.cardType)}

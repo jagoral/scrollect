@@ -126,7 +126,7 @@ Source chunks B:
 ${chunksB}`;
 
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("reason"),
       output: Output.object({ schema: connectionDraftSchema }),
       system: buildSystemPrompt(),
       prompt,

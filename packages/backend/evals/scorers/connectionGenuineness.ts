@@ -25,7 +25,7 @@ export const connectionGenuineness = createScorer<any, any, any>({
     }
 
     const { output: result } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
       system: `You are a connection quality evaluator for a learning app. Rate how meaningful and genuine the discovered connection between two document sections is.
 

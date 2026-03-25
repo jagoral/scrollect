@@ -25,7 +25,7 @@ export const contentSpecificity = createScorer<any, any, any>({
     }
 
     const { output: result } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
       system: `You are a content quality evaluator. Rate how specific and concrete the given learning card content is on a 0-1 scale.
 

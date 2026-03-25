@@ -78,7 +78,7 @@ export class AiSdkThematicLlm implements ThematicLlm {
       .join("\n\n---\n\n");
 
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("generate"),
       output: Output.object({ schema: themeSchema }),
       system: buildSystemPrompt(),
       prompt: `Document: "${opts.documentTitle}"\n\n${sectionText}`,

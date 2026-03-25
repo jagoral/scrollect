@@ -25,7 +25,7 @@ Return a JSON object: { "tags": ["tag1", "tag2", "tag3"] }`;
 export class AiSdkTaggingLlm implements TaggingLlm {
   async suggestTags(opts: { prompt: string }): Promise<{ tags: string[]; usage: TokenUsage }> {
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("classify"),
       output: Output.object({ schema: tagSchema }),
       system: buildTagSuggestionPrompt(),
       prompt: opts.prompt,
