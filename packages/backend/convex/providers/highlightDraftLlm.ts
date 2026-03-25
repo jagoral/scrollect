@@ -153,14 +153,15 @@ function buildGenerationSystem(cardType: DraftCardType): string {
 Create a QUOTE card from a highlighted passage.
 
 <rules>
-- quotedText: copy the highlight text EXACTLY, character-for-character. Do not modify, clean up, or paraphrase.
-- content: explain WHO said/wrote this, in what CONTEXT (specific event, time, situation), and WHY it matters. Use specific names and events from the source chunks.
-- attribution: the author or speaker if identifiable from context, or null.
+- quotedText: copy the highlight text EXACTLY, character-for-character. Do not modify or paraphrase.
+- content: explain WHO said/wrote this, in what CONTEXT, and WHY it matters. Reference at least one specific detail from the source chunks (a name, event, date, or number).
+- attribution: the author or speaker if identifiable from the source chunks, or null.
+- Do NOT reference the document title as a source - only cite details that appear in the source chunks.
 </rules>
 
 <avoid>
 - Generic content like "this quote illustrates an important aspect..."
-- Modifying the quotedText in any way
+- Referencing book/article titles as if they were source details
 </avoid>`;
 
     case "quiz":
@@ -169,15 +170,16 @@ Create a QUOTE card from a highlighted passage.
 Create a QUIZ card testing recall of a specific fact from a highlighted passage.
 
 <rules>
-- question: target a concrete, verifiable fact (a name, number, date, or specific claim) from the highlight
-- options: exactly 4 plausible choices for multiple_choice. All wrong options must be plausible but clearly incorrect based on the source.
-- explanation: cite the exact detail from the source that proves the correct answer
-- content: provide context for the quiz using specific names/events from the source
+- question: target a concrete, verifiable fact (a name, number, date, or specific claim) that appears in BOTH the highlight AND the source chunks
+- If the highlight contains a fact not present in the source chunks, use a related fact from the chunks instead
+- options: exactly 4 plausible choices for multiple_choice. All wrong options must be plausible but clearly incorrect.
+- explanation: cite the exact detail from the source chunks that proves the correct answer
+- content: provide context using specific names/events from the source chunks
 </rules>
 
 <avoid>
+- Questions about facts that only appear in the highlight but not in the source chunks
 - Vague questions that could have multiple valid answers
-- Obviously wrong options (e.g., mixing unrelated domains)
 </avoid>`;
 
     case "insight":

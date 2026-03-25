@@ -29,10 +29,10 @@ Score 0 if the question is vague or options are trivially distinguishable. Score
 
     case "quote":
       return `Evaluate this QUOTE card:
-- Is the quotedText a verbatim passage from the source chunks? Check for exact substring match.
-- Is the context (content field) helpful and concise?
+- Is the quotedText a verbatim passage from EITHER the source chunks OR the highlighted passage? Check for exact substring match against both.
+- Is the context (content field) helpful, concise, and grounded in specific details (names, events, dates)?
 - Is the quote notable, memorable, or thought-provoking?
-Score 0 if the quote is fabricated or paraphrased. Score 1 for an exact, impactful quote.`;
+Score 0 if the quote is fabricated or paraphrased. Score 1 for an exact, impactful quote with specific context.`;
 
     case "summary":
       return `Evaluate this SUMMARY card:
@@ -49,6 +49,9 @@ export const typeSpecificQuality = createScorer<any, any, any>({
   scorer: async ({ output }) => {
     const sourceContext = output.sourceChunks.slice(0, 2).join("\n---\n");
     const typeDataStr = JSON.stringify(output.typeData, null, 2);
+    const highlightSection = output.highlightText
+      ? `\n\nOriginal highlighted passage:\n"${output.highlightText}"`
+      : "";
 
     const { output: result } = await generateText({
       model: getAI().languageModel("fast"),
@@ -60,7 +63,7 @@ Card content: "${output.content}"
 Type data: ${typeDataStr}
 
 Source chunks:
-${sourceContext}`,
+${sourceContext}${highlightSection}`,
       temperature: 0,
     });
 

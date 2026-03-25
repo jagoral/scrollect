@@ -25,6 +25,7 @@ type HighlightDraftOutput = {
   content: string;
   typeData: Record<string, unknown>;
   sourceChunks: string[];
+  highlightText: string;
   expectedLanguage: "en" | "pl";
 };
 
@@ -61,6 +62,7 @@ evalite("Highlight Draft", {
       content: "",
       typeData: { type: "insight" },
       sourceChunks: input.chunks.map((c) => c.content),
+      highlightText: input.highlightText,
       expectedLanguage: input.expectedLanguage,
     };
 
@@ -81,6 +83,7 @@ evalite("Highlight Draft", {
         content: card.content,
         typeData: card.typeData,
         sourceChunks: input.chunks.map((c) => c.content),
+        highlightText: input.highlightText,
         expectedLanguage: input.expectedLanguage,
       } satisfies HighlightDraftOutput;
     } catch {
