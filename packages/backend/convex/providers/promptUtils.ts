@@ -1,3 +1,5 @@
+"use node";
+
 import { customList } from "country-codes-list";
 
 const isoToName: Record<string, string> = customList(

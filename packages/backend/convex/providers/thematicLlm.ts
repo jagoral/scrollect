@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { ThematicLlm, TokenUsage } from "./types";
 import { getAI } from "./ai";
+import { buildLanguageInstruction } from "./promptUtils";
 
 const themeSchema = z.object({
   themes: z.array(
@@ -20,13 +21,10 @@ const themeSchema = z.object({
 });
 
 function buildSystemPrompt(language?: string): string {
-  const languageInstruction = language
-    ? `You MUST write theme titles and descriptions in ${language}. Do not mix languages.`
-    : `Write theme titles and descriptions in the same language as the section summaries.`;
   return `You are a theme discovery assistant for Scrollect, a personal learning feed app.
 Given section summaries from a document, identify cross-cutting themes that span multiple sections.
 
-${languageInstruction}
+${buildLanguageInstruction(language)}
 
 <rules>
 - Each theme MUST involve at least 2 sections
