@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { CardDraftLlm, DraftCardType, TokenUsage } from "./types";
 import { getAI } from "./ai";
+import { buildLanguageInstruction } from "./promptUtils";
 
 const insightSchema = z.object({
   content: z
@@ -59,12 +60,13 @@ const SCHEMAS: Record<DraftCardType, z.ZodSchema> = {
   summary: summarySchema,
 };
 
-function buildSystemPrompt(cardType: DraftCardType): string {
+function buildSystemPrompt(opts: { cardType: DraftCardType; language?: string }): string {
+  const { cardType, language } = opts;
   const base = `You are an AI learning assistant for Scrollect, a personal learning feed app.
 Your job is to create a single focused learning card from a section of a document.
 
 <instructions>
-1. First, detect the language of the source chunks. Write your entire response in that same language. If chunks are in Polish, write in Polish. If in English, write in English. Never translate or mix languages.
+1. ${buildLanguageInstruction(language)}
 2. Before writing, identify 2-3 specific details from the source: exact names, numbers, dates, or notable phrases you will reference in the card.
 3. Create the card using those specific details. Stay close to the source text.
 </instructions>
@@ -151,6 +153,7 @@ export class AiSdkCardDraftLlm implements CardDraftLlm {
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;
@@ -169,7 +172,7 @@ ${chunkText}`;
     const { output, usage } = await generateText({
       model: getAI().languageModel("generate"),
       output: Output.object({ schema }),
-      system: buildSystemPrompt(opts.cardType),
+      system: buildSystemPrompt({ cardType: opts.cardType, language: opts.language }),
       prompt,
       temperature: 0.4,
       maxRetries: 2,

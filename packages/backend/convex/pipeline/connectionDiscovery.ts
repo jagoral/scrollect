@@ -143,6 +143,7 @@ export const discover = internalAction({
       const result = await discoverConnections({
         input: {
           userId,
+          language: doc.language,
           newDocument: { documentId, title: doc.title },
           newDocumentSections,
           allDocuments,

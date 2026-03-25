@@ -171,11 +171,13 @@ export interface SummarizingLlm {
   generateSectionSummary(opts: {
     sectionTitle: string;
     combinedText: string;
+    language?: string;
   }): Promise<{ summary: string; usage: TokenUsage }>;
 
   generateDocumentSummary(opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{ summary: string; usage: TokenUsage }>;
 }
 
@@ -193,6 +195,7 @@ export interface CardDraftLlm {
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;
@@ -203,6 +206,7 @@ export interface ThematicLlm {
   discoverThemes(opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     themes: Array<{ title: string; description: string; relevantSections: string[] }>;
     usage: TokenUsage;
@@ -224,6 +228,7 @@ export interface ConnectionDiscoveryLlm {
     };
     documentATitle: string;
     documentBTitle: string;
+    language?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
@@ -278,6 +283,7 @@ export interface HighlightDraftLlm {
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     cards: Array<{
       highlightId: string;

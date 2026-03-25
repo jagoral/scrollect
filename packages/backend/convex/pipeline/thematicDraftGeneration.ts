@@ -44,7 +44,7 @@ export const generateThematicDraftsForDocument = internalAction({
       const services = createThematicDraftGenerationServiceContext();
 
       const discoveryResult = await discoverThemes({
-        input: { sectionSummaries, documentTitle: doc.title },
+        input: { sectionSummaries, documentTitle: doc.title, language: doc.language },
         services,
       });
       tokenUsage = discoveryResult.usage;
@@ -71,6 +71,7 @@ export const generateThematicDraftsForDocument = internalAction({
           documentId: documentId as string,
           userId,
           documentTitle: doc.title,
+          language: doc.language,
           themes: discoveryResult.themes,
           sectionSummaries,
           chunkContentMap,

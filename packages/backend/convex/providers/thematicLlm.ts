@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { ThematicLlm, TokenUsage } from "./types";
 import { getAI } from "./ai";
+import { buildLanguageInstruction } from "./promptUtils";
 
 const themeSchema = z.object({
   themes: z.array(
@@ -19,11 +20,11 @@ const themeSchema = z.object({
   ),
 });
 
-function buildSystemPrompt(): string {
+function buildSystemPrompt(language?: string): string {
   return `You are a theme discovery assistant for Scrollect, a personal learning feed app.
 Given section summaries from a document, identify cross-cutting themes that span multiple sections.
 
-IMPORTANT: Always write in English, regardless of the source language. Even if the section summaries are in Polish or another language, your theme titles and descriptions must be in English.
+${buildLanguageInstruction(language)}
 
 <rules>
 - Each theme MUST involve at least 2 sections
@@ -56,6 +57,7 @@ export class AiSdkThematicLlm implements ThematicLlm {
   async discoverThemes(opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     themes: Array<{ title: string; description: string; relevantSections: string[] }>;
     usage: TokenUsage;
@@ -67,7 +69,7 @@ export class AiSdkThematicLlm implements ThematicLlm {
     const { output, usage } = await generateText({
       model: getAI().languageModel("generate"),
       output: Output.object({ schema: themeSchema }),
-      system: buildSystemPrompt(),
+      system: buildSystemPrompt(opts.language),
       prompt: `Document: "${opts.documentTitle}"\n\n${sectionText}`,
       temperature: 0.4,
       maxRetries: 2,

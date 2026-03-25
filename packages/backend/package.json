@@ -21,6 +21,7 @@
     "ai": "^6.0.137",
     "better-auth": "catalog:",
     "convex": "catalog:",
+    "country-codes-list": "^2.0.0",
     "dotenv": "catalog:",
     "es-toolkit": "^1.45.1",
     "posthog-node": "^4.4.1",

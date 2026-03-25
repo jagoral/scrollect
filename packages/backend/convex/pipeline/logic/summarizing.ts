@@ -12,6 +12,7 @@ export type SummarizingInput = {
   documentId: string;
   userId: string;
   documentTitle: string;
+  language?: string;
   chunks: Array<{
     content: string;
     chunkIndex: number;
@@ -55,7 +56,7 @@ export async function summarizeDocumentLogic({
   input: SummarizingInput;
   services: SummarizingServiceContext;
 }): Promise<SummarizingResult | null> {
-  const { documentId, userId, documentTitle, chunks, staleVectorIds, idToUuid } = input;
+  const { documentId, userId, documentTitle, language, chunks, staleVectorIds, idToUuid } = input;
 
   const groups = groupChunksBySection(chunks);
 
@@ -65,6 +66,7 @@ export async function summarizeDocumentLogic({
       const { summary, usage } = await services.llm.generateSectionSummary({
         sectionTitle: group.sectionTitle,
         combinedText,
+        language,
       });
       if (!summary) return null;
 
@@ -91,6 +93,7 @@ export async function summarizeDocumentLogic({
     await services.llm.generateDocumentSummary({
       sectionSummaries: sectionResults,
       documentTitle,
+      language,
     });
   llmTokenUsage = addUsage(llmTokenUsage, docSummaryUsage);
 

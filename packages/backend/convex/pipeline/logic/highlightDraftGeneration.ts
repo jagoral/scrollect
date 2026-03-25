@@ -33,6 +33,7 @@ export type HighlightDraftInput = {
   documentId: string;
   userId: string;
   documentTitle: string;
+  language?: string;
   highlights: HighlightData[];
   sections: SectionData[];
   allChunks: ChunkData[];
@@ -194,6 +195,7 @@ async function generateDraftsForSectionGroup(opts: {
       sectionTitle: group.section.sectionTitle,
       chunks: chunksForLlm,
       documentTitle: input.documentTitle,
+      language: input.language,
     });
   } catch {
     return {

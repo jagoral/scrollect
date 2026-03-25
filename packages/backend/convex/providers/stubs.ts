@@ -235,6 +235,7 @@ export class StubCardDraftLlm implements CardDraftLlm {
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;
@@ -250,6 +251,7 @@ export class StubThematicLlm implements ThematicLlm {
   async discoverThemes(_opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     themes: Array<{ title: string; description: string; relevantSections: string[] }>;
     usage: TokenUsage;
@@ -281,6 +283,7 @@ export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
     };
     documentATitle: string;
     documentBTitle: string;
+    language?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
@@ -308,6 +311,7 @@ export class StubHighlightDraftLlm implements HighlightDraftLlm {
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     cards: Array<{
       highlightId: string;
