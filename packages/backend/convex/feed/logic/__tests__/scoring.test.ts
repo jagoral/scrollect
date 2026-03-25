@@ -5,10 +5,16 @@ import {
   FRESHNESS_DECAY_WINDOW_MS,
   FRESHNESS_WINDOW_MS,
   HIGHLIGHT_BOOST,
+  REACTION_ALREADY_KNOW_MULTIPLIER,
+  REACTION_LIKE_CARD_TYPE_MULTIPLIER,
+  REACTION_LIKE_SECTION_MULTIPLIER,
+  REACTION_NOT_INTERESTING_MULTIPLIER,
+  REACTION_WRONG_TYPE_MULTIPLIER,
 } from "../constants";
 import {
   DEFAULT_SCORING_CONFIG,
   scoreDrafts,
+  type ReactionSummary,
   type ScoredDraft,
   type ScoringConfig,
 } from "../scoring";
@@ -486,6 +492,294 @@ describe("scoreDrafts", () => {
 
       // 1/(1 + 10/100) = 1/1.1 = 0.909
       expect(result[0]!.score).toBeCloseTo(1 / 1.1, 3);
+    });
+  });
+
+  describe("reaction feedback multipliers", () => {
+    const BASE_DRAFT = {
+      qualityScore: 1.0,
+      documentCreatedAt: THIRTY_DAYS_AGO,
+      servedCount: 0,
+    } as const;
+
+    function emptyReactionSummary(): ReactionSummary {
+      return {
+        dislikedSections: new Map(),
+        dislikedCardTypes: new Set(),
+        likedSections: new Set(),
+        likedCardTypes: new Set(),
+        rejectedDraftIds: new Set(),
+      };
+    }
+
+    it("applies no penalty when reactionSummary is undefined (backward compat)", () => {
+      const drafts = [makeDraft({ id: "d1", ...BASE_DRAFT })];
+
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+
+      expect(result[0]!.score).toBeCloseTo(1.0, 2);
+    });
+
+    it("applies no penalty when reactionSummary is empty (backward compat)", () => {
+      const drafts = [makeDraft({ id: "d1", sectionSummaryId: "sec-1", ...BASE_DRAFT })];
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: emptyReactionSummary(),
+      });
+
+      expect(result[0]!.score).toBeCloseTo(1.0, 2);
+    });
+
+    it("applies not_interesting penalty (0.3x) to drafts from disliked section", () => {
+      const drafts = [
+        makeDraft({ id: "penalized", sectionSummaryId: "sec-bad", ...BASE_DRAFT }),
+        makeDraft({ id: "unaffected", sectionSummaryId: "sec-good", ...BASE_DRAFT }),
+      ];
+
+      const summary = emptyReactionSummary();
+      summary.dislikedSections.set("sec-bad", "not_interesting");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      const penalized = result.find((d) => d.id === "penalized")!;
+      const unaffected = result.find((d) => d.id === "unaffected")!;
+
+      expect(penalized.score).toBeCloseTo(1.0 * REACTION_NOT_INTERESTING_MULTIPLIER, 3);
+      expect(unaffected.score).toBeCloseTo(1.0, 3);
+    });
+
+    it("applies already_know penalty (0.1x) to drafts from disliked section", () => {
+      const drafts = [makeDraft({ id: "known", sectionSummaryId: "sec-known", ...BASE_DRAFT })];
+
+      const summary = emptyReactionSummary();
+      summary.dislikedSections.set("sec-known", "already_know");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      expect(result[0]!.score).toBeCloseTo(1.0 * REACTION_ALREADY_KNOW_MULTIPLIER, 3);
+    });
+
+    it("applies wrong_type penalty (0.5x) to drafts of disliked card type", () => {
+      const drafts = [
+        makeDraft({ id: "bad-type", cardType: "quiz", ...BASE_DRAFT }),
+        makeDraft({ id: "ok-type", cardType: "insight", ...BASE_DRAFT }),
+      ];
+
+      const summary = emptyReactionSummary();
+      summary.dislikedCardTypes.add("quiz");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      const badType = result.find((d) => d.id === "bad-type")!;
+      const okType = result.find((d) => d.id === "ok-type")!;
+
+      expect(badType.score).toBeCloseTo(1.0 * REACTION_WRONG_TYPE_MULTIPLIER, 3);
+      expect(okType.score).toBeCloseTo(1.0, 3);
+    });
+
+    it("excludes rejected drafts entirely from results", () => {
+      const drafts = [
+        makeDraft({ id: "rejected-1", ...BASE_DRAFT }),
+        makeDraft({ id: "rejected-2", ...BASE_DRAFT }),
+        makeDraft({ id: "kept", ...BASE_DRAFT }),
+      ];
+
+      const summary = emptyReactionSummary();
+      summary.rejectedDraftIds.add("rejected-1");
+      summary.rejectedDraftIds.add("rejected-2");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]!.id).toBe("kept");
+    });
+
+    it("applies like section boost (1.3x)", () => {
+      const drafts = [
+        makeDraft({ id: "liked-sec", sectionSummaryId: "sec-fav", ...BASE_DRAFT }),
+        makeDraft({ id: "neutral", sectionSummaryId: "sec-other", ...BASE_DRAFT }),
+      ];
+
+      const summary = emptyReactionSummary();
+      summary.likedSections.add("sec-fav");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      const liked = result.find((d) => d.id === "liked-sec")!;
+      const neutral = result.find((d) => d.id === "neutral")!;
+
+      expect(liked.score).toBeCloseTo(1.0 * REACTION_LIKE_SECTION_MULTIPLIER, 3);
+      expect(neutral.score).toBeCloseTo(1.0, 3);
+    });
+
+    it("applies like card type boost (1.15x)", () => {
+      const drafts = [
+        makeDraft({ id: "liked-type", cardType: "quiz", ...BASE_DRAFT }),
+        makeDraft({ id: "neutral-type", cardType: "insight", ...BASE_DRAFT }),
+      ];
+
+      const summary = emptyReactionSummary();
+      summary.likedCardTypes.add("quiz");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      const liked = result.find((d) => d.id === "liked-type")!;
+      const neutral = result.find((d) => d.id === "neutral-type")!;
+
+      expect(liked.score).toBeCloseTo(1.0 * REACTION_LIKE_CARD_TYPE_MULTIPLIER, 3);
+      expect(neutral.score).toBeCloseTo(1.0, 3);
+    });
+
+    it("stacks section and type penalties multiplicatively", () => {
+      const drafts = [
+        makeDraft({
+          id: "double-penalized",
+          sectionSummaryId: "sec-bad",
+          cardType: "quiz",
+          ...BASE_DRAFT,
+        }),
+      ];
+
+      const summary = emptyReactionSummary();
+      summary.dislikedSections.set("sec-bad", "not_interesting");
+      summary.dislikedCardTypes.add("quiz");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      const expected = 1.0 * REACTION_NOT_INTERESTING_MULTIPLIER * REACTION_WRONG_TYPE_MULTIPLIER;
+      expect(result[0]!.score).toBeCloseTo(expected, 3);
+    });
+
+    it("stacks like boosts with section and type multiplicatively", () => {
+      const drafts = [
+        makeDraft({
+          id: "double-boosted",
+          sectionSummaryId: "sec-fav",
+          cardType: "quiz",
+          ...BASE_DRAFT,
+        }),
+      ];
+
+      const summary = emptyReactionSummary();
+      summary.likedSections.add("sec-fav");
+      summary.likedCardTypes.add("quiz");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      const expected = 1.0 * REACTION_LIKE_SECTION_MULTIPLIER * REACTION_LIKE_CARD_TYPE_MULTIPLIER;
+      expect(result[0]!.score).toBeCloseTo(expected, 3);
+    });
+
+    it("does not apply section penalty to drafts without sectionSummaryId", () => {
+      const drafts = [makeDraft({ id: "no-section", ...BASE_DRAFT })];
+
+      const summary = emptyReactionSummary();
+      summary.dislikedSections.set("sec-bad", "not_interesting");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      expect(result[0]!.score).toBeCloseTo(1.0, 3);
+    });
+
+    it("reorders ranking based on reaction penalties", () => {
+      const drafts = [
+        makeDraft({
+          id: "high-but-disliked",
+          sectionSummaryId: "sec-bad",
+          qualityScore: 0.9,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+        makeDraft({
+          id: "lower-but-clean",
+          sectionSummaryId: "sec-good",
+          qualityScore: 0.5,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+      ];
+
+      const summary = emptyReactionSummary();
+      summary.dislikedSections.set("sec-bad", "already_know");
+
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      // 0.9 * 0.1 = 0.09 vs 0.5 * 1.0 = 0.5
+      expect(result[0]!.id).toBe("lower-but-clean");
+      expect(result[1]!.id).toBe("high-but-disliked");
+    });
+
+    it("uses custom reaction multiplier config overrides", () => {
+      const config: ScoringConfig = {
+        ...DEFAULT_SCORING_CONFIG,
+        reactionNotInterestingMultiplier: 0.5,
+      };
+      const drafts = [makeDraft({ id: "d1", sectionSummaryId: "sec-1", ...BASE_DRAFT })];
+
+      const summary = emptyReactionSummary();
+      summary.dislikedSections.set("sec-1", "not_interesting");
+
+      const result = scoreDrafts({
+        drafts,
+        config,
+        now: NOW,
+        reactionSummary: summary,
+      });
+
+      expect(result[0]!.score).toBeCloseTo(0.5, 3);
     });
   });
 });

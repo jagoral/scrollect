@@ -8,6 +8,12 @@ export const FRESHNESS_DECAY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const HIGHLIGHT_BOOST = 3.0;
 
+export const REACTION_NOT_INTERESTING_MULTIPLIER = 0.3;
+export const REACTION_ALREADY_KNOW_MULTIPLIER = 0.1;
+export const REACTION_WRONG_TYPE_MULTIPLIER = 0.5;
+export const REACTION_LIKE_SECTION_MULTIPLIER = 1.3;
+export const REACTION_LIKE_CARD_TYPE_MULTIPLIER = 1.15;
+
 /** Short highlights (< 20 chars) produce too many false substring matches against chunk content */
 export const MIN_HIGHLIGHT_MATCH_LENGTH = 20;
 

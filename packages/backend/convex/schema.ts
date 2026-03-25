@@ -6,6 +6,7 @@ import {
   cardDraftStrategy,
   connectionPairStatus,
   connectionType,
+  dislikeReason,
   documentStatus,
   failedAtStage,
   fileType,
@@ -65,6 +66,17 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_type", ["userId", "postType"])
     .index("by_userId_createdAt", ["userId", "createdAt"]),
+
+  reactionFeedback: defineTable({
+    userId: v.string(),
+    postId: v.id("posts"),
+    cardDraftId: v.id("cardDrafts"),
+    reaction: reactionType,
+    dislikeReason: v.optional(dislikeReason),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_cardDraftId", ["userId", "cardDraftId"]),
 
   bookmarkLists: defineTable({
     userId: v.string(),

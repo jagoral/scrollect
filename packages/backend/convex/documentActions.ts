@@ -72,6 +72,7 @@ async function executeDeletionCascade(
 
   const chunkResult = await ctx.runMutation(internal.documents.cascadeDeleteChunksAndSummaries, {
     documentId,
+    userId,
   });
 
   const docResult = await ctx.runMutation(internal.documents.cascadeDeleteDocument, {
@@ -88,6 +89,7 @@ async function executeDeletionCascade(
       sectionSummaries: chunkResult.deletedSectionSummaries,
       processingJobs: chunkResult.deletedProcessingJobs,
       cardDrafts: chunkResult.deletedCardDrafts,
+      reactionFeedback: chunkResult.deletedReactionFeedback,
       orphanedTags: docResult.deletedOrphanedTags,
     },
   });
