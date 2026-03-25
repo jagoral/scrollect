@@ -1,9 +1,11 @@
 import { config } from "dotenv";
 import { defineConfig } from "evalite/config";
+import { createSqliteStorage } from "evalite/sqlite-storage";
 
 config({ path: ".env.local" });
 
 export default defineConfig({
+  storage: () => createSqliteStorage("evals/.results/evalite.db"),
   testTimeout: 120_000,
   maxConcurrency: 5,
   trialCount: 1,
