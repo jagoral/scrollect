@@ -54,7 +54,7 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
     combinedText: string;
   }): Promise<{ summary: string; usage: TokenUsage }> {
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("generate"),
       output: Output.object({ schema: summarySchema }),
       system: buildSectionSummaryPrompt(),
       prompt: `Section: "${opts.sectionTitle}"\n\n${opts.combinedText}`,
@@ -77,7 +77,7 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
       .join("\n\n---\n\n");
 
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("generate"),
       output: Output.object({ schema: summarySchema }),
       system: buildDocumentSummaryPrompt(),
       prompt: `Document: "${opts.documentTitle}"\n\n${userContent}`,

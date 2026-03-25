@@ -1,7 +1,7 @@
 import { evalite } from "evalite";
 
-import { AiSdkCardDraftLlm } from "../../providers/cardDraftLlm";
-import type { DraftCardType } from "../../lib/validators";
+import { AiSdkCardDraftLlm } from "../convex/providers/cardDraftLlm";
+import type { DraftCardType } from "../convex/lib/validators";
 import { ALL_FIXTURES } from "./fixtures";
 import {
   structuralValidity,
@@ -10,8 +10,7 @@ import {
   typeSpecificQuality,
 } from "./scorers";
 
-type CardDraftInput = {
-  cardType: DraftCardType;
+type SectionInput = {
   sectionTitle: string;
   sectionSummary: string;
   chunks: Array<{ content: string; chunkId: string }>;
@@ -29,7 +28,7 @@ type CardDraftOutput = {
 
 const llm = new AiSdkCardDraftLlm();
 
-function buildSectionInputs(): Omit<CardDraftInput, "cardType">[] {
+function buildSectionInputs(): SectionInput[] {
   return ALL_FIXTURES.flatMap((doc) =>
     doc.sections.map((section) => ({
       sectionTitle: section.sectionTitle,
@@ -47,11 +46,8 @@ evalite.each([
   { name: "quote", input: "quote" as DraftCardType },
   { name: "summary", input: "summary" as DraftCardType },
 ])("Section Draft: $name", {
-  data: () =>
-    buildSectionInputs().map((s) => ({
-      input: { ...s, cardType: "insight" as DraftCardType },
-    })),
-  task: async (input, cardType) => {
+  data: () => buildSectionInputs().map((s) => ({ input: s })),
+  task: async (input: SectionInput, cardType: DraftCardType) => {
     const { card } = await llm.generateDraft({
       cardType,
       sectionSummary: input.sectionSummary,

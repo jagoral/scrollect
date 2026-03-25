@@ -69,6 +69,7 @@ jobs:
         run: bunx evalite
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Upload eval results
         uses: actions/upload-artifact@v4
@@ -109,6 +110,7 @@ jobs:
           cd packages/backend
           bunx convex env set USE_STUB_EXTRACTORS true --preview-name "e2e-${{ github.run_id }}"
           bunx convex env set OPENAI_API_KEY "$OPENAI_API_KEY" --preview-name "e2e-${{ github.run_id }}"
+          bunx convex env set GEMINI_API_KEY "$GEMINI_API_KEY" --preview-name "e2e-${{ github.run_id }}"
           bunx convex env set QDRANT_URL "$QDRANT_URL" --preview-name "e2e-${{ github.run_id }}"
           bunx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --preview-name "e2e-${{ github.run_id }}"
           bunx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "e2e-${{ github.run_id }}"
@@ -117,6 +119,7 @@ jobs:
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           QDRANT_URL: ${{ vars.QDRANT_URL }}
           QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}

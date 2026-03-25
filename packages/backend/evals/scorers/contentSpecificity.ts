@@ -2,7 +2,7 @@ import { createScorer } from "evalite";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import { getAI } from "../../../providers/ai";
+import { getAI } from "../../convex/providers/ai";
 
 const ratingSchema = z.object({
   score: z
@@ -17,8 +17,15 @@ export const contentSpecificity = createScorer<any, any, any>({
   name: "Content Specificity",
   description: "LLM-as-judge: penalizes generic filler, rewards specific names, numbers, quotes",
   scorer: async ({ output }) => {
+    if (!output.content) {
+      return {
+        score: 1,
+        metadata: { rationale: "No content to evaluate (e.g. rejected connection)" },
+      };
+    }
+
     const { output: result } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
       system: `You are a content quality evaluator. Rate how specific and concrete the given learning card content is on a 0-1 scale.
 

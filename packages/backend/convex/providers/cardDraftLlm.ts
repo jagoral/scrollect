@@ -38,7 +38,7 @@ const quoteSchema = z.object({
     .string()
     .min(10)
     .describe("Exact verbatim quote copied from the source chunks - do not paraphrase"),
-  attribution: z.string().optional().describe("Author or source name if available"),
+  attribution: z.string().nullable().describe("Author or source name if available"),
 });
 
 const summarySchema = z.object({
@@ -58,42 +58,6 @@ const SCHEMAS: Record<DraftCardType, z.ZodSchema> = {
   quote: quoteSchema,
   summary: summarySchema,
 };
-
-// --- Prompt improvement notes ---
-// Each change is annotated with which eval scorer it targets:
-//   [CS] = Content Specificity scorer
-//   [TSQ] = Type-Specific Quality scorer
-//   [LM] = Language Match scorer
-//   [SV] = Structural Validity scorer
-//
-// Change 1 (base): Added grounding step "First, identify 2-3 specific details"
-//   [CS] Forces the model to extract concrete facts before writing, reducing generic filler.
-//   The Content Specificity scorer penalizes vague phrases - grounding upfront steers
-//   the model toward names, numbers, and quotes that score high.
-//
-// Change 2 (base): Added explicit negative examples of bad content
-//   [CS] The scorer's LLM judge penalizes exactly these patterns ("this chapter discusses
-//   important concepts"). Showing the model what NOT to write directly targets low scores.
-//
-// Change 3 (base): Strengthened language rule with "detect language from chunks first"
-//   [LM] The Language Match scorer checks Polish diacritics ratio. Telling the model to
-//   explicitly detect the language first reduces mismatches, especially for mixed-script input.
-//
-// Change 4 (quiz): Added "all wrong options must be plausible" + "explanation must quote source"
-//   [TSQ] The quiz quality scorer checks: "Are all options plausible and distinct?" and
-//   "Does the explanation reference the source?" These instructions directly address those criteria.
-//
-// Change 5 (quote): Added "search chunks for the exact passage, then copy character-by-character"
-//   [TSQ] The quote quality scorer checks for exact substring match against source chunks.
-//   Telling the model to find-then-copy reduces paraphrasing that scores 0.
-//
-// Change 6 (summary): Added "each bullet must contain at least one proper noun, number, or technical term"
-//   [CS][TSQ] Both scorers reward concrete details. This constraint makes abstract bullets
-//   impossible, directly lifting scores on both dimensions.
-//
-// Change 7 (insight): Added "include at least one direct phrase from the source text"
-//   [CS] The scorer rewards "verbatim quotes or precise examples from the source".
-//   This constraint ensures the content references the actual text, not a paraphrase.
 
 function buildSystemPrompt(cardType: DraftCardType): string {
   const base = `You are an AI learning assistant for Scrollect, a personal learning feed app.
@@ -203,7 +167,7 @@ ${chunkText}`;
 
     const schema = SCHEMAS[opts.cardType];
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("generate"),
       output: Output.object({ schema }),
       system: buildSystemPrompt(opts.cardType),
       prompt,

@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkHighlightDraftLlm } from "../../providers/highlightDraftLlm";
+import { AiSdkHighlightDraftLlm } from "../convex/providers/highlightDraftLlm";
 import { ALL_FIXTURES } from "./fixtures";
 import {
   structuralValidity,
@@ -8,7 +8,7 @@ import {
   contentSpecificity,
   typeSpecificQuality,
 } from "./scorers";
-import type { DraftCardType } from "../../lib/validators";
+import type { DraftCardType } from "../convex/lib/validators";
 
 type HighlightDraftInput = {
   highlightId: string;
@@ -25,7 +25,10 @@ type HighlightDraftOutput = {
   content: string;
   typeData: Record<string, unknown>;
   sourceChunks: string[];
+  highlightText: string;
   expectedLanguage: "en" | "pl";
+  usage: { inputTokens: number; outputTokens: number; totalTokens: number };
+  durationMs: number;
 };
 
 const llm = new AiSdkHighlightDraftLlm();
@@ -56,32 +59,45 @@ function collectHighlightInputs(): HighlightDraftInput[] {
 evalite("Highlight Draft", {
   data: () => collectHighlightInputs().map((d) => ({ input: d })),
   task: async (input) => {
-    const { cards } = await llm.generateDraftsFromHighlights({
-      highlights: [{ highlightId: input.highlightId, highlightText: input.highlightText }],
-      sectionSummary: input.sectionSummary,
-      sectionTitle: input.sectionTitle,
-      chunks: input.chunks,
-      documentTitle: input.documentTitle,
-    });
-
-    const card = cards[0];
-    if (!card) {
-      return {
-        cardType: "insight" as DraftCardType,
-        content: "",
-        typeData: { type: "insight" },
-        sourceChunks: input.chunks.map((c) => c.content),
-        expectedLanguage: input.expectedLanguage,
-      };
-    }
-
-    return {
-      cardType: card.cardType,
-      content: card.content,
-      typeData: card.typeData,
+    const zeroUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+    const emptyResult = {
+      cardType: "insight" as DraftCardType,
+      content: "",
+      typeData: { type: "insight" },
       sourceChunks: input.chunks.map((c) => c.content),
+      highlightText: input.highlightText,
       expectedLanguage: input.expectedLanguage,
-    } satisfies HighlightDraftOutput;
+      usage: zeroUsage,
+      durationMs: 0,
+    };
+
+    try {
+      const start = performance.now();
+      const { cards, usage } = await llm.generateDraftsFromHighlights({
+        highlights: [{ highlightId: input.highlightId, highlightText: input.highlightText }],
+        sectionSummary: input.sectionSummary,
+        sectionTitle: input.sectionTitle,
+        chunks: input.chunks,
+        documentTitle: input.documentTitle,
+      });
+      const durationMs = Math.round(performance.now() - start);
+
+      const card = cards[0];
+      if (!card) return emptyResult;
+
+      return {
+        cardType: card.cardType,
+        content: card.content,
+        typeData: card.typeData,
+        sourceChunks: input.chunks.map((c) => c.content),
+        highlightText: input.highlightText,
+        expectedLanguage: input.expectedLanguage,
+        usage,
+        durationMs,
+      } satisfies HighlightDraftOutput;
+    } catch {
+      return emptyResult;
+    }
   },
   scorers: [structuralValidity, languageMatch, contentSpecificity, typeSpecificQuality],
   trialCount: 3,

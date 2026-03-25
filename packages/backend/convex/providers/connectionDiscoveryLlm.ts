@@ -18,11 +18,11 @@ const connectionDraftSchema = z.object({
   sourceBTitleHint: z.string().describe("Short label for the second source (document or section)"),
   sourceAKeyIdea: z
     .string()
-    .optional()
+    .nullable()
     .describe("The key idea from source A relevant to this connection"),
   sourceBKeyIdea: z
     .string()
-    .optional()
+    .nullable()
     .describe("The key idea from source B relevant to this connection"),
   isGenuineConnection: z
     .boolean()
@@ -30,19 +30,6 @@ const connectionDraftSchema = z.object({
       "true if the connection is meaningful and non-trivial, false if the sections are only superficially related",
     ),
 });
-
-// --- Prompt improvement notes (scorer impact) ---
-// [CG] Added structured evaluation steps: "identify the specific concept in A, then in B, then explain the link"
-//   Connection Genuineness scorer checks for "specific conceptual link with evidence from both sections".
-//   Step-by-step reasoning forces the model to ground the connection in concrete evidence from both sides.
-// [CS] Added "reference at least one specific fact from each section"
-//   Content Specificity scorer penalizes vague connections. This constraint ensures each connection
-//   card contains concrete details from both sources.
-// [LM] Strengthened language detection instruction
-//   Same pattern as other providers - explicit language detection step.
-// [CG] Added explicit superficial connection examples to reject
-//   The Connection Genuineness scorer gives 0 for superficial connections. Showing examples of
-//   what "superficial" means helps the model set isGenuineConnection=false correctly.
 
 function buildSystemPrompt(): string {
   return `You are a connection discovery assistant for Scrollect, a personal learning feed app.
@@ -126,7 +113,7 @@ Source chunks B:
 ${chunksB}`;
 
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("reason"),
       output: Output.object({ schema: connectionDraftSchema }),
       system: buildSystemPrompt(),
       prompt,
