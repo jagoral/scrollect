@@ -191,12 +191,12 @@ async function buildReactionSummary(
   userId: string,
   draftsToScore: Doc<"cardDrafts">[],
 ): Promise<{ summary: ReactionSummary; feedbackRows: Doc<"reactionFeedback">[] }> {
-  // Cap at 500 rows to bound memory. Oldest reactions are dropped first since
-  // the default index order is by _creationTime asc; recent signals matter more
-  // for scoring so this is an acceptable trade-off.
+  // Cap at 500 most recent rows to bound memory. Recent signals matter more
+  // for scoring, so we order desc and drop the oldest if the user exceeds 500.
   const feedbackRows = await ctx.db
     .query("reactionFeedback")
     .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .order("desc")
     .take(500);
 
   const draftLookup = new Map(draftsToScore.map((d) => [d._id as string, d]));
