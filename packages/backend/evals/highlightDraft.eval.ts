@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkHighlightDraftLlm } from "../../providers/highlightDraftLlm";
+import { AiSdkHighlightDraftLlm } from "../convex/providers/highlightDraftLlm";
 import { ALL_FIXTURES } from "./fixtures";
 import {
   structuralValidity,
@@ -8,7 +8,7 @@ import {
   contentSpecificity,
   typeSpecificQuality,
 } from "./scorers";
-import type { DraftCardType } from "../../lib/validators";
+import type { DraftCardType } from "../convex/lib/validators";
 
 type HighlightDraftInput = {
   highlightId: string;

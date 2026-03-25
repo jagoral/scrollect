@@ -2,7 +2,7 @@ import { createScorer } from "evalite";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import { getAI } from "../../../providers/ai";
+import { getAI } from "../../convex/providers/ai";
 
 const ratingSchema = z.object({
   score: z

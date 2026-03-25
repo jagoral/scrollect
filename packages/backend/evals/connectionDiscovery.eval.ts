@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkConnectionDiscoveryLlm } from "../../providers/connectionDiscoveryLlm";
+import { AiSdkConnectionDiscoveryLlm } from "../convex/providers/connectionDiscoveryLlm";
 import {
   BOOK_EN_LEARNING,
   ARTICLE_EN_ARCHITECTURE,

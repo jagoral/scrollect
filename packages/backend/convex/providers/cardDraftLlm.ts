@@ -38,7 +38,7 @@ const quoteSchema = z.object({
     .string()
     .min(10)
     .describe("Exact verbatim quote copied from the source chunks - do not paraphrase"),
-  attribution: z.string().optional().describe("Author or source name if available"),
+  attribution: z.string().nullable().describe("Author or source name if available"),
 });
 
 const summarySchema = z.object({

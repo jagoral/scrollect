@@ -2,8 +2,8 @@ import { createScorer } from "evalite";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import { getAI } from "../../../providers/ai";
-import type { DraftCardType } from "../../../lib/validators";
+import { getAI } from "../../convex/providers/ai";
+import type { DraftCardType } from "../../convex/lib/validators";
 
 const ratingSchema = z.object({
   score: z.number().min(0).max(1).describe("Quality score from 0 (poor) to 1 (excellent)"),

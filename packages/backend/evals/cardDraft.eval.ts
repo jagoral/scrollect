@@ -1,7 +1,7 @@
 import { evalite } from "evalite";
 
-import { AiSdkCardDraftLlm } from "../../providers/cardDraftLlm";
-import type { DraftCardType } from "../../lib/validators";
+import { AiSdkCardDraftLlm } from "../convex/providers/cardDraftLlm";
+import type { DraftCardType } from "../convex/lib/validators";
 import { ALL_FIXTURES } from "./fixtures";
 import {
   structuralValidity,
