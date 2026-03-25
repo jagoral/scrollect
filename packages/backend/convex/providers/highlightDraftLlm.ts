@@ -143,8 +143,18 @@ ${highlightList}
 Classify each highlight into exactly one card type.`;
 }
 
-function buildGenerationSystem(cardType: DraftCardType): string {
-  const base = `You are an AI learning assistant for Scrollect. Write your response in the same language as the source chunks.`;
+function detectLanguage(text: string): "pl" | "en" {
+  const polishChars = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g;
+  const matches = text.match(polishChars);
+  if (!matches) return "en";
+  return matches.length / text.length > 0.005 ? "pl" : "en";
+}
+
+const LANGUAGE_NAMES: Record<string, string> = { pl: "Polish", en: "English" };
+
+function buildGenerationSystem(cardType: DraftCardType, language: "pl" | "en"): string {
+  const langName = LANGUAGE_NAMES[language];
+  const base = `You are an AI learning assistant for Scrollect. You MUST write your ENTIRE response in ${langName}. Do not mix languages.`;
 
   switch (cardType) {
     case "quote":
@@ -295,6 +305,9 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
       classifications.map((c) => [c.highlightId, c.cardType as DraftCardType]),
     );
 
+    const chunkText = opts.chunks.map((c) => c.content).join(" ");
+    const language = detectLanguage(chunkText);
+
     const generationPromises = opts.highlights.map(async (highlight) => {
       const cardType = classMap.get(highlight.highlightId) ?? "insight";
       const schema = TYPE_SCHEMAS[cardType];
@@ -302,7 +315,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
       const { output, usage } = await generateText({
         model: getAI().languageModel("generate"),
         output: Output.object({ schema }),
-        system: buildGenerationSystem(cardType),
+        system: buildGenerationSystem(cardType, language),
         prompt: buildGenerationPrompt({
           highlightText: highlight.highlightText,
           sectionSummary: opts.sectionSummary,

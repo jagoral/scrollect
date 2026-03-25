@@ -19,11 +19,11 @@ export function getAI(): Provider {
 
     _ai = customProvider({
       languageModels: {
-        classify: google("gemini-2.5-flash"),
-        fast: google("gemini-2.5-flash"),
-        generate: google("gemini-2.5-flash"),
-        reason: google("gemini-2.5-flash"),
-        premium: google("gemini-2.5-flash"),
+        classify: google("gemini-3.1-flash-lite-preview"),
+        fast: google("gemini-3.1-flash-lite-preview"),
+        generate: google("gemini-3.1-flash-lite-preview"),
+        reason: google("gemini-3.1-flash-lite-preview"),
+        premium: google("gemini-3.1-flash-lite-preview"),
         evaluate: google("gemini-2.5-flash"),
       },
       embeddingModels: {

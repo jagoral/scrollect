@@ -27,6 +27,8 @@ type HighlightDraftOutput = {
   sourceChunks: string[];
   highlightText: string;
   expectedLanguage: "en" | "pl";
+  usage: { inputTokens: number; outputTokens: number; totalTokens: number };
+  durationMs: number;
 };
 
 const llm = new AiSdkHighlightDraftLlm();
@@ -57,6 +59,7 @@ function collectHighlightInputs(): HighlightDraftInput[] {
 evalite("Highlight Draft", {
   data: () => collectHighlightInputs().map((d) => ({ input: d })),
   task: async (input) => {
+    const zeroUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
     const emptyResult = {
       cardType: "insight" as DraftCardType,
       content: "",
@@ -64,16 +67,20 @@ evalite("Highlight Draft", {
       sourceChunks: input.chunks.map((c) => c.content),
       highlightText: input.highlightText,
       expectedLanguage: input.expectedLanguage,
+      usage: zeroUsage,
+      durationMs: 0,
     };
 
     try {
-      const { cards } = await llm.generateDraftsFromHighlights({
+      const start = performance.now();
+      const { cards, usage } = await llm.generateDraftsFromHighlights({
         highlights: [{ highlightId: input.highlightId, highlightText: input.highlightText }],
         sectionSummary: input.sectionSummary,
         sectionTitle: input.sectionTitle,
         chunks: input.chunks,
         documentTitle: input.documentTitle,
       });
+      const durationMs = Math.round(performance.now() - start);
 
       const card = cards[0];
       if (!card) return emptyResult;
@@ -85,6 +92,8 @@ evalite("Highlight Draft", {
         sourceChunks: input.chunks.map((c) => c.content),
         highlightText: input.highlightText,
         expectedLanguage: input.expectedLanguage,
+        usage,
+        durationMs,
       } satisfies HighlightDraftOutput;
     } catch {
       return emptyResult;
