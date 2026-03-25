@@ -72,7 +72,6 @@ export type GenerateFeedMetrics = {
   connectionDiscoveryFailed?: boolean;
   connectionDiscoveryError?: string;
   feedLanguage?: string;
-  mixedLanguages?: boolean;
   hydratedChunks?: number;
   finalCardCount?: number;
   dedupSkipped?: number;
@@ -198,9 +197,8 @@ export async function generateFeed(opts: {
   const docLanguageMap = new Map<string, string | undefined>(
     documents.map((d) => [d._id, d.language]),
   );
-  const { language: feedLanguage, mixed } = resolveLanguage(hydratedChunks, docLanguageMap);
+  const feedLanguage = resolveLanguage(hydratedChunks, docLanguageMap);
   if (feedLanguage) metrics.feedLanguage = feedLanguage;
-  if (mixed) metrics.mixedLanguages = true;
 
   const typeCoverageHint = buildTypeCoverageHint(chunkUsageMap);
   const systemPrompt =
@@ -319,14 +317,22 @@ export async function generateFeed(opts: {
 function resolveLanguage(
   chunks: Array<{ documentId: string }>,
   docLanguageMap: Map<string, string | undefined>,
-): { language: string | undefined; mixed: boolean } {
-  const languages = new Set<string>();
+): string | undefined {
+  const counts = new Map<string, number>();
   for (const chunk of chunks) {
     const lang = docLanguageMap.get(chunk.documentId);
-    if (lang) languages.add(lang);
+    if (lang) counts.set(lang, (counts.get(lang) ?? 0) + 1);
   }
-  if (languages.size === 1) return { language: [...languages][0], mixed: false };
-  return { language: undefined, mixed: languages.size > 1 };
+  if (counts.size === 0) return undefined;
+  let dominant: string | undefined;
+  let max = 0;
+  for (const [lang, count] of counts) {
+    if (count > max) {
+      max = count;
+      dominant = lang;
+    }
+  }
+  return dominant;
 }
 
 function buildMultiTypePrompt(opts: {

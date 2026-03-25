@@ -310,8 +310,8 @@ describe("generateFeed", () => {
     expect(capturedLanguage).toBe("pl");
   });
 
-  test("falls back to generic language when documents have mixed languages", async () => {
-    let capturedLanguage: string | undefined = "sentinel";
+  test("uses dominant language when documents have mixed languages", async () => {
+    let capturedLanguage: string | undefined;
     const services = createMockServices({
       cardGenerator: createMockCardGenerator({
         generateCards: async (opts) => {
@@ -325,12 +325,13 @@ describe("generateFeed", () => {
       contentFetcher: createMapContentFetcher(
         new Map([
           ["c1", "Polish content"],
-          ["c2", "English content"],
+          ["c2", "More Polish"],
+          ["c3", "English content"],
         ]),
       ),
     });
 
-    const result = await generateFeed({
+    await generateFeed({
       data: makeInputData({
         documents: [
           { _id: "d1", title: "Polish Doc", createdAt: Date.now(), language: "pl" },
@@ -338,15 +339,15 @@ describe("generateFeed", () => {
         ],
         allChunks: [
           makeChunk("c1", "d1", { chunkIndex: 0 }),
-          makeChunk("c2", "d2", { chunkIndex: 0 }),
+          makeChunk("c2", "d1", { chunkIndex: 1 }),
+          makeChunk("c3", "d2", { chunkIndex: 0 }),
         ],
       }),
       services,
       cardCount: 1,
     });
 
-    expect(capturedLanguage).toBeUndefined();
-    expect(result.metrics.mixedLanguages).toBe(true);
+    expect(capturedLanguage).toBe("pl");
   });
 
   test("throws when no chunks are available", async () => {
