@@ -27,6 +27,7 @@ export default defineSchema({
     datalabCheckUrl: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
     chunkCount: v.number(),
+    language: v.optional(v.string()),
     summary: v.optional(v.string()),
     summaryEmbeddingId: v.optional(v.string()),
     tagIds: v.optional(v.array(v.id("tags"))),

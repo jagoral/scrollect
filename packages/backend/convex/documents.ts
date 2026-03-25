@@ -304,6 +304,7 @@ export const updateStatus = internalMutation({
     errorMessage: v.optional(v.string()),
     chunkCount: v.optional(v.number()),
     failedAt: v.optional(failedAtStage),
+    language: v.optional(v.string()),
     summary: v.optional(v.string()),
     summaryEmbeddingId: v.optional(v.string()),
   },
@@ -319,6 +320,9 @@ export const updateStatus = internalMutation({
     }
     if (fields.chunkCount !== undefined) {
       update.chunkCount = fields.chunkCount;
+    }
+    if (fields.language !== undefined) {
+      update.language = fields.language;
     }
     if (fields.summary !== undefined) {
       update.summary = fields.summary;

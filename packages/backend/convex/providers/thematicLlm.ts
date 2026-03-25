@@ -19,11 +19,14 @@ const themeSchema = z.object({
   ),
 });
 
-function buildSystemPrompt(): string {
+function buildSystemPrompt(language?: string): string {
+  const languageInstruction = language
+    ? `You MUST write theme titles and descriptions in ${language}. Do not mix languages.`
+    : `Write theme titles and descriptions in the same language as the section summaries.`;
   return `You are a theme discovery assistant for Scrollect, a personal learning feed app.
 Given section summaries from a document, identify cross-cutting themes that span multiple sections.
 
-IMPORTANT: Always write in English, regardless of the source language. Even if the section summaries are in Polish or another language, your theme titles and descriptions must be in English.
+${languageInstruction}
 
 <rules>
 - Each theme MUST involve at least 2 sections
@@ -56,6 +59,7 @@ export class AiSdkThematicLlm implements ThematicLlm {
   async discoverThemes(opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{
     themes: Array<{ title: string; description: string; relevantSections: string[] }>;
     usage: TokenUsage;
@@ -67,7 +71,7 @@ export class AiSdkThematicLlm implements ThematicLlm {
     const { output, usage } = await generateText({
       model: getAI().languageModel("generate"),
       output: Output.object({ schema: themeSchema }),
-      system: buildSystemPrompt(),
+      system: buildSystemPrompt(opts.language),
       prompt: `Document: "${opts.documentTitle}"\n\n${sectionText}`,
       temperature: 0.4,
       maxRetries: 2,

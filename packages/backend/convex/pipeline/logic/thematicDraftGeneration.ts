@@ -9,6 +9,7 @@ const THEME_CHUNKS_TOP_K = 3;
 export type ThemeDiscoveryInput = {
   sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
   documentTitle: string;
+  language?: string;
 };
 
 export type Theme = {
@@ -26,6 +27,7 @@ export type ThematicDraftInput = {
   documentId: string;
   userId: string;
   documentTitle: string;
+  language?: string;
   themes: Theme[];
   sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
   chunkContentMap: ReadonlyMap<string, string>;
@@ -81,6 +83,7 @@ export async function discoverThemes(opts: {
   const result = await services.thematicLlm.discoverThemes({
     sectionSummaries: input.sectionSummaries,
     documentTitle: input.documentTitle,
+    language: input.language,
   });
   return { themes: result.themes, usage: result.usage };
 }
@@ -174,6 +177,7 @@ async function generateDraftsForTheme(opts: {
           sectionTitle: theme.title,
           chunks,
           documentTitle: input.documentTitle,
+          language: input.language,
         })
         .then((result) => ({ cardType, ...result })),
     ),

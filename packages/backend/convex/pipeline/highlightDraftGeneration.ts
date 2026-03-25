@@ -84,6 +84,7 @@ export const generateHighlightDraftsForDocument = internalAction({
           documentId: documentId as string,
           userId,
           documentTitle: doc.title,
+          language: doc.language,
           highlights: highlights.map((h) => ({
             _id: h._id as string,
             text: h.text,

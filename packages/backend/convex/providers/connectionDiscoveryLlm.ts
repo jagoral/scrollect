@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { ConnectionDiscoveryLlm, TokenUsage } from "./types";
 import { getAI } from "./ai";
+import { buildLanguageInstruction } from "./promptUtils";
 
 const connectionDraftSchema = z.object({
   content: z
@@ -31,12 +32,15 @@ const connectionDraftSchema = z.object({
     ),
 });
 
-function buildSystemPrompt(): string {
+function buildSystemPrompt(language?: string): string {
+  const languageInstruction = language
+    ? `Write your ENTIRE response in ${language}. Do not mix languages.`
+    : `Write in the same language as the source chunks. Do not mix languages.`;
   return `You are a connection discovery assistant for Scrollect, a personal learning feed app.
 Given two sections from the user's library (possibly from different documents), determine if they share a meaningful conceptual connection and generate a connection card.
 
 <instructions>
-1. Detect the language of the source chunks. Write in that language.
+1. ${languageInstruction}
 2. Identify the key specific concept or fact in Section A.
 3. Identify the key specific concept or fact in Section B.
 4. Determine if there is a genuine conceptual link between them.
@@ -91,6 +95,7 @@ export class AiSdkConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
     };
     documentATitle: string;
     documentBTitle: string;
+    language?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
@@ -115,7 +120,7 @@ ${chunksB}`;
     const { output, usage } = await generateText({
       model: getAI().languageModel("reason"),
       output: Output.object({ schema: connectionDraftSchema }),
-      system: buildSystemPrompt(),
+      system: buildSystemPrompt(opts.language),
       prompt,
       temperature: 0.3,
       maxRetries: 2,

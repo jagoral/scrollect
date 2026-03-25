@@ -30,6 +30,7 @@ export type DocumentData = {
 
 export type ConnectionDiscoveryInput = {
   userId: string;
+  language?: string;
   newDocument: DocumentData;
   newDocumentSections: SectionData[];
   allDocuments: Map<string, DocumentData>;
@@ -472,6 +473,7 @@ async function generateDraftForCandidate(opts: {
     sectionB: { title: sectionB.sectionTitle, summary: sectionB.summary, chunks: chunksB },
     documentATitle: docA.title,
     documentBTitle: docB.title,
+    language: input.language,
   });
 }
 

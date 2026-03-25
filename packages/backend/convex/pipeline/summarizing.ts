@@ -75,6 +75,7 @@ export const summarizeDocument = internalAction({
           documentId,
           userId: doc.userId,
           documentTitle: doc.title,
+          language: doc.language,
           chunks: sortedChunks,
           staleVectorIds,
           idToUuid: convexIdToUuid,

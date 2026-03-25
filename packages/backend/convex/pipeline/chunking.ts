@@ -11,6 +11,7 @@ import { captureEvent } from "../providers/analytics";
 
 import { fanOutEmbedding } from "./embedding";
 import { CHUNK_STORE_BATCH_SIZE, fetchMarkdownBlob } from "./helpers";
+import { detectLanguage } from "./languageDetection";
 
 export const chunkAndStore = internalAction({
   args: {
@@ -61,10 +62,14 @@ export const chunkAndStore = internalAction({
       }
       evt.set("batchesStored", batchesStored);
 
+      const language = await detectLanguage(markdown);
+      evt.set("detectedLanguage", language);
+
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
         status: "embedding",
         chunkCount: chunks.length,
+        language,
       });
 
       await captureEvent({
