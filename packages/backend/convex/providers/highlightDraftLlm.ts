@@ -6,18 +6,6 @@ import { z } from "zod";
 import type { DraftCardType, HighlightDraftLlm, TokenUsage } from "./types";
 import { getAI } from "./ai";
 
-// --- Architecture: Two-step classify-then-generate ---
-// Round 4: Split single monolithic LLM call into:
-//   Step 1: Classification - small schema, fast call, picks card type per highlight
-//   Step 2: Per-type generation - type-specific schema with NO nullable fields,
-//           focused prompt per card type, runs in parallel
-//
-// Benefits:
-// [SV] Eliminates nullable fields entirely - each type has its own strict schema
-// [TSQ] Each type gets a dedicated, focused prompt instead of one overloaded prompt
-// [CS] Type-specific instructions can be more detailed about content requirements
-// [perf] Classification is fast (tiny output). Generation calls run in parallel.
-
 const classificationSchema = z.object({
   classifications: z.array(
     z.object({
