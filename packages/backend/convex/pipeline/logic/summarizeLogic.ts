@@ -1,5 +1,6 @@
 import { groupBy } from "es-toolkit";
 
+import { UNGROUPED_SENTINEL } from "../../feed/logic/constants";
 import type { SummaryVectorPoint } from "../../providers/types";
 
 export type ChunkGroup<T> = {
@@ -10,7 +11,7 @@ export type ChunkGroup<T> = {
 export function groupChunksBySection<T extends { chunkIndex: number; sectionTitle?: string }>(
   chunks: T[],
 ): ChunkGroup<T>[] {
-  const grouped = groupBy(chunks, (c) => c.sectionTitle ?? "(ungrouped)");
+  const grouped = groupBy(chunks, (c) => c.sectionTitle ?? UNGROUPED_SENTINEL);
   return Object.entries(grouped).map(([sectionTitle, sectionChunks]) => ({
     sectionTitle,
     chunks: sectionChunks,

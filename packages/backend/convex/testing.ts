@@ -93,13 +93,6 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
     .withIndex("by_userId", (q) => q.eq("userId", userId))
     .collect();
   for (const post of posts) {
-    const sources = await ctx.db
-      .query("postSources")
-      .withIndex("by_postId", (q) => q.eq("postId", post._id))
-      .collect();
-    for (const source of sources) {
-      await ctx.db.delete(source._id);
-    }
     if (post.assetStorageId) {
       try {
         await ctx.storage.delete(post.assetStorageId);
@@ -332,8 +325,9 @@ export const insertSeededData = internalMutation({
       typeData: TypeData;
       docId: typeof documentId;
       docTitle: string;
+      fileType: string;
       chunkId: (typeof chunkIds)[0];
-      extraSources?: Array<{ chunkId: (typeof chunkIds)[0]; documentId: typeof documentId }>;
+      strategy: "section" | "thematic" | "highlight" | "connection";
     }> = [
       {
         content: "**Learning Tip:** Spaced repetition improves long-term memory retention.",
@@ -347,8 +341,9 @@ export const insertSeededData = internalMutation({
         },
         docId: documentId,
         docTitle: "E2E Seed Document",
+        fileType: "md",
         chunkId: chunkIds[0]!,
-        extraSources: [{ chunkId: chunkIds[1]!, documentId }],
+        strategy: "section",
       },
       {
         content: "**Software Pattern:** The observer pattern establishes one-to-many dependencies.",
@@ -359,7 +354,9 @@ export const insertSeededData = internalMutation({
         },
         docId: documentId,
         docTitle: "E2E Seed Document",
+        fileType: "md",
         chunkId: chunkIds[2]!,
+        strategy: "section",
       },
       {
         content: "**Architecture:** Event-driven systems decouple producers from consumers.",
@@ -367,7 +364,9 @@ export const insertSeededData = internalMutation({
         typeData: { type: "insight" },
         docId: documentId2,
         docTitle: "E2E Seed Document 2",
+        fileType: "article",
         chunkId: chunkIds2[0]!,
+        strategy: "section",
       },
       {
         content:
@@ -380,8 +379,9 @@ export const insertSeededData = internalMutation({
         },
         docId: documentId,
         docTitle: "E2E Seed Document",
+        fileType: "md",
         chunkId: chunkIds[2]!,
-        extraSources: [{ chunkId: chunkIds2[0]!, documentId: documentId2 }],
+        strategy: "connection",
       },
       {
         content: "The observer pattern notifies dependents when state changes.",
@@ -398,7 +398,9 @@ export const insertSeededData = internalMutation({
         },
         docId: documentId,
         docTitle: "E2E Seed Document",
+        fileType: "md",
         chunkId: chunkIds[2]!,
+        strategy: "section",
       },
       {
         content: "**Key Insight:** Lorem ipsum is a placeholder text commonly used in design.",
@@ -406,7 +408,9 @@ export const insertSeededData = internalMutation({
         typeData: { type: "insight" },
         docId: documentId,
         docTitle: "E2E Seed Document",
+        fileType: "md",
         chunkId: chunkIds[0]!,
+        strategy: "section",
       },
       {
         content: "**Design Principle:** Good UX reduces cognitive load with digestible chunks.",
@@ -427,43 +431,45 @@ export const insertSeededData = internalMutation({
         },
         docId: documentId,
         docTitle: "E2E Seed Document",
+        fileType: "md",
         chunkId: chunkIds[1]!,
+        strategy: "section",
       },
     ];
 
     let postCount = 0;
     for (const def of postDefs) {
       const createdAt = now - (postDefs.length - postCount) * 1000;
-      const chunkHash = `seed-hash-${postCount}`;
-      const postId = await ctx.db.insert("posts", {
+      const contentHash = `seed-hash-${postCount}`;
+
+      const cardDraftId = await ctx.db.insert("cardDrafts", {
+        documentId: def.docId,
+        userId,
+        cardType: def.postType,
+        content: def.content,
+        typeData: def.typeData,
+        sourceChunkIds: [def.chunkId],
+        contentHash,
+        qualityScore: 0.8,
+        status: "served" as const,
+        servedCount: 1,
+        generationBatch: 1,
+        strategy: def.strategy,
+        createdAt,
+      });
+
+      await ctx.db.insert("posts", {
         content: def.content,
         postType: def.postType,
         typeData: def.typeData,
         primarySourceDocumentId: def.docId,
         primarySourceDocumentTitle: def.docTitle,
-        primarySourceChunkId: def.chunkId,
-        sourceChunkHash: chunkHash,
+        cardDraftId,
+        fileType: def.fileType,
         userId,
         createdAt,
       });
-      await ctx.db.insert("postSources", {
-        postId,
-        chunkId: def.chunkId,
-        documentId: def.docId,
-        userId,
-        createdAt,
-      });
-      if (def.extraSources) {
-        for (const extra of def.extraSources) {
-          await ctx.db.insert("postSources", {
-            postId,
-            chunkId: extra.chunkId,
-            documentId: extra.documentId,
-            userId,
-            createdAt,
-          });
-        }
-      }
+
       postCount++;
     }
 

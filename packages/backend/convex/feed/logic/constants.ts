@@ -1,6 +1,5 @@
-import type { PostType } from "../../lib/validators";
+export const UNGROUPED_SENTINEL = "(ungrouped)";
 
-export const HOOK_CARD_TYPES: readonly PostType[] = ["quiz", "connection"];
 export const MAX_CONSECUTIVE_SAME_TYPE = 3;
 
 export const FRESHNESS_WINDOW_MS = 48 * 60 * 60 * 1000;

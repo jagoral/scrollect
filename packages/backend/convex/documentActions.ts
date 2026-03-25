@@ -82,7 +82,6 @@ async function executeDeletionCascade(
     deleted: {
       highlights: highlightResult.deletedHighlights,
       posts: postResult.deletedPosts,
-      postSources: postResult.deletedPostSources,
       bookmarks: postResult.deletedBookmarks,
       connectionPairs: connectionPairResult.deletedConnectionPairs,
       chunks: chunkResult.deletedChunks,

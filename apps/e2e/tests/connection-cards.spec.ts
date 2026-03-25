@@ -88,63 +88,10 @@ test.describe("Connection card rendering (seeded)", { tag: "@seeded" }, () => {
     await expect(card.locator('[data-testid="source-badge"]')).not.toBeVisible();
   });
 
-  test("expand sheet shows source panels with both documents and bridge indicator", async ({
-    page,
-  }) => {
+  test("expand sheet is removed from connection cards", async ({ page }) => {
     const card = page.locator(cardOfType("connection")).first();
     await expect(card).toBeVisible();
 
-    await card.locator('[data-testid="expand-button"]').click();
-
-    const sheet = page.locator('[data-testid="source-sheet"]');
-    await expect(sheet).toBeVisible({ timeout: 10000 });
-
-    // Source panels are now in the sheet
-    const sheetSources = sheet.locator('[data-testid="connection-sheet-sources"]');
-    await expect(sheetSources).toBeVisible({ timeout: 10000 });
-
-    const sourceA = sheet.locator('[data-testid="connection-source-a"]');
-    const sourceB = sheet.locator('[data-testid="connection-source-b"]');
-    await expect(sourceA).toContainText("E2E Seed Document");
-    await expect(sourceB).toContainText("E2E Seed Document 2");
-
-    // Bridge indicator is in the sheet
-    const bridge = sheet.locator('[data-testid="connection-bridge"]');
-    await expect(bridge).toBeVisible();
-  });
-
-  test("expand sheet source panels link to document detail pages", async ({ page }) => {
-    const card = page.locator(cardOfType("connection")).first();
-    await expect(card).toBeVisible();
-
-    await card.locator('[data-testid="expand-button"]').click();
-
-    const sheet = page.locator('[data-testid="source-sheet"]');
-    await expect(sheet).toBeVisible({ timeout: 10000 });
-
-    // Source A link
-    const linkA = sheet.locator('[data-testid="connection-source-a-link"]');
-    await expect(linkA).toBeVisible({ timeout: 10000 });
-    const hrefA = await linkA.getAttribute("href");
-    expect(hrefA).toMatch(/\/app\/library\/.+/);
-
-    // Source B link
-    const linkB = sheet.locator('[data-testid="connection-source-b-link"]');
-    await expect(linkB).toBeVisible({ timeout: 10000 });
-    const hrefB = await linkB.getAttribute("href");
-    expect(hrefB).toMatch(/\/app\/library\/.+/);
-  });
-
-  test("connection card expand button also shows source chunks", async ({ page }) => {
-    const card = page.locator(cardOfType("connection")).first();
-    await expect(card).toBeVisible();
-
-    await card.locator('[data-testid="expand-button"]').click();
-
-    const sheet = page.locator('[data-testid="source-sheet"]');
-    await expect(sheet).toBeVisible({ timeout: 10000 });
-
-    const primaryChunk = sheet.locator('[data-testid="source-chunk"]').first();
-    await expect(primaryChunk).toBeVisible({ timeout: 10000 });
+    await expect(card.locator('[data-testid="expand-button"]')).toHaveCount(0);
   });
 });

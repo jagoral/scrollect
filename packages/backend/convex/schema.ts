@@ -46,10 +46,17 @@ export default defineSchema({
     typeData,
     primarySourceDocumentId: v.id("documents"),
     primarySourceDocumentTitle: v.string(),
-    primarySourceChunkId: v.id("chunks"),
+    // v2 fields (optional for backward compat with existing dev data)
+    cardDraftId: v.optional(v.id("cardDrafts")),
+    sectionTitle: v.optional(v.string()),
+    pageStart: v.optional(v.number()),
+    pageEnd: v.optional(v.number()),
+    fileType: v.optional(v.string()),
+    // TODO(post-launch): Drop legacy fields after wiping dev data
+    primarySourceChunkId: v.optional(v.id("chunks")),
     primarySourceSectionTitle: v.optional(v.string()),
     primarySourcePageNumber: v.optional(v.number()),
-    sourceChunkHash: v.string(),
+    sourceChunkHash: v.optional(v.string()),
     userId: v.string(),
     assetStorageId: v.optional(v.id("_storage")),
     reaction: v.optional(reactionType),
@@ -57,20 +64,6 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_type", ["userId", "postType"])
-    .index("by_userId_createdAt", ["userId", "createdAt"])
-    .index("by_userId_sourceChunkHash", ["userId", "sourceChunkHash"]),
-
-  postSources: defineTable({
-    postId: v.id("posts"),
-    chunkId: v.id("chunks"),
-    documentId: v.id("documents"),
-    userId: v.string(),
-    createdAt: v.number(),
-  })
-    .index("by_postId", ["postId"])
-    .index("by_chunkId", ["chunkId"])
-    .index("by_documentId", ["documentId"])
-    .index("by_userId", ["userId"])
     .index("by_userId_createdAt", ["userId", "createdAt"]),
 
   bookmarkLists: defineTable({
@@ -162,6 +155,7 @@ export default defineSchema({
     contentHash: v.string(),
     qualityScore: v.number(),
     status: cardDraftStatus,
+    servedCount: v.optional(v.number()),
     generationBatch: v.number(),
     strategy: cardDraftStrategy,
     rejectionReason: v.optional(v.string()),

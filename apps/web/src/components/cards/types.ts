@@ -53,13 +53,13 @@ export interface PostCardData {
   typeData: TypeData;
   primarySourceDocumentTitle: string;
   primarySourceDocumentId: Id<"documents">;
-  primarySourceChunkId: Id<"chunks">;
-  primarySourceSectionTitle?: string | null;
-  primarySourcePageNumber?: number | null;
+  fileType?: string;
+  sectionTitle?: string | null;
+  pageStart?: number | null;
+  pageEnd?: number | null;
   createdAt: number;
   reaction?: "like" | "dislike" | null;
   isBookmarked?: boolean;
   isNew?: boolean;
-  chunkIndex?: number;
   tags?: DocumentTag[];
 }
