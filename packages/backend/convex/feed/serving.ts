@@ -286,17 +286,13 @@ function summarizeReactionStats(
   const totalLikes = feedbackRows.filter((fb) => fb.reaction === "like").length;
   const totalDislikes = feedbackRows.filter((fb) => fb.reaction === "dislike").length;
 
+  // Count reason occurrences from raw rows (not deduplicated summary sets)
+  // to avoid undercounting when multiple cards share a section or type.
   const dislikesByReason: Record<string, number> = {};
-  for (const signal of summary.dislikedSections.values()) {
-    dislikesByReason[signal] = (dislikesByReason[signal] ?? 0) + 1;
-  }
-  const wrongTypeCount = summary.dislikedCardTypes.size;
-  if (wrongTypeCount > 0) {
-    dislikesByReason["wrong_type"] = wrongTypeCount;
-  }
-  const rejectedCount = summary.rejectedDraftIds.size;
-  if (rejectedCount > 0) {
-    dislikesByReason["low_quality"] = rejectedCount;
+  for (const fb of feedbackRows) {
+    if (fb.reaction === "dislike" && fb.dislikeReason) {
+      dislikesByReason[fb.dislikeReason] = (dislikesByReason[fb.dislikeReason] ?? 0) + 1;
+    }
   }
 
   return {
@@ -305,7 +301,7 @@ function summarizeReactionStats(
     dislikesByReason,
     penalizedSections: summary.dislikedSections.size,
     penalizedCardTypes: summary.dislikedCardTypes.size,
-    rejectedDrafts: rejectedCount,
+    rejectedDrafts: summary.rejectedDraftIds.size,
   };
 }
 
