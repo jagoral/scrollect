@@ -94,11 +94,11 @@ function DocumentDetailPage() {
       </Link>
 
       <div className="mt-6">
-        <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight">
-          <span className="text-muted-foreground">
+        <h1 className="flex items-start gap-2.5 text-2xl font-bold tracking-tight">
+          <span className="mt-1 shrink-0 text-muted-foreground">
             {fileTypeIcons[document.fileType] ?? <FileText className="size-5" />}
           </span>
-          <span>{document.title}</span>
+          <span className="break-words min-w-0">{document.title}</span>
         </h1>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <StatusBadge status={document.status} />
