@@ -47,9 +47,14 @@ export async function extractContentImpl({
     });
 
     if (result.title) {
+      const thumbnailUrl =
+        result.metadata?.thumbnailUrl && typeof result.metadata.thumbnailUrl === "string"
+          ? result.metadata.thumbnailUrl
+          : undefined;
       await ctx.runMutation(internal.documents.updateTitle, {
         id: documentId,
         title: result.title,
+        thumbnailUrl,
       });
     }
 
