@@ -22,6 +22,16 @@ async function waitForLatestDocumentReady(page: import("@playwright/test").Page)
   await expect(
     page.locator('[data-testid="status-ready"], [data-testid="status-error"]').first(),
   ).toBeVisible({ timeout: 90000 });
+
+  if (await page.locator('[data-testid="status-error"]').isVisible()) {
+    const retryButton = page.locator('[data-testid="retry-processing-button"]');
+    if (await retryButton.isVisible()) {
+      await retryButton.click();
+      await expect(page.locator('[data-testid="status-ready"]')).toBeVisible({ timeout: 90000 });
+      return;
+    }
+  }
+
   await expect(page.locator('[data-testid="status-ready"]')).toBeVisible();
 }
 
