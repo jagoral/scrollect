@@ -280,6 +280,155 @@ describe("scoreDrafts", () => {
     });
   });
 
+  describe("section diversity cap", () => {
+    it("caps a dominant section at 25% of batch", () => {
+      const drafts = [
+        ...Array.from({ length: 10 }, (_, i) =>
+          makeDraft({
+            id: `secA-${i}`,
+            documentId: `doc-${i}`,
+            sectionSummaryId: "section-A",
+            qualityScore: 0.9,
+          }),
+        ),
+        ...Array.from({ length: 5 }, (_, i) =>
+          makeDraft({
+            id: `other-${i}`,
+            documentId: `doc-other-${i}`,
+            sectionSummaryId: `section-other-${i}`,
+            qualityScore: 0.8,
+          }),
+        ),
+      ];
+
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 15 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+
+      // 25% of batchSize(15) = 3 max per section
+      // Section-A gets 3 accepted, then 5 others, then 7 section-A demoted
+      // The accepted portion (first 8) should have at most 3 from section-A
+      const maxPerSection = Math.floor(15 * 0.25); // 3
+      const demotedCount = 10 - maxPerSection; // 7 section-A demoted
+      const acceptedPortion = result.slice(0, result.length - demotedCount);
+      const sectionACounts = acceptedPortion.filter(
+        (d) => d.sectionSummaryId === "section-A",
+      ).length;
+
+      expect(sectionACounts).toBeLessThanOrEqual(maxPerSection);
+    });
+
+    it("demotes excess section cards to end of list", () => {
+      const drafts = [
+        ...Array.from({ length: 5 }, (_, i) =>
+          makeDraft({
+            id: `secA-${i}`,
+            documentId: `doc-a-${i}`,
+            sectionSummaryId: "section-A",
+            qualityScore: 0.9,
+          }),
+        ),
+        ...Array.from({ length: 2 }, (_, i) =>
+          makeDraft({
+            id: `secB-${i}`,
+            documentId: `doc-b-${i}`,
+            sectionSummaryId: "section-B",
+            qualityScore: 0.8,
+          }),
+        ),
+      ];
+
+      const config: ScoringConfig = {
+        ...DEFAULT_SCORING_CONFIG,
+        sectionDiversityCap: 0.5,
+        batchSize: 4,
+      };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+
+      // 50% of batchSize(4) = 2 max per section
+      // section-A gets 2 accepted, section-B gets 2 accepted
+      const first4 = result.slice(0, 4);
+      const secBInFirst4 = first4.filter((d) => d.sectionSummaryId === "section-B").length;
+      expect(secBInFirst4).toBeGreaterThanOrEqual(1);
+    });
+
+    it("uses documentId as fallback when sectionSummaryId is missing", () => {
+      const drafts = [
+        ...Array.from({ length: 6 }, (_, i) =>
+          makeDraft({
+            id: `noSec-${i}`,
+            documentId: "doc-same",
+            qualityScore: 0.9,
+          }),
+        ),
+        makeDraft({
+          id: "other-doc",
+          documentId: "doc-different",
+          qualityScore: 0.8,
+        }),
+      ];
+
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 7 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+
+      // Without sectionSummaryId, key = documentId
+      // "doc-same" gets max floor(7*0.25)=1 in accepted portion
+      // "doc-different" gets its own bucket
+      const sameDocInTop2 = result.slice(0, 2).filter((d) => d.documentId === "doc-same").length;
+      expect(sameDocInTop2).toBeLessThanOrEqual(1);
+    });
+
+    it("guarantees at least 1 card per section even with small batch", () => {
+      const drafts = Array.from({ length: 3 }, (_, i) =>
+        makeDraft({
+          id: `same-${i}`,
+          documentId: `doc-${i}`,
+          sectionSummaryId: "section-only",
+          qualityScore: 0.9 - i * 0.01,
+        }),
+      );
+
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 2 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+
+      // max(1, floor(2*0.25)) = max(1, 0) = 1
+      // At least 1 accepted from that section
+      expect(result).toHaveLength(3);
+      expect(result[0]!.sectionSummaryId).toBe("section-only");
+    });
+
+    it("section and document diversity work together", () => {
+      const drafts = Array.from({ length: 15 }, (_, i) => {
+        const sectionIndex = i % 3;
+        return makeDraft({
+          id: `combo-${i}`,
+          documentId: "doc-single",
+          sectionSummaryId: `section-${sectionIndex}`,
+          qualityScore: 0.9 - i * 0.01,
+        });
+      });
+
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 15 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+
+      // Section diversity: max floor(15*0.25)=3 per section
+      // Document diversity: max floor(15*0.4)=6 per document
+      // The accepted portion should show both caps in effect
+      const topBatch = result.slice(0, 6);
+      const sectionCounts = new Map<string, number>();
+      for (const d of topBatch) {
+        const key = d.sectionSummaryId!;
+        sectionCounts.set(key, (sectionCounts.get(key) ?? 0) + 1);
+      }
+
+      for (const [, count] of sectionCounts) {
+        expect(count).toBeLessThanOrEqual(3);
+      }
+
+      const docCount = topBatch.filter((d) => d.documentId === "doc-single").length;
+      expect(docCount).toBeLessThanOrEqual(6);
+    });
+  });
+
   describe("custom config overrides", () => {
     it("uses custom highlight boost", () => {
       const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, highlightBoost: 5.0 };

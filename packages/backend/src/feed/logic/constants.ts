@@ -14,6 +14,8 @@ export const REACTION_WRONG_TYPE_MULTIPLIER = 0.5;
 export const REACTION_LIKE_SECTION_MULTIPLIER = 1.3;
 export const REACTION_LIKE_CARD_TYPE_MULTIPLIER = 1.15;
 
+export const SECTION_DIVERSITY_CAP = 0.25;
+
 /** Short highlights (< 20 chars) produce too many false substring matches against chunk content */
 export const MIN_HIGHLIGHT_MATCH_LENGTH = 20;
 

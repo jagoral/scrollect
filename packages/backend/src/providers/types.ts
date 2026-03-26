@@ -172,7 +172,7 @@ export interface SummarizingLlm {
     sectionTitle: string;
     combinedText: string;
     language?: string;
-  }): Promise<{ summary: string; usage: TokenUsage }>;
+  }): Promise<{ summary: string; isSubstantiveContent: boolean; usage: TokenUsage }>;
 
   generateDocumentSummary(opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;

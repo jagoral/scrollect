@@ -7,12 +7,14 @@ import {
   REACTION_LIKE_SECTION_MULTIPLIER,
   REACTION_NOT_INTERESTING_MULTIPLIER,
   REACTION_WRONG_TYPE_MULTIPLIER,
+  SECTION_DIVERSITY_CAP,
 } from "./constants";
 
 export type ScoringConfig = {
   highlightBoost: number;
   maxConsecutiveSameType: number;
   documentDiversityCap: number;
+  sectionDiversityCap: number;
   batchSize: number;
   replenishmentThreshold: number;
   reactionNotInterestingMultiplier: number;
@@ -26,6 +28,7 @@ export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
   highlightBoost: HIGHLIGHT_BOOST,
   maxConsecutiveSameType: MAX_CONSECUTIVE_SAME_TYPE,
   documentDiversityCap: 0.4,
+  sectionDiversityCap: SECTION_DIVERSITY_CAP,
   batchSize: 15,
   replenishmentThreshold: 10,
   reactionNotInterestingMultiplier: REACTION_NOT_INTERESTING_MULTIPLIER,
@@ -89,8 +92,13 @@ export function scoreDrafts(opts: {
 
   scored.sort((a, b) => b.score - a.score);
 
-  const reordered = applyTypeDiversity(scored, config.maxConsecutiveSameType);
-  return applyDocumentDiversity(reordered, config);
+  // Diversity passes run sequentially: type -> section -> document.
+  // Later passes may partially reorder earlier caps (e.g., document diversity could
+  // shift section-demoted items back up). This is intentional: document diversity is
+  // the final constraint and takes precedence when caps conflict.
+  const typeReordered = applyTypeDiversity(scored, config.maxConsecutiveSameType);
+  const sectionReordered = applySectionDiversity(typeReordered, config);
+  return applyDocumentDiversity(sectionReordered, config);
 }
 
 function computeReactionMultiplier(
@@ -161,6 +169,30 @@ function countTrailingType(items: ScoredDraftWithScore[]): number {
     count++;
   }
   return count;
+}
+
+function applySectionDiversity(
+  sorted: ScoredDraftWithScore[],
+  config: ScoringConfig,
+): ScoredDraftWithScore[] {
+  const effectiveSize = Math.min(sorted.length, config.batchSize);
+  const maxPerSection = Math.max(1, Math.floor(effectiveSize * config.sectionDiversityCap));
+  const sectionCounts = new Map<string, number>();
+  const accepted: ScoredDraftWithScore[] = [];
+  const demoted: ScoredDraftWithScore[] = [];
+
+  for (const draft of sorted) {
+    const key = draft.sectionSummaryId ?? draft.documentId;
+    const count = sectionCounts.get(key) ?? 0;
+    if (count < maxPerSection) {
+      accepted.push(draft);
+      sectionCounts.set(key, count + 1);
+    } else {
+      demoted.push(draft);
+    }
+  }
+
+  return [...accepted, ...demoted];
 }
 
 function applyDocumentDiversity(
