@@ -6,12 +6,16 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureAiUsage, captureEvent } from "../providers/analytics";
-import type { TokenUsage } from "../providers/types";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
+import type { TokenUsage } from "../../src/providers/types";
 
 import { computeContentHash } from "./helpers";
-import { buildPairKey, discoverConnections } from "./logic/connectionDiscovery";
-import type { ChunkData, DocumentData, SectionData } from "./logic/connectionDiscovery";
+import { buildPairKey, discoverConnections } from "../../src/pipeline/logic/connectionDiscovery";
+import type {
+  ChunkData,
+  DocumentData,
+  SectionData,
+} from "../../src/pipeline/logic/connectionDiscovery";
 import { createConnectionDiscoveryServiceContext } from "./services";
 
 export const discover = internalAction({

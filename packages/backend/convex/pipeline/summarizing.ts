@@ -8,10 +8,10 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureAiUsage, captureEvent } from "../providers/analytics";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
 import { convexIdToUuid } from "./helpers";
-import { summarizeDocumentLogic } from "./logic/summarizing";
+import { summarizeDocumentLogic } from "../../src/pipeline/logic/summarizing";
 import { createSummarizingServiceContext } from "./services";
 
 export async function resumeSummarizing(ctx: ActionCtx, documentId: Id<"documents">) {

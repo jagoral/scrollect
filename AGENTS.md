@@ -35,6 +35,14 @@ Software engineers and active learners who consume a lot of content but struggle
 - Don't declare functions with more than 3 parameters. Merge the parametrs into object instead to avoid a risk of passing parameters in incorrect order
 - Prefer using TDD approach with /tdd skill
 
+## Backend structure (`packages/backend`)
+
+- **`convex/`** - Only Convex functions (queries, mutations, actions), schema, config, and Convex-specific helpers (`lib/`). Nothing else
+- **`src/`** - Pure TypeScript business logic and external service providers. Zero Convex imports. Uses dependency injection
+- **`tests/`** - All test and mock files
+- **`evals/`** - LLM evaluation benchmarks
+- New pure logic goes in `src/`, not `convex/`. If a file doesn't export a Convex function or depend on Convex runtime, it belongs in `src/`
+
 ## Convex backend
 
 - **External I/O before state transitions**: Complete all external operations (Qdrant, APIs) BEFORE updating document status. External calls are not transactional with Convex mutations

@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../providers/analytics";
+import { captureEvent } from "../../src/providers/analytics";
 
 import { extractArticleImpl, extractYouTubeImpl } from "./extraction";
 import { fetchAndParseMarkdownImpl, submitDatalabParsingImpl } from "./parsing";

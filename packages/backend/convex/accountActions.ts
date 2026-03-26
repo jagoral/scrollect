@@ -6,7 +6,7 @@ import { components, internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
-import { deleteDocumentVectors } from "./logic/documentDeletion";
+import { deleteDocumentVectors } from "../src/logic/documentDeletion";
 import { createVectorDeletionServices } from "./pipeline/services";
 
 export const deleteAccount = action({

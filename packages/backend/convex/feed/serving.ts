@@ -7,9 +7,9 @@ import type { DataModel, Doc } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
 import { requireAuth } from "../lib/functions";
 import { WideEvent } from "../lib/logging";
-import { UNGROUPED_SENTINEL } from "./logic/constants";
-import { DEFAULT_SCORING_CONFIG, scoreDrafts } from "./logic/scoring";
-import type { DislikeSignal, ReactionSummary, ScoredDraft } from "./logic/scoring";
+import { UNGROUPED_SENTINEL } from "../../src/feed/logic/constants";
+import { DEFAULT_SCORING_CONFIG, scoreDrafts } from "../../src/feed/logic/scoring";
+import type { DislikeSignal, ReactionSummary, ScoredDraft } from "../../src/feed/logic/scoring";
 
 type MutationCtx = GenericMutationCtx<DataModel>;
 

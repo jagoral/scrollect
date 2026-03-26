@@ -7,10 +7,10 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureAiUsage, captureEvent } from "../providers/analytics";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
 import { convexIdToUuid, EMBED_BATCH_SIZE, MAX_EMBED_RETRIES } from "./helpers";
-import { embedBatchLogic } from "./logic/embedding";
+import { embedBatchLogic } from "../../src/pipeline/logic/embedding";
 import { createEmbeddingServiceContext } from "./services";
 
 export async function fanOutEmbedding(
