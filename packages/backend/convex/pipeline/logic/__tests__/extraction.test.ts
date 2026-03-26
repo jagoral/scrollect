@@ -34,7 +34,11 @@ describe("extractContentLogic", () => {
       extract: vi.fn().mockResolvedValue({
         markdown: "# Video Transcript\nHello world",
         title: "Video Title",
-        metadata: { provider: "supadata", duration: 120 },
+        metadata: {
+          provider: "decodo",
+          duration: 120,
+          thumbnailUrl: "https://i.ytimg.com/vi/abc/maxresdefault.jpg",
+        },
       }),
     });
     const services = createMockExtractionServices({ youtubeExtractor });
@@ -49,7 +53,8 @@ describe("extractContentLogic", () => {
     expect(result.title).toBe("Video Title");
     expect(metrics.markdownLength).toBe(30);
     expect(metrics.hasTitle).toBe(true);
-    expect(metrics.provider).toBe("supadata");
+    expect(metrics.provider).toBe("decodo");
+    expect(result.metadata?.thumbnailUrl).toBe("https://i.ytimg.com/vi/abc/maxresdefault.jpg");
   });
 
   it("reports hasTitle false and no provider when missing", async () => {

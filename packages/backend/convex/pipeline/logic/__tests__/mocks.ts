@@ -83,7 +83,7 @@ export function createMockYouTubeExtractor(
     extract: async (): Promise<ExtractResult> => ({
       markdown: "# YouTube transcript",
       title: "Extracted Video Title",
-      metadata: { provider: "supadata" },
+      metadata: { provider: "decodo" },
     }),
     ...overrides,
   };

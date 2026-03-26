@@ -183,7 +183,10 @@ export class StubYouTubeExtractor implements ContentExtractor {
     return {
       markdown: STUB_YOUTUBE_MARKDOWN,
       title: `Stub YouTube Video (${videoId})`,
-      metadata: { provider: "stub" },
+      metadata: {
+        provider: "stub",
+        thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+      },
     };
   }
 }

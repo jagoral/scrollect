@@ -20,7 +20,7 @@ import type {
   SummaryVectorStore,
   VectorStore,
 } from "../providers/types";
-import { YouTubeTranscriptExtractor } from "../providers/youtube";
+import { DecodoYouTubeExtractor } from "../providers/youtube";
 
 export const CHUNK_STORE_BATCH_SIZE = 50;
 export const EMBED_BATCH_SIZE = 100;
@@ -70,9 +70,9 @@ export function createArticleExtractor(): ContentExtractor {
 
 export function createYouTubeExtractor(): ContentExtractor {
   if (process.env.USE_STUB_EXTRACTORS === "true") return new StubYouTubeExtractor();
-  const apiKey = process.env.SUPADATA_API_KEY;
-  if (!apiKey) throw new Error("SUPADATA_API_KEY environment variable is not set");
-  return new YouTubeTranscriptExtractor({ apiKey });
+  const authKey = process.env.DECODO_AUTH_KEY;
+  if (!authKey) throw new Error("DECODO_AUTH_KEY environment variable is not set");
+  return new DecodoYouTubeExtractor({ authKey });
 }
 
 export function computeContentHash(content: string): string {
