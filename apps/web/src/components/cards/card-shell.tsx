@@ -81,6 +81,7 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
   const posthog = usePostHog();
   const [sheetOpen, setSheetOpen] = useState(false);
   const reasonSelectedRef = useRef(false);
+  const dislikeButtonRef = useRef<HTMLButtonElement>(null);
 
   const impressionProperties = useMemo(
     () => ({
@@ -265,6 +266,7 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
                 <ThumbsUp className={cn("size-3.5", post.reaction === "like" && "fill-current")} />
               </Button>
               <Button
+                ref={dislikeButtonRef}
                 variant="ghost"
                 size="icon-sm"
                 className={cn(
@@ -291,6 +293,7 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
         onOpenChange={setSheetOpen}
         onReasonSelected={handleReasonSelected}
         onDismissed={handleSheetDismissed}
+        anchorRef={dislikeButtonRef}
       />
     </>
   );
