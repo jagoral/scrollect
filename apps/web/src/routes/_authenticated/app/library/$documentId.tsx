@@ -1,7 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
@@ -30,22 +30,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/app/library/$documentId")({
   ssr: false,
-  loader: async ({ params: { documentId }, context }) => {
-    const data = await context.queryClient.ensureQueryData(
-      convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
-    );
-    if (!data) throw notFound();
-    return { title: data.title };
-  },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: loaderData?.title ? `${loaderData.title} | Scrollect` : "Document | Scrollect",
-      },
-    ],
+  head: () => ({
+    meta: [{ title: "Document | Scrollect" }],
   }),
   notFoundComponent: () => (
     <NotFound>This document doesn&apos;t exist or you don&apos;t have access to it.</NotFound>
@@ -55,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/app/library/$documentId")(
 
 function DocumentDetailPage() {
   const { documentId } = Route.useParams();
-  const { data: document } = useSuspenseQuery(
+  const { data: document } = useQuery(
     convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
   );
   const navigate = useNavigate();
@@ -63,6 +53,18 @@ function DocumentDetailPage() {
   const posthog = usePostHog();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  if (document === undefined) {
+    return (
+      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+        <div className="mb-6 h-4 w-24">
+          <Skeleton className="h-full w-full" />
+        </div>
+        <Skeleton className="h-8 w-2/3 rounded" />
+        <Skeleton className="mt-4 h-64 w-full rounded-xl" />
+      </div>
+    );
+  }
 
   if (!document) throw notFound();
 
