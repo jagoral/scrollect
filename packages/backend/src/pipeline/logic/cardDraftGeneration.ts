@@ -134,9 +134,7 @@ function computeLengthScore(content: string): number {
   const len = content.length;
   if (len < 50) return 0.0;
   if (len < 100) return 0.5;
-  if (len <= 400) return 1.0;
-  if (len <= 800) return 0.75;
-  return 0.5;
+  return 1.0;
 }
 
 function computeCoverageScore(opts: { cardType: DraftCardType; sourceChunkCount: number }): number {

@@ -125,6 +125,26 @@ describe("computeQualityScore", () => {
     expect(score).toBeCloseTo(0.4 * 1.0 + 0.3 * 0.0 + 0.3 * 0.5);
   });
 
+  it("gives full length score for cards in the 400-800 char range", () => {
+    const score = computeQualityScore({
+      cardType: "insight",
+      content: "A".repeat(600),
+      typeData: { type: "insight" },
+      sourceChunkCount: 2,
+    });
+    expect(score).toBe(1.0);
+  });
+
+  it("gives full length score for cards up to 1200 chars", () => {
+    const score = computeQualityScore({
+      cardType: "insight",
+      content: "A".repeat(1200),
+      typeData: { type: "insight" },
+      sourceChunkCount: 2,
+    });
+    expect(score).toBe(1.0);
+  });
+
   it("returns 0.0 for structurally invalid quiz", () => {
     const score = computeQualityScore({
       cardType: "quiz",

@@ -10,14 +10,18 @@ const insightSchema = z.object({
   content: z
     .string()
     .min(50)
-    .max(800)
+    .max(1200)
     .describe(
-      "2-4 sentences with a specific fact, surprising detail, or concrete example. Use **bold** for key terms.",
+      "3-6 sentences with specific facts, surprising details, and concrete examples. Use **bold** for key terms. Provide enough context so the card is self-contained and useful without reading the source.",
     ),
 });
 
 const quizSchema = z.object({
-  content: z.string().min(20).max(800).describe("Brief description of what this quiz tests"),
+  content: z
+    .string()
+    .min(20)
+    .max(1200)
+    .describe("Description of what this quiz tests and why it matters"),
   variant: z.enum(["multiple_choice", "true_false"]),
   question: z
     .string()
@@ -33,7 +37,11 @@ const quizSchema = z.object({
 });
 
 const quoteSchema = z.object({
-  content: z.string().min(20).max(800).describe("Brief context for the quote (1-2 sentences)"),
+  content: z
+    .string()
+    .min(20)
+    .max(1200)
+    .describe("Context for the quote: who said it, about what, and why it matters (2-4 sentences)"),
   quotedText: z
     .string()
     .min(10)
@@ -47,7 +55,11 @@ const quoteSchema = z.object({
 });
 
 const summarySchema = z.object({
-  content: z.string().min(20).max(800).describe("Brief overview of the section (1-2 sentences)"),
+  content: z
+    .string()
+    .min(20)
+    .max(1200)
+    .describe("Overview of the section with key context (2-4 sentences)"),
   bulletPoints: z
     .array(z.string().min(1))
     .min(2)
@@ -103,10 +115,11 @@ Your job is to create a single focused learning card from a section of a documen
 <task>Create an INSIGHT card - a specific fact, surprising detail, or concrete example from the source.</task>
 
 <format>
-- 2-4 sentences
+- 3-6 sentences (aim for 400-800 characters). The card should be self-contained and useful on its own
 - Use **bold** for key terms (names, technical terms, numbers)
 - Include at least one direct phrase from the source text
 - The first sentence must contain a specific fact, not a general introduction
+- Add enough context so the reader understands the significance without opening the source
 </format>`;
 
     case "quiz":
@@ -115,6 +128,7 @@ Your job is to create a single focused learning card from a section of a documen
 <task>Create a QUIZ card testing recall of a specific detail from the source.</task>
 
 <format>
+- The content field should provide 3-5 sentences of context about what the quiz tests and why it matters (aim for 400-800 characters)
 - The question must target a concrete, verifiable fact (a name, number, date, or specific claim)
 - For multiple_choice: provide exactly 4 options where all wrong options are plausible but clearly incorrect based on the source
 - For true_false: the statement must be specific enough that the answer is unambiguous
@@ -134,7 +148,7 @@ ${
 - Lightly clean the passage: remove fillers, stutters, false starts, and word repetitions while preserving the speaker's original meaning, voice, and phrasing
 - Do NOT paraphrase or rewrite - only remove speech artifacts. The cleaned quote should read as if the speaker had spoken fluently
 - The attribution field is REQUIRED: always include the speaker's full proper name (e.g. "Ada Lovelace", not "a mathematician" or "the speaker")
-- In the content field, provide 1-2 sentences of context that include: WHO said it (proper name), ABOUT WHOM or WHAT it was said, and WHEN/WHERE if available in the source
+- In the content field, provide 3-5 sentences of context (aim for 400-800 characters) that include: WHO said it (proper name), ABOUT WHOM or WHAT it was said, WHEN/WHERE if available, and WHY it matters
 - The content must make the quote fully understandable without needing to read the original source
 </format>`
     : `<format>
@@ -142,7 +156,7 @@ ${
 - Copy the passage exactly as it appears in the source, character by character - do not paraphrase, rephrase, or clean up the text
 - The quotedText must be a verbatim substring of one of the source chunks
 - The attribution field is REQUIRED: always include the speaker's or writer's full proper name (e.g. "Ada Lovelace", not "a mathematician" or "the author")
-- In the content field, provide 1-2 sentences of context that include: WHO said it (proper name), ABOUT WHOM or WHAT it was said, and WHEN/WHERE if available in the source
+- In the content field, provide 3-5 sentences of context (aim for 400-800 characters) that include: WHO said it (proper name), ABOUT WHOM or WHAT it was said, WHEN/WHERE if available, and WHY it matters
 - The content must make the quote fully understandable without needing to read the original source
 </format>`
 }`;
@@ -155,7 +169,7 @@ ${
 <format>
 - 2-5 bullet points, each containing at least one proper noun, number, or technical term from the source
 - Each bullet must reference a distinct, concrete detail - not a rewording of another bullet
-- In the content field, provide a 1-2 sentence overview that names the specific topic (not "this section covers key ideas")
+- In the content field, provide a 3-5 sentence overview (aim for 400-800 characters) that names the specific topic, key players, and why it matters (not "this section covers key ideas")
 </format>`;
   }
 }
