@@ -75,6 +75,7 @@ export const generateThematicDraftsForDocument = internalAction({
           userId,
           documentTitle: doc.title,
           language: doc.language,
+          fileType: doc.fileType,
           themes: discoveryResult.themes,
           sectionSummaries,
           chunkContentMap,

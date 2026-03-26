@@ -32,6 +32,7 @@ export type ThematicDraftInput = {
   userId: string;
   documentTitle: string;
   language?: string;
+  fileType?: string;
   themes: Theme[];
   sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
   chunkContentMap: ReadonlyMap<string, string>;
@@ -182,6 +183,7 @@ async function generateDraftsForTheme(opts: {
           chunks,
           documentTitle: input.documentTitle,
           language: input.language,
+          fileType: input.fileType,
         })
         .then((result) => ({ cardType, ...result })),
     ),
