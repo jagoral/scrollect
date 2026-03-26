@@ -26,7 +26,7 @@ export default function Providers({
         {children}
         <ReactQueryDevtools buttonPosition="bottom-left" />
       </ConvexBetterAuthProvider>
-      <Toaster richColors />
+      <Toaster richColors duration={6000} />
     </ThemeProvider>
   );
 }
