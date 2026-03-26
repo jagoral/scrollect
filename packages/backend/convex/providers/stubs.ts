@@ -1,4 +1,15 @@
-import type { ContentExtractor, DocumentParser, ExtractResult, PollResult } from "./types";
+import type {
+  CardDraftLlm,
+  ConnectionDiscoveryLlm,
+  ContentExtractor,
+  DraftCardType,
+  DocumentParser,
+  ExtractResult,
+  HighlightDraftLlm,
+  PollResult,
+  ThematicLlm,
+  TokenUsage,
+} from "./types";
 
 const STUB_ARTICLE_MARKDOWN = `# Understanding Software Architecture Patterns
 
@@ -174,5 +185,148 @@ export class StubYouTubeExtractor implements ContentExtractor {
       title: `Stub YouTube Video (${videoId})`,
       metadata: { provider: "stub" },
     };
+  }
+}
+
+const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+
+const STUB_DRAFTS: Record<
+  DraftCardType,
+  (sectionTitle: string) => { content: string; typeData: Record<string, unknown> }
+> = {
+  insight: (sectionTitle) => ({
+    content: `Key insight from "${sectionTitle}": this section reveals an important concept about the topic.`,
+    typeData: { type: "insight" },
+  }),
+  quiz: (sectionTitle) => ({
+    content: `Quiz about "${sectionTitle}"`,
+    typeData: {
+      type: "quiz",
+      variant: "multiple_choice",
+      question: `What is the main concept discussed in "${sectionTitle}"?`,
+      options: ["Option A", "Option B", "Option C", "Option D"],
+      correctIndex: 0,
+      explanation: `The correct answer relates to the key idea from "${sectionTitle}".`,
+    },
+  }),
+  quote: (sectionTitle) => ({
+    content: `Notable passage from "${sectionTitle}".`,
+    typeData: {
+      type: "quote",
+      quotedText: `This is a representative quote from the "${sectionTitle}" section.`,
+    },
+  }),
+  summary: (sectionTitle) => ({
+    content: `Summary of key points from "${sectionTitle}".`,
+    typeData: {
+      type: "summary",
+      bulletPoints: [
+        `First key takeaway from "${sectionTitle}"`,
+        `Second key takeaway from "${sectionTitle}"`,
+      ],
+    },
+  }),
+};
+
+export class StubCardDraftLlm implements CardDraftLlm {
+  async generateDraft(opts: {
+    cardType: DraftCardType;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+    language?: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> };
+    usage: TokenUsage;
+  }> {
+    return {
+      card: STUB_DRAFTS[opts.cardType](opts.sectionTitle),
+      usage: ZERO_USAGE,
+    };
+  }
+}
+
+export class StubThematicLlm implements ThematicLlm {
+  async discoverThemes(_opts: {
+    sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+    documentTitle: string;
+    language?: string;
+  }): Promise<{
+    themes: Array<{ title: string; description: string; relevantSections: string[] }>;
+    usage: TokenUsage;
+  }> {
+    return {
+      themes: [
+        {
+          title: "Stub Cross-Cutting Theme",
+          description: "A stub theme that connects multiple sections for testing.",
+          relevantSections: _opts.sectionSummaries.slice(0, 2).map((s) => s.sectionTitle),
+        },
+      ],
+      usage: ZERO_USAGE,
+    };
+  }
+}
+
+export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
+  async generateConnectionDraft(opts: {
+    sectionA: {
+      title: string;
+      summary: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+    };
+    sectionB: {
+      title: string;
+      summary: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+    };
+    documentATitle: string;
+    documentBTitle: string;
+    language?: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> } | null;
+    usage: TokenUsage;
+  }> {
+    return {
+      card: {
+        content: `Connection between "${opts.sectionA.title}" and "${opts.sectionB.title}": these sections share a conceptual link.`,
+        typeData: {
+          type: "connection",
+          sourceATitleHint: opts.documentATitle,
+          sourceBTitleHint: opts.documentBTitle,
+          sourceAKeyIdea: `Key idea from ${opts.sectionA.title}`,
+          sourceBKeyIdea: `Key idea from ${opts.sectionB.title}`,
+        },
+      },
+      usage: ZERO_USAGE,
+    };
+  }
+}
+
+export class StubHighlightDraftLlm implements HighlightDraftLlm {
+  async generateDraftsFromHighlights(opts: {
+    highlights: Array<{ highlightId: string; highlightText: string }>;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+    language?: string;
+  }): Promise<{
+    cards: Array<{
+      highlightId: string;
+      content: string;
+      cardType: DraftCardType;
+      typeData: Record<string, unknown>;
+    }>;
+    usage: TokenUsage;
+  }> {
+    const cards = opts.highlights.map((h) => ({
+      highlightId: h.highlightId,
+      content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}...`,
+      cardType: "insight" as DraftCardType,
+      typeData: { type: "insight" },
+    }));
+    return { cards, usage: ZERO_USAGE };
   }
 }

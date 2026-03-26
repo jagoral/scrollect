@@ -17,20 +17,12 @@ export const getUserDocumentIds = internalQuery({
 export const deleteRemainingUserData = internalMutation({
   args: { userId: v.string() },
   returns: v.object({
-    deletedPostSources: v.number(),
     deletedBookmarks: v.number(),
     deletedBookmarkLists: v.number(),
     deletedTags: v.number(),
+    deletedReactionFeedback: v.number(),
   }),
   handler: async (ctx, args) => {
-    const postSources = await ctx.db
-      .query("postSources")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const ps of postSources) {
-      await ctx.db.delete(ps._id);
-    }
-
     const bookmarks = await ctx.db
       .query("bookmarks")
       .withIndex("by_userId_post", (q) => q.eq("userId", args.userId))
@@ -55,11 +47,19 @@ export const deleteRemainingUserData = internalMutation({
       await ctx.db.delete(tag._id);
     }
 
+    const reactionFeedback = await ctx.db
+      .query("reactionFeedback")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const fb of reactionFeedback) {
+      await ctx.db.delete(fb._id);
+    }
+
     return {
-      deletedPostSources: postSources.length,
       deletedBookmarks: bookmarks.length,
       deletedBookmarkLists: bookmarkLists.length,
       deletedTags: tags.length,
+      deletedReactionFeedback: reactionFeedback.length,
     };
   },
 });

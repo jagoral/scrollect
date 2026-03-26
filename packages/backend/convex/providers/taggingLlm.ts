@@ -16,6 +16,7 @@ Rules:
 - Tags should be broad enough to apply across multiple documents (e.g., "machine learning" not "chapter 3 summary")
 - Use natural language (e.g., "distributed systems", "React", "personal finance")
 - Prefer well-known terms over jargon
+- Tags must be in English, even if the source text is in another language
 - Return 3-5 tags, no more
 
 Return a JSON object: { "tags": ["tag1", "tag2", "tag3"] }`;
@@ -24,7 +25,7 @@ Return a JSON object: { "tags": ["tag1", "tag2", "tag3"] }`;
 export class AiSdkTaggingLlm implements TaggingLlm {
   async suggestTags(opts: { prompt: string }): Promise<{ tags: string[]; usage: TokenUsage }> {
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("classify"),
       output: Output.object({ schema: tagSchema }),
       system: buildTagSuggestionPrompt(),
       prompt: opts.prompt,

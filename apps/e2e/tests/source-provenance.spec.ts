@@ -33,16 +33,4 @@ test.describe("Source provenance on feed cards", { tag: "@seeded" }, () => {
     await expect(page.getByText(/back to library/i)).toBeVisible();
     await expect(page.locator("h1").getByText("E2E Seed Document")).toBeVisible({ timeout: 10000 });
   });
-
-  test("expand button opens source context sheet", async ({ page }) => {
-    const firstCard = page.locator('[data-testid="post-card"]').first();
-    const expandButton = firstCard.locator('[data-testid="expand-button"]');
-    await expect(expandButton).toBeVisible({ timeout: 10000 });
-
-    await expandButton.click();
-
-    const sourceSheet = page.locator('[data-testid="source-sheet"]');
-    await expect(sourceSheet).toBeVisible({ timeout: 10000 });
-    await expect(sourceSheet).toContainText("E2E Seed Document");
-  });
 });

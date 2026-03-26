@@ -35,6 +35,13 @@ export const createBatch = internalMutation({
   },
 });
 
+export const getInternal = internalQuery({
+  args: { id: v.id("sectionSummaries") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
 export const listByDocument = internalQuery({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => {
@@ -42,6 +49,21 @@ export const listByDocument = internalQuery({
       .query("sectionSummaries")
       .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
       .collect();
+  },
+});
+
+export const listByDocuments = internalQuery({
+  args: { documentIds: v.array(v.id("documents")) },
+  handler: async (ctx, args) => {
+    const results = await Promise.all(
+      args.documentIds.map((docId) =>
+        ctx.db
+          .query("sectionSummaries")
+          .withIndex("by_documentId", (q) => q.eq("documentId", docId))
+          .collect(),
+      ),
+    );
+    return results.flat();
   },
 });
 

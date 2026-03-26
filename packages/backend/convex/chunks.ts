@@ -80,6 +80,23 @@ export const listByDocumentInternal = internalQuery({
   },
 });
 
+export const listByDocumentRange = internalQuery({
+  args: {
+    documentId: v.id("documents"),
+    startIndex: v.number(),
+    endIndex: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("chunks")
+      .withIndex("by_documentId_chunkIndex", (q) =>
+        q.eq("documentId", args.documentId).gte("chunkIndex", args.startIndex),
+      )
+      .filter((q) => q.lte(q.field("chunkIndex"), args.endIndex))
+      .collect();
+  },
+});
+
 export const getWithContext = query({
   args: { chunkId: v.id("chunks") },
   handler: async (ctx, args) => {

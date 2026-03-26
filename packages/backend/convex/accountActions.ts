@@ -50,6 +50,7 @@ export const deleteAccount = action({
           });
           await ctx.runMutation(internal.documents.cascadeDeleteChunksAndSummaries, {
             documentId,
+            userId: user._id,
           });
           await ctx.runMutation(internal.documents.cascadeDeleteDocument, {
             documentId,

@@ -5,10 +5,11 @@ import { z } from "zod";
 
 import type { SummarizingLlm, TokenUsage } from "./types";
 import { getAI } from "./ai";
+import { buildLanguageInstruction } from "./promptUtils";
 
 const summarySchema = z.object({ summary: z.string() });
 
-function buildSectionSummaryPrompt(): string {
+function buildSectionSummaryPrompt(language?: string): string {
   return `You are a summarization assistant for a personal learning app.
 Given text chunks from a section of a document, produce a concise summary that captures the key ideas, concepts, and insights.
 
@@ -17,11 +18,12 @@ Rules:
 - Capture the main concepts and their relationships
 - Be specific - include key terms, names, and numbers
 - Write in third person
+- ${buildLanguageInstruction(language)}
 
 Return a JSON object: { "summary": "..." }`;
 }
 
-function buildDocumentSummaryPrompt(): string {
+function buildDocumentSummaryPrompt(language?: string): string {
   return `You are a summarization assistant for a personal learning app.
 Given section summaries from a document, produce a document-level summary that captures the overall theme and key takeaways.
 
@@ -30,6 +32,7 @@ Rules:
 - Capture the document's main thesis and key arguments
 - Mention the most important concepts across sections
 - Write in third person
+- ${buildLanguageInstruction(language)}
 
 Return a JSON object: { "summary": "..." }`;
 }
@@ -50,11 +53,12 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
   async generateSectionSummary(opts: {
     sectionTitle: string;
     combinedText: string;
+    language?: string;
   }): Promise<{ summary: string; usage: TokenUsage }> {
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("generate"),
       output: Output.object({ schema: summarySchema }),
-      system: buildSectionSummaryPrompt(),
+      system: buildSectionSummaryPrompt(opts.language),
       prompt: `Section: "${opts.sectionTitle}"\n\n${opts.combinedText}`,
       temperature: 0.3,
       maxRetries: 2,
@@ -69,15 +73,16 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
   async generateDocumentSummary(opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{ summary: string; usage: TokenUsage }> {
     const userContent = opts.sectionSummaries
       .map((s) => `Section "${s.sectionTitle}":\n${s.summary}`)
       .join("\n\n---\n\n");
 
     const { output, usage } = await generateText({
-      model: getAI().languageModel("fast"),
+      model: getAI().languageModel("generate"),
       output: Output.object({ schema: summarySchema }),
-      system: buildDocumentSummaryPrompt(),
+      system: buildDocumentSummaryPrompt(opts.language),
       prompt: `Document: "${opts.documentTitle}"\n\n${userContent}`,
       temperature: 0.3,
       maxRetries: 2,

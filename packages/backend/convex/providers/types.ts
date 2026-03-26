@@ -5,7 +5,7 @@ export type TokenUsage = {
 };
 
 export interface CardGenerationService {
-  generateCards(opts: { systemPrompt: string; userPrompt: string }): Promise<{
+  generateCards(opts: { systemPrompt: string; userPrompt: string; cardCount: number }): Promise<{
     cards: Record<string, unknown>[];
     usage: TokenUsage;
   }>;
@@ -96,6 +96,7 @@ export interface SummaryVectorPoint {
 
 export interface VectorFilter {
   userId: string;
+  documentId?: string;
 }
 
 export interface SummaryVectorFilter extends VectorFilter {
@@ -170,16 +171,68 @@ export interface SummarizingLlm {
   generateSectionSummary(opts: {
     sectionTitle: string;
     combinedText: string;
+    language?: string;
   }): Promise<{ summary: string; usage: TokenUsage }>;
 
   generateDocumentSummary(opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
+    language?: string;
   }): Promise<{ summary: string; usage: TokenUsage }>;
 }
 
 export interface TaggingLlm {
   suggestTags(opts: { prompt: string }): Promise<{ tags: string[]; usage: TokenUsage }>;
+}
+
+export type { DraftCardType } from "../lib/validators";
+import type { DraftCardType } from "../lib/validators";
+
+export interface CardDraftLlm {
+  generateDraft(opts: {
+    cardType: DraftCardType;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+    language?: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> };
+    usage: TokenUsage;
+  }>;
+}
+
+export interface ThematicLlm {
+  discoverThemes(opts: {
+    sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+    documentTitle: string;
+    language?: string;
+  }): Promise<{
+    themes: Array<{ title: string; description: string; relevantSections: string[] }>;
+    usage: TokenUsage;
+  }>;
+}
+
+export interface ConnectionDiscoveryLlm {
+  /** Generate a connection card from two related sections. Returns null if the LLM rejects the pair as trivial. */
+  generateConnectionDraft(opts: {
+    sectionA: {
+      title: string;
+      summary: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+    };
+    sectionB: {
+      title: string;
+      summary: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+    };
+    documentATitle: string;
+    documentBTitle: string;
+    language?: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> } | null;
+    usage: TokenUsage;
+  }>;
 }
 
 export type SummarizingServiceContext = {
@@ -204,6 +257,46 @@ export type ExtractionServiceContext = {
 
 export type TaggingServiceContext = {
   llm: TaggingLlm;
+};
+
+export type DraftGenerationServiceContext = {
+  llm: CardDraftLlm;
+};
+
+export type ThematicDraftGenerationServiceContext = {
+  thematicLlm: ThematicLlm;
+  draftLlm: CardDraftLlm;
+  embedder: EmbeddingProvider;
+  vectorStore: VectorStore;
+};
+
+export type ConnectionDiscoveryServiceContext = {
+  llm: ConnectionDiscoveryLlm;
+  summaryStore: SummaryVectorStore;
+  embedder: EmbeddingProvider;
+};
+
+export interface HighlightDraftLlm {
+  generateDraftsFromHighlights(opts: {
+    highlights: Array<{ highlightId: string; highlightText: string }>;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+    language?: string;
+  }): Promise<{
+    cards: Array<{
+      highlightId: string;
+      content: string;
+      cardType: DraftCardType;
+      typeData: Record<string, unknown>;
+    }>;
+    usage: TokenUsage;
+  }>;
+}
+
+export type HighlightDraftGenerationServiceContext = {
+  llm: HighlightDraftLlm;
 };
 
 export type VectorDeletionServices = {

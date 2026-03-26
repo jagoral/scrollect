@@ -127,6 +127,27 @@ export async function goToFirstDocument(page: Page) {
   await expect(page.getByText(/back to library/i)).toBeVisible();
 }
 
+export async function fetchConnectionDrafts(email: string) {
+  const { ok, status, body } = await convexE2ERequest("/api/e2e-connection-drafts", email);
+  if (!ok) {
+    throw new Error(`E2E connection drafts query failed: ${status} ${body}`);
+  }
+  return JSON.parse(body).drafts as Array<{
+    _id: string;
+    documentId: string;
+    cardType: string;
+    strategy: string;
+    sourceChunkIds: string[];
+    typeData: {
+      type: string;
+      connectionType?: string;
+      sourceATitleHint?: string;
+      sourceBTitleHint?: string;
+    };
+    content: string;
+  }>;
+}
+
 async function convexE2ERequest(
   urlPath: string,
   email: string,

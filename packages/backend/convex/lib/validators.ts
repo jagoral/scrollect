@@ -18,6 +18,7 @@ export const documentStatus = v.union(
   v.literal("chunking"),
   v.literal("embedding"),
   v.literal("summarizing"),
+  v.literal("generating_cards"),
   v.literal("ready"),
   v.literal("deleting"),
   v.literal("error"),
@@ -28,7 +29,30 @@ export const failedAtStage = v.union(
   v.literal("chunking"),
   v.literal("embedding"),
   v.literal("summarizing"),
+  v.literal("generating_cards"),
   v.literal("deleting"),
+);
+
+export const cardDraftStatus = v.union(
+  v.literal("pending"),
+  v.literal("served"),
+  v.literal("used"),
+  v.literal("rejected"),
+);
+
+export const cardDraftStrategy = v.union(
+  v.literal("section"),
+  v.literal("thematic"),
+  v.literal("highlight"),
+  v.literal("connection"),
+);
+
+export const connectionType = v.union(v.literal("cross_document"), v.literal("within_document"));
+
+export const connectionPairStatus = v.union(
+  v.literal("pending"),
+  v.literal("drafted"),
+  v.literal("failed"),
 );
 
 export const reactionType = v.union(v.literal("like"), v.literal("dislike"));
@@ -39,6 +63,15 @@ export type HighlightSource = Infer<typeof highlightSource>;
 export const tagSource = v.union(v.literal("ai"), v.literal("manual"));
 
 export type TagSource = Infer<typeof tagSource>;
+
+export const dislikeReason = v.union(
+  v.literal("not_interesting"),
+  v.literal("already_know"),
+  v.literal("wrong_type"),
+  v.literal("low_quality"),
+);
+
+export type DislikeReason = Infer<typeof dislikeReason>;
 
 export const reactionInput = v.union(v.literal("like"), v.literal("dislike"), v.literal("none"));
 
@@ -80,7 +113,7 @@ export const typeData = v.union(
     sourceAKeyIdea: v.optional(v.string()),
     sourceBKeyIdea: v.optional(v.string()),
     similarityScore: v.optional(v.number()),
-    connectionType: v.optional(v.union(v.literal("cross_document"), v.literal("within_document"))),
+    connectionType: v.optional(connectionType),
   }),
 );
 
@@ -90,3 +123,7 @@ export type TypeData = Infer<typeof typeData>;
 
 // Must be kept in sync with the postType union above.
 export const ALL_POST_TYPES: PostType[] = ["insight", "quiz", "quote", "summary", "connection"];
+
+// Card types eligible for draft generation. Excludes "connection" because connection
+// drafts require cross-document discovery (sub-increment 1c), not section-scoped generation.
+export type DraftCardType = Exclude<PostType, "connection">;

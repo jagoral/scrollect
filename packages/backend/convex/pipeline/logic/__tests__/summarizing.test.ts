@@ -177,4 +177,41 @@ describe("summarizeDocumentLogic", () => {
 
     expect(deleteFn).not.toHaveBeenCalled();
   });
+
+  it("forwards language to section and document summary LLM calls", async () => {
+    const sectionFn = vi.fn().mockResolvedValue({
+      summary: "section summary",
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    });
+    const docFn = vi.fn().mockResolvedValue({
+      summary: "doc summary",
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    });
+    const services = createMockSummarizingServices({
+      llm: { generateSectionSummary: sectionFn, generateDocumentSummary: docFn },
+      embedder: createMockEmbedder({
+        dimensions: 2,
+        embed: vi.fn().mockResolvedValue([
+          [0.1, 0.2],
+          [0.3, 0.4],
+        ]),
+      }),
+    });
+
+    await summarizeDocumentLogic({
+      input: {
+        documentId: "doc1",
+        userId: "user1",
+        documentTitle: "Test Doc",
+        language: "pl",
+        chunks: [makeChunk({ chunkIndex: 0, sectionTitle: "Intro" })],
+        staleVectorIds: [],
+        idToUuid: fakeIdToUuid,
+      },
+      services,
+    });
+
+    expect(sectionFn).toHaveBeenCalledWith(expect.objectContaining({ language: "pl" }));
+    expect(docFn).toHaveBeenCalledWith(expect.objectContaining({ language: "pl" }));
+  });
 });

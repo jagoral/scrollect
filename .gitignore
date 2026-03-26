@@ -44,6 +44,12 @@ lerna-debug.log*
 coverage
 .nyc_output
 
+# Evalite
+.evalite
+# SQLite WAL journal files (transient, not needed in git)
+*.db-shm
+*.db-wal
+
 # Lighthouse CI
 .lighthouseci
 

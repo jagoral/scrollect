@@ -2,8 +2,11 @@
 
 import { createHash } from "crypto";
 
+import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import type { WideEvent } from "../lib/logging";
+import { captureEvent } from "../providers/analytics";
 import { getAI } from "../providers/ai";
 import { DatalabParser } from "../providers/datalab";
 import { MarkdownNewArticleExtractor } from "../providers/markdownNew";
@@ -72,6 +75,10 @@ export function createYouTubeExtractor(): ContentExtractor {
   return new YouTubeTranscriptExtractor({ apiKey });
 }
 
+export function computeContentHash(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
 /** Convert a Convex document ID to a deterministic UUID for Qdrant. */
 export function convexIdToUuid(id: string): string {
   const hex = createHash("sha256").update(id).digest("hex");
@@ -99,4 +106,33 @@ export async function fetchMarkdownBlob(
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch markdown blob: ${response.statusText}`);
   return await response.text();
+}
+
+export async function transitionToReady(opts: {
+  ctx: ActionCtx;
+  documentId: Id<"documents">;
+  userId: string | undefined;
+  evt: WideEvent;
+}) {
+  const { ctx, documentId, userId, evt } = opts;
+  await ctx.runMutation(internal.documents.updateStatus, {
+    id: documentId,
+    status: "ready",
+  });
+
+  await ctx.scheduler.runAfter(0, internal.pipeline.tagging.autoSuggest, { documentId });
+  await ctx.scheduler.runAfter(0, internal.pipeline.connectionDiscovery.discover, { documentId });
+
+  if (userId) {
+    await captureEvent({
+      distinctId: userId,
+      event: "pipeline.stage_completed",
+      properties: {
+        stage: "generating_cards",
+        document_id: documentId,
+      },
+    });
+  }
+
+  evt.set("transitionedToReady", true);
 }

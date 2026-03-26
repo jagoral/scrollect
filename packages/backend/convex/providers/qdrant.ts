@@ -50,23 +50,42 @@ class QdrantHttpClient {
     return response.json();
   }
 
-  async ensureCollection(collectionName: string): Promise<void> {
+  async ensureCollection(collectionName: string, indexFields: string[] = []): Promise<void> {
     const data = (await this.request("/collections")) as {
       result: { collections: Array<{ name: string }> };
     };
     const exists = data.result.collections.some((c) => c.name === collectionName);
-    if (exists) return;
 
+    if (!exists) {
+      try {
+        await this.request(`/collections/${collectionName}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            vectors: { size: this.vectorSize, distance: "Cosine" },
+          }),
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const isAlreadyExists = /40[09]/.test(message) || /already exists/i.test(message);
+        if (!isAlreadyExists) throw error;
+      }
+    }
+
+    await Promise.all(indexFields.map((field) => this.ensurePayloadIndex(collectionName, field)));
+  }
+
+  private async ensurePayloadIndex(collectionName: string, fieldName: string): Promise<void> {
     try {
-      await this.request(`/collections/${collectionName}`, {
+      await this.request(`/collections/${collectionName}/index`, {
         method: "PUT",
         body: JSON.stringify({
-          vectors: { size: this.vectorSize, distance: "Cosine" },
+          field_name: fieldName,
+          field_schema: "keyword",
         }),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const isAlreadyExists = /40[09]/.test(message) || /already exists/i.test(message);
+      const isAlreadyExists = /already exists/i.test(message) || /409/.test(message);
       if (!isAlreadyExists) throw error;
     }
   }
@@ -88,7 +107,7 @@ export class QdrantVectorStore implements VectorStore {
 
   async ensureCollection(): Promise<void> {
     if (this.collectionReady) return;
-    await this.client.ensureCollection(COLLECTION_NAME);
+    await this.client.ensureCollection(COLLECTION_NAME, ["userId", "documentId"]);
     this.collectionReady = true;
   }
 
@@ -113,14 +132,19 @@ export class QdrantVectorStore implements VectorStore {
     filter: VectorFilter,
     topK: number,
   ): Promise<VectorSearchResult[]> {
+    const must: Array<Record<string, unknown>> = [
+      { key: "userId", match: { value: filter.userId } },
+    ];
+    if (filter.documentId) {
+      must.push({ key: "documentId", match: { value: filter.documentId } });
+    }
+
     const data = (await this.client.request(`/collections/${COLLECTION_NAME}/points/search`, {
       method: "POST",
       body: JSON.stringify({
         vector,
         limit: topK,
-        filter: {
-          must: [{ key: "userId", match: { value: filter.userId } }],
-        },
+        filter: { must },
         with_payload: true,
       }),
     })) as { result: Array<{ id: string; score: number; payload: VectorPoint["payload"] }> };
@@ -177,7 +201,11 @@ export class QdrantSummaryStore implements SummaryVectorStore {
 
   async ensureCollection(): Promise<void> {
     if (this.collectionReady) return;
-    await this.client.ensureCollection(SUMMARY_COLLECTION_NAME);
+    await this.client.ensureCollection(SUMMARY_COLLECTION_NAME, [
+      "userId",
+      "summaryType",
+      "documentId",
+    ]);
     this.collectionReady = true;
   }
 

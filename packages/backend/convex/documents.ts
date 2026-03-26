@@ -304,6 +304,7 @@ export const updateStatus = internalMutation({
     errorMessage: v.optional(v.string()),
     chunkCount: v.optional(v.number()),
     failedAt: v.optional(failedAtStage),
+    language: v.optional(v.string()),
     summary: v.optional(v.string()),
     summaryEmbeddingId: v.optional(v.string()),
   },
@@ -319,6 +320,9 @@ export const updateStatus = internalMutation({
     }
     if (fields.chunkCount !== undefined) {
       update.chunkCount = fields.chunkCount;
+    }
+    if (fields.language !== undefined) {
+      update.language = fields.language;
     }
     if (fields.summary !== undefined) {
       update.summary = fields.summary;
@@ -344,6 +348,16 @@ export const getInternal = internalQuery({
   args: { id: v.id("documents") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
+  },
+});
+
+export const listReadyByUser = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("documents")
+      .withIndex("by_userId_status", (q) => q.eq("userId", args.userId).eq("status", "ready"))
+      .collect();
   },
 });
 
@@ -402,7 +416,6 @@ export const cascadeDeletePosts = internalMutation({
   },
   returns: v.object({
     deletedPosts: v.number(),
-    deletedPostSources: v.number(),
     deletedBookmarks: v.number(),
   }),
   handler: async (ctx, args) => {
@@ -412,86 +425,60 @@ export const cascadeDeletePosts = internalMutation({
     if (!docCheck) {
       evt.set("skipped", true);
       evt.emit();
-      return { deletedPosts: 0, deletedPostSources: 0, deletedBookmarks: 0 };
+      return { deletedPosts: 0, deletedBookmarks: 0 };
     }
 
-    const postSources = await ctx.db
-      .query("postSources")
-      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .collect();
 
-    const postIds = [...new Set(postSources.map((ps) => ps.postId))];
-
-    for (const ps of postSources) {
-      await ctx.db.delete(ps._id);
-    }
+    const documentPosts = posts.filter((p) => p.primarySourceDocumentId === args.documentId);
 
     let deletedPosts = 0;
     let deletedBookmarks = 0;
-    let additionalPostSources = 0;
 
-    for (const postId of postIds) {
-      const post = await ctx.db.get(postId);
-      if (!post) continue;
+    for (const post of documentPosts) {
+      const bookmarks = await ctx.db
+        .query("bookmarks")
+        .withIndex("by_userId_post", (q) => q.eq("userId", args.userId).eq("postId", post._id))
+        .collect();
 
-      if (post.primarySourceDocumentId === args.documentId) {
-        const remainingPostSources = await ctx.db
-          .query("postSources")
-          .withIndex("by_postId", (q) => q.eq("postId", postId))
-          .collect();
-
-        for (const rps of remainingPostSources) {
-          await ctx.db.delete(rps._id);
-          additionalPostSources++;
-        }
-
-        const bookmarks = await ctx.db
-          .query("bookmarks")
-          .withIndex("by_userId_post", (q) => q.eq("userId", args.userId).eq("postId", postId))
-          .collect();
-
-        for (const bookmark of bookmarks) {
-          await ctx.db.delete(bookmark._id);
-          deletedBookmarks++;
-        }
-
-        if (post.assetStorageId) {
-          try {
-            await ctx.storage.delete(post.assetStorageId);
-          } catch (error) {
-            evt.set({
-              warning: "post_asset_storage_delete_failed",
-              failedPostId: postId,
-              storageDeleteError: error instanceof Error ? error.message : String(error),
-            });
-          }
-        }
-
-        await ctx.db.delete(postId);
-        deletedPosts++;
+      for (const bookmark of bookmarks) {
+        await ctx.db.delete(bookmark._id);
+        deletedBookmarks++;
       }
+
+      if (post.assetStorageId) {
+        try {
+          await ctx.storage.delete(post.assetStorageId);
+        } catch (error) {
+          evt.set({
+            warning: "post_asset_storage_delete_failed",
+            failedPostId: post._id,
+            storageDeleteError: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      await ctx.db.delete(post._id);
+      deletedPosts++;
     }
 
-    evt.set({
-      deletedPosts,
-      deletedPostSources: postSources.length + additionalPostSources,
-      deletedBookmarks,
-    });
+    evt.set({ deletedPosts, deletedBookmarks });
     evt.emit();
-    return {
-      deletedPosts,
-      deletedPostSources: postSources.length + additionalPostSources,
-      deletedBookmarks,
-    };
+    return { deletedPosts, deletedBookmarks };
   },
 });
 
 export const cascadeDeleteChunksAndSummaries = internalMutation({
-  args: { documentId: v.id("documents") },
+  args: { documentId: v.id("documents"), userId: v.optional(v.string()) },
   returns: v.object({
     deletedChunks: v.number(),
     deletedSectionSummaries: v.number(),
     deletedProcessingJobs: v.number(),
+    deletedCardDrafts: v.number(),
+    deletedReactionFeedback: v.number(),
   }),
   handler: async (ctx, args) => {
     const chunks = await ctx.db
@@ -518,10 +505,37 @@ export const cascadeDeleteChunksAndSummaries = internalMutation({
       await ctx.db.delete(job._id);
     }
 
+    const cardDrafts = await ctx.db
+      .query("cardDrafts")
+      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+      .collect();
+
+    let deletedReactionFeedback = 0;
+    if (cardDrafts.length > 0 && args.userId) {
+      const userId = args.userId;
+      const cardDraftIds = new Set(cardDrafts.map((d) => d._id as string));
+      const feedbackRows = await ctx.db
+        .query("reactionFeedback")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .collect();
+      for (const fb of feedbackRows) {
+        if (cardDraftIds.has(fb.cardDraftId as string)) {
+          await ctx.db.delete(fb._id);
+          deletedReactionFeedback++;
+        }
+      }
+    }
+
+    for (const draft of cardDrafts) {
+      await ctx.db.delete(draft._id);
+    }
+
     return {
       deletedChunks: chunks.length,
       deletedSectionSummaries: sectionSummaries.length,
       deletedProcessingJobs: processingJobs.length,
+      deletedCardDrafts: cardDrafts.length,
+      deletedReactionFeedback,
     };
   },
 });

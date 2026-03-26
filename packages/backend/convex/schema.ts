@@ -2,6 +2,11 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 import {
+  cardDraftStatus,
+  cardDraftStrategy,
+  connectionPairStatus,
+  connectionType,
+  dislikeReason,
   documentStatus,
   failedAtStage,
   fileType,
@@ -23,6 +28,7 @@ export default defineSchema({
     datalabCheckUrl: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
     chunkCount: v.number(),
+    language: v.optional(v.string()),
     summary: v.optional(v.string()),
     summaryEmbeddingId: v.optional(v.string()),
     tagIds: v.optional(v.array(v.id("tags"))),
@@ -41,10 +47,17 @@ export default defineSchema({
     typeData,
     primarySourceDocumentId: v.id("documents"),
     primarySourceDocumentTitle: v.string(),
-    primarySourceChunkId: v.id("chunks"),
+    // v2 fields (optional for backward compat with existing dev data)
+    cardDraftId: v.optional(v.id("cardDrafts")),
+    sectionTitle: v.optional(v.string()),
+    pageStart: v.optional(v.number()),
+    pageEnd: v.optional(v.number()),
+    fileType: v.optional(v.string()),
+    // TODO(post-launch): Drop legacy fields after wiping dev data
+    primarySourceChunkId: v.optional(v.id("chunks")),
     primarySourceSectionTitle: v.optional(v.string()),
     primarySourcePageNumber: v.optional(v.number()),
-    sourceChunkHash: v.string(),
+    sourceChunkHash: v.optional(v.string()),
     userId: v.string(),
     assetStorageId: v.optional(v.id("_storage")),
     reaction: v.optional(reactionType),
@@ -52,21 +65,18 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_type", ["userId", "postType"])
-    .index("by_userId_createdAt", ["userId", "createdAt"])
-    .index("by_userId_sourceChunkHash", ["userId", "sourceChunkHash"]),
+    .index("by_userId_createdAt", ["userId", "createdAt"]),
 
-  postSources: defineTable({
-    postId: v.id("posts"),
-    chunkId: v.id("chunks"),
-    documentId: v.id("documents"),
+  reactionFeedback: defineTable({
     userId: v.string(),
+    postId: v.id("posts"),
+    cardDraftId: v.id("cardDrafts"),
+    reaction: reactionType,
+    dislikeReason: v.optional(dislikeReason),
     createdAt: v.number(),
   })
-    .index("by_postId", ["postId"])
-    .index("by_chunkId", ["chunkId"])
-    .index("by_documentId", ["documentId"])
     .index("by_userId", ["userId"])
-    .index("by_userId_createdAt", ["userId", "createdAt"]),
+    .index("by_userId_cardDraftId", ["userId", "cardDraftId"]),
 
   bookmarkLists: defineTable({
     userId: v.string(),
@@ -129,11 +139,13 @@ export default defineSchema({
     externalId: v.string(),
     source: highlightSource,
     sourceMetadata: v.optional(v.record(v.string(), v.string())),
+    draftGenerated: v.optional(v.boolean()),
     userId: v.string(),
     createdAt: v.number(),
   })
     .index("by_userId_documentId", ["userId", "documentId"])
-    .index("by_userId_externalId", ["userId", "externalId"]),
+    .index("by_userId_externalId", ["userId", "externalId"])
+    .index("by_documentId_draftGenerated", ["documentId", "draftGenerated"]),
 
   tags: defineTable({
     name: v.string(),
@@ -143,4 +155,43 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_normalizedName", ["userId", "normalizedName"]),
+
+  cardDrafts: defineTable({
+    documentId: v.id("documents"),
+    sectionSummaryId: v.optional(v.id("sectionSummaries")),
+    userId: v.string(),
+    cardType: postType,
+    content: v.string(),
+    typeData,
+    sourceChunkIds: v.array(v.id("chunks")),
+    contentHash: v.string(),
+    qualityScore: v.number(),
+    status: cardDraftStatus,
+    servedCount: v.optional(v.number()),
+    generationBatch: v.number(),
+    strategy: cardDraftStrategy,
+    rejectionReason: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_documentId", ["documentId"])
+    .index("by_userId_status", ["userId", "status"])
+    .index("by_documentId_status", ["documentId", "status"])
+    .index("by_userId_contentHash", ["userId", "contentHash"])
+    .index("by_userId_status_cardType", ["userId", "status", "cardType"]),
+
+  connectionPairs: defineTable({
+    userId: v.string(),
+    sectionSummaryIdA: v.id("sectionSummaries"),
+    sectionSummaryIdB: v.id("sectionSummaries"),
+    documentIdA: v.id("documents"),
+    documentIdB: v.id("documents"),
+    similarityScore: v.number(),
+    connectionType,
+    status: connectionPairStatus,
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_documentIdA", ["documentIdA"])
+    .index("by_documentIdB", ["documentIdB"])
+    .index("by_userId_status", ["userId", "status"]),
 });
