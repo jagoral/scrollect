@@ -1,3 +1,7 @@
+import { useState } from "react";
+
+import { cn } from "@/lib/utils";
+
 import { CardShell, SourceBadge } from "./card-shell";
 import type { PostCardData, QuoteTypeData } from "./types";
 
@@ -7,6 +11,7 @@ interface QuoteCardProps {
 
 export function QuoteCard({ post }: QuoteCardProps) {
   const { quotedText, attribution } = post.typeData;
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <CardShell post={post} accentClassName="via-amber-500/30 group-hover/card:via-amber-500/60">
@@ -33,7 +38,11 @@ export function QuoteCard({ post }: QuoteCardProps) {
         {post.content && (
           <p
             data-testid="quote-context"
-            className="mt-1.5 line-clamp-2 text-xs not-italic text-muted-foreground/50"
+            className={cn(
+              "mt-1.5 cursor-pointer text-xs not-italic text-muted-foreground/50",
+              !expanded && "line-clamp-2",
+            )}
+            onClick={() => setExpanded((prev) => !prev)}
           >
             {post.content}
           </p>
