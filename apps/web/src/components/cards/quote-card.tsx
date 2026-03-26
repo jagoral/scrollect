@@ -30,6 +30,14 @@ export function QuoteCard({ post }: QuoteCardProps) {
             &mdash; {attribution}
           </p>
         )}
+        {post.content && (
+          <p
+            data-testid="quote-context"
+            className="mt-2 text-xs not-italic text-muted-foreground/50"
+          >
+            {post.content}
+          </p>
+        )}
       </div>
     </CardShell>
   );
