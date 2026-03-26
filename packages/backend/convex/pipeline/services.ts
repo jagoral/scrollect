@@ -13,11 +13,13 @@ import type {
   VectorDeletionServices,
 } from "../../src/providers/types";
 import { AiSdkCardDraftLlm } from "../../src/providers/cardDraftLlm";
+import { AiSdkCardDraftValidator } from "../../src/providers/cardDraftValidator";
 import { AiSdkConnectionDiscoveryLlm } from "../../src/providers/connectionDiscoveryLlm";
 import { AiSdkHighlightDraftLlm } from "../../src/providers/highlightDraftLlm";
 import { AiSdkSummarizingLlm } from "../../src/providers/summarizingLlm";
 import {
   StubCardDraftLlm,
+  StubCardDraftValidator,
   StubConnectionDiscoveryLlm,
   StubHighlightDraftLlm,
   StubThematicLlm,
@@ -77,9 +79,9 @@ export function createVectorDeletionServices(): VectorDeletionServices {
 
 export function createDraftGenerationServiceContext(): DraftGenerationServiceContext {
   if (process.env.USE_STUB_EXTRACTORS === "true") {
-    return { llm: new StubCardDraftLlm() };
+    return { llm: new StubCardDraftLlm(), validator: new StubCardDraftValidator() };
   }
-  return { llm: new AiSdkCardDraftLlm() };
+  return { llm: new AiSdkCardDraftLlm(), validator: new AiSdkCardDraftValidator() };
 }
 
 export function createThematicDraftGenerationServiceContext(): ThematicDraftGenerationServiceContext {

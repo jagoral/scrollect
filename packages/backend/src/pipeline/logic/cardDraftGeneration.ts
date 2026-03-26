@@ -48,6 +48,11 @@ export type DraftRecord = {
   strategy: "section";
 };
 
+export type ValidationRejection = {
+  cardType: DraftCardType;
+  reason: string;
+};
+
 export type GenerateDraftsMetrics = {
   sectionTitle: string;
   cardTypesAttempted: number;
@@ -55,6 +60,9 @@ export type GenerateDraftsMetrics = {
   draftsDeduplicated: number;
   draftsDiscardedLowQuality: number;
   draftsFailedLlm: number;
+  draftsRejectedValidation: number;
+  draftsValidatorErrored: number;
+  validationRejections: ValidationRejection[];
 };
 
 export type GenerateDraftsResult = {
@@ -222,6 +230,9 @@ export async function generateDraftsForSection(opts: {
     draftsDeduplicated: 0,
     draftsDiscardedLowQuality: 0,
     draftsFailedLlm: 0,
+    draftsRejectedValidation: 0,
+    draftsValidatorErrored: 0,
+    validationRejections: [],
   };
 
   if (representativeChunks.length === 0) {
@@ -253,6 +264,8 @@ export async function generateDraftsForSection(opts: {
     ),
   );
 
+  const candidates: DraftRecord[] = [];
+
   for (const result of settled) {
     if (result.status === "rejected") {
       metrics.draftsFailedLlm++;
@@ -283,7 +296,7 @@ export async function generateDraftsForSection(opts: {
     }
 
     seenHashes.add(contentHash);
-    drafts.push({
+    candidates.push({
       documentId,
       sectionSummaryId: section.sectionSummaryId,
       userId,
@@ -296,7 +309,48 @@ export async function generateDraftsForSection(opts: {
       generationBatch: 1,
       strategy: "section",
     });
-    metrics.draftsGenerated++;
+  }
+
+  if (services.validator && candidates.length > 0) {
+    const validationResults = await Promise.allSettled(
+      candidates.map((candidate) =>
+        services.validator!.validateDraft({
+          cardType: candidate.cardType,
+          content: candidate.content,
+          typeData: candidate.typeData as Record<string, unknown>,
+          sectionTitle: section.sectionTitle,
+          documentTitle,
+        }),
+      ),
+    );
+
+    for (let i = 0; i < candidates.length; i++) {
+      const vResult = validationResults[i]!;
+      if (vResult.status === "rejected") {
+        metrics.draftsValidatorErrored++;
+        drafts.push(candidates[i]!);
+        metrics.draftsGenerated++;
+        continue;
+      }
+
+      totalUsage = addUsage(totalUsage, vResult.value.usage);
+      if (!vResult.value.isValid) {
+        metrics.draftsRejectedValidation++;
+        metrics.validationRejections.push({
+          cardType: candidates[i]!.cardType,
+          reason: vResult.value.rejectionReason ?? "Unknown",
+        });
+        continue;
+      }
+
+      drafts.push(candidates[i]!);
+      metrics.draftsGenerated++;
+    }
+  } else {
+    for (const candidate of candidates) {
+      drafts.push(candidate);
+      metrics.draftsGenerated++;
+    }
   }
 
   return { drafts, tokenUsage: totalUsage, metrics };

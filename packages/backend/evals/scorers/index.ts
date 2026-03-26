@@ -6,4 +6,5 @@ export { typeSpecificQuality } from "./typeSpecificQuality";
 export { referenceClarity } from "./referenceClarity";
 export { quoteContextCompleteness } from "./quoteContextCompleteness";
 export { connectionGenuineness } from "./connectionGenuineness";
+export { substantiveContent } from "./substantiveContent";
 export { transcriptionPolish } from "./transcriptionPolish";

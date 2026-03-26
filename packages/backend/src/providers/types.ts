@@ -226,6 +226,22 @@ export interface CardDraftLlm {
   }>;
 }
 
+export type ValidationResult = {
+  isValid: boolean;
+  rejectionReason?: string;
+  usage: TokenUsage;
+};
+
+export interface CardDraftValidator {
+  validateDraft(opts: {
+    cardType: DraftCardType;
+    content: string;
+    typeData: Record<string, unknown>;
+    sectionTitle: string;
+    documentTitle: string;
+  }): Promise<ValidationResult>;
+}
+
 export interface ThematicLlm {
   discoverThemes(opts: {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
@@ -285,6 +301,7 @@ export type TaggingServiceContext = {
 
 export type DraftGenerationServiceContext = {
   llm: CardDraftLlm;
+  validator?: CardDraftValidator;
 };
 
 export type ThematicDraftGenerationServiceContext = {
