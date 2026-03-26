@@ -78,7 +78,8 @@ export function UploadTextTab() {
         });
         toast.success(
           <span>
-            Added <strong>{trimmedTitle}</strong>.{" "}
+            <strong>{trimmedTitle}</strong> added! Processing will continue in the background - feel
+            free to add more content or close the app.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>

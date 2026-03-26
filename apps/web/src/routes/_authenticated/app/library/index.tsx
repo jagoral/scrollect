@@ -9,6 +9,10 @@ import { usePostHog } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
+import {
+  ProcessingProgressBar,
+  isProcessingStatus,
+} from "@/components/documents/processing-progress";
 import { TagFilterBar, TagList, buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -176,6 +180,9 @@ function LibraryPage() {
                     <CardContent>
                       <div className="flex items-center gap-3">
                         <StatusBadge status={doc.status} />
+                        {isProcessingStatus(doc.status) && (
+                          <ProcessingProgressBar status={doc.status} />
+                        )}
                         {doc.status === "ready" && (
                           <span className="text-xs text-muted-foreground">
                             {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}

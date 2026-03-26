@@ -14,9 +14,10 @@ import { fileTypeIcons, StatusBadge } from "@/components/document-status";
 import { HighlightsSection } from "@/components/documents/highlights-section";
 import { ImportHighlightsDialog } from "@/components/documents/import-highlights-dialog";
 import { LearningGoalSection } from "@/components/documents/learning-goal-section";
+import { PipelineError } from "@/components/documents/pipeline-error";
+import { ProcessingProgress, isProcessingStatus } from "@/components/documents/processing-progress";
 import { NotFound } from "@/components/not-found";
 import { DocumentTagSection } from "@/components/tags/document-tag-section";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +30,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-
-const PROCESSING_STATUSES = new Set(["parsing", "chunking", "embedding", "summarizing"]);
 
 export const Route = createFileRoute("/_authenticated/app/library/$documentId")({
   ssr: false,
@@ -163,30 +162,22 @@ function DocumentDetailPage() {
         </>
       )}
 
-      {document.status === "error" && document.errorMessage && (
-        <Alert variant="destructive" className="mt-6">
-          <AlertDescription>{document.errorMessage}</AlertDescription>
-        </Alert>
+      {document.status === "error" && (
+        <PipelineError
+          documentId={document._id}
+          errorMessage={document.errorMessage}
+          failedAt={document.failedAt}
+        />
       )}
 
-      {PROCESSING_STATUSES.has(document.status) && (
-        <div className="mt-10 flex flex-col items-center gap-3 text-center" role="status">
-          <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
-          <p className="text-muted-foreground">Processing your document...</p>
-        </div>
-      )}
-
-      {document.status === "uploaded" && (
-        <div className="mt-10 flex flex-col items-center gap-3 text-center" role="status">
-          <Loader2 className="size-8 animate-spin text-amber-500" aria-hidden="true" />
-          <p className="text-muted-foreground">Waiting for processing...</p>
-        </div>
-      )}
+      {isProcessingStatus(document.status) && <ProcessingProgress status={document.status} />}
 
       {document.status === "deleting" && (
-        <div className="mt-10 flex flex-col items-center gap-3 text-center" role="status">
-          <Loader2 className="size-8 animate-spin text-destructive" aria-hidden="true" />
-          <p className="text-muted-foreground">Deleting document...</p>
+        <div className="mt-10 flex flex-col items-center gap-4 text-center" role="status">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-destructive/10 to-destructive/5 ring-1 ring-destructive/10">
+            <Loader2 className="size-5 animate-spin text-destructive" aria-hidden="true" />
+          </div>
+          <p className="text-sm text-muted-foreground">Deleting document...</p>
         </div>
       )}
     </div>

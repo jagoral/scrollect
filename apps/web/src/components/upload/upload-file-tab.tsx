@@ -93,7 +93,8 @@ export function UploadFileTab() {
         });
         toast.success(
           <span>
-            Uploaded <strong>{file.name}</strong>.{" "}
+            <strong>{file.name}</strong> uploaded! Processing will continue in the background - feel
+            free to upload more or close the app.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>
