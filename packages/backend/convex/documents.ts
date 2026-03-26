@@ -263,11 +263,13 @@ export const updateTitle = internalMutation({
     title: v.string(),
     thumbnailUrl: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, {
       title: args.title,
-      ...(args.thumbnailUrl ? { thumbnailUrl: args.thumbnailUrl } : {}),
+      ...(args.thumbnailUrl !== undefined ? { thumbnailUrl: args.thumbnailUrl } : {}),
     });
+    return null;
   },
 });
 

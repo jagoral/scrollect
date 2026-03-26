@@ -1,6 +1,10 @@
+import { maxBy } from "es-toolkit";
+
 import type { ContentExtractor, ExtractResult } from "../types";
 
 import { type TranscriptSegment, extractYouTubeVideoId, formatTimestampMs } from "./utils";
+
+const REQUEST_TIMEOUT_MS = 120_000;
 
 type DecodoSubtitleSeg = {
   utf8: string;
@@ -26,7 +30,7 @@ type DecodoSubtitleContent = {
 
 type DecodoMetadataContent = {
   parse_status_code: number;
-  results: {
+  results?: {
     title: string;
     thumbnails: Array<{ height: number; url: string; width: number }>;
     duration: number;
@@ -78,7 +82,7 @@ export class DecodoYouTubeExtractor implements ContentExtractor {
     return {
       markdown,
       title,
-      metadata: { provider: "decodo", videoId, segments, thumbnailUrl },
+      metadata: { provider: "decodo", videoId, thumbnailUrl },
     };
   }
 
@@ -91,6 +95,7 @@ export class DecodoYouTubeExtractor implements ContentExtractor {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ target, query }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -99,14 +104,23 @@ export class DecodoYouTubeExtractor implements ContentExtractor {
     }
 
     const data = (await response.json()) as DecodoResponse<T>;
-    if (!data.results?.[0]) {
+    const item = data.results?.[0];
+    if (!item) {
       throw new Error(`Decodo returned no results for ${target} query: ${query}`);
     }
 
-    return data.results[0].content;
+    if (item.status_code !== 200) {
+      throw new Error(
+        `Decodo scrape failed for ${target} query "${query}" with status ${item.status_code}`,
+      );
+    }
+
+    return item.content;
   }
 
   private parseSubtitles(content: DecodoSubtitleContent): TranscriptSegment[] {
+    if (!content) return [];
+
     const langData = this.pickBestSubtitleTrack(content);
     if (!langData) return [];
 
@@ -142,8 +156,7 @@ export class DecodoYouTubeExtractor implements ContentExtractor {
     thumbnails?: Array<{ height: number; url: string; width: number }>,
   ): string | undefined {
     if (!thumbnails || thumbnails.length === 0) return undefined;
-    const sorted = [...thumbnails].sort((a, b) => b.width - a.width);
-    return sorted[0]!.url;
+    return maxBy(thumbnails, (t) => t.width)?.url;
   }
 
   private transcriptToMarkdown(segments: TranscriptSegment[], title?: string): string {
