@@ -1,7 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
@@ -14,9 +14,10 @@ import { fileTypeIcons, StatusBadge } from "@/components/document-status";
 import { HighlightsSection } from "@/components/documents/highlights-section";
 import { ImportHighlightsDialog } from "@/components/documents/import-highlights-dialog";
 import { LearningGoalSection } from "@/components/documents/learning-goal-section";
+import { PipelineError } from "@/components/documents/pipeline-error";
+import { ProcessingProgress, isProcessingStatus } from "@/components/documents/processing-progress";
 import { NotFound } from "@/components/not-found";
 import { DocumentTagSection } from "@/components/tags/document-tag-section";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,24 +30,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-
-const PROCESSING_STATUSES = new Set(["parsing", "chunking", "embedding", "summarizing"]);
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/app/library/$documentId")({
   ssr: false,
-  loader: async ({ params: { documentId }, context }) => {
-    const data = await context.queryClient.ensureQueryData(
-      convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
-    );
-    if (!data) throw notFound();
-    return { title: data.title };
-  },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: loaderData?.title ? `${loaderData.title} | Scrollect` : "Document | Scrollect",
-      },
-    ],
+  head: () => ({
+    meta: [{ title: "Document | Scrollect" }],
   }),
   notFoundComponent: () => (
     <NotFound>This document doesn&apos;t exist or you don&apos;t have access to it.</NotFound>
@@ -56,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/app/library/$documentId")(
 
 function DocumentDetailPage() {
   const { documentId } = Route.useParams();
-  const { data: document } = useSuspenseQuery(
+  const { data: document } = useQuery(
     convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
   );
   const navigate = useNavigate();
@@ -64,6 +53,18 @@ function DocumentDetailPage() {
   const posthog = usePostHog();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  if (document === undefined) {
+    return (
+      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+        <div className="mb-6 h-4 w-24">
+          <Skeleton className="h-full w-full" />
+        </div>
+        <Skeleton className="h-8 w-2/3 rounded" />
+        <Skeleton className="mt-4 h-64 w-full rounded-xl" />
+      </div>
+    );
+  }
 
   if (!document) throw notFound();
 
@@ -163,30 +164,22 @@ function DocumentDetailPage() {
         </>
       )}
 
-      {document.status === "error" && document.errorMessage && (
-        <Alert variant="destructive" className="mt-6">
-          <AlertDescription>{document.errorMessage}</AlertDescription>
-        </Alert>
+      {document.status === "error" && (
+        <PipelineError
+          documentId={document._id}
+          errorMessage={document.errorMessage}
+          failedAt={document.failedAt}
+        />
       )}
 
-      {PROCESSING_STATUSES.has(document.status) && (
-        <div className="mt-10 flex flex-col items-center gap-3 text-center" role="status">
-          <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
-          <p className="text-muted-foreground">Processing your document...</p>
-        </div>
-      )}
-
-      {document.status === "uploaded" && (
-        <div className="mt-10 flex flex-col items-center gap-3 text-center" role="status">
-          <Loader2 className="size-8 animate-spin text-amber-500" aria-hidden="true" />
-          <p className="text-muted-foreground">Waiting for processing...</p>
-        </div>
-      )}
+      {isProcessingStatus(document.status) && <ProcessingProgress status={document.status} />}
 
       {document.status === "deleting" && (
-        <div className="mt-10 flex flex-col items-center gap-3 text-center" role="status">
-          <Loader2 className="size-8 animate-spin text-destructive" aria-hidden="true" />
-          <p className="text-muted-foreground">Deleting document...</p>
+        <div className="mt-10 flex flex-col items-center gap-4 text-center" role="status">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-destructive/10 to-destructive/5 ring-1 ring-destructive/10">
+            <Loader2 className="size-5 animate-spin text-destructive" aria-hidden="true" />
+          </div>
+          <p className="text-sm text-muted-foreground">Deleting document...</p>
         </div>
       )}
     </div>

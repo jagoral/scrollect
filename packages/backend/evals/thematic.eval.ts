@@ -1,6 +1,6 @@
 import { evalite, createScorer } from "evalite";
 
-import { AiSdkThematicLlm } from "../convex/providers/thematicLlm";
+import { AiSdkThematicLlm } from "../src/providers/thematicLlm";
 import { ALL_FIXTURES } from "./fixtures";
 import { contentSpecificity } from "./scorers";
 import { detectLanguage } from "./scorers/languageMatch";

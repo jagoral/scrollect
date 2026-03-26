@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 
 import { internalAction } from "../_generated/server";
-import { captureEvent } from "../providers/analytics";
+import { captureEvent } from "../../src/providers/analytics";
 
 export const captureServingAnalytics = internalAction({
   args: {

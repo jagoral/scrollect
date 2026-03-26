@@ -7,11 +7,11 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import type { TokenUsage } from "../providers/types";
-import { captureAiUsage, captureEvent } from "../providers/analytics";
+import type { TokenUsage } from "../../src/providers/types";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
 import { computeContentHash, transitionToReady } from "./helpers";
-import { generateDraftsForSection } from "./logic/cardDraftGeneration";
+import { generateDraftsForSection } from "../../src/pipeline/logic/cardDraftGeneration";
 import { createDraftGenerationServiceContext } from "./services";
 
 const MAX_DRAFT_RETRIES = 3;
@@ -34,12 +34,20 @@ export const generateDraftsForDocument = internalAction({
         documentId,
       });
 
-      if (sections.length === 0) {
+      const contentSections = sections.filter((s) => s.isSubstantiveContent !== false);
+      const noiseSections = sections.filter((s) => s.isSubstantiveContent === false);
+      evt.set({
+        totalSections: sections.length,
+        noiseSectionsFiltered: noiseSections.length,
+        noiseTitles: noiseSections.map((s) => s.sectionTitle),
+      });
+
+      if (contentSections.length === 0) {
         await transitionToReady({ ctx, documentId, userId: doc.userId, evt });
         return;
       }
 
-      const totalBatches = sections.length;
+      const totalBatches = contentSections.length;
       const jobId = await ctx.runMutation(internal.processingJobs.create, {
         documentId,
         totalBatches,
@@ -47,7 +55,7 @@ export const generateDraftsForDocument = internalAction({
 
       evt.set({ totalBatches, jobId });
 
-      for (const section of sections) {
+      for (const section of contentSections) {
         await ctx.scheduler.runAfter(
           0,
           internal.pipeline.cardDraftGeneration.generateDraftsForSectionBatch,
@@ -125,6 +133,7 @@ export const generateDraftsForSectionBatch = internalAction({
           userId: doc.userId,
           documentTitle: doc.title,
           language: doc.language,
+          fileType: doc.fileType,
           section: {
             sectionSummaryId: sectionSummaryId as string,
             sectionTitle: section.sectionTitle,

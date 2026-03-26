@@ -24,7 +24,7 @@ Software engineers and active learners who consume a lot of content but struggle
 - **Backend**: Convex (`packages/backend`)
 - **Auth**: Better-Auth
 
-## Does
+## DO
 
 - Use AskUserQuestion to proactively ask questions. Be proactive, curious, pay attention to the details.
 - Write E2E tests when working on a new feature / bug fix
@@ -34,6 +34,15 @@ Software engineers and active learners who consume a lot of content but struggle
 - **Split large components**: Extract reusable logic into custom hooks (`hooks/`) and shared UI into dedicated component files. Keep page components thin — they compose hooks and components, not raw logic
 - Don't declare functions with more than 3 parameters. Merge the parametrs into object instead to avoid a risk of passing parameters in incorrect order
 - Prefer using TDD approach with /tdd skill
+- commit evals/.results/evalite.db to be able to compare eval runs
+
+## Backend structure (`packages/backend`)
+
+- **`convex/`** - Only Convex functions (queries, mutations, actions), schema, config, and Convex-specific helpers (`lib/`). Nothing else
+- **`src/`** - Pure TypeScript business logic and external service providers. Zero Convex imports. Uses dependency injection
+- **`tests/`** - All test and mock files
+- **`evals/`** - LLM evaluation benchmarks
+- New pure logic goes in `src/`, not `convex/`. If a file doesn't export a Convex function or depend on Convex runtime, it belongs in `src/`
 
 ## Convex backend
 

@@ -5,13 +5,13 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
-import { chunkMarkdown } from "../chunking";
+import { chunkMarkdown } from "../../src/pipeline/chunking";
 import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../providers/analytics";
+import { captureEvent } from "../../src/providers/analytics";
 
 import { fanOutEmbedding } from "./embedding";
 import { CHUNK_STORE_BATCH_SIZE, fetchMarkdownBlob } from "./helpers";
-import { detectLanguage } from "./languageDetection";
+import { detectLanguage } from "../../src/pipeline/languageDetection";
 
 export const chunkAndStore = internalAction({
   args: {

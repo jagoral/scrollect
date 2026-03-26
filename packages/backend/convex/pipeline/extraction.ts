@@ -4,10 +4,10 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../providers/analytics";
+import { captureEvent } from "../../src/providers/analytics";
 
 import { storeMarkdownBlob } from "./helpers";
-import { extractContentLogic } from "./logic/extraction";
+import { extractContentLogic } from "../../src/pipeline/logic/extraction";
 import { createExtractionServiceContext } from "./services";
 
 interface ExtractionArgs {

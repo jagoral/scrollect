@@ -10,6 +10,7 @@ export const createBatch = internalMutation({
       v.object({
         sectionTitle: v.string(),
         summary: v.string(),
+        isSubstantiveContent: v.optional(v.boolean()),
         embeddingId: v.string(),
         chunkStartIndex: v.number(),
         chunkEndIndex: v.number(),
@@ -24,6 +25,7 @@ export const createBatch = internalMutation({
         documentId: args.documentId,
         sectionTitle: s.sectionTitle,
         summary: s.summary,
+        isSubstantiveContent: s.isSubstantiveContent,
         embeddingId: s.embeddingId,
         chunkStartIndex: s.chunkStartIndex,
         chunkEndIndex: s.chunkEndIndex,

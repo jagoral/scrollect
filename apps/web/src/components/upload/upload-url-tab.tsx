@@ -61,7 +61,8 @@ export function UploadUrlTab() {
         });
         toast.success(
           <span>
-            Submitted for processing.{" "}
+            Submitted! Processing will continue in the background - feel free to add more content or
+            close the app.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>
@@ -85,8 +86,8 @@ export function UploadUrlTab() {
     <Card className="rounded-xl border-2 border-muted-foreground/20 p-8">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-            <Globe className="h-8 w-8" />
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+            <Globe className="size-8" />
           </div>
           <div>
             <p className="text-lg font-semibold">Paste a URL</p>
@@ -96,7 +97,7 @@ export function UploadUrlTab() {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <div className="relative">
             <Input
               data-testid="url-input"
@@ -112,12 +113,12 @@ export function UploadUrlTab() {
                 <Badge data-testid="url-type-badge" variant="secondary" className="gap-1 text-xs">
                   {detectedType === "youtube" ? (
                     <>
-                      <Youtube className="h-3 w-3" />
+                      <Youtube className="size-3" />
                       YouTube
                     </>
                   ) : (
                     <>
-                      <Globe className="h-3 w-3" />
+                      <Globe className="size-3" />
                       Article
                     </>
                   )}
@@ -143,7 +144,7 @@ export function UploadUrlTab() {
         >
           {submitting ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" data-icon="inline-start" />
               Processing...
             </>
           ) : (

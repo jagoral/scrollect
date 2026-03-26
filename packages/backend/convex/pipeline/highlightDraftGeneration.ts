@@ -6,11 +6,11 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import type { TokenUsage } from "../providers/types";
-import { captureAiUsage, captureEvent } from "../providers/analytics";
+import type { TokenUsage } from "../../src/providers/types";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
 import { computeContentHash } from "./helpers";
-import { generateHighlightDrafts } from "./logic/highlightDraftGeneration";
+import { generateHighlightDrafts } from "../../src/pipeline/logic/highlightDraftGeneration";
 import { createHighlightDraftGenerationServiceContext } from "./services";
 
 const BATCH_SIZE = 10;

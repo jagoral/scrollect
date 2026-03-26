@@ -1,13 +1,18 @@
 import { evalite } from "evalite";
 
-import { AiSdkCardDraftLlm } from "../convex/providers/cardDraftLlm";
+import { AiSdkCardDraftLlm } from "../src/providers/cardDraftLlm";
 import type { DraftCardType } from "../convex/lib/validators";
 import { ALL_FIXTURES } from "./fixtures";
 import {
   structuralValidity,
   languageMatch,
   contentSpecificity,
+  contentLength,
   typeSpecificQuality,
+  referenceClarity,
+  quoteContextCompleteness,
+  substantiveContent,
+  transcriptionPolish,
 } from "./scorers";
 
 type SectionInput = {
@@ -16,6 +21,7 @@ type SectionInput = {
   chunks: Array<{ content: string; chunkId: string }>;
   documentTitle: string;
   expectedLanguage: "en" | "pl";
+  fileType?: string;
 };
 
 type CardDraftOutput = {
@@ -24,6 +30,7 @@ type CardDraftOutput = {
   typeData: Record<string, unknown>;
   sourceChunks: string[];
   expectedLanguage: "en" | "pl";
+  fileType?: string;
 };
 
 const llm = new AiSdkCardDraftLlm();
@@ -36,6 +43,7 @@ function buildSectionInputs(): SectionInput[] {
       chunks: section.chunks,
       documentTitle: doc.title,
       expectedLanguage: doc.language,
+      fileType: doc.fileType,
     })),
   );
 }
@@ -54,6 +62,7 @@ evalite.each([
       sectionTitle: input.sectionTitle,
       chunks: input.chunks,
       documentTitle: input.documentTitle,
+      fileType: input.fileType,
     });
 
     return {
@@ -62,8 +71,19 @@ evalite.each([
       typeData: card.typeData,
       sourceChunks: input.chunks.map((c) => c.content),
       expectedLanguage: input.expectedLanguage,
+      fileType: input.fileType,
     } satisfies CardDraftOutput;
   },
-  scorers: [structuralValidity, languageMatch, contentSpecificity, typeSpecificQuality],
+  scorers: [
+    structuralValidity,
+    languageMatch,
+    contentSpecificity,
+    contentLength,
+    typeSpecificQuality,
+    referenceClarity,
+    quoteContextCompleteness,
+    substantiveContent,
+    transcriptionPolish,
+  ],
   trialCount: 3,
 });

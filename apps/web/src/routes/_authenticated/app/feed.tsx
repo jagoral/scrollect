@@ -137,7 +137,7 @@ function FeedPage() {
       <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
-          <p className="mt-1 text-muted-foreground">Your AI-generated learning cards.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
         </div>
         <div className="grid gap-4">
           <Skeleton className="h-36 w-full rounded-xl" />
@@ -157,9 +157,9 @@ function FeedPage() {
         </div>
         <Button onClick={handleServe} disabled={serving} size="sm" data-testid="feed-serve-button">
           {serving ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
           ) : (
-            <Sparkles className="mr-2 h-4 w-4" />
+            <Sparkles className="size-4" data-icon="inline-start" />
           )}
           Generate
         </Button>
@@ -183,21 +183,23 @@ function FeedPage() {
 
           {status === "LoadingMore" && (
             <div className="flex justify-center py-4 animate-in fade-in duration-300">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
           )}
 
           {status === "Exhausted" && enrichedResults.length > 0 && (
             <div
               data-testid="feed-end-state"
-              className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground"
+              className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground"
             >
-              <div className="mb-2 flex items-center gap-4">
-                <div className="h-px w-16 bg-gradient-to-r from-transparent to-border" />
-                <CheckCircle className="h-5 w-5" />
-                <div className="h-px w-16 bg-gradient-to-l from-transparent to-border" />
+              <div className="flex items-center gap-4">
+                <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
+                <CheckCircle className="size-5" />
+                <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
               </div>
-              <p className="text-sm font-medium">You&apos;re all caught up</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">
+                You&apos;re all caught up
+              </p>
             </div>
           )}
         </div>
@@ -217,19 +219,24 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
     return (
       <div
         data-testid="feed-processing-state"
-        className="mt-12 flex flex-col items-center gap-4 text-center"
+        className="mt-12 flex flex-col items-center gap-5 text-center"
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-500/5 ring-1 ring-amber-500/10">
-          <Timer className="h-8 w-8 text-amber-500/70" />
+        <div className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-500/5 ring-1 ring-amber-500/10">
+          <Timer className="size-8 text-amber-600/70 dark:text-amber-400/70" />
+          <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-card ring-2 ring-background">
+            <Loader2 className="size-3 animate-spin text-amber-600 dark:text-amber-400" />
+          </span>
         </div>
         <div>
-          <p className="text-lg font-semibold">Your documents are being processed</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-lg font-semibold tracking-tight">Your documents are being processed</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
             Learning cards will appear here once processing completes. This usually takes a few
             minutes.
           </p>
         </div>
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <p className="text-xs text-muted-foreground/60">
+          Processing continues in the background - you can close the app and come back later.
+        </p>
       </div>
     );
   }
@@ -238,20 +245,21 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
     return (
       <div
         data-testid="feed-empty-state"
-        className="mt-12 flex flex-col items-center gap-4 text-center"
+        className="mt-12 flex flex-col items-center gap-5 text-center"
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
-          <FileUp className="h-8 w-8 text-primary/70" />
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+          <FileUp className="size-8 text-primary/70" />
         </div>
         <div>
-          <p className="text-lg font-semibold">No content yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Upload documents to your library and we&apos;ll generate learning cards from them.
+          <p className="text-lg font-semibold tracking-tight">No content yet</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            Upload books, articles, or videos to your library. We&apos;ll generate bite-sized
+            learning cards from them automatically.
           </p>
         </div>
-        <Button render={<Link to="/app/library" />} data-testid="feed-upload-cta">
-          <FileUp className="mr-2 h-4 w-4" />
-          Go to Library
+        <Button render={<Link to="/app/upload" />} data-testid="feed-upload-cta">
+          <FileUp className="size-4" data-icon="inline-start" />
+          Upload your first content
         </Button>
       </div>
     );
@@ -260,19 +268,19 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
   return (
     <div
       data-testid="feed-empty-state"
-      className="mt-12 flex flex-col items-center gap-4 text-center"
+      className="mt-12 flex flex-col items-center gap-5 text-center"
     >
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
-        <Rss className="h-8 w-8 text-primary/70" />
+      <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+        <Rss className="size-8 text-primary/70" />
       </div>
       <div>
-        <p className="text-lg font-semibold">No posts yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-lg font-semibold tracking-tight">No posts yet</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
           Click &quot;Generate&quot; to create learning cards from your documents.
         </p>
       </div>
       <Button onClick={onServe} disabled={serving} data-testid="feed-serve-button">
-        <Sparkles className="mr-2 h-4 w-4" />
+        <Sparkles className="size-4" data-icon="inline-start" />
         Generate your first feed
       </Button>
     </div>

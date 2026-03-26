@@ -7,7 +7,7 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../providers/analytics";
+import { captureEvent } from "../../src/providers/analytics";
 
 import {
   getPollDelay,
@@ -15,7 +15,7 @@ import {
   MAX_POLL_DURATION_MS,
   storeMarkdownBlob,
 } from "./helpers";
-import { interpretPollResult, submitForParsing } from "./logic/parsing";
+import { interpretPollResult, submitForParsing } from "../../src/pipeline/logic/parsing";
 import { createParsingServiceContext } from "./services";
 
 interface DatalabSubmitArgs {

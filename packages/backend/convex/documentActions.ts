@@ -8,7 +8,7 @@ import type { ActionCtx } from "./_generated/server";
 import { action, internalAction } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
-import { deleteDocumentVectors } from "./logic/documentDeletion";
+import { deleteDocumentVectors } from "../src/logic/documentDeletion";
 import { createVectorDeletionServices } from "./pipeline/services";
 
 type DeletionData = {

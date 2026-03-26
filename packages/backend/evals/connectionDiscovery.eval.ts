@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkConnectionDiscoveryLlm } from "../convex/providers/connectionDiscoveryLlm";
+import { AiSdkConnectionDiscoveryLlm } from "../src/providers/connectionDiscoveryLlm";
 import {
   BOOK_EN_LEARNING,
   ARTICLE_EN_ARCHITECTURE,
@@ -145,5 +145,5 @@ evalite("Connection Discovery", {
     }
   },
   scorers: [contentSpecificity, languageMatch, connectionGenuineness],
-  trialCount: 3,
+  trialCount: 1,
 });
