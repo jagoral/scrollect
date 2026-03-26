@@ -472,12 +472,13 @@ export const cascadeDeletePosts = internalMutation({
 });
 
 export const cascadeDeleteChunksAndSummaries = internalMutation({
-  args: { documentId: v.id("documents") },
+  args: { documentId: v.id("documents"), userId: v.optional(v.string()) },
   returns: v.object({
     deletedChunks: v.number(),
     deletedSectionSummaries: v.number(),
     deletedProcessingJobs: v.number(),
     deletedCardDrafts: v.number(),
+    deletedReactionFeedback: v.number(),
   }),
   handler: async (ctx, args) => {
     const chunks = await ctx.db
@@ -508,6 +509,23 @@ export const cascadeDeleteChunksAndSummaries = internalMutation({
       .query("cardDrafts")
       .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
       .collect();
+
+    let deletedReactionFeedback = 0;
+    if (cardDrafts.length > 0 && args.userId) {
+      const userId = args.userId;
+      const cardDraftIds = new Set(cardDrafts.map((d) => d._id as string));
+      const feedbackRows = await ctx.db
+        .query("reactionFeedback")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .collect();
+      for (const fb of feedbackRows) {
+        if (cardDraftIds.has(fb.cardDraftId as string)) {
+          await ctx.db.delete(fb._id);
+          deletedReactionFeedback++;
+        }
+      }
+    }
+
     for (const draft of cardDrafts) {
       await ctx.db.delete(draft._id);
     }
@@ -517,6 +535,7 @@ export const cascadeDeleteChunksAndSummaries = internalMutation({
       deletedSectionSummaries: sectionSummaries.length,
       deletedProcessingJobs: processingJobs.length,
       deletedCardDrafts: cardDrafts.length,
+      deletedReactionFeedback,
     };
   },
 });

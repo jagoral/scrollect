@@ -64,6 +64,15 @@ export const tagSource = v.union(v.literal("ai"), v.literal("manual"));
 
 export type TagSource = Infer<typeof tagSource>;
 
+export const dislikeReason = v.union(
+  v.literal("not_interesting"),
+  v.literal("already_know"),
+  v.literal("wrong_type"),
+  v.literal("low_quality"),
+);
+
+export type DislikeReason = Infer<typeof dislikeReason>;
+
 export const reactionInput = v.union(v.literal("like"), v.literal("dislike"), v.literal("none"));
 
 export const postType = v.union(

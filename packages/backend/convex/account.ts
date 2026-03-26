@@ -20,6 +20,7 @@ export const deleteRemainingUserData = internalMutation({
     deletedBookmarks: v.number(),
     deletedBookmarkLists: v.number(),
     deletedTags: v.number(),
+    deletedReactionFeedback: v.number(),
   }),
   handler: async (ctx, args) => {
     const bookmarks = await ctx.db
@@ -46,10 +47,19 @@ export const deleteRemainingUserData = internalMutation({
       await ctx.db.delete(tag._id);
     }
 
+    const reactionFeedback = await ctx.db
+      .query("reactionFeedback")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const fb of reactionFeedback) {
+      await ctx.db.delete(fb._id);
+    }
+
     return {
       deletedBookmarks: bookmarks.length,
       deletedBookmarkLists: bookmarkLists.length,
       deletedTags: tags.length,
+      deletedReactionFeedback: reactionFeedback.length,
     };
   },
 });

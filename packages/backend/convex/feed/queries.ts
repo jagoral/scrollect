@@ -1,9 +1,13 @@
 import { paginationOptsValidator } from "convex/server";
+import type { GenericMutationCtx } from "convex/server";
 import { v } from "convex/values";
 
+import type { DataModel } from "../_generated/dataModel";
+import type { Id } from "../_generated/dataModel";
 import { internalQuery, mutation, query } from "../_generated/server";
 import { requireAuth, optionalAuth } from "../lib/functions";
-import { reactionInput } from "../lib/validators";
+import { dislikeReason, reactionInput } from "../lib/validators";
+import type { DislikeReason } from "../lib/validators";
 import { FRESHNESS_WINDOW_MS } from "./logic/constants";
 
 export const list = query({
@@ -65,6 +69,7 @@ export const setReaction = mutation({
   args: {
     postId: v.id("posts"),
     reaction: reactionInput,
+    dislikeReason: v.optional(dislikeReason),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
@@ -74,12 +79,48 @@ export const setReaction = mutation({
       throw new Error("Post not found");
     }
 
+    if (args.reaction === "dislike" && !args.dislikeReason) {
+      throw new Error("dislikeReason is required when reaction is dislike");
+    }
+    if (args.reaction !== "dislike" && args.dislikeReason) {
+      throw new Error("dislikeReason must not be set when reaction is not dislike");
+    }
+
+    // Un-reacting removes the feedback row and clears the post reaction, but does
+    // NOT un-reject a low_quality draft. Draft rejection is intentionally one-way:
+    // once a user marks a card as low quality, we never resurface it - even if
+    // they later clear their reaction. This prevents noisy cards from re-entering
+    // the scoring pool.
     if (args.reaction === "none") {
       await ctx.db.patch(args.postId, { reaction: undefined });
+      if (post.cardDraftId) {
+        await deleteReactionFeedback(ctx, user._id, post.cardDraftId);
+      }
       return null;
     }
 
     await ctx.db.patch(args.postId, { reaction: args.reaction });
+
+    if (post.cardDraftId) {
+      await upsertReactionFeedback(ctx, {
+        userId: user._id,
+        postId: args.postId,
+        cardDraftId: post.cardDraftId,
+        reaction: args.reaction as "like" | "dislike",
+        dislikeReason: args.dislikeReason,
+      });
+
+      if (args.dislikeReason === "low_quality") {
+        const draft = await ctx.db.get(post.cardDraftId);
+        if (draft && draft.status !== "rejected") {
+          await ctx.db.patch(post.cardDraftId, {
+            status: "rejected",
+            rejectionReason: "low_quality_user_feedback",
+          });
+        }
+      }
+    }
+
     return args.reaction;
   },
 });
@@ -93,3 +134,57 @@ export const listReadyDocuments = internalQuery({
       .collect();
   },
 });
+
+type MutationCtx = GenericMutationCtx<DataModel>;
+
+async function upsertReactionFeedback(
+  ctx: MutationCtx,
+  params: {
+    userId: string;
+    postId: Id<"posts">;
+    cardDraftId: Id<"cardDrafts">;
+    reaction: "like" | "dislike";
+    dislikeReason: DislikeReason | undefined;
+  },
+): Promise<void> {
+  const existing = await ctx.db
+    .query("reactionFeedback")
+    .withIndex("by_userId_cardDraftId", (q) =>
+      q.eq("userId", params.userId).eq("cardDraftId", params.cardDraftId),
+    )
+    .first();
+
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      reaction: params.reaction,
+      dislikeReason: params.dislikeReason,
+      postId: params.postId,
+    });
+  } else {
+    await ctx.db.insert("reactionFeedback", {
+      userId: params.userId,
+      postId: params.postId,
+      cardDraftId: params.cardDraftId,
+      reaction: params.reaction,
+      dislikeReason: params.dislikeReason,
+      createdAt: Date.now(),
+    });
+  }
+}
+
+async function deleteReactionFeedback(
+  ctx: MutationCtx,
+  userId: string,
+  cardDraftId: Id<"cardDrafts">,
+): Promise<void> {
+  const existing = await ctx.db
+    .query("reactionFeedback")
+    .withIndex("by_userId_cardDraftId", (q) =>
+      q.eq("userId", userId).eq("cardDraftId", cardDraftId),
+    )
+    .first();
+
+  if (existing) {
+    await ctx.db.delete(existing._id);
+  }
+}

@@ -64,13 +64,17 @@ test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
     await likeButton.click();
     await expect(likeButton).toHaveAttribute("aria-pressed", "true", { timeout: 15000 });
 
-    // Dislike same card -> verify mutual exclusivity
+    // Dislike same card -> sheet opens, pick a reason -> verify mutual exclusivity
     const dislikeButton = firstCard.locator('[data-testid="dislike-button"]');
     await dislikeButton.click();
+    const sheet = page.locator('[data-testid="dislike-reason-sheet"]');
+    await expect(sheet).toBeVisible({ timeout: 5000 });
+    await sheet.locator('[data-testid="dislike-reason-not_interesting"]').click();
+    await expect(sheet).not.toBeVisible({ timeout: 5000 });
     await expect(dislikeButton).toHaveAttribute("aria-pressed", "true", { timeout: 15000 });
     await expect(likeButton).toHaveAttribute("aria-pressed", "false", { timeout: 15000 });
 
-    // Clear dislike
+    // Clear dislike (toggle off - no sheet)
     await dislikeButton.click();
     await expect(dislikeButton).toHaveAttribute("aria-pressed", "false", { timeout: 15000 });
 

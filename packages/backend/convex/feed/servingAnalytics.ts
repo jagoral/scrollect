@@ -21,6 +21,16 @@ export const captureServingAnalytics = internalAction({
         documentCount: v.number(),
       }),
     ),
+    reactionStats: v.optional(
+      v.object({
+        totalLikes: v.number(),
+        totalDislikes: v.number(),
+        dislikesByReason: v.record(v.string(), v.number()),
+        penalizedSections: v.number(),
+        penalizedCardTypes: v.number(),
+        rejectedDrafts: v.number(),
+      }),
+    ),
   },
   returns: v.null(),
   handler: async (_ctx, args) => {
@@ -35,6 +45,14 @@ export const captureServingAnalytics = internalAction({
           drafts_per_document_max: args.draftsPerDocumentStats.max,
           drafts_per_document_avg: args.draftsPerDocumentStats.avg,
           document_count: args.draftsPerDocumentStats.documentCount,
+        }),
+        ...(args.reactionStats && {
+          reaction_total_likes: args.reactionStats.totalLikes,
+          reaction_total_dislikes: args.reactionStats.totalDislikes,
+          reaction_dislikes_by_reason: args.reactionStats.dislikesByReason,
+          reaction_penalized_sections: args.reactionStats.penalizedSections,
+          reaction_penalized_card_types: args.reactionStats.penalizedCardTypes,
+          reaction_rejected_drafts: args.reactionStats.rejectedDrafts,
         }),
       },
     });

@@ -42,6 +42,8 @@ export type TypeData =
   | SummaryTypeData
   | ConnectionTypeData;
 
+export type { DislikeReason } from "@scrollect/backend/convex/lib/validators";
+
 import type { DocumentTag } from "@/components/tags/types";
 
 export type { DocumentTag as PostCardTag } from "@/components/tags/types";
@@ -57,6 +59,7 @@ export interface PostCardData {
   sectionTitle?: string | null;
   pageStart?: number | null;
   pageEnd?: number | null;
+  cardDraftId?: Id<"cardDrafts"> | null;
   createdAt: number;
   reaction?: "like" | "dislike" | null;
   isBookmarked?: boolean;

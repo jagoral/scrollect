@@ -9,7 +9,7 @@ import { requireAuth } from "../lib/functions";
 import { WideEvent } from "../lib/logging";
 import { UNGROUPED_SENTINEL } from "./logic/constants";
 import { DEFAULT_SCORING_CONFIG, scoreDrafts } from "./logic/scoring";
-import type { ScoredDraft } from "./logic/scoring";
+import type { DislikeSignal, ReactionSummary, ScoredDraft } from "./logic/scoring";
 
 type MutationCtx = GenericMutationCtx<DataModel>;
 
@@ -65,6 +65,7 @@ export const serveFeed = mutation({
       const scoringInput: ScoredDraft[] = draftsToScore.map((d) => ({
         id: d._id,
         documentId: d.documentId,
+        sectionSummaryId: d.sectionSummaryId as string | undefined,
         cardType: d.cardType,
         strategy: d.strategy,
         qualityScore: d.qualityScore,
@@ -73,7 +74,18 @@ export const serveFeed = mutation({
         documentCreatedAt: docMap.get(d.documentId)?.createdAt ?? d.createdAt,
       }));
 
-      const ranked = scoreDrafts({ drafts: scoringInput, config, now: Date.now() });
+      const { summary: reactionSummary, feedbackRows } = await buildReactionSummary(
+        ctx,
+        userId,
+        draftsToScore,
+      );
+
+      const ranked = scoreDrafts({
+        drafts: scoringInput,
+        config,
+        now: Date.now(),
+        reactionSummary,
+      });
       const topDrafts = ranked.slice(0, config.batchSize);
 
       const draftMap = new Map(draftsToScore.map((d) => [d._id as string, d]));
@@ -123,6 +135,8 @@ export const serveFeed = mutation({
         replenishmentTriggered = await maybeScheduleReplenishment(ctx, userId);
       }
 
+      const reactionStats = summarizeReactionStats(reactionSummary, feedbackRows);
+
       const elapsedMs = evt.getElapsedMs();
       evt.set({
         userId,
@@ -131,6 +145,7 @@ export const serveFeed = mutation({
         isDepleted,
         remainingPending,
         replenishmentTriggered,
+        ...reactionStats,
       });
 
       const draftCounts = [...draftsPerDocument.values()];
@@ -149,6 +164,7 @@ export const serveFeed = mutation({
         remainingPending,
         replenishmentTriggered,
         draftsPerDocumentStats,
+        reactionStats,
       });
 
       return { posts: postIds };
@@ -160,6 +176,134 @@ export const serveFeed = mutation({
     }
   },
 });
+
+type ReactionStats = {
+  totalLikes: number;
+  totalDislikes: number;
+  dislikesByReason: Record<string, number>;
+  penalizedSections: number;
+  penalizedCardTypes: number;
+  rejectedDrafts: number;
+};
+
+async function buildReactionSummary(
+  ctx: MutationCtx,
+  userId: string,
+  draftsToScore: Doc<"cardDrafts">[],
+): Promise<{ summary: ReactionSummary; feedbackRows: Doc<"reactionFeedback">[] }> {
+  // Cap at 500 most recent rows to bound memory. Recent signals matter more
+  // for scoring, so we order desc and drop the oldest if the user exceeds 500.
+  const feedbackRows = await ctx.db
+    .query("reactionFeedback")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .order("desc")
+    .take(500);
+
+  const draftLookup = new Map(draftsToScore.map((d) => [d._id as string, d]));
+
+  const dislikedSections = new Map<string, DislikeSignal>();
+  const dislikedCardTypes = new Set<string>();
+  const likedSections = new Set<string>();
+  const likedCardTypes = new Set<string>();
+  const rejectedDraftIds = new Set<string>();
+
+  // Batch-fetch all out-of-pool drafts upfront to avoid N+1 sequential reads
+  const missingDraftIds = [
+    ...new Set(
+      feedbackRows
+        .filter((fb) => !draftLookup.has(fb.cardDraftId as string))
+        .map((fb) => fb.cardDraftId),
+    ),
+  ];
+  const resolvedDrafts = await Promise.all(missingDraftIds.map((id) => ctx.db.get(id)));
+  const resolvedMap = new Map(missingDraftIds.map((id, i) => [id as string, resolvedDrafts[i]]));
+
+  for (const fb of feedbackRows) {
+    const draft =
+      draftLookup.get(fb.cardDraftId as string) ?? resolvedMap.get(fb.cardDraftId as string);
+    if (!draft) continue;
+    applyFeedbackSignals(draft, fb, {
+      dislikedSections,
+      dislikedCardTypes,
+      likedSections,
+      likedCardTypes,
+      rejectedDraftIds,
+    });
+  }
+
+  return {
+    summary: {
+      dislikedSections,
+      dislikedCardTypes,
+      likedSections,
+      likedCardTypes,
+      rejectedDraftIds,
+    },
+    feedbackRows,
+  };
+}
+
+function applyFeedbackSignals(
+  draft: Doc<"cardDrafts">,
+  fb: Doc<"reactionFeedback">,
+  summary: ReactionSummary,
+): void {
+  const sectionId = draft.sectionSummaryId as string | undefined;
+
+  if (fb.reaction === "like") {
+    if (sectionId) summary.likedSections.add(sectionId);
+    summary.likedCardTypes.add(draft.cardType);
+    return;
+  }
+
+  if (fb.dislikeReason === "low_quality") {
+    summary.rejectedDraftIds.add(fb.cardDraftId as string);
+    return;
+  }
+
+  if (fb.dislikeReason === "wrong_type") {
+    summary.dislikedCardTypes.add(draft.cardType);
+  }
+
+  if (
+    (fb.dislikeReason === "not_interesting" || fb.dislikeReason === "already_know") &&
+    sectionId
+  ) {
+    const existing = summary.dislikedSections.get(sectionId);
+    // "already_know" is stronger than "not_interesting" (0.1 vs 0.3)
+    if (!existing || fb.dislikeReason === "already_know") {
+      summary.dislikedSections.set(sectionId, fb.dislikeReason);
+    }
+  }
+}
+
+function summarizeReactionStats(
+  summary: ReactionSummary,
+  feedbackRows: Doc<"reactionFeedback">[],
+): ReactionStats {
+  // Count actual feedback rows to avoid double-counting. A single like populates
+  // both likedSections and likedCardTypes, so set sizes would overcount.
+  const totalLikes = feedbackRows.filter((fb) => fb.reaction === "like").length;
+  const totalDislikes = feedbackRows.filter((fb) => fb.reaction === "dislike").length;
+
+  // Count reason occurrences from raw rows (not deduplicated summary sets)
+  // to avoid undercounting when multiple cards share a section or type.
+  const dislikesByReason: Record<string, number> = {};
+  for (const fb of feedbackRows) {
+    if (fb.reaction === "dislike" && fb.dislikeReason) {
+      dislikesByReason[fb.dislikeReason] = (dislikesByReason[fb.dislikeReason] ?? 0) + 1;
+    }
+  }
+
+  return {
+    totalLikes,
+    totalDislikes,
+    dislikesByReason,
+    penalizedSections: summary.dislikedSections.size,
+    penalizedCardTypes: summary.dislikedCardTypes.size,
+    rejectedDrafts: summary.rejectedDraftIds.size,
+  };
+}
 
 type Attribution = {
   sectionTitle: string | undefined;
