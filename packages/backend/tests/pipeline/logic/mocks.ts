@@ -5,6 +5,7 @@ import {
 } from "../../feed/logic/mocks";
 import type {
   CardDraftLlm,
+  CardDraftValidator,
   ConnectionDiscoveryLlm,
   ConnectionDiscoveryServiceContext,
   ContentExtractor,
@@ -157,6 +158,18 @@ export function createMockCardDraftLlm(overrides?: Partial<CardDraftLlm>): CardD
   };
 }
 
+export function createMockCardDraftValidator(
+  overrides?: Partial<CardDraftValidator>,
+): CardDraftValidator {
+  return {
+    validateDraft: async () => ({
+      isValid: true,
+      usage: ZERO_USAGE,
+    }),
+    ...overrides,
+  };
+}
+
 function buildMockTypeData(cardType: DraftCardType): Record<string, unknown> {
   switch (cardType) {
     case "insight":
@@ -188,6 +201,7 @@ export function createMockDraftGenerationServices(
 ): DraftGenerationServiceContext {
   return {
     llm: createMockCardDraftLlm(),
+    validator: createMockCardDraftValidator(),
     ...overrides,
   };
 }

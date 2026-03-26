@@ -10,7 +10,11 @@ import type {
   GenerateDraftsInput,
   SectionInput,
 } from "../../../src/pipeline/logic/cardDraftGeneration";
-import { createMockCardDraftLlm, createMockDraftGenerationServices } from "./mocks";
+import {
+  createMockCardDraftLlm,
+  createMockCardDraftValidator,
+  createMockDraftGenerationServices,
+} from "./mocks";
 
 const fakeHash = (content: string) => `hash-${content.slice(0, 20)}`;
 
@@ -361,5 +365,97 @@ describe("generateDraftsForSection", () => {
       expect(draft.contentHash).toBeTruthy();
       expect(draft.sourceChunkIds.length).toBeGreaterThanOrEqual(1);
     }
+  });
+});
+
+describe("generateDraftsForSection with validator", () => {
+  it("rejects drafts that fail validation", async () => {
+    const validator = createMockCardDraftValidator({
+      validateDraft: vi.fn().mockImplementation(async (opts: { cardType: string }) => ({
+        isValid: opts.cardType !== "quote",
+        rejectionReason: opts.cardType === "quote" ? "Not a real quote" : undefined,
+        usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+      })),
+    });
+    const services = createMockDraftGenerationServices({ validator });
+
+    const result = await generateDraftsForSection({
+      input: makeInput(),
+      services,
+    });
+
+    expect(result.drafts).toHaveLength(3);
+    expect(result.drafts.map((d) => d.cardType)).not.toContain("quote");
+    expect(result.metrics.draftsRejectedValidation).toBe(1);
+    expect(result.metrics.validationRejections).toHaveLength(1);
+    expect(result.metrics.validationRejections[0]!.cardType).toBe("quote");
+    expect(result.metrics.validationRejections[0]!.reason).toBe("Not a real quote");
+  });
+
+  it("rejects all drafts when validator marks everything invalid", async () => {
+    const validator = createMockCardDraftValidator({
+      validateDraft: vi.fn().mockResolvedValue({
+        isValid: false,
+        rejectionReason: "Worthless content",
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      }),
+    });
+    const services = createMockDraftGenerationServices({ validator });
+
+    const result = await generateDraftsForSection({
+      input: makeInput(),
+      services,
+    });
+
+    expect(result.drafts).toHaveLength(0);
+    expect(result.metrics.draftsRejectedValidation).toBe(4);
+    expect(result.metrics.draftsGenerated).toBe(0);
+  });
+
+  it("passes drafts through when validator is absent", async () => {
+    const services = createMockDraftGenerationServices({ validator: undefined });
+
+    const result = await generateDraftsForSection({
+      input: makeInput(),
+      services,
+    });
+
+    expect(result.drafts).toHaveLength(4);
+    expect(result.metrics.draftsRejectedValidation).toBe(0);
+    expect(result.metrics.validationRejections).toHaveLength(0);
+  });
+
+  it("fails open when validator throws and tracks errored count", async () => {
+    const validator = createMockCardDraftValidator({
+      validateDraft: vi.fn().mockRejectedValue(new Error("LLM timeout")),
+    });
+    const services = createMockDraftGenerationServices({ validator });
+
+    const result = await generateDraftsForSection({
+      input: makeInput(),
+      services,
+    });
+
+    expect(result.drafts).toHaveLength(4);
+    expect(result.metrics.draftsRejectedValidation).toBe(0);
+    expect(result.metrics.draftsValidatorErrored).toBe(4);
+  });
+
+  it("accumulates validator token usage", async () => {
+    const validatorUsage = { inputTokens: 20, outputTokens: 10, totalTokens: 30 };
+    const validator = createMockCardDraftValidator({
+      validateDraft: vi.fn().mockResolvedValue({
+        isValid: true,
+        usage: validatorUsage,
+      }),
+    });
+    const services = createMockDraftGenerationServices({ validator });
+
+    const result = await generateDraftsForSection({
+      input: makeInput(),
+      services,
+    });
+
+    expect(result.tokenUsage.totalTokens).toBeGreaterThanOrEqual(120);
   });
 });

@@ -1,5 +1,6 @@
 import type {
   CardDraftLlm,
+  CardDraftValidator,
   ConnectionDiscoveryLlm,
   ContentExtractor,
   DraftCardType,
@@ -9,6 +10,7 @@ import type {
   PollResult,
   ThematicLlm,
   TokenUsage,
+  ValidationResult,
 } from "./types";
 
 const STUB_ARTICLE_MARKDOWN = `# Understanding Software Architecture Patterns
@@ -305,6 +307,18 @@ export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
       },
       usage: ZERO_USAGE,
     };
+  }
+}
+
+export class StubCardDraftValidator implements CardDraftValidator {
+  async validateDraft(_opts: {
+    cardType: DraftCardType;
+    content: string;
+    typeData: Record<string, unknown>;
+    sectionTitle: string;
+    documentTitle: string;
+  }): Promise<ValidationResult> {
+    return { isValid: true, usage: ZERO_USAGE };
   }
 }
 

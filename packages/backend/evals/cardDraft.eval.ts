@@ -11,6 +11,7 @@ import {
   typeSpecificQuality,
   referenceClarity,
   quoteContextCompleteness,
+  substantiveContent,
   transcriptionPolish,
 } from "./scorers";
 
@@ -81,6 +82,7 @@ evalite.each([
     typeSpecificQuality,
     referenceClarity,
     quoteContextCompleteness,
+    substantiveContent,
     transcriptionPolish,
   ],
   trialCount: 3,
