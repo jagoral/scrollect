@@ -111,6 +111,10 @@ export function PreviewQuoteCard() {
           Nothing in life is as important as you think it is, while you are thinking about it.
         </blockquote>
         <p className="mt-2 text-sm text-muted-foreground/70">&mdash; Daniel Kahneman</p>
+        <p className="mt-2 text-xs not-italic text-muted-foreground/50">
+          Kahneman introduces the focusing illusion - we overweight whatever we're currently
+          attending to, distorting our judgment of its true importance.
+        </p>
       </div>
     </PreviewCardShell>
   );
