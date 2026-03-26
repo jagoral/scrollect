@@ -305,6 +305,25 @@ describe("generateDraftsForSection", () => {
     expect(result.metrics.draftsFailedLlm).toBe(1);
   });
 
+  it("passes fileType through to the LLM", async () => {
+    const generateDraft = vi.fn().mockResolvedValue({
+      card: {
+        content: "Draft insight for testing: a useful learning card.",
+        typeData: { type: "insight" },
+      },
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    });
+    const llm = createMockCardDraftLlm({ generateDraft });
+    const services = createMockDraftGenerationServices({ llm });
+
+    await generateDraftsForSection({
+      input: makeInput({ fileType: "youtube" }),
+      services,
+    });
+
+    expect(generateDraft).toHaveBeenCalledWith(expect.objectContaining({ fileType: "youtube" }));
+  });
+
   it("sets correct metadata on generated drafts", async () => {
     const services = createMockDraftGenerationServices();
     const result = await generateDraftsForSection({

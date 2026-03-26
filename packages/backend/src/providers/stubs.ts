@@ -239,6 +239,7 @@ export class StubCardDraftLlm implements CardDraftLlm {
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
     language?: string;
+    fileType?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;

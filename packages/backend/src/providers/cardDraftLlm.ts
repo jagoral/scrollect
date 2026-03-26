@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { CardDraftLlm, DraftCardType, TokenUsage } from "./types";
 import { getAI } from "./ai";
+import { isSpeechSource } from "./contentTypes";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const insightSchema = z.object({
@@ -63,8 +64,12 @@ const SCHEMAS: Record<DraftCardType, z.ZodSchema> = {
   summary: summarySchema,
 };
 
-function buildSystemPrompt(opts: { cardType: DraftCardType; language?: string }): string {
-  const { cardType, language } = opts;
+function buildSystemPrompt(opts: {
+  cardType: DraftCardType;
+  language?: string;
+  fileType?: string;
+}): string {
+  const { cardType, language, fileType } = opts;
   const base = `You are an AI learning assistant for Scrollect, a personal learning feed app.
 Your job is to create a single focused learning card from a section of a document.
 
@@ -121,14 +126,26 @@ Your job is to create a single focused learning card from a section of a documen
 
 <task>Create a QUOTE card featuring a notable passage from the source.</task>
 
-<format>
+${
+  isSpeechSource(fileType)
+    ? `<format>
+- Search the source chunks for the most impactful, memorable, or thought-provoking passage
+- The source is a speech transcription that may contain fillers (e.g. "um", "uh", "like", "you know"), stutters, false starts, and word repetitions
+- Lightly clean the passage: remove fillers, stutters, false starts, and word repetitions while preserving the speaker's original meaning, voice, and phrasing
+- Do NOT paraphrase or rewrite - only remove speech artifacts. The cleaned quote should read as if the speaker had spoken fluently
+- The attribution field is REQUIRED: always include the speaker's full proper name (e.g. "Ada Lovelace", not "a mathematician" or "the speaker")
+- In the content field, provide 1-2 sentences of context that include: WHO said it (proper name), ABOUT WHOM or WHAT it was said, and WHEN/WHERE if available in the source
+- The content must make the quote fully understandable without needing to read the original source
+</format>`
+    : `<format>
 - Search the source chunks for the most impactful, memorable, or thought-provoking passage
 - Copy the passage exactly as it appears in the source, character by character - do not paraphrase, rephrase, or clean up the text
 - The quotedText must be a verbatim substring of one of the source chunks
 - The attribution field is REQUIRED: always include the speaker's or writer's full proper name (e.g. "Ada Lovelace", not "a mathematician" or "the author")
 - In the content field, provide 1-2 sentences of context that include: WHO said it (proper name), ABOUT WHOM or WHAT it was said, and WHEN/WHERE if available in the source
 - The content must make the quote fully understandable without needing to read the original source
-</format>`;
+</format>`
+}`;
 
     case "summary":
       return `${base}
@@ -163,6 +180,7 @@ export class AiSdkCardDraftLlm implements CardDraftLlm {
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
     language?: string;
+    fileType?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;
@@ -181,7 +199,11 @@ ${chunkText}`;
     const { output, usage } = await generateText({
       model: getAI().languageModel("generate"),
       output: Output.object({ schema }),
-      system: buildSystemPrompt({ cardType: opts.cardType, language: opts.language }),
+      system: buildSystemPrompt({
+        cardType: opts.cardType,
+        language: opts.language,
+        fileType: opts.fileType,
+      }),
       prompt,
       temperature: 0.4,
       maxRetries: 2,

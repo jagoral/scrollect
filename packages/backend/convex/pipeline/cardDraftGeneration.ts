@@ -125,6 +125,7 @@ export const generateDraftsForSectionBatch = internalAction({
           userId: doc.userId,
           documentTitle: doc.title,
           language: doc.language,
+          fileType: doc.fileType,
           section: {
             sectionSummaryId: sectionSummaryId as string,
             sectionTitle: section.sectionTitle,

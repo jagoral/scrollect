@@ -8,5 +8,6 @@ export type FixtureSection = {
 export type FixtureDocument = {
   title: string;
   language: "en" | "pl";
+  fileType?: string;
   sections: FixtureSection[];
 };

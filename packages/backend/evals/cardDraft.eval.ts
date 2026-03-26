@@ -10,6 +10,7 @@ import {
   typeSpecificQuality,
   referenceClarity,
   quoteContextCompleteness,
+  transcriptionPolish,
 } from "./scorers";
 
 type SectionInput = {
@@ -18,6 +19,7 @@ type SectionInput = {
   chunks: Array<{ content: string; chunkId: string }>;
   documentTitle: string;
   expectedLanguage: "en" | "pl";
+  fileType?: string;
 };
 
 type CardDraftOutput = {
@@ -26,6 +28,7 @@ type CardDraftOutput = {
   typeData: Record<string, unknown>;
   sourceChunks: string[];
   expectedLanguage: "en" | "pl";
+  fileType?: string;
 };
 
 const llm = new AiSdkCardDraftLlm();
@@ -38,6 +41,7 @@ function buildSectionInputs(): SectionInput[] {
       chunks: section.chunks,
       documentTitle: doc.title,
       expectedLanguage: doc.language,
+      fileType: doc.fileType,
     })),
   );
 }
@@ -56,6 +60,7 @@ evalite.each([
       sectionTitle: input.sectionTitle,
       chunks: input.chunks,
       documentTitle: input.documentTitle,
+      fileType: input.fileType,
     });
 
     return {
@@ -64,6 +69,7 @@ evalite.each([
       typeData: card.typeData,
       sourceChunks: input.chunks.map((c) => c.content),
       expectedLanguage: input.expectedLanguage,
+      fileType: input.fileType,
     } satisfies CardDraftOutput;
   },
   scorers: [
@@ -73,6 +79,7 @@ evalite.each([
     typeSpecificQuality,
     referenceClarity,
     quoteContextCompleteness,
+    transcriptionPolish,
   ],
   trialCount: 3,
 });
