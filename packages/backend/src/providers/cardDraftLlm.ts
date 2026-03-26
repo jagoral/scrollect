@@ -37,7 +37,12 @@ const quoteSchema = z.object({
     .string()
     .min(10)
     .describe("Exact verbatim quote copied from the source chunks - do not paraphrase"),
-  attribution: z.string().nullable().describe("Author or source name if available"),
+  attribution: z
+    .string()
+    .min(1)
+    .describe(
+      "Who said or wrote this quote - use their full proper name (e.g. 'Robert Lewandowski', not 'the player')",
+    ),
 });
 
 const summarySchema = z.object({
@@ -73,6 +78,8 @@ Your job is to create a single focused learning card from a section of a documen
 - Prefer exact wordings, specific facts, and concrete examples over generic summaries
 - The user wants to re-encounter the actual content they saved, not a paraphrased version
 - Every sentence must reference something specific from the source chunks
+- ALWAYS use proper names (e.g. "Marie Curie", "Google DeepMind") instead of vague references (e.g. "the scientist", "the company", "the author", "the coach"). If a person's or organization's name appears in the source, use it
+- When referring to people, places, teams, or organizations, use their specific names from the source text. Never substitute a proper name with a generic title or pronoun when the name is available
 </quality_rules>
 
 <avoid>
@@ -80,6 +87,8 @@ Your job is to create a single focused learning card from a section of a documen
 - "The author explores various aspects of..."
 - "There are several key factors that..."
 - Any sentence that could apply to a different document without changes
+- Vague references like "the player", "the coach", "the author", "the expert" when their proper name is in the source
+- "A prominent figure" or "one individual" instead of their actual name
 </avoid>`;
 
   switch (cardType) {
@@ -116,7 +125,9 @@ Your job is to create a single focused learning card from a section of a documen
 - Search the source chunks for the most impactful, memorable, or thought-provoking passage
 - Copy the passage exactly as it appears in the source, character by character - do not paraphrase, rephrase, or clean up the text
 - The quotedText must be a verbatim substring of one of the source chunks
-- In the content field, provide 1-2 sentences of context explaining why this quote matters
+- The attribution field is REQUIRED: always include the speaker's or writer's full proper name (e.g. "Ada Lovelace", not "a mathematician" or "the author")
+- In the content field, provide 1-2 sentences of context that include: WHO said it (proper name), ABOUT WHOM or WHAT it was said, and WHEN/WHERE if available in the source
+- The content must make the quote fully understandable without needing to read the original source
 </format>`;
 
     case "summary":
@@ -195,7 +206,7 @@ ${chunkText}`;
       case "quote": {
         const q = result as z.infer<typeof quoteSchema>;
         typeData.quotedText = q.quotedText;
-        if (q.attribution) typeData.attribution = q.attribution;
+        typeData.attribution = q.attribution;
         break;
       }
       case "summary": {
