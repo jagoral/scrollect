@@ -33,6 +33,7 @@ export function createMockSummarizingLlm(overrides?: Partial<SummarizingLlm>): S
   return {
     generateSectionSummary: async ({ sectionTitle }) => ({
       summary: `Summary of ${sectionTitle}`,
+      isSubstantiveContent: true,
       usage: ZERO_USAGE,
     }),
     generateDocumentSummary: async () => ({

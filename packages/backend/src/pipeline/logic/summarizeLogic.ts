@@ -35,6 +35,7 @@ export function truncateSectionText(chunks: Array<{ content: string }>, maxChars
 export type SectionResult = {
   sectionTitle: string;
   summary: string;
+  isSubstantiveContent: boolean;
   chunkStartIndex: number;
   chunkEndIndex: number;
 };
@@ -53,6 +54,7 @@ export type SummaryVectorPointOutput = SummaryVectorPoint;
 export type SectionDbRecord = {
   sectionTitle: string;
   summary: string;
+  isSubstantiveContent?: boolean;
   embeddingId: string;
   chunkStartIndex: number;
   chunkEndIndex: number;
@@ -92,6 +94,7 @@ export function buildSummaryVectorPoints(input: SummaryPointsInput): {
     sectionDbRecords.push({
       sectionTitle: section.sectionTitle,
       summary: section.summary,
+      isSubstantiveContent: section.isSubstantiveContent,
       embeddingId,
       chunkStartIndex: section.chunkStartIndex,
       chunkEndIndex: section.chunkEndIndex,

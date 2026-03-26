@@ -126,6 +126,7 @@ export default defineSchema({
     documentId: v.id("documents"),
     sectionTitle: v.string(),
     summary: v.string(),
+    isSubstantiveContent: v.optional(v.boolean()),
     embeddingId: v.string(),
     chunkStartIndex: v.number(),
     chunkEndIndex: v.number(),

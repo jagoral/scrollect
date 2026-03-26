@@ -63,7 +63,7 @@ export async function summarizeDocumentLogic({
   const sectionCandidates = await Promise.all(
     groups.map(async (group) => {
       const combinedText = truncateSectionText(group.chunks, MAX_SECTION_CHUNKS_CHARS);
-      const { summary, usage } = await services.llm.generateSectionSummary({
+      const { summary, isSubstantiveContent, usage } = await services.llm.generateSectionSummary({
         sectionTitle: group.sectionTitle,
         combinedText,
         language,
@@ -74,6 +74,7 @@ export async function summarizeDocumentLogic({
       return {
         sectionTitle: group.sectionTitle,
         summary,
+        isSubstantiveContent,
         chunkStartIndex: Math.min(...indices),
         chunkEndIndex: Math.max(...indices),
         usage,
@@ -89,9 +90,12 @@ export async function summarizeDocumentLogic({
     return null;
   }
 
+  const substantiveSections = sectionResults.filter((s) => s.isSubstantiveContent);
+  const docSummaryInput = substantiveSections.length > 0 ? substantiveSections : sectionResults;
+
   const { summary: docSummary, usage: docSummaryUsage } =
     await services.llm.generateDocumentSummary({
-      sectionSummaries: sectionResults,
+      sectionSummaries: docSummaryInput,
       documentTitle,
       language,
     });

@@ -5,11 +5,16 @@ import type { SummarizingLlm, TokenUsage } from "./types";
 import { getAI } from "./ai";
 import { buildLanguageInstruction } from "./promptUtils";
 
-const summarySchema = z.object({ summary: z.string() });
+const sectionSummarySchema = z.object({
+  summary: z.string(),
+  isSubstantiveContent: z.boolean(),
+});
+
+const docSummarySchema = z.object({ summary: z.string() });
 
 function buildSectionSummaryPrompt(language?: string): string {
   return `You are a summarization assistant for a personal learning app.
-Given text chunks from a section of a document, produce a concise summary that captures the key ideas, concepts, and insights.
+Given text chunks from a section of a document, produce a concise summary and classify whether the section contains substantive learning content.
 
 Rules:
 - Write 2-5 sentences
@@ -17,8 +22,11 @@ Rules:
 - Be specific - include key terms, names, and numbers
 - Write in third person
 - ${buildLanguageInstruction(language)}
+- Set "isSubstantiveContent" to true for chapters and sections with concepts, arguments, narrative, or educational value
+- Set "isSubstantiveContent" to false for: table of contents, bibliography, references, copyright notices, title pages, acknowledgments, ads, sponsor pages, publisher letters, bookstore promotions, appendices listing only names/links
+- When in doubt, classify as substantive (true)
 
-Return a JSON object: { "summary": "..." }`;
+Return a JSON object: { "summary": "...", "isSubstantiveContent": true/false }`;
 }
 
 function buildDocumentSummaryPrompt(language?: string): string {
@@ -52,10 +60,10 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
     sectionTitle: string;
     combinedText: string;
     language?: string;
-  }): Promise<{ summary: string; usage: TokenUsage }> {
+  }): Promise<{ summary: string; isSubstantiveContent: boolean; usage: TokenUsage }> {
     const { output, usage } = await generateText({
       model: getAI().languageModel("generate"),
-      output: Output.object({ schema: summarySchema }),
+      output: Output.object({ schema: sectionSummarySchema }),
       system: buildSectionSummaryPrompt(opts.language),
       prompt: `Section: "${opts.sectionTitle}"\n\n${opts.combinedText}`,
       temperature: 0.3,
@@ -64,6 +72,7 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
 
     return {
       summary: output?.summary ?? "",
+      isSubstantiveContent: output?.isSubstantiveContent ?? true,
       usage: normalizeUsage(usage),
     };
   }
@@ -79,7 +88,7 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
 
     const { output, usage } = await generateText({
       model: getAI().languageModel("generate"),
-      output: Output.object({ schema: summarySchema }),
+      output: Output.object({ schema: docSummarySchema }),
       system: buildDocumentSummaryPrompt(opts.language),
       prompt: `Document: "${opts.documentTitle}"\n\n${userContent}`,
       temperature: 0.3,

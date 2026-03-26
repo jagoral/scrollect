@@ -34,12 +34,20 @@ export const generateDraftsForDocument = internalAction({
         documentId,
       });
 
-      if (sections.length === 0) {
+      const contentSections = sections.filter((s) => s.isSubstantiveContent !== false);
+      const noiseSections = sections.filter((s) => s.isSubstantiveContent === false);
+      evt.set({
+        totalSections: sections.length,
+        noiseSectionsFiltered: noiseSections.length,
+        noiseTitles: noiseSections.map((s) => s.sectionTitle),
+      });
+
+      if (contentSections.length === 0) {
         await transitionToReady({ ctx, documentId, userId: doc.userId, evt });
         return;
       }
 
-      const totalBatches = sections.length;
+      const totalBatches = contentSections.length;
       const jobId = await ctx.runMutation(internal.processingJobs.create, {
         documentId,
         totalBatches,
@@ -47,7 +55,7 @@ export const generateDraftsForDocument = internalAction({
 
       evt.set({ totalBatches, jobId });
 
-      for (const section of sections) {
+      for (const section of contentSections) {
         await ctx.scheduler.runAfter(
           0,
           internal.pipeline.cardDraftGeneration.generateDraftsForSectionBatch,

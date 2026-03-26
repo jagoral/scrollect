@@ -52,6 +52,7 @@ describe("summarizeDocumentLogic", () => {
     expect(result!.docEmbeddingId).toBe(fakeIdToUuid("summary:doc:doc1"));
     expect(result!.sectionDbRecords).toHaveLength(1);
     expect(result!.sectionDbRecords[0]!.sectionTitle).toBe("Intro");
+    expect(result!.sectionDbRecords[0]!.isSubstantiveContent).toBe(true);
     expect(result!.embeddingUsage).toEqual({ tokens: 42 });
 
     expect(result!.metrics.sectionGroups).toBe(1);
@@ -70,6 +71,7 @@ describe("summarizeDocumentLogic", () => {
       llm: {
         generateSectionSummary: vi.fn().mockResolvedValue({
           summary: "",
+          isSubstantiveContent: true,
           usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         }),
         generateDocumentSummary: docSummaryFn,
@@ -114,7 +116,9 @@ describe("summarizeDocumentLogic", () => {
     const usage = { inputTokens: 10, outputTokens: 5, totalTokens: 15 };
     const services = createMockSummarizingServices({
       llm: {
-        generateSectionSummary: vi.fn().mockResolvedValue({ summary: "section summary", usage }),
+        generateSectionSummary: vi
+          .fn()
+          .mockResolvedValue({ summary: "section summary", isSubstantiveContent: true, usage }),
         generateDocumentSummary: vi.fn().mockResolvedValue({ summary: "doc summary", usage }),
       },
       embedder: {
@@ -181,6 +185,7 @@ describe("summarizeDocumentLogic", () => {
   it("forwards language to section and document summary LLM calls", async () => {
     const sectionFn = vi.fn().mockResolvedValue({
       summary: "section summary",
+      isSubstantiveContent: true,
       usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
     });
     const docFn = vi.fn().mockResolvedValue({
@@ -213,5 +218,68 @@ describe("summarizeDocumentLogic", () => {
 
     expect(sectionFn).toHaveBeenCalledWith(expect.objectContaining({ language: "pl" }));
     expect(docFn).toHaveBeenCalledWith(expect.objectContaining({ language: "pl" }));
+  });
+
+  it("threads isSubstantiveContent from LLM through to sectionDbRecords", async () => {
+    const sectionFn = vi
+      .fn()
+      .mockResolvedValueOnce({
+        summary: "chapter content",
+        isSubstantiveContent: true,
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      })
+      .mockResolvedValueOnce({
+        summary: "bibliography listing",
+        isSubstantiveContent: false,
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      });
+
+    const docFn = vi.fn().mockResolvedValue({
+      summary: "doc summary",
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    });
+
+    const services = createMockSummarizingServices({
+      llm: {
+        generateSectionSummary: sectionFn,
+        generateDocumentSummary: docFn,
+      },
+      embedder: createMockEmbedder({
+        dimensions: 2,
+        embed: vi.fn().mockResolvedValue([
+          [0.1, 0.2],
+          [0.3, 0.4],
+          [0.5, 0.6],
+        ]),
+      }),
+    });
+
+    const result = await summarizeDocumentLogic({
+      input: {
+        documentId: "doc1",
+        userId: "user1",
+        documentTitle: "Test Doc",
+        chunks: [
+          makeChunk({ chunkIndex: 0, sectionTitle: "Chapter 1" }),
+          makeChunk({ chunkIndex: 1, sectionTitle: "Bibliography" }),
+        ],
+        staleVectorIds: [],
+        idToUuid: fakeIdToUuid,
+      },
+      services,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.sectionDbRecords).toHaveLength(2);
+
+    const chapter = result!.sectionDbRecords.find((r) => r.sectionTitle === "Chapter 1");
+    const biblio = result!.sectionDbRecords.find((r) => r.sectionTitle === "Bibliography");
+    expect(chapter!.isSubstantiveContent).toBe(true);
+    expect(biblio!.isSubstantiveContent).toBe(false);
+
+    // Noise sections are excluded from document summary input
+    const docSummaryCall = docFn.mock.calls[0]![0];
+    expect(docSummaryCall.sectionSummaries).toHaveLength(1);
+    expect(docSummaryCall.sectionSummaries[0].sectionTitle).toBe("Chapter 1");
   });
 });
