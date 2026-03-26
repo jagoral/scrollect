@@ -24,7 +24,7 @@ Software engineers and active learners who consume a lot of content but struggle
 - **Backend**: Convex (`packages/backend`)
 - **Auth**: Better-Auth
 
-## Does
+## DO
 
 - Use AskUserQuestion to proactively ask questions. Be proactive, curious, pay attention to the details.
 - Write E2E tests when working on a new feature / bug fix
@@ -34,6 +34,7 @@ Software engineers and active learners who consume a lot of content but struggle
 - **Split large components**: Extract reusable logic into custom hooks (`hooks/`) and shared UI into dedicated component files. Keep page components thin — they compose hooks and components, not raw logic
 - Don't declare functions with more than 3 parameters. Merge the parametrs into object instead to avoid a risk of passing parameters in incorrect order
 - Prefer using TDD approach with /tdd skill
+- commit evals/.results/evalite.db to be able to compare eval runs
 
 ## Backend structure (`packages/backend`)
 
