@@ -120,11 +120,9 @@ export async function goToFirstDocument(page: Page) {
   await page.waitForLoadState("networkidle");
   const docLink = page.locator("a[href^='/app/library/']").first();
   await expect(docLink).toBeVisible({ timeout: 15000 });
-  const href = await docLink.getAttribute("href");
-  await page.goto(href!);
-  await page.waitForLoadState("networkidle");
+  await docLink.click();
   await expect(page).toHaveURL(/\/app\/library\/.+/);
-  await expect(page.getByText(/back to library/i)).toBeVisible();
+  await expect(page.getByText(/back to library/i)).toBeVisible({ timeout: 15000 });
 }
 
 export async function fetchConnectionDrafts(email: string) {
