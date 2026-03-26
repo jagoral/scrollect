@@ -8,6 +8,8 @@ import {
   languageMatch,
   contentSpecificity,
   typeSpecificQuality,
+  referenceClarity,
+  quoteContextCompleteness,
 } from "./scorers";
 
 type SectionInput = {
@@ -64,6 +66,13 @@ evalite.each([
       expectedLanguage: input.expectedLanguage,
     } satisfies CardDraftOutput;
   },
-  scorers: [structuralValidity, languageMatch, contentSpecificity, typeSpecificQuality],
+  scorers: [
+    structuralValidity,
+    languageMatch,
+    contentSpecificity,
+    typeSpecificQuality,
+    referenceClarity,
+    quoteContextCompleteness,
+  ],
   trialCount: 3,
 });
