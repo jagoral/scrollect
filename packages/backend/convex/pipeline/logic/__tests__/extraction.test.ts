@@ -34,7 +34,7 @@ describe("extractContentLogic", () => {
       extract: vi.fn().mockResolvedValue({
         markdown: "# Video Transcript\nHello world",
         title: "Video Title",
-        metadata: { provider: "supadata", duration: 120 },
+        metadata: { provider: "decodo", duration: 120 },
       }),
     });
     const services = createMockExtractionServices({ youtubeExtractor });
@@ -49,7 +49,7 @@ describe("extractContentLogic", () => {
     expect(result.title).toBe("Video Title");
     expect(metrics.markdownLength).toBe(30);
     expect(metrics.hasTitle).toBe(true);
-    expect(metrics.provider).toBe("supadata");
+    expect(metrics.provider).toBe("decodo");
   });
 
   it("reports hasTitle false and no provider when missing", async () => {

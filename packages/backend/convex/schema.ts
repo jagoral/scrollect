@@ -34,6 +34,7 @@ export default defineSchema({
     tagIds: v.optional(v.array(v.id("tags"))),
     tagSources: v.optional(v.array(tagSource)),
     learningGoal: v.optional(v.string()),
+    thumbnailUrl: v.optional(v.string()),
     userId: v.string(),
     createdAt: v.number(),
   })

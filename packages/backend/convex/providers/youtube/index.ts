@@ -1,18 +1,56 @@
-import { Supadata, SupadataError, type TranscriptChunk } from "@supadata/js";
-
 import type { ContentExtractor, ExtractResult } from "../types";
 
 import { type TranscriptSegment, extractYouTubeVideoId, formatTimestampMs } from "./utils";
 
-const INITIAL_POLL_DELAY_MS = 1_000;
-const MAX_POLL_DELAY_MS = 30_000;
-const MAX_POLL_DURATION_MS = 300_000;
+type DecodoSubtitleSeg = {
+  utf8: string;
+  tOffsetMs?: number;
+  acAsrConf?: number;
+};
 
-export class YouTubeTranscriptExtractor implements ContentExtractor {
-  private client: Supadata;
+type DecodoSubtitleEvent = {
+  tStartMs: number;
+  dDurationMs: number;
+  segs?: DecodoSubtitleSeg[];
+  aAppend?: number;
+};
 
-  constructor(options: { apiKey: string }) {
-    this.client = new Supadata({ apiKey: options.apiKey });
+type DecodoSubtitleLang = {
+  events: DecodoSubtitleEvent[];
+};
+
+type DecodoSubtitleContent = {
+  auto_generated?: Record<string, DecodoSubtitleLang>;
+  manual?: Record<string, DecodoSubtitleLang>;
+};
+
+type DecodoMetadataContent = {
+  parse_status_code: number;
+  results: {
+    title: string;
+    thumbnails: Array<{ height: number; url: string; width: number }>;
+    duration: number;
+    upload_date: string;
+    uploader: string;
+    chapters?: Array<{ start_time: number; title: string }>;
+    video_id: string;
+  };
+};
+
+type DecodoResponse<T> = {
+  results: Array<{
+    content: T;
+    status_code: number;
+    query: string;
+  }>;
+};
+
+export class DecodoYouTubeExtractor implements ContentExtractor {
+  private authKey: string;
+  private baseUrl = "https://scraper-api.decodo.com/v2/scrape";
+
+  constructor(options: { authKey: string }) {
+    this.authKey = options.authKey;
   }
 
   async extract(url: string): Promise<ExtractResult> {
@@ -21,100 +59,91 @@ export class YouTubeTranscriptExtractor implements ContentExtractor {
       throw new Error(`Could not extract video ID from URL: ${url}`);
     }
 
-    const [transcript, title] = await Promise.all([
-      this.fetchTranscript(url),
-      this.fetchVideoTitle(url),
+    const [subtitleResponse, metadataResponse] = await Promise.all([
+      this.fetchDecodo<DecodoSubtitleContent>("youtube_subtitles", videoId),
+      this.fetchDecodo<DecodoMetadataContent>("youtube_metadata", videoId),
     ]);
 
-    const segments = this.mapToSegments(transcript);
+    const segments = this.parseSubtitles(subtitleResponse);
     if (segments.length === 0) {
       throw new Error(
         `No transcript segments found for video: ${videoId}. The video may not have captions.`,
       );
     }
 
+    const title = metadataResponse.results?.title;
+    const thumbnailUrl = this.pickBestThumbnail(metadataResponse.results?.thumbnails);
     const markdown = this.transcriptToMarkdown(segments, title);
 
     return {
       markdown,
       title,
-      metadata: { provider: "supadata", videoId, segments },
+      metadata: { provider: "decodo", videoId, segments, thumbnailUrl },
     };
   }
 
-  private async fetchTranscript(url: string): Promise<TranscriptChunk[]> {
-    try {
-      const result = await this.client.transcript({ url, text: false, lang: "en" });
+  private async fetchDecodo<T>(target: string, query: string): Promise<T> {
+    const response = await fetch(this.baseUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Basic ${this.authKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ target, query }),
+    });
 
-      // Videos >20 min return async jobId - poll until complete
-      if ("jobId" in result) {
-        return this.pollForTranscript(result.jobId);
-      }
-
-      if (!Array.isArray(result.content)) {
-        throw new Error("Expected timestamped transcript chunks but received plain text");
-      }
-
-      return result.content;
-    } catch (error) {
-      if (error instanceof SupadataError) {
-        throw new Error(`Supadata ${error.error}: ${error.message} (${error.details})`);
-      }
-      throw error;
-    }
-  }
-
-  private async pollForTranscript(jobId: string): Promise<TranscriptChunk[]> {
-    const startMs = Date.now();
-    let attempt = 0;
-
-    while (Date.now() - startMs < MAX_POLL_DURATION_MS) {
-      const delay = Math.min(INITIAL_POLL_DELAY_MS * Math.pow(2, attempt), MAX_POLL_DELAY_MS);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      attempt++;
-
-      const job = await this.client.transcript.getJobStatus(jobId);
-
-      if (job.status === "completed" && job.result) {
-        if (!Array.isArray(job.result.content)) {
-          throw new Error("Expected timestamped transcript chunks but received plain text");
-        }
-        return job.result.content;
-      }
-
-      if (job.status === "failed") {
-        const message = job.error?.message ?? "Transcript job failed";
-        throw new Error(`Supadata transcript job failed: ${message}`);
-      }
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Decodo API error (${response.status}): ${text}`);
     }
 
-    throw new Error(
-      `Supadata transcript job ${jobId} timed out after ${MAX_POLL_DURATION_MS / 1000}s`,
-    );
-  }
-
-  // Uses YouTube oEmbed (free, no API key) instead of Supadata metadata API
-  // to avoid consuming Supadata credits for title-only fetches.
-  private async fetchVideoTitle(url: string): Promise<string | undefined> {
-    try {
-      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
-      const response = await fetch(oembedUrl);
-      if (!response.ok) return undefined;
-      const data = (await response.json()) as { title?: string };
-      return data.title || undefined;
-    } catch {
-      return undefined;
+    const data = (await response.json()) as DecodoResponse<T>;
+    if (!data.results?.[0]) {
+      throw new Error(`Decodo returned no results for ${target} query: ${query}`);
     }
+
+    return data.results[0].content;
   }
 
-  private mapToSegments(chunks: TranscriptChunk[]): TranscriptSegment[] {
-    return chunks
-      .filter((chunk) => chunk.text.trim().length > 0)
-      .map((chunk) => ({
-        startMs: chunk.offset,
-        endMs: chunk.offset + chunk.duration,
-        text: chunk.text.replace(/\s+/g, " ").trim(),
-      }));
+  private parseSubtitles(content: DecodoSubtitleContent): TranscriptSegment[] {
+    const langData = this.pickBestSubtitleTrack(content);
+    if (!langData) return [];
+
+    return langData.events
+      .filter((event) => event.segs && !event.aAppend)
+      .map((event) => ({
+        startMs: event.tStartMs,
+        endMs: event.tStartMs + event.dDurationMs,
+        text: event
+          .segs!.map((seg) => seg.utf8)
+          .join("")
+          .replace(/\s+/g, " ")
+          .trim(),
+      }))
+      .filter((segment) => segment.text.length > 0);
+  }
+
+  private pickBestSubtitleTrack(content: DecodoSubtitleContent): DecodoSubtitleLang | null {
+    if (content.manual && Object.keys(content.manual).length > 0) {
+      const lang = Object.keys(content.manual)[0]!;
+      return content.manual[lang]!;
+    }
+
+    if (content.auto_generated && Object.keys(content.auto_generated).length > 0) {
+      const lang = Object.keys(content.auto_generated)[0]!;
+      return content.auto_generated[lang]!;
+    }
+
+    return null;
+  }
+
+  private pickBestThumbnail(
+    thumbnails?: Array<{ height: number; url: string; width: number }>,
+  ): string | undefined {
+    if (!thumbnails || thumbnails.length === 0) return undefined;
+    const sorted = [...thumbnails].sort((a, b) => b.width - a.width);
+    return sorted[0]!.url;
   }
 
   private transcriptToMarkdown(segments: TranscriptSegment[], title?: string): string {
