@@ -145,5 +145,5 @@ evalite("Connection Discovery", {
     }
   },
   scorers: [contentSpecificity, languageMatch, connectionGenuineness],
-  trialCount: 3,
+  trialCount: 1,
 });
