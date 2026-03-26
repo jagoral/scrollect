@@ -12,10 +12,10 @@ export default defineConfig({
   cache: true,
   scoreThreshold: 80,
   forceRerunTriggers: [
-    "convex/providers/cardDraftLlm.ts",
-    "convex/providers/highlightDraftLlm.ts",
-    "convex/providers/thematicLlm.ts",
-    "convex/providers/connectionDiscoveryLlm.ts",
+    "src/providers/cardDraftLlm.ts",
+    "src/providers/highlightDraftLlm.ts",
+    "src/providers/thematicLlm.ts",
+    "src/providers/connectionDiscoveryLlm.ts",
   ],
   server: { port: 3006 },
 });

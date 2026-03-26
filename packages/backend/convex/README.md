@@ -1,88 +1,22 @@
-# Welcome to your Convex functions directory!
+# Convex functions directory
 
-Write your Convex functions here.
-See https://docs.convex.dev/functions for more.
+This directory contains **only** Convex functions (queries, mutations, actions), schema, config, and Convex-specific helpers.
 
-A query function that takes two arguments looks like:
+## What belongs here
 
-```ts
-// convex/myFunctions.ts
-import { query } from "./_generated/server";
-import { v } from "convex/values";
+- Files that export Convex functions (`query`, `mutation`, `action`, `internalQuery`, `internalMutation`, `internalAction`)
+- `schema.ts`, `auth.ts`, `auth.config.ts`, `convex.config.ts`, `http.ts`
+- `lib/` - Convex-specific helpers (auth wrappers, validators, rate limiting, logging)
+- `pipeline/` - Action wrappers and bridge code (services.ts, helpers.ts) that use `ActionCtx` or `_generated/api`
 
-export const myQueryFunction = query({
-  // Validators for arguments.
-  args: {
-    first: v.number(),
-    second: v.string(),
-  },
+## What does NOT belong here
 
-  // Function implementation.
-  handler: async (ctx, args) => {
-    // Read the database as many times as you need here.
-    // See https://docs.convex.dev/database/reading-data.
-    const documents = await ctx.db.query("tablename").collect();
+- Pure business logic - goes in `../src/`
+- External service providers (AI, Qdrant, analytics) - goes in `../src/providers/`
+- Test files - go in `../tests/`
 
-    // Arguments passed from the client are properties of the args object.
-    console.log(args.first, args.second);
+## Import convention
 
-    // Write arbitrary JavaScript here: filter, aggregate, build derived data,
-    // remove non-public properties, or create new objects.
-    return documents;
-  },
-});
-```
+Convex files import pure logic and providers from `../../src/` using relative paths. The Convex bundler (esbuild) follows these imports at build time and bundles them into the deployment. Files in `src/` must never import from `_generated/` or use Convex runtime APIs (`ctx`, `v`, etc.) - they stay framework-agnostic so they remain testable with plain vitest.
 
-Using this query function in a React component looks like:
-
-```ts
-const data = useQuery(api.myFunctions.myQueryFunction, {
-  first: 10,
-  second: "hello",
-});
-```
-
-A mutation function looks like:
-
-```ts
-// convex/myFunctions.ts
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
-
-export const myMutationFunction = mutation({
-  // Validators for arguments.
-  args: {
-    first: v.string(),
-    second: v.string(),
-  },
-
-  // Function implementation.
-  handler: async (ctx, args) => {
-    // Insert or modify documents in the database here.
-    // Mutations can also read from the database like queries.
-    // See https://docs.convex.dev/database/writing-data.
-    const message = { body: args.first, author: args.second };
-    const id = await ctx.db.insert("messages", message);
-
-    // Optionally, return a value from your mutation.
-    return await ctx.db.get("messages", id);
-  },
-});
-```
-
-Using this mutation function in a React component looks like:
-
-```ts
-const mutation = useMutation(api.myFunctions.myMutationFunction);
-function handleButtonPress() {
-  // fire and forget, the most common way to use mutations
-  mutation({ first: "Hello!", second: "me" });
-  // OR
-  // use the result once the mutation has completed
-  mutation({ first: "Hello!", second: "me" }).then((result) => console.log(result));
-}
-```
-
-Use the Convex CLI to push your functions to a deployment. See everything
-the Convex CLI can do by running `npx convex -h` in your project root
-directory. To learn more, launch the docs with `npx convex docs`.
+See https://docs.convex.dev/functions for Convex function documentation.

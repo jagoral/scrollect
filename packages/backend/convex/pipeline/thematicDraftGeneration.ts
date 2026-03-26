@@ -6,11 +6,14 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureAiUsage } from "../providers/analytics";
-import type { TokenUsage } from "../providers/types";
+import { captureAiUsage } from "../../src/providers/analytics";
+import type { TokenUsage } from "../../src/providers/types";
 
 import { computeContentHash, transitionToReady } from "./helpers";
-import { discoverThemes, generateThematicDrafts } from "./logic/thematicDraftGeneration";
+import {
+  discoverThemes,
+  generateThematicDrafts,
+} from "../../src/pipeline/logic/thematicDraftGeneration";
 import { createThematicDraftGenerationServiceContext } from "./services";
 
 export const generateThematicDraftsForDocument = internalAction({

@@ -11,19 +11,19 @@ import type {
   TaggingServiceContext,
   ThematicDraftGenerationServiceContext,
   VectorDeletionServices,
-} from "../providers/types";
-import { AiSdkCardDraftLlm } from "../providers/cardDraftLlm";
-import { AiSdkConnectionDiscoveryLlm } from "../providers/connectionDiscoveryLlm";
-import { AiSdkHighlightDraftLlm } from "../providers/highlightDraftLlm";
-import { AiSdkSummarizingLlm } from "../providers/summarizingLlm";
+} from "../../src/providers/types";
+import { AiSdkCardDraftLlm } from "../../src/providers/cardDraftLlm";
+import { AiSdkConnectionDiscoveryLlm } from "../../src/providers/connectionDiscoveryLlm";
+import { AiSdkHighlightDraftLlm } from "../../src/providers/highlightDraftLlm";
+import { AiSdkSummarizingLlm } from "../../src/providers/summarizingLlm";
 import {
   StubCardDraftLlm,
   StubConnectionDiscoveryLlm,
   StubHighlightDraftLlm,
   StubThematicLlm,
-} from "../providers/stubs";
-import { AiSdkTaggingLlm } from "../providers/taggingLlm";
-import { AiSdkThematicLlm } from "../providers/thematicLlm";
+} from "../../src/providers/stubs";
+import { AiSdkTaggingLlm } from "../../src/providers/taggingLlm";
+import { AiSdkThematicLlm } from "../../src/providers/thematicLlm";
 
 import {
   createArticleExtractor,

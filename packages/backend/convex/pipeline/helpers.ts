@@ -6,21 +6,25 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import type { WideEvent } from "../lib/logging";
-import { captureEvent } from "../providers/analytics";
-import { getAI } from "../providers/ai";
-import { DatalabParser } from "../providers/datalab";
-import { MarkdownNewArticleExtractor } from "../providers/markdownNew";
-import { AiSdkEmbeddings } from "../providers/embeddings";
-import { QdrantSummaryStore, QdrantVectorStore } from "../providers/qdrant";
-import { StubArticleExtractor, StubDatalabParser, StubYouTubeExtractor } from "../providers/stubs";
+import { captureEvent } from "../../src/providers/analytics";
+import { getAI } from "../../src/providers/ai";
+import { DatalabParser } from "../../src/providers/datalab";
+import { MarkdownNewArticleExtractor } from "../../src/providers/markdownNew";
+import { AiSdkEmbeddings } from "../../src/providers/embeddings";
+import { QdrantSummaryStore, QdrantVectorStore } from "../../src/providers/qdrant";
+import {
+  StubArticleExtractor,
+  StubDatalabParser,
+  StubYouTubeExtractor,
+} from "../../src/providers/stubs";
 import type {
   ContentExtractor,
   DocumentParser,
   EmbeddingProvider,
   SummaryVectorStore,
   VectorStore,
-} from "../providers/types";
-import { DecodoYouTubeExtractor } from "../providers/youtube";
+} from "../../src/providers/types";
+import { DecodoYouTubeExtractor } from "../../src/providers/youtube";
 
 export const CHUNK_STORE_BATCH_SIZE = 50;
 export const EMBED_BATCH_SIZE = 100;

@@ -1,9 +1,6 @@
 import { createScorer } from "evalite";
 
-import {
-  castTypeData,
-  computeStructuralScore,
-} from "../../convex/pipeline/logic/cardDraftGeneration";
+import { castTypeData, computeStructuralScore } from "../../src/pipeline/logic/cardDraftGeneration";
 export const structuralValidity = createScorer<any, any, any>({
   name: "Structural Validity",
   description: "Validates card structure using castTypeData and computeStructuralScore",

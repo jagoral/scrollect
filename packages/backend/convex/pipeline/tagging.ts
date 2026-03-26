@@ -5,9 +5,9 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureAiUsage, captureEvent } from "../providers/analytics";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
-import { suggestTagsLogic } from "./logic/tagging";
+import { suggestTagsLogic } from "../../src/pipeline/logic/tagging";
 import { createTaggingServiceContext } from "./services";
 
 export const autoSuggest = internalAction({

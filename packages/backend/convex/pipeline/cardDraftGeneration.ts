@@ -7,11 +7,11 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import type { TokenUsage } from "../providers/types";
-import { captureAiUsage, captureEvent } from "../providers/analytics";
+import type { TokenUsage } from "../../src/providers/types";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
 import { computeContentHash, transitionToReady } from "./helpers";
-import { generateDraftsForSection } from "./logic/cardDraftGeneration";
+import { generateDraftsForSection } from "../../src/pipeline/logic/cardDraftGeneration";
 import { createDraftGenerationServiceContext } from "./services";
 
 const MAX_DRAFT_RETRIES = 3;
