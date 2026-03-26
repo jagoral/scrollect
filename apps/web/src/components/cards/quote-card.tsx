@@ -33,7 +33,7 @@ export function QuoteCard({ post }: QuoteCardProps) {
         {post.content && (
           <p
             data-testid="quote-context"
-            className="mt-2 text-xs not-italic text-muted-foreground/50"
+            className="mt-1.5 line-clamp-2 text-xs not-italic text-muted-foreground/50"
           >
             {post.content}
           </p>
