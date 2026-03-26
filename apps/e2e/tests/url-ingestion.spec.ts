@@ -109,7 +109,7 @@ test.describe(
         });
 
         await test.step("verify success toast", async () => {
-          await expect(page.getByText(/submitted for processing/i)).toBeVisible({ timeout: 30000 });
+          await expect(page.getByText(/submitted!.*processing/i)).toBeVisible({ timeout: 30000 });
         });
 
         await test.step("verify document appears in library", async () => {
@@ -139,7 +139,7 @@ test.describe(
         });
 
         await test.step("verify success toast", async () => {
-          await expect(page.getByText(/submitted for processing/i)).toBeVisible({
+          await expect(page.getByText(/submitted!.*processing/i)).toBeVisible({
             timeout: 30000,
           });
         });
@@ -548,7 +548,7 @@ test.describe(
 
       const toastEl = page
         .locator("[data-sonner-toast]")
-        .filter({ hasText: /submitted for processing/i });
+        .filter({ hasText: /submitted!.*processing/i });
       await expect(toastEl).toBeVisible({ timeout: 30000 });
       await expect(toastEl.getByRole("link", { name: /library/i })).toBeVisible();
     });
@@ -601,7 +601,7 @@ test.describe(
         await page.getByRole("tab", { name: /paste url/i }).click();
         await page.locator('[data-testid="url-input"]').fill("https://example.com/article");
         await page.locator('[data-testid="url-submit"]').click();
-        await expect(page.getByText(/submitted for processing/i)).toBeVisible({ timeout: 30000 });
+        await expect(page.getByText(/submitted!.*processing/i)).toBeVisible({ timeout: 30000 });
       });
 
       await test.step("verify document renders in library", async () => {
