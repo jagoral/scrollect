@@ -26,7 +26,7 @@ export function QuoteCard({ post }: QuoteCardProps) {
         </span>
         <blockquote
           data-testid="quoted-text"
-          className="text-base leading-relaxed italic text-foreground/90"
+          className="text-base leading-relaxed text-foreground/90"
         >
           {quotedText}
         </blockquote>

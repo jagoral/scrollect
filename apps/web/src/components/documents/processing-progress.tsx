@@ -3,12 +3,12 @@ import { Check, Cog, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PROCESSING_STAGES = [
-  { key: "uploaded", label: "Queued for processing" },
-  { key: "parsing", label: "Parsing text" },
-  { key: "chunking", label: "Splitting into chunks" },
-  { key: "embedding", label: "Creating embeddings" },
-  { key: "summarizing", label: "Summarizing content" },
-  { key: "generating_cards", label: "Generating learning cards" },
+  { key: "uploaded", label: "Queued for processing", hint: null },
+  { key: "parsing", label: "Parsing text", hint: "may take a minute for large files" },
+  { key: "chunking", label: "Splitting into chunks", hint: null },
+  { key: "embedding", label: "Creating embeddings", hint: null },
+  { key: "summarizing", label: "Summarizing content", hint: "1-2 min" },
+  { key: "generating_cards", label: "Generating learning cards", hint: "1-3 min" },
 ] as const;
 
 export type ProcessingStage = (typeof PROCESSING_STAGES)[number]["key"];
@@ -84,6 +84,11 @@ export function ProcessingProgress({ status }: { status: ProcessingStage }) {
                   )}
                 >
                   {stage.label}
+                  {isCurrent && stage.hint && (
+                    <span className="ml-1.5 font-normal text-muted-foreground/60">
+                      - {stage.hint}
+                    </span>
+                  )}
                 </span>
               </div>
             );
@@ -92,7 +97,8 @@ export function ProcessingProgress({ status }: { status: ProcessingStage }) {
       </div>
 
       <p className="mt-4 text-center text-xs text-muted-foreground/70">
-        Processing happens in the background - you can upload more content or close the app.
+        Processing typically takes 3-5 minutes. You can navigate away or close the app - we'll keep
+        working in the background.
       </p>
     </div>
   );

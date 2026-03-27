@@ -2,7 +2,7 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import { FILE_SIZE_LIMITS, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { CloudUpload, FileUp, Loader2 } from "lucide-react";
+import { CheckCircle2, CloudUpload, FileUp, Loader2, XCircle } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -94,8 +94,8 @@ export function UploadFileTab() {
         });
         toast.success(
           <span>
-            <strong>{file.name}</strong> uploaded! Processing will continue in the background - feel
-            free to upload more or close the app.{" "}
+            <strong>{file.name}</strong> uploaded! Processing typically takes 3-5 minutes and
+            continues in the background.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>
@@ -141,6 +141,7 @@ export function UploadFileTab() {
   }, []);
 
   const activeUploads = uploads.filter((u) => u.status === "uploading");
+  const settledUploads = uploads.filter((u) => u.status === "done" || u.status === "error");
 
   return (
     <>
@@ -216,6 +217,48 @@ export function UploadFileTab() {
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-primary/5 px-4 py-3 text-sm text-primary animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Loader2 className="size-4 animate-spin" />
           Uploading {activeUploads.length} file{activeUploads.length > 1 ? "s" : ""}...
+        </div>
+      )}
+
+      {settledUploads.length > 0 && (
+        <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {settledUploads.map((u) => (
+            <div
+              key={u.file.name + u.file.lastModified}
+              className={cn(
+                "flex items-center gap-2.5 rounded-lg px-4 py-3 text-sm",
+                u.status === "done"
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "bg-destructive/10 text-destructive",
+              )}
+            >
+              {u.status === "done" ? (
+                <CheckCircle2 className="size-4 shrink-0" />
+              ) : (
+                <XCircle className="size-4 shrink-0" />
+              )}
+              <span className="min-w-0 truncate font-medium">{u.file.name}</span>
+              {u.status === "done" && (
+                <span className="ml-auto shrink-0 text-xs opacity-70">
+                  Processing in background
+                </span>
+              )}
+              {u.status === "error" && (
+                <span className="ml-auto shrink-0 text-xs opacity-70">Upload failed</span>
+              )}
+            </div>
+          ))}
+          <div className="flex items-center justify-between px-1 pt-1">
+            <p className="text-xs text-muted-foreground">
+              You can upload more files, navigate away, or close the app.
+            </p>
+            <Link
+              to="/app/library"
+              className="text-xs font-medium text-primary underline underline-offset-2"
+            >
+              View in library
+            </Link>
+          </div>
         </div>
       )}
     </>

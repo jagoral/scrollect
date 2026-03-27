@@ -64,7 +64,7 @@ export function SourceBadge({ post, className }: { post: PostCardData; className
         }}
       >
         <FileText className="size-3 shrink-0" />
-        <span className="max-w-64 truncate">{getSourceLabel(post)}</span>
+        <span>{getSourceLabel(post)}</span>
       </Link>
     </div>
   );

@@ -61,8 +61,7 @@ export function UploadUrlTab() {
         });
         toast.success(
           <span>
-            Submitted! Processing will continue in the background - feel free to add more content or
-            close the app.{" "}
+            Submitted! Processing typically takes 3-5 minutes and continues in the background.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>

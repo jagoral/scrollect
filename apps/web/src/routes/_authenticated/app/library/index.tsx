@@ -168,36 +168,52 @@ function LibraryPage() {
                   params={{ documentId: doc._id }}
                   className="block"
                 >
-                  <Card className="transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2.5 text-base">
-                        {fileTypeIcons[doc.fileType] ?? (
-                          <FileText className="size-4 text-muted-foreground" />
-                        )}
-                        <span className="truncate">{doc.title}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-3">
-                        <StatusBadge status={doc.status} />
-                        {isProcessingStatus(doc.status) && (
-                          <ProcessingProgressBar status={doc.status} />
-                        )}
-                        {doc.status === "ready" && (
-                          <span className="text-xs text-muted-foreground">
-                            {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
-                          </span>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(doc.createdAt, { addSuffix: true })}
-                        </span>
-                      </div>
-                      {docTags.length > 0 && (
-                        <div className="mt-2">
-                          <TagList tags={docTags} maxVisible={2} size="sm" />
+                  <Card className="overflow-hidden transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
+                    <div className={doc.thumbnailUrl ? "flex" : ""}>
+                      {doc.thumbnailUrl && (
+                        <div className="relative w-24 shrink-0 bg-muted sm:w-32">
+                          <img
+                            src={doc.thumbnailUrl}
+                            alt=""
+                            loading="lazy"
+                            className="absolute inset-0 size-full object-cover"
+                          />
                         </div>
                       )}
-                    </CardContent>
+                      <div className="min-w-0 flex-1">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-start gap-2.5 text-base">
+                            <span className="mt-0.5 shrink-0">
+                              {fileTypeIcons[doc.fileType] ?? (
+                                <FileText className="size-4 text-muted-foreground" />
+                              )}
+                            </span>
+                            <span className="line-clamp-2">{doc.title}</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center gap-3">
+                            <StatusBadge status={doc.status} />
+                            {isProcessingStatus(doc.status) && (
+                              <ProcessingProgressBar status={doc.status} />
+                            )}
+                            {doc.status === "ready" && (
+                              <span className="text-xs text-muted-foreground">
+                                {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(doc.createdAt, { addSuffix: true })}
+                            </span>
+                          </div>
+                          {docTags.length > 0 && (
+                            <div className="mt-2">
+                              <TagList tags={docTags} maxVisible={2} size="sm" />
+                            </div>
+                          )}
+                        </CardContent>
+                      </div>
+                    </div>
                   </Card>
                 </Link>
               );
