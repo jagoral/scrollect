@@ -48,5 +48,29 @@
     "builtin": true
   },
   "globals": {},
-  "ignorePatterns": ["packages/backend/convex/_generated/**", "apps/web/src/routeTree.gen.ts"]
+  "ignorePatterns": ["packages/backend/convex/_generated/**", "apps/web/src/routeTree.gen.ts"],
+  "overrides": [
+    {
+      "files": ["packages/backend/src/providers/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "convex/react",
+                "importNames": ["useQuery"],
+                "message": "Import useQuery/useSuspenseQuery from @tanstack/react-query and use convexQuery() from @convex-dev/react-query instead."
+              },
+              {
+                "name": "ai",
+                "importNames": ["generateText", "generateObject"],
+                "message": "Use generate() from ./ai instead. It handles model lookup, structured output, and TokenUsage normalization automatically."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

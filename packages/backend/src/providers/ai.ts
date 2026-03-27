@@ -1,7 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import type { EmbeddingModelV3, LanguageModelV3 } from "@ai-sdk/provider";
-import { Output, customProvider, generateText } from "ai";
+import { Output, customProvider, generateText } from "ai"; // oxlint-disable-line no-restricted-imports
 import { mapValues } from "es-toolkit";
 import type { z } from "zod";
 
