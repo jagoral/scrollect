@@ -249,6 +249,7 @@ async function checkCompletion(opts: {
           total_batches: job.totalBatches,
           failed_batches: job.failedBatches,
           error: errorMessage,
+          duration_ms: evt.getElapsedMs(),
         },
       });
     }
@@ -270,6 +271,7 @@ async function checkCompletion(opts: {
           total_batches: job.totalBatches,
           failed_batches: job.failedBatches,
           completed_batches: job.completedBatches,
+          duration_ms: evt.getElapsedMs(),
         },
       });
     }

@@ -18,6 +18,7 @@ export const autoSuggest = internalAction({
   handler: async (ctx, { documentId }) => {
     const evt = new WideEvent("pipeline.autoSuggestTags");
     evt.set({ documentId });
+    const startMs = Date.now();
     let doc:
       | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
       | undefined;
@@ -81,6 +82,7 @@ export const autoSuggest = internalAction({
           stage: "tagging",
           document_id: documentId,
           tag_count: validTags.length,
+          duration_ms: Date.now() - startMs,
         },
       });
     } catch (error) {
@@ -92,6 +94,7 @@ export const autoSuggest = internalAction({
           stage: "tagging",
           document_id: documentId,
           error: error instanceof Error ? error.message : String(error),
+          duration_ms: Date.now() - startMs,
         },
       });
     } finally {

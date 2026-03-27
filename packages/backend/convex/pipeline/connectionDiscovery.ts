@@ -24,6 +24,7 @@ export const discover = internalAction({
   handler: async (ctx, { documentId }) => {
     const evt = new WideEvent("pipeline.connectionDiscovery");
     evt.set({ documentId });
+    const startMs = Date.now();
     let tokenUsage: TokenUsage | undefined;
     let userId: string | undefined;
 
@@ -209,6 +210,7 @@ export const discover = internalAction({
             pairs_found: result.pairs.length,
             drafts_generated: result.drafts.length,
             within_document_fallback: result.metrics.withinDocumentFallback,
+            duration_ms: Date.now() - startMs,
           },
         });
       }
@@ -223,6 +225,7 @@ export const discover = internalAction({
           properties: {
             document_id: documentId,
             error: error instanceof Error ? error.message : String(error),
+            duration_ms: Date.now() - startMs,
           },
         });
       }

@@ -124,6 +124,7 @@ export async function transitionToReady(opts: {
       properties: {
         stage: "generating_cards",
         document_id: documentId,
+        duration_ms: evt.getElapsedMs(),
       },
     });
   }

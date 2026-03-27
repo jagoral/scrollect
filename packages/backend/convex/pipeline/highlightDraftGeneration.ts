@@ -28,6 +28,7 @@ export const generateHighlightDraftsForDocument = internalAction({
   handler: async (ctx, { documentId, userId, batchNumber, retryCount }) => {
     const evt = new WideEvent("pipeline.generateHighlightDrafts");
     evt.set({ documentId, userId, batchNumber, retryCount });
+    const startMs = Date.now();
     let tokenUsage: TokenUsage | undefined;
 
     try {
@@ -51,6 +52,7 @@ export const generateHighlightDraftsForDocument = internalAction({
           properties: {
             document_id: documentId,
             total_batches: batchNumber,
+            duration_ms: Date.now() - startMs,
           },
         });
         return;
@@ -149,6 +151,7 @@ export const generateHighlightDraftsForDocument = internalAction({
           highlights_matched: result.metrics.highlightsMatched,
           sections_affected: result.metrics.sectionsAffected,
           drafts_produced: result.metrics.draftsProduced,
+          duration_ms: Date.now() - startMs,
         },
       });
 
@@ -198,6 +201,7 @@ export const generateHighlightDraftsForDocument = internalAction({
           document_id: documentId,
           batch_number: batchNumber,
           error: error instanceof Error ? error.message : "Unknown error",
+          duration_ms: Date.now() - startMs,
         },
       });
 

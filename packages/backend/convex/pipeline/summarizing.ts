@@ -165,6 +165,7 @@ export const summarizeDocument = internalAction({
           stage: "summarizing",
           document_id: documentId,
           error: message,
+          duration_ms: Date.now() - startMs,
         },
       });
     } finally {

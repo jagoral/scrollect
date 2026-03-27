@@ -91,6 +91,7 @@ export async function extractContentImpl({
         document_id: documentId,
         file_type: extractorType,
         error: message,
+        duration_ms: Date.now() - startMs,
       },
     });
   }

@@ -192,6 +192,7 @@ export async function fetchAndParseMarkdownImpl({
         stage: "parsing",
         document_id: documentId,
         error: message,
+        duration_ms: Date.now() - startMs,
       },
     });
   }

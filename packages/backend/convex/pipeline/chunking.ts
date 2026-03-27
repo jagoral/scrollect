@@ -101,6 +101,7 @@ export const chunkAndStore = internalAction({
           stage: "chunking",
           document_id: documentId,
           error: message,
+          duration_ms: Date.now() - startMs,
         },
       });
     } finally {

@@ -6,7 +6,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
-import { captureAiUsage } from "../../src/providers/analytics";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 import { addUsage, type TokenUsage } from "../../src/providers/ai";
 
 import { computeContentHash, transitionToReady } from "./helpers";
@@ -22,6 +22,7 @@ export const generateThematicDraftsForDocument = internalAction({
   handler: async (ctx, { documentId }) => {
     const evt = new WideEvent("pipeline.generateThematicDrafts");
     evt.set({ documentId });
+    const startMs = Date.now();
     let tokenUsage: TokenUsage | undefined;
     let userId: string | undefined;
 
@@ -107,6 +108,20 @@ export const generateThematicDraftsForDocument = internalAction({
             })),
           });
         }
+      }
+
+      if (userId) {
+        await captureEvent({
+          distinctId: userId,
+          event: "pipeline.stage_completed",
+          properties: {
+            stage: "thematic_draft_generation",
+            document_id: documentId,
+            themes_discovered: discoveryResult.themes.length,
+            drafts_generated: result.drafts.length,
+            duration_ms: Date.now() - startMs,
+          },
+        });
       }
 
       await transitionToReady({ ctx, documentId, userId, evt });

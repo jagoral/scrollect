@@ -100,7 +100,7 @@ export const embedBatch = internalAction({
         id: jobId,
         failed: false,
       });
-      await checkCompletion(ctx, job, documentId);
+      await checkCompletion(ctx, job, documentId, evt);
 
       if (result.embeddingUsage) {
         await captureAiUsage({
@@ -136,7 +136,7 @@ export const embedBatch = internalAction({
         id: jobId,
         failed: true,
       });
-      await checkCompletion(ctx, job, documentId, errorMessage);
+      await checkCompletion(ctx, job, documentId, evt, errorMessage);
     } finally {
       evt.emit();
     }
@@ -147,6 +147,7 @@ async function checkCompletion(
   ctx: ActionCtx,
   job: { totalBatches: number; completedBatches: number; failedBatches: number },
   documentId: Id<"documents">,
+  evt: WideEvent,
   lastError?: string,
 ) {
   if (job.completedBatches + job.failedBatches < job.totalBatches) {
@@ -174,6 +175,7 @@ async function checkCompletion(
           total_batches: job.totalBatches,
           failed_batches: job.failedBatches,
           error: errorMessage,
+          duration_ms: evt.getElapsedMs(),
         },
       });
     }
@@ -194,6 +196,7 @@ async function checkCompletion(
           document_id: documentId,
           total_batches: job.totalBatches,
           chunk_count: doc.chunkCount ?? 0,
+          duration_ms: evt.getElapsedMs(),
         },
       });
     }
