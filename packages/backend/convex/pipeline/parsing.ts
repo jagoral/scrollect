@@ -9,56 +9,75 @@ import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 import { captureEvent } from "../../src/providers/analytics";
 
-import {
-  getPollDelay,
-  INITIAL_POLL_DELAY_MS,
-  MAX_POLL_DURATION_MS,
-  storeMarkdownBlob,
-} from "./helpers";
-import { interpretPollResult, submitForParsing } from "../../src/pipeline/logic/parsing";
-import { createParsingServiceContext } from "./services";
+import { storeMarkdownBlob } from "./helpers";
+import type { MarkerClient } from "../../src/providers/marker";
 
-interface DatalabSubmitArgs {
+const MAX_PARSING_DURATION_MS = 600_000; // 10 minutes
+
+interface MarkerSubmitArgs {
   ctx: ActionCtx;
   documentId: Id<"documents">;
   storageId: Id<"_storage">;
   userId: string;
+  fileType: string;
+  client: MarkerClient;
   evt: WideEvent;
 }
 
-export async function submitDatalabParsingImpl({
+export async function submitMarkerParsing({
   ctx,
   documentId,
   storageId,
   userId,
+  fileType,
+  client,
   evt,
-}: DatalabSubmitArgs) {
+}: MarkerSubmitArgs) {
   try {
     const fileUrl = await ctx.storage.getUrl(storageId);
     if (!fileUrl) throw new Error("File not found in storage");
 
-    const services = createParsingServiceContext();
-    const { checkUrl } = await submitForParsing({ fileUrl, services });
+    const webhookSecret = process.env.MARKER_WEBHOOK_SECRET ?? "";
+    const siteUrl = process.env.CONVEX_SITE_URL ?? "";
+    const webhookUrl = `${siteUrl}/api/marker-webhook?secret=${webhookSecret}`;
 
-    await ctx.runMutation(internal.documents.setDatalabCheckUrl, {
-      id: documentId,
-      checkUrl,
+    const result = await client.submitJob({
+      fileUrl,
+      documentId,
+      fileType,
+      webhookUrl,
     });
 
-    const startedAt = Date.now();
-    await ctx.scheduler.runAfter(
-      INITIAL_POLL_DELAY_MS,
-      internal.pipeline.parsing.pollDatalabResult,
-      {
+    if (result.kind === "immediate") {
+      evt.set("path", "stub_immediate");
+      const markdownStorageId = await storeMarkdownBlob(ctx, result.markdown);
+      await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
         documentId,
-        checkUrl,
-        attempt: 0,
-        startedAt,
-      },
+        markdownStorageId,
+      });
+      return;
+    }
+
+    if (!webhookSecret || !siteUrl) {
+      throw new Error("MARKER_WEBHOOK_SECRET and CONVEX_SITE_URL are required");
+    }
+
+    evt.set({ runpodJobId: result.jobId });
+
+    await ctx.runMutation(internal.documents.setRunpodJobId, {
+      id: documentId,
+      jobId: result.jobId,
+      submittedAt: Date.now(),
+    });
+
+    await ctx.scheduler.runAfter(
+      MAX_PARSING_DURATION_MS,
+      internal.pipeline.parsing.checkParsingTimeout,
+      { documentId },
     );
   } catch (error) {
     evt.setError(error);
-    const message = error instanceof Error ? error.message : "Document submission failed";
+    const message = error instanceof Error ? error.message : "Marker submission failed";
     await ctx.runMutation(internal.documents.updateStatus, {
       id: documentId,
       status: "error",
@@ -72,135 +91,40 @@ export async function submitDatalabParsingImpl({
         stage: "parsing",
         document_id: documentId,
         error: message,
+        provider: "marker",
       },
     });
   }
 }
 
-export const pollDatalabResult = internalAction({
-  args: {
-    documentId: v.id("documents"),
-    checkUrl: v.string(),
-    attempt: v.number(),
-    startedAt: v.number(),
-  },
+export const checkParsingTimeout = internalAction({
+  args: { documentId: v.id("documents") },
   returns: v.null(),
-  handler: async (ctx, { documentId, checkUrl, attempt, startedAt }) => {
-    const evt = new WideEvent("pipeline.pollDatalabResult");
-    evt.set({ documentId, attempt });
-    let doc:
-      | Awaited<ReturnType<typeof ctx.runQuery<typeof internal.documents.getInternal>>>
-      | undefined;
+  handler: async (ctx, { documentId }) => {
+    const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
+    if (!doc || doc.status !== "parsing") return null;
+
+    await ctx.runMutation(internal.documents.updateStatus, {
+      id: documentId,
+      status: "error",
+      errorMessage: "Document parsing timed out after 10 minutes",
+      failedAt: "parsing",
+    });
     try {
-      doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
-      if (!doc) throw new Error(`Document ${documentId} not found`);
-      if (doc.status === "deleting") return;
-
-      const elapsed = Date.now() - startedAt;
-      evt.set("elapsedMs", elapsed);
-
-      const services = createParsingServiceContext();
-      const pollResult = await services.parser.poll(checkUrl);
-      const interpreted = interpretPollResult({
-        pollResult,
-        elapsedMs: elapsed,
-        maxDurationMs: MAX_POLL_DURATION_MS,
-      });
-
-      evt.set("pollResult", interpreted.status);
-
-      switch (interpreted.status) {
-        case "complete": {
-          const markdownStorageId = await storeMarkdownBlob(ctx, interpreted.markdown);
-          await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
-            documentId,
-            markdownStorageId,
-          });
-          await captureEvent({
-            distinctId: doc.userId,
-            event: "pipeline.stage_completed",
-            properties: {
-              stage: "parsing",
-              document_id: documentId,
-              file_type: doc.fileType,
-              duration_ms: elapsed,
-            },
-          });
-          return;
-        }
-
-        case "error": {
-          await ctx.runMutation(internal.documents.updateStatus, {
-            id: documentId,
-            status: "error",
-            errorMessage: interpreted.errorMessage,
-            failedAt: "parsing",
-          });
-          await captureEvent({
-            distinctId: doc.userId,
-            event: "pipeline.stage_failed",
-            properties: {
-              stage: "parsing",
-              document_id: documentId,
-              file_type: doc.fileType,
-              error: interpreted.errorMessage,
-            },
-          });
-          return;
-        }
-
-        case "timeout": {
-          await ctx.runMutation(internal.documents.updateStatus, {
-            id: documentId,
-            status: "error",
-            errorMessage: "Document parsing timed out after 5 minutes",
-            failedAt: "parsing",
-          });
-          await captureEvent({
-            distinctId: doc.userId,
-            event: "pipeline.stage_failed",
-            properties: {
-              stage: "parsing",
-              document_id: documentId,
-              file_type: doc.fileType,
-              error: "Document parsing timed out after 5 minutes",
-            },
-          });
-          return;
-        }
-
-        case "pending": {
-          const nextDelay = getPollDelay(attempt);
-          await ctx.scheduler.runAfter(nextDelay, internal.pipeline.parsing.pollDatalabResult, {
-            documentId,
-            checkUrl,
-            attempt: attempt + 1,
-            startedAt,
-          });
-          return;
-        }
-      }
-    } catch (error) {
-      evt.setError(error);
-      const message = error instanceof Error ? error.message : "Polling failed";
-      await ctx.runMutation(internal.documents.updateStatus, {
-        id: documentId,
-        status: "error",
-        errorMessage: message,
-        failedAt: "parsing",
-      });
       await captureEvent({
-        distinctId: doc?.userId ?? `unresolved:${documentId}`,
+        distinctId: doc.userId,
         event: "pipeline.stage_failed",
         properties: {
           stage: "parsing",
           document_id: documentId,
-          error: message,
+          error: "Document parsing timed out after 10 minutes",
+          provider: "marker",
         },
       });
-    } finally {
-      evt.emit();
+    } catch {
+      // Analytics failure should not crash the timeout handler
     }
+    return null;
   },
 });
 

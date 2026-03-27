@@ -9,7 +9,6 @@ import type {
   ConnectionDiscoveryLlm,
   ConnectionDiscoveryServiceContext,
   ContentExtractor,
-  DocumentParser,
   DraftCardType,
   DraftGenerationServiceContext,
   EmbeddingServiceContext,
@@ -17,8 +16,6 @@ import type {
   ExtractionServiceContext,
   HighlightDraftGenerationServiceContext,
   HighlightDraftLlm,
-  ParsingServiceContext,
-  PollResult,
   SummarizingLlm,
   SummarizingServiceContext,
   TaggingLlm,
@@ -50,17 +47,6 @@ export function createMockTaggingLlm(overrides?: Partial<TaggingLlm>): TaggingLl
     suggestTags: async () => ({
       tags: ["tag1", "tag2", "tag3"],
       usage: ZERO_USAGE,
-    }),
-    ...overrides,
-  };
-}
-
-export function createMockParser(overrides?: Partial<DocumentParser>): DocumentParser {
-  return {
-    submit: async () => "https://check.example.com/job/123",
-    poll: async (): Promise<PollResult> => ({
-      status: "complete",
-      markdown: "# Parsed content",
     }),
     ...overrides,
   };
@@ -108,15 +94,6 @@ export function createMockEmbeddingServices(
   return {
     embedder: createMockEmbedder(),
     vectorStore: createMockVectorStore(),
-    ...overrides,
-  };
-}
-
-export function createMockParsingServices(
-  overrides?: Partial<ParsingServiceContext>,
-): ParsingServiceContext {
-  return {
-    parser: createMockParser(),
     ...overrides,
   };
 }

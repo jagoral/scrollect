@@ -25,7 +25,8 @@ export default defineSchema({
     sourceUrl: v.optional(v.string()),
     status: documentStatus,
     failedAt: v.optional(failedAtStage),
-    datalabCheckUrl: v.optional(v.string()),
+    runpodJobId: v.optional(v.string()),
+    runpodSubmittedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
     chunkCount: v.number(),
     language: v.optional(v.string()),
@@ -40,7 +41,8 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_status", ["status"])
-    .index("by_userId_status", ["userId", "status"]),
+    .index("by_userId_status", ["userId", "status"])
+    .index("by_runpodJobId", ["runpodJobId"]),
 
   posts: defineTable({
     content: v.string(),

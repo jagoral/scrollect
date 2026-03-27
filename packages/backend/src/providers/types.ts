@@ -46,20 +46,6 @@ export interface ContentExtractor {
   extract(url: string): Promise<ExtractResult>;
 }
 
-export interface PollResult {
-  status: "pending" | "complete" | "error";
-  markdown?: string;
-  errorMessage?: string;
-}
-
-export interface DocumentParser {
-  /** Submit a document for parsing. Returns a check URL for polling. */
-  submit(fileUrl: string): Promise<string>;
-
-  /** Poll for parsing result. */
-  poll(checkUrl: string): Promise<PollResult>;
-}
-
 export interface EmbeddingProvider {
   /** The dimensionality of the embedding vectors. */
   readonly dimensions: number;
@@ -284,10 +270,6 @@ export type SummarizingServiceContext = {
 export type EmbeddingServiceContext = {
   embedder: EmbeddingProvider;
   vectorStore: VectorStore;
-};
-
-export type ParsingServiceContext = {
-  parser: DocumentParser;
 };
 
 export type ExtractionServiceContext = {
