@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { E2E_EMAIL_PATTERN, isE2EEnabled } from "./lib/e2e";
+import { markerWebhookHandler } from "./pipeline/markerWebhook";
 
 const http = httpRouter();
 
@@ -104,6 +105,12 @@ http.route({
       return Response.json({ error: message }, { status: 500 });
     }
   }),
+});
+
+http.route({
+  path: "/api/marker-webhook",
+  method: "POST",
+  handler: markerWebhookHandler,
 });
 
 export default http;

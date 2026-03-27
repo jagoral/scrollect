@@ -2,7 +2,7 @@ const TARGET_CHUNK_SIZE = 750;
 const CHUNK_OVERLAP = 50;
 const MIN_CHUNK_SIZE = 100;
 
-/** Marker/Datalab page delimiter: `\n\n{PAGE_NUMBER}\n` + 48 dashes + `\n\n` */
+/** Marker page delimiter: `\n\n{PAGE_NUMBER}\n` + 48 dashes + `\n\n` */
 const PAGE_DELIMITER_RE = /\n{0,2}(\d+)\n-{48}\n{0,2}/;
 
 export interface Chunk {
@@ -72,7 +72,7 @@ export function chunkContent(text: string, sectionTitle?: string, pageNumber?: n
 }
 
 export function chunkMarkdown(text: string): Chunk[] {
-  // Check if the text contains page delimiters from Datalab
+  // Check if the text contains page delimiters from Marker
   if (PAGE_DELIMITER_RE.test(text)) {
     return chunkPaginatedMarkdown(text);
   }
@@ -111,7 +111,7 @@ function chunkSections(text: string, pageNumber?: number): Chunk[] {
 }
 
 /**
- * Split paginated markdown (from Datalab with `paginate: true`) into pages,
+ * Split paginated markdown (from Marker with `paginate_output: true`) into pages,
  * then chunk each page while preserving page numbers.
  */
 function chunkPaginatedMarkdown(text: string): Chunk[] {

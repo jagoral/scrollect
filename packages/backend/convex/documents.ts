@@ -340,13 +340,17 @@ export const updateStatus = internalMutation({
   },
 });
 
-export const setDatalabCheckUrl = internalMutation({
+export const setRunpodJobId = internalMutation({
   args: {
     id: v.id("documents"),
-    checkUrl: v.string(),
+    jobId: v.string(),
+    submittedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { datalabCheckUrl: args.checkUrl });
+    await ctx.db.patch(args.id, {
+      runpodJobId: args.jobId,
+      runpodSubmittedAt: args.submittedAt,
+    });
   },
 });
 

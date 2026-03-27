@@ -8,7 +8,8 @@ import { WideEvent } from "../lib/logging";
 import { captureEvent } from "../../src/providers/analytics";
 
 import { extractArticleImpl, extractYouTubeImpl } from "./extraction";
-import { fetchAndParseMarkdownImpl, submitDatalabParsingImpl } from "./parsing";
+import { createMarkerClient } from "./helpers";
+import { fetchAndParseMarkdownImpl, submitMarkerParsing } from "./parsing";
 
 export const startProcessing = internalAction({
   args: { documentId: v.id("documents") },
@@ -38,12 +39,14 @@ export const startProcessing = internalAction({
         case "epub":
           if (!doc.storageId)
             throw new Error(`${doc.fileType.toUpperCase()} document missing storageId`);
-          evt.set("path", "datalab");
-          await submitDatalabParsingImpl({
+          evt.set("path", "marker");
+          await submitMarkerParsing({
             ctx,
             documentId,
             storageId: doc.storageId,
             userId: doc.userId,
+            fileType: doc.fileType,
+            client: createMarkerClient(),
             evt,
           });
           break;

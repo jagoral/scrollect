@@ -23,26 +23,11 @@ export const resumeProcessing = internalAction({
 
       switch (doc.failedAt) {
         case "parsing":
-          if (doc.datalabCheckUrl) {
-            evt.set("resumePath", "pollDatalabResult");
-            // Resume polling from saved checkpoint
-            await ctx.runMutation(internal.documents.updateStatus, {
-              id: documentId,
-              status: "parsing",
-            });
-            await ctx.scheduler.runAfter(0, internal.pipeline.parsing.pollDatalabResult, {
-              documentId,
-              checkUrl: doc.datalabCheckUrl,
-              attempt: 0,
-              startedAt: Date.now(),
-            });
-          } else {
-            evt.set("resumePath", "startProcessing");
-            // Re-start processing from scratch
-            await ctx.scheduler.runAfter(0, internal.pipeline.index.startProcessing, {
-              documentId,
-            });
-          }
+          evt.set("resumePath", "startProcessing");
+          // Re-submit to Marker from scratch (stateless, idempotent)
+          await ctx.scheduler.runAfter(0, internal.pipeline.index.startProcessing, {
+            documentId,
+          });
           break;
 
         case "chunking": {
