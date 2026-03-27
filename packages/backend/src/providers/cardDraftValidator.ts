@@ -1,8 +1,7 @@
-import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import type { CardDraftValidator, DraftCardType, ValidationResult } from "./types";
-import { getAI, normalizeUsage } from "./ai";
+import { generate } from "./ai";
 
 const validationSchema = z.object({
   isValid: z
@@ -74,9 +73,9 @@ export class AiSdkCardDraftValidator implements CardDraftValidator {
   }): Promise<ValidationResult> {
     const typeDataStr = JSON.stringify(opts.typeData, null, 2);
 
-    const { output, usage } = await generateText({
-      model: getAI().languageModel("classify"),
-      output: Output.object({ schema: validationSchema }),
+    const { output, usage } = await generate({
+      model: "classify",
+      schema: validationSchema,
       system: buildValidationPrompt(opts.cardType),
       prompt: `Document: "${opts.documentTitle}"
 Section: "${opts.sectionTitle}"
@@ -85,23 +84,20 @@ Card type: ${opts.cardType}
 Card content: "${opts.content}"
 Type data: ${typeDataStr}`,
       temperature: 0,
-      maxRetries: 2,
     });
-
-    const usageWithModel = normalizeUsage(usage, "classify");
 
     if (!output) {
       return {
         isValid: true,
         rejectionReason: "Validator returned no output - failing open",
-        usage: usageWithModel,
+        usage,
       };
     }
 
     return {
       isValid: output.isValid,
       rejectionReason: output.reason,
-      usage: usageWithModel,
+      usage,
     };
   }
 }

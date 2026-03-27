@@ -1,8 +1,7 @@
-import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import type { ThematicLlm } from "./types";
-import { type TokenUsage, getAI, normalizeUsage } from "./ai";
+import { type TokenUsage, generate } from "./ai";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const themeSchema = z.object({
@@ -52,18 +51,17 @@ export class AiSdkThematicLlm implements ThematicLlm {
       .map((s) => `Section "${s.sectionTitle}":\n${s.summary}`)
       .join("\n\n---\n\n");
 
-    const { output, usage } = await generateText({
-      model: getAI().languageModel("generate"),
-      output: Output.object({ schema: themeSchema }),
+    const { output, usage } = await generate({
+      model: "generate",
+      schema: themeSchema,
       system: buildSystemPrompt(opts.language),
       prompt: `Document: "${opts.documentTitle}"\n\n${sectionText}`,
       temperature: 0.4,
-      maxRetries: 2,
     });
 
     return {
       themes: output?.themes ?? [],
-      usage: normalizeUsage(usage, "generate"),
+      usage,
     };
   }
 }

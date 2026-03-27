@@ -1,8 +1,7 @@
-import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import type { ConnectionDiscoveryLlm } from "./types";
-import { type TokenUsage, getAI, normalizeUsage } from "./ai";
+import { type TokenUsage, generate } from "./ai";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const connectionDraftSchema = z.object({
@@ -100,19 +99,16 @@ Summary: ${opts.sectionB.summary}
 Source chunks B:
 ${chunksB}`;
 
-    const { output, usage } = await generateText({
-      model: getAI().languageModel("reason"),
-      output: Output.object({ schema: connectionDraftSchema }),
+    const { output, usage } = await generate({
+      model: "reason",
+      schema: connectionDraftSchema,
       system: buildSystemPrompt(opts.language),
       prompt,
       temperature: 0.3,
-      maxRetries: 2,
     });
 
-    const normalizedUsage = normalizeUsage(usage, "reason");
-
     if (!output || !output.isGenuineConnection) {
-      return { card: null, usage: normalizedUsage };
+      return { card: null, usage };
     }
 
     return {
@@ -126,7 +122,7 @@ ${chunksB}`;
           ...(output.sourceBKeyIdea ? { sourceBKeyIdea: output.sourceBKeyIdea } : {}),
         },
       },
-      usage: normalizedUsage,
+      usage,
     };
   }
 }

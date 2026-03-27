@@ -1,8 +1,7 @@
-import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import type { CardDraftLlm, DraftCardType } from "./types";
-import { type TokenUsage, getAI, normalizeUsage } from "./ai";
+import { type TokenUsage, generate } from "./ai";
 import { isSpeechSource } from "./contentTypes";
 import { buildLanguageInstruction } from "./promptUtils";
 
@@ -198,9 +197,9 @@ Source chunks:
 ${chunkText}`;
 
     const schema = SCHEMAS[opts.cardType];
-    const { output, usage } = await generateText({
-      model: getAI().languageModel("generate"),
-      output: Output.object({ schema }),
+    const { output, usage } = await generate({
+      model: "generate",
+      schema,
       system: buildSystemPrompt({
         cardType: opts.cardType,
         language: opts.language,
@@ -208,7 +207,6 @@ ${chunkText}`;
       }),
       prompt,
       temperature: 0.4,
-      maxRetries: 2,
     });
 
     const result = output ?? { content: "" };
@@ -242,7 +240,7 @@ ${chunkText}`;
 
     return {
       card: { content, typeData },
-      usage: normalizeUsage(usage, "generate"),
+      usage,
     };
   }
 }

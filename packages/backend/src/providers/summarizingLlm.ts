@@ -1,8 +1,7 @@
-import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import type { SummarizingLlm } from "./types";
-import { type TokenUsage, getAI, normalizeUsage } from "./ai";
+import { type TokenUsage, generate } from "./ai";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const sectionSummarySchema = z.object({
@@ -49,19 +48,18 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
     combinedText: string;
     language?: string;
   }): Promise<{ summary: string; isSubstantiveContent: boolean; usage: TokenUsage }> {
-    const { output, usage } = await generateText({
-      model: getAI().languageModel("generate"),
-      output: Output.object({ schema: sectionSummarySchema }),
+    const { output, usage } = await generate({
+      model: "generate",
+      schema: sectionSummarySchema,
       system: buildSectionSummaryPrompt(opts.language),
       prompt: `Section: "${opts.sectionTitle}"\n\n${opts.combinedText}`,
       temperature: 0.3,
-      maxRetries: 2,
     });
 
     return {
       summary: output?.summary ?? "",
       isSubstantiveContent: output?.isSubstantiveContent ?? true,
-      usage: normalizeUsage(usage, "generate"),
+      usage,
     };
   }
 
@@ -74,18 +72,17 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
       .map((s) => `Section "${s.sectionTitle}":\n${s.summary}`)
       .join("\n\n---\n\n");
 
-    const { output, usage } = await generateText({
-      model: getAI().languageModel("generate"),
-      output: Output.object({ schema: docSummarySchema }),
+    const { output, usage } = await generate({
+      model: "generate",
+      schema: docSummarySchema,
       system: buildDocumentSummaryPrompt(opts.language),
       prompt: `Document: "${opts.documentTitle}"\n\n${userContent}`,
       temperature: 0.3,
-      maxRetries: 2,
     });
 
     return {
       summary: output?.summary ?? "",
-      usage: normalizeUsage(usage, "generate"),
+      usage,
     };
   }
 }

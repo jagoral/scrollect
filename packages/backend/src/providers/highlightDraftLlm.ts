@@ -1,8 +1,7 @@
-import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import type { DraftCardType, HighlightDraftLlm } from "./types";
-import { ZERO_USAGE, type TokenUsage, addUsage, getAI, normalizeUsage } from "./ai";
+import { ZERO_USAGE, type TokenUsage, addUsage, generate } from "./ai";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const classificationSchema = z.object({
@@ -245,19 +244,18 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
   }> {
     let totalUsage = ZERO_USAGE;
 
-    const { output: classificationOutput, usage: classificationUsage } = await generateText({
-      model: getAI().languageModel("classify"),
-      output: Output.object({ schema: classificationSchema }),
+    const { output: classificationOutput, usage: classificationUsage } = await generate({
+      model: "classify",
+      schema: classificationSchema,
       system: CLASSIFICATION_SYSTEM,
       prompt: buildClassificationPrompt({
         highlights: opts.highlights,
         documentTitle: opts.documentTitle,
         sectionTitle: opts.sectionTitle,
       }),
-      maxRetries: 2,
     });
 
-    totalUsage = addUsage(totalUsage, normalizeUsage(classificationUsage, "classify"));
+    totalUsage = addUsage(totalUsage, classificationUsage);
 
     const classifications = classificationOutput?.classifications ?? [];
     const classMap = new Map(
@@ -268,9 +266,9 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
       const cardType = classMap.get(highlight.highlightId) ?? "insight";
       const schema = TYPE_SCHEMAS[cardType];
 
-      const { output, usage } = await generateText({
-        model: getAI().languageModel("generate"),
-        output: Output.object({ schema }),
+      const { output, usage } = await generate({
+        model: "generate",
+        schema,
         system: buildGenerationSystem({ cardType, language: opts.language }),
         prompt: buildGenerationPrompt({
           highlightText: highlight.highlightText,
@@ -279,7 +277,6 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
           chunks: opts.chunks,
           documentTitle: opts.documentTitle,
         }),
-        maxRetries: 2,
       });
 
       const result = output ?? { content: "" };
@@ -318,7 +315,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
           cardType,
           typeData,
         },
-        usage: normalizeUsage(usage, "generate"),
+        usage,
       };
     });
 

@@ -1,8 +1,9 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import type { EmbeddingModelV3, LanguageModelV3 } from "@ai-sdk/provider";
-import { customProvider } from "ai";
+import { Output, customProvider, generateText } from "ai";
 import { mapValues } from "es-toolkit";
+import type { z } from "zod";
 
 export type CostUsd = { input: number; output: number; total: number };
 
@@ -154,6 +155,25 @@ export function getAI() {
 }
 
 export type ModelAlias = keyof typeof LANGUAGE_MODELS | keyof typeof EMBEDDING_MODELS;
+
+export async function generate<T extends z.ZodType>(opts: {
+  model: ModelAlias;
+  schema: T;
+  system: string;
+  prompt: string;
+  temperature?: number;
+  maxRetries?: number;
+}): Promise<{ output: z.infer<T> | null; usage: TokenUsage }> {
+  const { output, usage } = await generateText({
+    model: getAI().languageModel(opts.model),
+    output: Output.object({ schema: opts.schema }),
+    system: opts.system,
+    prompt: opts.prompt,
+    temperature: opts.temperature,
+    maxRetries: opts.maxRetries ?? 2,
+  });
+  return { output: output as z.infer<T> | null, usage: normalizeUsage(usage, opts.model) };
+}
 
 const MODEL_COSTS: Record<ModelAlias, ModelCost> = {
   classify: { input: 0.075, output: 0.3 },
