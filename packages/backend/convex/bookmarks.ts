@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
 import { requireAuth, optionalAuth } from "./lib/functions";
+import { postType, reactionType, typeData } from "./lib/validators";
 
 export const toggle = mutation({
   args: { postId: v.id("posts") },
@@ -48,6 +49,70 @@ export const toggle = mutation({
       createdAt: Date.now(),
     });
     return { bookmarked: true };
+  },
+});
+
+const bookmarkedPostCard = v.object({
+  _id: v.id("posts"),
+  _creationTime: v.number(),
+  content: v.string(),
+  postType,
+  typeData,
+  primarySourceDocumentId: v.id("documents"),
+  primarySourceDocumentTitle: v.string(),
+  cardDraftId: v.optional(v.id("cardDrafts")),
+  sectionTitle: v.union(v.string(), v.null()),
+  pageStart: v.union(v.number(), v.null()),
+  pageEnd: v.union(v.number(), v.null()),
+  fileType: v.optional(v.string()),
+  createdAt: v.number(),
+  reaction: v.optional(reactionType),
+  isBookmarked: v.literal(true),
+});
+
+export const listBookmarkedByDocument = query({
+  args: { documentId: v.id("documents") },
+  returns: v.array(bookmarkedPostCard),
+  handler: async (ctx, args) => {
+    const user = await optionalAuth(ctx);
+    if (!user) return [];
+
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_userId_document", (q) =>
+        q.eq("userId", user._id).eq("primarySourceDocumentId", args.documentId),
+      )
+      .order("desc")
+      .take(200);
+
+    const bookmarks = await Promise.all(
+      posts.map((post) =>
+        ctx.db
+          .query("bookmarks")
+          .withIndex("by_userId_post", (q) => q.eq("userId", user._id).eq("postId", post._id))
+          .first(),
+      ),
+    );
+
+    return posts
+      .filter((_, i) => bookmarks[i] != null)
+      .map((post) => ({
+        _id: post._id,
+        _creationTime: post._creationTime,
+        content: post.content,
+        postType: post.postType,
+        typeData: post.typeData,
+        primarySourceDocumentId: post.primarySourceDocumentId,
+        primarySourceDocumentTitle: post.primarySourceDocumentTitle,
+        cardDraftId: post.cardDraftId,
+        sectionTitle: post.sectionTitle ?? null,
+        pageStart: post.pageStart ?? null,
+        pageEnd: post.pageEnd ?? null,
+        fileType: post.fileType,
+        createdAt: post.createdAt,
+        reaction: post.reaction,
+        isBookmarked: true as const,
+      }));
   },
 });
 

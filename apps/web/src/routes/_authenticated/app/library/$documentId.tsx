@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { fileTypeIcons, StatusBadge } from "@/components/document-status";
 import { HighlightsSection } from "@/components/documents/highlights-section";
+import { BookmarkedCardsSection } from "@/components/documents/bookmarked-cards-section";
 import { ImportHighlightsDialog } from "@/components/documents/import-highlights-dialog";
 import { LearningGoalSection } from "@/components/documents/learning-goal-section";
 import { PipelineError } from "@/components/documents/pipeline-error";
@@ -161,6 +162,7 @@ function DocumentDetailPage() {
           <DocumentTagSection documentId={document._id} />
           <LearningGoalSection documentId={document._id} initialGoal={document.learningGoal} />
           <HighlightsSection documentId={document._id} />
+          <BookmarkedCardsSection documentId={document._id} />
         </>
       )}
 

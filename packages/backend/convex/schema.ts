@@ -68,7 +68,8 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_type", ["userId", "postType"])
-    .index("by_userId_createdAt", ["userId", "createdAt"]),
+    .index("by_userId_createdAt", ["userId", "createdAt"])
+    .index("by_userId_document", ["userId", "primarySourceDocumentId"]),
 
   reactionFeedback: defineTable({
     userId: v.string(),
