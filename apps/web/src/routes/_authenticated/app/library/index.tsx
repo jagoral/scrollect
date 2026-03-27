@@ -169,18 +169,8 @@ function LibraryPage() {
                   className="block"
                 >
                   <Card className="overflow-hidden transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
-                    <div className={doc.thumbnailUrl ? "flex" : ""}>
-                      {doc.thumbnailUrl && (
-                        <div className="relative w-24 shrink-0 bg-muted sm:w-32">
-                          <img
-                            src={doc.thumbnailUrl}
-                            alt=""
-                            loading="lazy"
-                            className="absolute inset-0 size-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
+                    <div className="grid grid-cols-[1fr_8rem] sm:grid-cols-[1fr_10rem]">
+                      <div className="min-w-0">
                         <CardHeader className="pb-3">
                           <CardTitle className="flex items-start gap-2.5 text-base">
                             <span className="mt-0.5 shrink-0">
@@ -212,6 +202,16 @@ function LibraryPage() {
                             </div>
                           )}
                         </CardContent>
+                      </div>
+                      <div className="relative bg-muted/30">
+                        {doc.thumbnailUrl && (
+                          <img
+                            src={doc.thumbnailUrl}
+                            alt=""
+                            loading="lazy"
+                            className="absolute inset-0 size-full object-cover"
+                          />
+                        )}
                       </div>
                     </div>
                   </Card>
