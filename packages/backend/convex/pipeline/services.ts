@@ -6,7 +6,6 @@ import type {
   EmbeddingServiceContext,
   ExtractionServiceContext,
   HighlightDraftGenerationServiceContext,
-  ParsingServiceContext,
   SummarizingServiceContext,
   TaggingServiceContext,
   ThematicDraftGenerationServiceContext,
@@ -29,7 +28,6 @@ import { AiSdkThematicLlm } from "../../src/providers/thematicLlm";
 
 import {
   createArticleExtractor,
-  createDocumentParser,
   createEmbeddingProvider,
   createSummaryVectorStore,
   createVectorStore,
@@ -48,12 +46,6 @@ export function createEmbeddingServiceContext(): EmbeddingServiceContext {
   return {
     embedder: createEmbeddingProvider(),
     vectorStore: createVectorStore(),
-  };
-}
-
-export function createParsingServiceContext(): ParsingServiceContext {
-  return {
-    parser: createDocumentParser(),
   };
 }
 

@@ -8,18 +8,14 @@ import type { ActionCtx } from "../_generated/server";
 import type { WideEvent } from "../lib/logging";
 import { captureEvent } from "../../src/providers/analytics";
 import { getAI } from "../../src/providers/ai";
-import { DatalabParser } from "../../src/providers/datalab";
+import { RunPodMarkerClient, StubMarkerClient } from "../../src/providers/marker";
+import type { MarkerClient } from "../../src/providers/marker";
 import { MarkdownNewArticleExtractor } from "../../src/providers/markdownNew";
 import { AiSdkEmbeddings } from "../../src/providers/embeddings";
 import { QdrantSummaryStore, QdrantVectorStore } from "../../src/providers/qdrant";
-import {
-  StubArticleExtractor,
-  StubDatalabParser,
-  StubYouTubeExtractor,
-} from "../../src/providers/stubs";
+import { StubArticleExtractor, StubYouTubeExtractor } from "../../src/providers/stubs";
 import type {
   ContentExtractor,
-  DocumentParser,
   EmbeddingProvider,
   SummaryVectorStore,
   VectorStore,
@@ -29,14 +25,6 @@ import { DecodoYouTubeExtractor } from "../../src/providers/youtube";
 export const CHUNK_STORE_BATCH_SIZE = 50;
 export const EMBED_BATCH_SIZE = 100;
 export const MAX_EMBED_RETRIES = 3;
-
-export const INITIAL_POLL_DELAY_MS = 5_000;
-export const MAX_POLL_DELAY_MS = 40_000;
-export const MAX_POLL_DURATION_MS = 300_000;
-
-export function getPollDelay(attempt: number): number {
-  return Math.min(INITIAL_POLL_DELAY_MS * Math.pow(2, attempt), MAX_POLL_DELAY_MS);
-}
 
 export function createEmbeddingProvider(): EmbeddingProvider {
   return new AiSdkEmbeddings(getAI().embeddingModel("default"));
@@ -60,11 +48,13 @@ export function createSummaryVectorStore(): SummaryVectorStore {
   return new QdrantSummaryStore(url, apiKey);
 }
 
-export function createDocumentParser(): DocumentParser {
-  if (process.env.USE_STUB_EXTRACTORS === "true") return new StubDatalabParser();
-  const apiKey = process.env.DATALAB_API_KEY;
-  if (!apiKey) throw new Error("DATALAB_API_KEY environment variable is not set");
-  return new DatalabParser(apiKey);
+export function createMarkerClient(): MarkerClient {
+  if (process.env.USE_STUB_EXTRACTORS === "true") return new StubMarkerClient();
+  const endpointId = process.env.RUNPOD_ENDPOINT_ID;
+  const apiKey = process.env.RUNPOD_API_KEY;
+  if (!endpointId || !apiKey)
+    throw new Error("RUNPOD_ENDPOINT_ID and RUNPOD_API_KEY environment variables are required");
+  return new RunPodMarkerClient({ endpointId, apiKey });
 }
 
 export function createArticleExtractor(): ContentExtractor {
