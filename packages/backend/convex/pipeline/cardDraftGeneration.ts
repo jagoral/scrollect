@@ -204,7 +204,7 @@ export const generateDraftsForSectionBatch = internalAction({
           operation: "card_draft_generation",
           documentId,
           usage: tokenUsage,
-          modelType: "llm",
+          model: tokenUsage.modelId!,
         });
       }
       evt.emit();

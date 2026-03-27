@@ -1,6 +1,7 @@
 import { groupBy } from "es-toolkit";
 
-import type { ConnectionDiscoveryServiceContext, TokenUsage } from "../../providers/types";
+import { ZERO_USAGE, addUsage, type TokenUsage } from "../../providers/ai";
+import type { ConnectionDiscoveryServiceContext } from "../../providers/types";
 
 const SIMILARITY_THRESHOLD = 0.75;
 const SEARCH_TOP_K = 5;
@@ -94,16 +95,6 @@ export type ConnectionDiscoveryResult = {
   tokenUsage: TokenUsage;
   metrics: ConnectionDiscoveryMetrics;
 };
-
-const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
-
-function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
-  return {
-    inputTokens: a.inputTokens + b.inputTokens,
-    outputTokens: a.outputTokens + b.outputTokens,
-    totalTokens: a.totalTokens + b.totalTokens,
-  };
-}
 
 export function buildPairKey(idA: string, idB: string): string {
   return idA < idB ? `${idA}:${idB}` : `${idB}:${idA}`;

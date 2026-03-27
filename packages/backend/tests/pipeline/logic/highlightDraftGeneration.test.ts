@@ -268,7 +268,12 @@ describe("generateHighlightDrafts", () => {
             typeData: { type: "insight" },
           },
         ],
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockHighlightDraftGenerationServices({ llm });
@@ -319,7 +324,12 @@ describe("generateHighlightDrafts", () => {
   });
 
   it("accumulates token usage across section groups", async () => {
-    const usage = { inputTokens: 100, outputTokens: 50, totalTokens: 150 };
+    const usage = {
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: 150,
+      costUsd: { input: 0, output: 0, total: 0 },
+    };
     const llm = createMockHighlightDraftLlm({
       generateDraftsFromHighlights: vi.fn().mockImplementation(async (opts) => ({
         cards: opts.highlights.map((h: { highlightId: string; highlightText: string }) => ({
@@ -356,7 +366,12 @@ describe("generateHighlightDrafts", () => {
             cardType: "insight",
             typeData: { type: "insight" },
           })),
-          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          usage: {
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            costUsd: { input: 0, output: 0, total: 0 },
+          },
         };
       }),
     });
@@ -382,7 +397,12 @@ describe("generateHighlightDrafts", () => {
             typeData: { type: "insight" },
           },
         ],
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockHighlightDraftGenerationServices({ llm });

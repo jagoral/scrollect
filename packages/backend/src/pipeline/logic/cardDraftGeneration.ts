@@ -1,9 +1,5 @@
-import type {
-  DraftCardType,
-  DraftGenerationServiceContext,
-  TokenUsage,
-  TypeData,
-} from "../../providers/types";
+import { ZERO_USAGE, addUsage, type TokenUsage } from "../../providers/ai";
+import type { DraftCardType, DraftGenerationServiceContext, TypeData } from "../../providers/types";
 
 const DRAFT_CARD_TYPES: DraftCardType[] = ["insight", "quiz", "quote", "summary"];
 const MIN_QUALITY_SCORE = 0.3;
@@ -197,16 +193,6 @@ export function castTypeData(cardType: DraftCardType, raw: Record<string, unknow
         bulletPoints: assertStringArray(raw.bulletPoints, "bulletPoints"),
       };
   }
-}
-
-const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
-
-function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
-  return {
-    inputTokens: a.inputTokens + b.inputTokens,
-    outputTokens: a.outputTokens + b.outputTokens,
-    totalTokens: a.totalTokens + b.totalTokens,
-  };
 }
 
 export async function generateDraftsForSection(opts: {

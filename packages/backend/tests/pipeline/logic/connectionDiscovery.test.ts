@@ -271,7 +271,12 @@ describe("discoverConnections", () => {
     const llm = createMockConnectionDiscoveryLlm({
       generateConnectionDraft: vi.fn().mockResolvedValue({
         card: null,
-        usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
+        usage: {
+          inputTokens: 100,
+          outputTokens: 50,
+          totalTokens: 150,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockConnectionDiscoveryServices({ summaryStore, llm });
@@ -382,7 +387,12 @@ describe("discoverConnections", () => {
   });
 
   it("accumulates token usage across all candidates", async () => {
-    const usage = { inputTokens: 100, outputTokens: 50, totalTokens: 150 };
+    const usage = {
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: 150,
+      costUsd: { input: 0, output: 0, total: 0 },
+    };
     const summaryStore = createMockSummaryStore({
       search: vi.fn().mockResolvedValue(makeCrossDocSearchResults()),
     });

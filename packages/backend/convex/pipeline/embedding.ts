@@ -7,6 +7,7 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
+import { normalizeUsage } from "../../src/providers/ai";
 import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
 import { convexIdToUuid, EMBED_BATCH_SIZE, MAX_EMBED_RETRIES } from "./helpers";
@@ -106,8 +107,14 @@ export const embedBatch = internalAction({
           distinctId: doc.userId,
           operation: "embedding",
           documentId,
-          usage: result.embeddingUsage,
-          modelType: "embedding",
+          usage: normalizeUsage(
+            {
+              inputTokens: result.embeddingUsage.tokens,
+              totalTokens: result.embeddingUsage.tokens,
+            },
+            "embedding",
+          ),
+          model: "embedding",
         });
       }
     } catch (error) {

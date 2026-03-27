@@ -27,7 +27,7 @@ export const EMBED_BATCH_SIZE = 100;
 export const MAX_EMBED_RETRIES = 3;
 
 export function createEmbeddingProvider(): EmbeddingProvider {
-  return new AiSdkEmbeddings(getAI().embeddingModel("default"));
+  return new AiSdkEmbeddings(getAI().embeddingModel("embedding"));
 }
 
 function getQdrantConfig(): { url: string; apiKey: string } {

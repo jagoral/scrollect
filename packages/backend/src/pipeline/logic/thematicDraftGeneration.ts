@@ -1,7 +1,7 @@
+import { ZERO_USAGE, addUsage, type TokenUsage } from "../../providers/ai";
 import type {
   DraftCardType,
   ThematicDraftGenerationServiceContext,
-  TokenUsage,
   TypeData,
 } from "../../providers/types";
 import { castTypeData, computeQualityScore } from "./cardDraftGeneration";
@@ -69,16 +69,6 @@ export type ThematicDraftResult = {
   tokenUsage: TokenUsage;
   metrics: ThematicDraftMetrics;
 };
-
-const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
-
-function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
-  return {
-    inputTokens: a.inputTokens + b.inputTokens,
-    outputTokens: a.outputTokens + b.outputTokens,
-    totalTokens: a.totalTokens + b.totalTokens,
-  };
-}
 
 export async function discoverThemes(opts: {
   input: ThemeDiscoveryInput;

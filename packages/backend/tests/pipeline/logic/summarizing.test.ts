@@ -72,7 +72,12 @@ describe("summarizeDocumentLogic", () => {
         generateSectionSummary: vi.fn().mockResolvedValue({
           summary: "",
           isSubstantiveContent: true,
-          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          usage: {
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            costUsd: { input: 0, output: 0, total: 0 },
+          },
         }),
         generateDocumentSummary: docSummaryFn,
       },
@@ -113,7 +118,12 @@ describe("summarizeDocumentLogic", () => {
   });
 
   it("accumulates LLM token usage across all summary calls", async () => {
-    const usage = { inputTokens: 10, outputTokens: 5, totalTokens: 15 };
+    const usage = {
+      inputTokens: 10,
+      outputTokens: 5,
+      totalTokens: 15,
+      costUsd: { input: 0, output: 0, total: 0 },
+    };
     const services = createMockSummarizingServices({
       llm: {
         generateSectionSummary: vi
@@ -151,6 +161,7 @@ describe("summarizeDocumentLogic", () => {
       inputTokens: 30,
       outputTokens: 15,
       totalTokens: 45,
+      costUsd: { input: 0, output: 0, total: 0 },
     });
   });
 
@@ -186,11 +197,21 @@ describe("summarizeDocumentLogic", () => {
     const sectionFn = vi.fn().mockResolvedValue({
       summary: "section summary",
       isSubstantiveContent: true,
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
     });
     const docFn = vi.fn().mockResolvedValue({
       summary: "doc summary",
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
     });
     const services = createMockSummarizingServices({
       llm: { generateSectionSummary: sectionFn, generateDocumentSummary: docFn },
@@ -226,17 +247,32 @@ describe("summarizeDocumentLogic", () => {
       .mockResolvedValueOnce({
         summary: "chapter content",
         isSubstantiveContent: true,
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       })
       .mockResolvedValueOnce({
         summary: "bibliography listing",
         isSubstantiveContent: false,
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       });
 
     const docFn = vi.fn().mockResolvedValue({
       summary: "doc summary",
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
     });
 
     const services = createMockSummarizingServices({

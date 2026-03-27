@@ -207,7 +207,12 @@ describe("generateDraftsForSection", () => {
           content: "Identical content for all types",
           typeData: { type: "insight" },
         },
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockDraftGenerationServices({ llm });
@@ -244,7 +249,12 @@ describe("generateDraftsForSection", () => {
           content: "",
           typeData: { type: "insight" },
         },
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockDraftGenerationServices({ llm });
@@ -258,7 +268,12 @@ describe("generateDraftsForSection", () => {
   });
 
   it("accumulates token usage across all card types", async () => {
-    const usage = { inputTokens: 100, outputTokens: 50, totalTokens: 150 };
+    const usage = {
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: 150,
+      costUsd: { input: 0, output: 0, total: 0 },
+    };
     const llm = createMockCardDraftLlm({
       generateDraft: vi
         .fn()
@@ -295,6 +310,7 @@ describe("generateDraftsForSection", () => {
       inputTokens: 400,
       outputTokens: 200,
       totalTokens: 600,
+      costUsd: { input: 0, output: 0, total: 0 },
     });
   });
 
@@ -314,7 +330,12 @@ describe("generateDraftsForSection", () => {
                     ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
                     : { type: opts.cardType },
             },
-            usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              totalTokens: 0,
+              costUsd: { input: 0, output: 0, total: 0 },
+            },
           };
         }),
     });
@@ -335,7 +356,12 @@ describe("generateDraftsForSection", () => {
         content: "Draft insight for testing: a useful learning card.",
         typeData: { type: "insight" },
       },
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
     });
     const llm = createMockCardDraftLlm({ generateDraft });
     const services = createMockDraftGenerationServices({ llm });
@@ -374,7 +400,12 @@ describe("generateDraftsForSection with validator", () => {
       validateDraft: vi.fn().mockImplementation(async (opts: { cardType: string }) => ({
         isValid: opts.cardType !== "quote",
         rejectionReason: opts.cardType === "quote" ? "Not a real quote" : undefined,
-        usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 5,
+          totalTokens: 15,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       })),
     });
     const services = createMockDraftGenerationServices({ validator });
@@ -397,7 +428,12 @@ describe("generateDraftsForSection with validator", () => {
       validateDraft: vi.fn().mockResolvedValue({
         isValid: false,
         rejectionReason: "Worthless content",
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockDraftGenerationServices({ validator });
@@ -442,7 +478,12 @@ describe("generateDraftsForSection with validator", () => {
   });
 
   it("accumulates validator token usage", async () => {
-    const validatorUsage = { inputTokens: 20, outputTokens: 10, totalTokens: 30 };
+    const validatorUsage = {
+      inputTokens: 20,
+      outputTokens: 10,
+      totalTokens: 30,
+      costUsd: { input: 0, output: 0, total: 0 },
+    };
     const validator = createMockCardDraftValidator({
       validateDraft: vi.fn().mockResolvedValue({
         isValid: true,

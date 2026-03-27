@@ -1,8 +1,8 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import type { CardDraftLlm, DraftCardType, TokenUsage } from "./types";
-import { getAI } from "./ai";
+import type { CardDraftLlm, DraftCardType } from "./types";
+import { type TokenUsage, getAI, normalizeUsage } from "./ai";
 import { isSpeechSource } from "./contentTypes";
 import { buildLanguageInstruction } from "./promptUtils";
 
@@ -174,18 +174,6 @@ ${
   }
 }
 
-function normalizeUsage(usage: {
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
-}): TokenUsage {
-  return {
-    inputTokens: usage.inputTokens ?? 0,
-    outputTokens: usage.outputTokens ?? 0,
-    totalTokens: usage.totalTokens ?? 0,
-  };
-}
-
 export class AiSdkCardDraftLlm implements CardDraftLlm {
   async generateDraft(opts: {
     cardType: DraftCardType;
@@ -254,7 +242,7 @@ ${chunkText}`;
 
     return {
       card: { content, typeData },
-      usage: normalizeUsage(usage),
+      usage: normalizeUsage(usage, "generate"),
     };
   }
 }

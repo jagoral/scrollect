@@ -233,7 +233,7 @@ export const discover = internalAction({
           operation: "connection_discovery",
           documentId,
           usage: tokenUsage,
-          modelType: "llm",
+          model: tokenUsage.modelId!,
         });
       }
       evt.emit();

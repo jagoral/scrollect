@@ -125,6 +125,7 @@
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@ai-sdk/provider": "^3.0.8",
         "@scrollect/config": "workspace:*",
         "@types/better-sqlite3": "^7.6.13",
         "@types/node": "^24.3.0",

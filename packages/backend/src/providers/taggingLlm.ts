@@ -1,8 +1,8 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import type { TaggingLlm, TokenUsage } from "./types";
-import { getAI } from "./ai";
+import type { TaggingLlm } from "./types";
+import { type TokenUsage, getAI, normalizeUsage } from "./ai";
 
 const tagSchema = z.object({ tags: z.array(z.string()) });
 
@@ -33,11 +33,7 @@ export class AiSdkTaggingLlm implements TaggingLlm {
 
     return {
       tags: output?.tags ?? [],
-      usage: {
-        inputTokens: usage.inputTokens ?? 0,
-        outputTokens: usage.outputTokens ?? 0,
-        totalTokens: usage.totalTokens ?? 0,
-      },
+      usage: normalizeUsage(usage, "classify"),
     };
   }
 }

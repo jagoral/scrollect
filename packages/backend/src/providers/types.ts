@@ -1,8 +1,5 @@
-export type TokenUsage = {
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-};
+import type { ModelAlias, TokenUsage } from "./ai";
+export type { ModelAlias, TokenUsage } from "./ai";
 
 export interface CardGenerationService {
   generateCards(opts: { systemPrompt: string; userPrompt: string; cardCount: number }): Promise<{
@@ -22,9 +19,8 @@ export interface AnalyticsService {
     distinctId: string;
     operation: string;
     usage: TokenUsage;
-    modelType: "llm" | "embedding";
+    model: ModelAlias;
     documentId?: string;
-    model?: string;
   }): Promise<void>;
 }
 

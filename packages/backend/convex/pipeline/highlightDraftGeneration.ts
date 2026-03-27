@@ -218,7 +218,7 @@ export const generateHighlightDraftsForDocument = internalAction({
           operation: "highlight_draft_generation",
           documentId,
           usage: tokenUsage,
-          modelType: "llm",
+          model: tokenUsage.modelId!,
         });
       }
       evt.emit();

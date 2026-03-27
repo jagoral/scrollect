@@ -1,3 +1,4 @@
+import { ZERO_USAGE, type TokenUsage } from "./ai";
 import type {
   CardDraftLlm,
   CardDraftValidator,
@@ -7,7 +8,6 @@ import type {
   ExtractResult,
   HighlightDraftLlm,
   ThematicLlm,
-  TokenUsage,
   ValidationResult,
 } from "./types";
 
@@ -133,8 +133,6 @@ export class StubYouTubeExtractor implements ContentExtractor {
     };
   }
 }
-
-const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
 const STUB_DRAFTS: Record<
   DraftCardType,

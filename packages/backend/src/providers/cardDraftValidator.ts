@@ -1,8 +1,8 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import type { CardDraftValidator, DraftCardType, TokenUsage, ValidationResult } from "./types";
-import { getAI } from "./ai";
+import type { CardDraftValidator, DraftCardType, ValidationResult } from "./types";
+import { getAI, normalizeUsage } from "./ai";
 
 const validationSchema = z.object({
   isValid: z
@@ -64,18 +64,6 @@ QUIZ card criteria - the question must test recall of a specific fact from the s
   }
 }
 
-function normalizeUsage(usage: {
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
-}): TokenUsage {
-  return {
-    inputTokens: usage.inputTokens ?? 0,
-    outputTokens: usage.outputTokens ?? 0,
-    totalTokens: usage.totalTokens ?? 0,
-  };
-}
-
 export class AiSdkCardDraftValidator implements CardDraftValidator {
   async validateDraft(opts: {
     cardType: DraftCardType;
@@ -100,18 +88,20 @@ Type data: ${typeDataStr}`,
       maxRetries: 2,
     });
 
+    const usageWithModel = normalizeUsage(usage, "classify");
+
     if (!output) {
       return {
         isValid: true,
         rejectionReason: "Validator returned no output - failing open",
-        usage: normalizeUsage(usage),
+        usage: usageWithModel,
       };
     }
 
     return {
       isValid: output.isValid,
       rejectionReason: output.reason,
-      usage: normalizeUsage(usage),
+      usage: usageWithModel,
     };
   }
 }

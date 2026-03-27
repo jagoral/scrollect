@@ -95,7 +95,12 @@ describe("discoverThemes", () => {
     const thematicLlm = createMockThematicLlm({
       discoverThemes: async () => ({
         themes: [{ title: "Theme", description: "Desc", relevantSections: ["A", "B"] }],
-        usage: { inputTokens: 500, outputTokens: 200, totalTokens: 700 },
+        usage: {
+          inputTokens: 500,
+          outputTokens: 200,
+          totalTokens: 700,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
 
@@ -180,7 +185,12 @@ describe("generateThematicDrafts", () => {
           content: "Identical thematic content for all types",
           typeData: { type: "insight" },
         },
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockThematicDraftGenerationServices({ vectorStore, draftLlm });
@@ -229,7 +239,12 @@ describe("generateThematicDrafts", () => {
               content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful thematic card content here.`,
               typeData: { type: "summary", bulletPoints: ["Point 1", "Point 2"] },
             },
-            usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              totalTokens: 0,
+              costUsd: { input: 0, output: 0, total: 0 },
+            },
           };
         }),
     });
@@ -282,7 +297,12 @@ describe("generateThematicDrafts", () => {
   });
 
   it("accumulates token usage across themes and card types", async () => {
-    const usage = { inputTokens: 100, outputTokens: 50, totalTokens: 150 };
+    const usage = {
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: 150,
+      costUsd: { input: 0, output: 0, total: 0 },
+    };
     const vectorStore = createMockVectorStore({
       search: async (): Promise<VectorSearchResult[]> => makeSearchResults(),
     });

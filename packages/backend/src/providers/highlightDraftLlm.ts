@@ -1,8 +1,8 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import type { DraftCardType, HighlightDraftLlm, TokenUsage } from "./types";
-import { getAI } from "./ai";
+import type { DraftCardType, HighlightDraftLlm } from "./types";
+import { ZERO_USAGE, type TokenUsage, addUsage, getAI, normalizeUsage } from "./ai";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const classificationSchema = z.object({
@@ -226,26 +226,6 @@ Highlighted passage to create a card from:
 "${opts.highlightText}"`;
 }
 
-function normalizeUsage(usage: {
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
-}): TokenUsage {
-  return {
-    inputTokens: usage.inputTokens ?? 0,
-    outputTokens: usage.outputTokens ?? 0,
-    totalTokens: usage.totalTokens ?? 0,
-  };
-}
-
-function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
-  return {
-    inputTokens: a.inputTokens + b.inputTokens,
-    outputTokens: a.outputTokens + b.outputTokens,
-    totalTokens: a.totalTokens + b.totalTokens,
-  };
-}
-
 export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
   async generateDraftsFromHighlights(opts: {
     highlights: Array<{ highlightId: string; highlightText: string }>;
@@ -263,7 +243,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
     }>;
     usage: TokenUsage;
   }> {
-    let totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+    let totalUsage = ZERO_USAGE;
 
     const { output: classificationOutput, usage: classificationUsage } = await generateText({
       model: getAI().languageModel("classify"),
@@ -277,7 +257,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
       maxRetries: 2,
     });
 
-    totalUsage = addUsage(totalUsage, normalizeUsage(classificationUsage));
+    totalUsage = addUsage(totalUsage, normalizeUsage(classificationUsage, "classify"));
 
     const classifications = classificationOutput?.classifications ?? [];
     const classMap = new Map(
@@ -338,7 +318,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
           cardType,
           typeData,
         },
-        usage: normalizeUsage(usage),
+        usage: normalizeUsage(usage, "generate"),
       };
     });
 

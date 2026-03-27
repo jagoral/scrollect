@@ -8,6 +8,7 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
+import { normalizeUsage } from "../../src/providers/ai";
 import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
 import { convexIdToUuid } from "./helpers";
@@ -116,15 +117,21 @@ export const summarizeDocument = internalAction({
         operation: "summarizing",
         documentId,
         usage: result.llmTokenUsage,
-        modelType: "llm",
+        model: result.llmTokenUsage.modelId!,
       });
       if (result.embeddingUsage) {
         await captureAiUsage({
           distinctId: doc.userId,
           operation: "summarizing.embed",
           documentId,
-          usage: result.embeddingUsage,
-          modelType: "embedding",
+          usage: normalizeUsage(
+            {
+              inputTokens: result.embeddingUsage.tokens,
+              totalTokens: result.embeddingUsage.tokens,
+            },
+            "embedding",
+          ),
+          model: "embedding",
         });
       }
       await captureEvent({

@@ -72,7 +72,7 @@ export const autoSuggest = internalAction({
         operation: "tagging",
         documentId,
         usage,
-        modelType: "llm",
+        model: usage.modelId!,
       });
       await captureEvent({
         distinctId: doc.userId,

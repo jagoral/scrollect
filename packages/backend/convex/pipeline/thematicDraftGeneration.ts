@@ -7,7 +7,7 @@ import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 import { captureAiUsage } from "../../src/providers/analytics";
-import type { TokenUsage } from "../../src/providers/types";
+import { addUsage, type TokenUsage } from "../../src/providers/ai";
 
 import { computeContentHash, transitionToReady } from "./helpers";
 import {
@@ -120,18 +120,10 @@ export const generateThematicDraftsForDocument = internalAction({
           operation: "thematic_draft_generation",
           documentId,
           usage: tokenUsage,
-          modelType: "llm",
+          model: tokenUsage.modelId!,
         });
       }
       evt.emit();
     }
   },
 });
-
-function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
-  return {
-    inputTokens: a.inputTokens + b.inputTokens,
-    outputTokens: a.outputTokens + b.outputTokens,
-    totalTokens: a.totalTokens + b.totalTokens,
-  };
-}

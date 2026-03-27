@@ -1,17 +1,15 @@
+import { ZERO_USAGE } from "../../../src/providers/ai";
 import type {
   AnalyticsService,
   CardGenerationService,
   ContentFetcher,
   EmbeddingProvider,
+  FeedServiceContext,
   SummarySearchResult,
   SummaryVectorStore,
-  TokenUsage,
   VectorSearchResult,
   VectorStore,
 } from "../../../src/providers/types";
-import type { FeedServiceContext } from "../../../src/providers/types";
-
-const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
 export function createMockCardGenerator(
   overrides?: Partial<CardGenerationService>,

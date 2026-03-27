@@ -1,8 +1,8 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import type { SummarizingLlm, TokenUsage } from "./types";
-import { getAI } from "./ai";
+import type { SummarizingLlm } from "./types";
+import { type TokenUsage, getAI, normalizeUsage } from "./ai";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const sectionSummarySchema = z.object({
@@ -43,18 +43,6 @@ Rules:
 Return a JSON object: { "summary": "..." }`;
 }
 
-function normalizeUsage(usage: {
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
-}): TokenUsage {
-  return {
-    inputTokens: usage.inputTokens ?? 0,
-    outputTokens: usage.outputTokens ?? 0,
-    totalTokens: usage.totalTokens ?? 0,
-  };
-}
-
 export class AiSdkSummarizingLlm implements SummarizingLlm {
   async generateSectionSummary(opts: {
     sectionTitle: string;
@@ -73,7 +61,7 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
     return {
       summary: output?.summary ?? "",
       isSubstantiveContent: output?.isSubstantiveContent ?? true,
-      usage: normalizeUsage(usage),
+      usage: normalizeUsage(usage, "generate"),
     };
   }
 
@@ -97,7 +85,7 @@ export class AiSdkSummarizingLlm implements SummarizingLlm {
 
     return {
       summary: output?.summary ?? "",
-      usage: normalizeUsage(usage),
+      usage: normalizeUsage(usage, "generate"),
     };
   }
 }

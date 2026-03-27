@@ -38,7 +38,12 @@ describe("suggestTagsLogic", () => {
     const llm = createMockTaggingLlm({
       suggestTags: vi.fn().mockResolvedValue({
         tags: ["react", "typescript", "testing"],
-        usage: { inputTokens: 100, outputTokens: 20, totalTokens: 120 },
+        usage: {
+          inputTokens: 100,
+          outputTokens: 20,
+          totalTokens: 120,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockTaggingServices({ llm });
@@ -70,7 +75,12 @@ describe("suggestTagsLogic", () => {
     const llm = createMockTaggingLlm({
       suggestTags: vi.fn().mockResolvedValue({
         tags: ["tag1"],
-        usage: { inputTokens: 50, outputTokens: 10, totalTokens: 60 },
+        usage: {
+          inputTokens: 50,
+          outputTokens: 10,
+          totalTokens: 60,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockTaggingServices({ llm });
@@ -91,7 +101,12 @@ describe("suggestTagsLogic", () => {
     const llm = createMockTaggingLlm({
       suggestTags: vi.fn().mockResolvedValue({
         tags: [],
-        usage: { inputTokens: 50, outputTokens: 5, totalTokens: 55 },
+        usage: {
+          inputTokens: 50,
+          outputTokens: 5,
+          totalTokens: 55,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockTaggingServices({ llm });
@@ -110,7 +125,12 @@ describe("suggestTagsLogic", () => {
     const llm = createMockTaggingLlm({
       suggestTags: vi.fn().mockResolvedValue({
         tags: ["valid", "", "  ", 123 as unknown as string, "also-valid"],
-        usage: { inputTokens: 50, outputTokens: 10, totalTokens: 60 },
+        usage: {
+          inputTokens: 50,
+          outputTokens: 10,
+          totalTokens: 60,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockTaggingServices({ llm });
@@ -129,7 +149,12 @@ describe("suggestTagsLogic", () => {
     const llm = createMockTaggingLlm({
       suggestTags: vi.fn().mockResolvedValue({
         tags: ["tag"],
-        usage: { inputTokens: 50, outputTokens: 10, totalTokens: 60 },
+        usage: {
+          inputTokens: 50,
+          outputTokens: 10,
+          totalTokens: 60,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
       }),
     });
     const services = createMockTaggingServices({ llm });

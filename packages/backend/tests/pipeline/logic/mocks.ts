@@ -3,6 +3,7 @@ import {
   createMockSummaryStore,
   createMockVectorStore,
 } from "../../feed/logic/mocks";
+import { ZERO_USAGE } from "../../../src/providers/ai";
 import type {
   CardDraftLlm,
   CardDraftValidator,
@@ -22,10 +23,7 @@ import type {
   TaggingServiceContext,
   ThematicDraftGenerationServiceContext,
   ThematicLlm,
-  TokenUsage,
 } from "../../../src/providers/types";
-
-const ZERO_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
 export function createMockSummarizingLlm(overrides?: Partial<SummarizingLlm>): SummarizingLlm {
   return {

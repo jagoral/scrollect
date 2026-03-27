@@ -59,7 +59,12 @@ function collectHighlightInputs(): HighlightDraftInput[] {
 evalite("Highlight Draft", {
   data: () => collectHighlightInputs().map((d) => ({ input: d })),
   task: async (input) => {
-    const zeroUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+    const zeroUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      costUsd: { input: 0, output: 0, total: 0 },
+    };
     const emptyResult = {
       cardType: "insight" as DraftCardType,
       content: "",

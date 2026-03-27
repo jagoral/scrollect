@@ -1,8 +1,8 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import type { ConnectionDiscoveryLlm, TokenUsage } from "./types";
-import { getAI } from "./ai";
+import type { ConnectionDiscoveryLlm } from "./types";
+import { type TokenUsage, getAI, normalizeUsage } from "./ai";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const connectionDraftSchema = z.object({
@@ -64,18 +64,6 @@ Set isGenuineConnection to false if:
 </format>`;
 }
 
-function normalizeUsage(usage: {
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
-}): TokenUsage {
-  return {
-    inputTokens: usage.inputTokens ?? 0,
-    outputTokens: usage.outputTokens ?? 0,
-    totalTokens: usage.totalTokens ?? 0,
-  };
-}
-
 export class AiSdkConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
   async generateConnectionDraft(opts: {
     sectionA: {
@@ -121,7 +109,7 @@ ${chunksB}`;
       maxRetries: 2,
     });
 
-    const normalizedUsage = normalizeUsage(usage);
+    const normalizedUsage = normalizeUsage(usage, "reason");
 
     if (!output || !output.isGenuineConnection) {
       return { card: null, usage: normalizedUsage };
