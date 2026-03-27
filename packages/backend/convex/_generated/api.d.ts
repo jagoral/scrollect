@@ -39,6 +39,8 @@ import type * as pipeline_extraction from "../pipeline/extraction.js";
 import type * as pipeline_helpers from "../pipeline/helpers.js";
 import type * as pipeline_highlightDraftGeneration from "../pipeline/highlightDraftGeneration.js";
 import type * as pipeline_index from "../pipeline/index.js";
+import type * as pipeline_markerWebhook from "../pipeline/markerWebhook.js";
+import type * as pipeline_markerWebhookProcessor from "../pipeline/markerWebhookProcessor.js";
 import type * as pipeline_parsing from "../pipeline/parsing.js";
 import type * as pipeline_resume from "../pipeline/resume.js";
 import type * as pipeline_services from "../pipeline/services.js";
@@ -90,6 +92,8 @@ declare const fullApi: ApiFromModules<{
   "pipeline/helpers": typeof pipeline_helpers;
   "pipeline/highlightDraftGeneration": typeof pipeline_highlightDraftGeneration;
   "pipeline/index": typeof pipeline_index;
+  "pipeline/markerWebhook": typeof pipeline_markerWebhook;
+  "pipeline/markerWebhookProcessor": typeof pipeline_markerWebhookProcessor;
   "pipeline/parsing": typeof pipeline_parsing;
   "pipeline/resume": typeof pipeline_resume;
   "pipeline/services": typeof pipeline_services;
