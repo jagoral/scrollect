@@ -18,6 +18,22 @@ import {
 } from "./lib/validators";
 
 export default defineSchema({
+  subscriptions: defineTable({
+    userId: v.string(),
+    polarId: v.string(),
+    status: v.string(),
+    currentPeriodEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.optional(v.boolean()),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  pageBudgets: defineTable({
+    userId: v.string(),
+    billingCycleStart: v.number(),
+    billingCycleEnd: v.number(),
+    pagesUsed: v.number(),
+    bonusPages: v.number(),
+  }).index("by_userId", ["userId"]),
   documents: defineTable({
     title: v.string(),
     fileType,
