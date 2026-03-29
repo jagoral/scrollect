@@ -13,6 +13,11 @@ async function bookmarkFirstCardAndNavigateToDocument(page: Page) {
   const sourceBadge = firstCard.locator('[data-testid="source-badge"]');
   await expect(sourceBadge).toBeVisible();
   await sourceBadge.click();
+
+  const detailSheet = page.locator('[data-testid="source-detail-sheet"]');
+  await expect(detailSheet).toBeVisible({ timeout: 10000 });
+  await detailSheet.getByText(/view in library/i).click();
+
   await expect(page).toHaveURL(/\/app\/library\/.+/, { timeout: 15000 });
   await expect(page.getByText(/back to library/i)).toBeVisible({ timeout: 15000 });
 }

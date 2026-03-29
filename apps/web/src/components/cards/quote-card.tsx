@@ -41,6 +41,7 @@ export function QuoteCard({ post }: QuoteCardProps) {
             className={cn(
               "mt-1.5 cursor-pointer text-xs not-italic text-muted-foreground/50",
               !expanded && "line-clamp-2",
+              expanded && "text-sm",
             )}
             onClick={() => setExpanded((prev) => !prev)}
           >
