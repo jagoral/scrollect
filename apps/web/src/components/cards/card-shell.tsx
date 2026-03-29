@@ -37,6 +37,22 @@ function updatePostInPaginatedPages(
   }
 }
 
+function removePostFromPaginatedPages(
+  localStore: OptimisticLocalStore,
+  postId: PostCardData["_id"],
+) {
+  const allPages = localStore.getAllQueries(api.feed.queries.list);
+  for (const { args, value } of allPages) {
+    if (value === undefined) continue;
+    const hasMatch = value.page.some((p) => p._id === postId);
+    if (!hasMatch) continue;
+    localStore.setQuery(api.feed.queries.list, args, {
+      ...value,
+      page: value.page.filter((p) => p._id !== postId),
+    });
+  }
+}
+
 export function SourceBadge({ post, className }: { post: PostCardData; className?: string }) {
   const posthog = usePostHog();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -110,9 +126,13 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
 
   const setReaction = useMutation(api.feed.queries.setReaction).withOptimisticUpdate(
     (localStore, args) => {
-      updatePostInPaginatedPages(localStore, args.postId, () => ({
-        reaction: args.reaction === "none" ? undefined : args.reaction,
-      }));
+      if (args.reaction === "dislike") {
+        removePostFromPaginatedPages(localStore, args.postId);
+      } else {
+        updatePostInPaginatedPages(localStore, args.postId, () => ({
+          reaction: args.reaction === "none" ? undefined : args.reaction,
+        }));
+      }
     },
   );
 
@@ -128,21 +148,12 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
   }, [post.reaction, post.postType, post._id, posthog, setReaction]);
 
   const handleDislikeClick = useCallback(() => {
-    if (post.reaction === "dislike") {
-      posthog.capture("card.reacted", {
-        card_type: post.postType,
-        reaction: "none",
-      });
-      setReaction({ postId: post._id, reaction: "none" });
-      return;
-    }
-
     reasonSelectedRef.current = false;
     setSheetOpen(true);
     posthog.capture("card.dislike_reason_sheet_opened", {
       card_type: post.postType,
     });
-  }, [post.reaction, post.postType, post._id, posthog, setReaction]);
+  }, [post.postType, posthog]);
 
   const handleReasonSelected = useCallback(
     (reason: DislikeReason) => {
@@ -158,6 +169,10 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
         dislike_reason: reason,
         source_document_id: post.primarySourceDocumentId,
         card_draft_id: post.cardDraftId ?? null,
+      });
+      posthog.capture("card.hidden_by_dislike", {
+        card_type: post.postType,
+        dislike_reason: reason,
       });
 
       setReaction({

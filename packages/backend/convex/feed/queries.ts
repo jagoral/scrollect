@@ -28,17 +28,19 @@ export const list = query({
       .order("desc")
       .paginate(args.paginationOpts);
 
+    const visiblePage = result.page.filter((post) => post.reaction !== "dislike");
+
     // Date.now() is non-deterministic in Convex queries but acceptable here:
     // isNew will update on the next query re-evaluation triggered by any data write,
     // not at the exact 48-hour mark.
     const now = Date.now();
 
-    const uniqueDocIds = [...new Set(result.page.map((p) => p.primarySourceDocumentId))];
+    const uniqueDocIds = [...new Set(visiblePage.map((p) => p.primarySourceDocumentId))];
     const docs = await Promise.all(uniqueDocIds.map((id) => ctx.db.get(id)));
     const docMap = new Map(uniqueDocIds.map((id, i) => [id, docs[i]]));
 
     const bookmarks = await Promise.all(
-      result.page.map((post) =>
+      visiblePage.map((post) =>
         ctx.db
           .query("bookmarks")
           .withIndex("by_userId_post", (q) => q.eq("userId", user._id).eq("postId", post._id))
@@ -46,7 +48,7 @@ export const list = query({
       ),
     );
 
-    const enrichedPage = result.page.map((post, i) => {
+    const enrichedPage = visiblePage.map((post, i) => {
       const sourceDoc = docMap.get(post.primarySourceDocumentId);
       const isNew = sourceDoc ? now - sourceDoc.createdAt < FRESHNESS_WINDOW_MS : false;
       return {
