@@ -95,4 +95,63 @@ describe("RunPodMarkerClient", () => {
       }),
     ).rejects.toThrow("RunPod submit failed: no job ID in response");
   });
+
+  describe("getJobStatus", () => {
+    it("returns execution and delay times from status API", async () => {
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: "job-abc123",
+          status: "COMPLETED",
+          executionTime: 491,
+          delayTime: 1104,
+        }),
+      } as Response);
+
+      const client = new RunPodMarkerClient({
+        endpointId: MOCK_ENDPOINT_ID,
+        apiKey: MOCK_API_KEY,
+      });
+
+      const status = await client.getJobStatus("job-abc123");
+
+      expect(status).toEqual({
+        executionTimeMs: 491,
+        delayTimeMs: 1104,
+      });
+
+      const fetchCall = vi.mocked(fetch).mock.calls[0];
+      expect(fetchCall[0]).toBe(`https://api.runpod.ai/v2/${MOCK_ENDPOINT_ID}/status/job-abc123`);
+    });
+
+    it("returns null on non-OK response", async () => {
+      vi.mocked(fetch).mockResolvedValue({
+        ok: false,
+        status: 404,
+      } as Response);
+
+      const client = new RunPodMarkerClient({
+        endpointId: MOCK_ENDPOINT_ID,
+        apiKey: MOCK_API_KEY,
+      });
+
+      const status = await client.getJobStatus("job-missing");
+      expect(status).toBeNull();
+    });
+
+    it("defaults missing times to 0", async () => {
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: "job-abc123", status: "COMPLETED" }),
+      } as Response);
+
+      const client = new RunPodMarkerClient({
+        endpointId: MOCK_ENDPOINT_ID,
+        apiKey: MOCK_API_KEY,
+      });
+
+      const status = await client.getJobStatus("job-abc123");
+      expect(status).toEqual({ executionTimeMs: 0, delayTimeMs: 0 });
+    });
+  });
 });

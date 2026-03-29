@@ -8,7 +8,7 @@ import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 import { captureEvent } from "../../src/providers/analytics";
-import { storeMarkdownBlob } from "./helpers";
+import { storeMarkdownBlob, createMarkerClient } from "./helpers";
 
 interface RunPodWebhookPayload {
   id: string;
@@ -114,7 +114,44 @@ async function handleCompleted(ctx: ActionCtx, body: RunPodWebhookPayload, evt: 
     evt.set("analyticsError", true);
   }
 
+  await captureRunPodCost({ jobId: body.id, documentId, userId: doc.userId, evt });
+
   evt.set("result", "complete");
+}
+
+const RUNPOD_COST_PER_SEC = 0.00016; // RTX A4500
+
+async function captureRunPodCost(opts: {
+  jobId: string;
+  documentId: string;
+  userId: string;
+  evt: WideEvent;
+}) {
+  const { jobId, documentId, userId, evt } = opts;
+  try {
+    const client = createMarkerClient();
+    const status = await client.getJobStatus?.(jobId);
+    if (!status) return;
+
+    const executionTimeSec = status.executionTimeMs / 1000;
+    const costUsd = Math.round(executionTimeSec * RUNPOD_COST_PER_SEC * 1_000_000) / 1_000_000;
+    evt.set({ runpodExecutionTimeMs: status.executionTimeMs, runpodCostUsd: costUsd });
+
+    await captureEvent({
+      distinctId: userId,
+      event: "runpod.gpu_usage",
+      properties: {
+        document_id: documentId,
+        runpod_job_id: jobId,
+        execution_time_ms: status.executionTimeMs,
+        delay_time_ms: status.delayTimeMs,
+        estimated_cost_usd: costUsd,
+        gpu_type: "RTX A4500",
+      },
+    });
+  } catch {
+    evt.set("runpodCostTrackingError", true);
+  }
 }
 
 async function handleFailed(ctx: ActionCtx, body: RunPodWebhookPayload, evt: WideEvent) {
