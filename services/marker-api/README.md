@@ -2,7 +2,7 @@
 
 Self-hosted document-to-markdown converter using [Marker](https://github.com/VikParuchuri/marker) on RunPod Serverless GPU.
 
-Replaces Datalab hosted API. See [ADR-017](../../docs/adr/017-self-hosted-marker-runpod.md) for the full decision record.
+See [ADR-017](../../docs/adr/017-self-hosted-marker-runpod.md) for the full decision record.
 
 ## How it works
 

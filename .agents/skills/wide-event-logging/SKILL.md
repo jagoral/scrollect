@@ -158,7 +158,7 @@ Use camelCase for all field names. Common fields:
 | Module           | Function                | Key fields                                                                                    |
 | ---------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
 | `pipeline`       | `startProcessing`       | documentId, fileType, userId, path                                                            |
-| `pipeline`       | `pollDatalabResult`     | documentId, attempt, elapsedMs, pollResult                                                    |
+| `pipeline`       | `submitMarkerParsing`   | documentId, runpodJobId, elapsedMs                                                            |
 | `pipeline`       | `chunkAndStore`         | documentId, markdownLength, chunkCount, batchesStored                                         |
 | `pipeline`       | `embedBatch`            | jobId, documentId, chunkCount, validChunkCount, retryCount, embedDurationMs, upsertDurationMs |
 | `pipeline`       | `embedUnembeddedChunks` | documentId, unembeddedCount                                                                   |

@@ -7,11 +7,11 @@ date: 2026-03-27
 
 ## Context
 
-Datalab (hosted Marker API at datalab.to) costs ~$1.50 per large document (700 pages). At projected 100 docs/month, that is ~$150/mo - making document processing the dominant cost driver. With a $7.99/mo user subscription, a heavy user could generate $75/mo in processing costs alone. Self-hosting Marker on GPU serverless infrastructure brings this down to ~$3-5/mo at the same volume.
+The previous hosted Marker API costs ~$1.50 per large document (700 pages). At projected 100 docs/month, that is ~$150/mo - making document processing the dominant cost driver. With a $7.99/mo user subscription, a heavy user could generate $75/mo in processing costs alone. Self-hosting Marker on GPU serverless infrastructure brings this down to ~$3-5/mo at the same volume.
 
-The current Datalab integration (`src/providers/datalab.ts`) uses a submit/poll pattern with exponential backoff (5s to 40s, capped at 5 minutes). Each document consumes ~8 Convex action invocations for polling. A webhook-based approach reduces this to 2 interactions: one submit call and one webhook callback.
+The previous integration used a submit/poll pattern with exponential backoff (5s to 40s, capped at 5 minutes). Each document consumed ~8 Convex action invocations for polling. A webhook-based approach reduces this to 2 interactions: one submit call and one webhook callback.
 
-This ADR fully replaces Datalab - no coexistence period. The `DocumentParser` interface (submit/poll), `DatalabParser` class, and all polling logic are removed.
+This ADR replaces the previous hosted API entirely. The `DocumentParser` interface (submit/poll) and all polling logic are removed.
 
 ## Decision
 
@@ -32,18 +32,16 @@ The entire submit/poll pattern is removed. The new flow:
 
 The webhook endpoint validates incoming requests using a shared `MARKER_WEBHOOK_SECRET` query parameter.
 
-### 3. Full Datalab removal
+### 3. Full removal of hosted API integration
 
 Removed:
 
-- `src/providers/datalab.ts` - `DatalabParser` class
 - `src/providers/types.ts` - `DocumentParser` and `PollResult` interfaces
 - `src/pipeline/logic/parsing.ts` - `submitForParsing` and `interpretPollResult`
-- `convex/pipeline/parsing.ts` - `pollDatalabResult` action and `submitDatalabParsingImpl`
+- `convex/pipeline/parsing.ts` - polling action and submit implementation
 - `convex/pipeline/services.ts` - `createParsingServiceContext`
 - `convex/pipeline/helpers.ts` - `createDocumentParser` factory
-- Schema field `datalabCheckUrl` on documents table
-- `DATALAB_API_KEY` environment variable
+- Schema field for polling URL on documents table
 
 Added:
 
@@ -67,8 +65,8 @@ The RunPod handler is a single Python file (~15 lines) that downloads the file, 
 
 ### Alternatives considered
 
-- **Keep Datalab, negotiate volume pricing** - Even with volume discounts, hosted Marker is 10-50x more expensive than self-hosting. The cost gap is structural, not negotiable.
-- **Gradual migration with config switch** - Adds complexity (two code paths, env-var routing) for a safety net we don't need. Datalab and Marker produce equivalent output since Datalab IS Marker. Clean cut is simpler.
+- **Keep hosted API, negotiate volume pricing** - Even with volume discounts, hosted Marker is 10-50x more expensive than self-hosting. The cost gap is structural, not negotiable.
+- **Gradual migration with config switch** - Adds complexity (two code paths, env-var routing) for a safety net we don't need. The hosted API and self-hosted Marker produce equivalent output (same engine). Clean cut is simpler.
 - **Modal** - No built-in webhook delivery, requires polling or a custom callback layer. Python-only platform increases the Python surface area beyond the minimal handler.
 - **Fly.io GPU Machines** - Not true serverless. Auto-stop saves compute but still charges for idle GPU reservation. L40S GPUs are overkill for Marker's 4-6GB VRAM usage.
 - **Always-on GPU instance (Hetzner/AWS)** - $300+/mo for a dedicated T4. Traffic is bursty. Pay-per-use is 60-100x cheaper at this volume.
@@ -83,13 +81,13 @@ The RunPod handler is a single Python file (~15 lines) that downloads the file, 
 - `DocumentParser` interface removed - if a new parser backend is needed later, design a new interface from scratch rather than resurrecting the submit/poll pattern
 - New HTTP endpoint (`POST /api/marker-webhook`) adds a public-facing surface secured with webhook secret validation
 - New infrastructure dependency: RunPod account, Docker image registry, GPU availability. Mitigated by T4 high availability and the ability to add A10G as fallback
-- Marker output quality is equivalent to Datalab (same engine). Side-by-side testing on representative documents before deploying to production.
+- Marker output quality is equivalent to the previous hosted API (same engine). Side-by-side testing on representative documents before deploying to production.
 - Marker version upgrades could break output format - pinned in Docker image, upgraded intentionally with re-testing
 - Cold starts of 30-60s on first request after idle - acceptable since the pipeline is already async
 
 ## More Information
 
-- ADR-001 established the original `DocumentParser` interface and Datalab integration (now superseded by this ADR)
-- `convex/pipeline/parsing.ts` is the primary file modified - Datalab submit/poll replaced with Marker submit + webhook
+- ADR-001 established the original `DocumentParser` interface (now superseded by this ADR)
+- `convex/pipeline/parsing.ts` is the primary file modified - submit/poll replaced with Marker submit + webhook
 - `convex/http.ts` is where the new webhook endpoint is registered
 - RunPod Serverless docs: https://docs.runpod.io/serverless

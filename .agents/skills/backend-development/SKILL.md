@@ -13,7 +13,7 @@ Scrollect's backend is a Convex BaaS at `packages/backend/convex/`. It powers an
 convex/
   pipeline/           - Multi-step document processing
     index.ts            startProcessing entry point
-    parsing.ts          PDF & markdown parsing, Datalab polling
+    parsing.ts          PDF & markdown parsing, Marker submit + webhook
     chunking.ts         chunkAndStore
     embedding.ts        fanOutEmbedding, embedBatch, checkCompletion
     resume.ts           resumeProcessing, embedUnembeddedChunks
@@ -27,7 +27,7 @@ convex/
     logging.ts          WideEvent structured logging class
   providers/          - External service abstractions
     types.ts            interfaces: PdfParser, EmbeddingProvider, VectorStore
-    openai.ts, qdrant.ts, datalab.ts, convexVectors.ts
+    openai.ts, qdrant.ts, marker.ts, convexVectors.ts
   auth.ts, bookmarks.ts, chunks.ts, documents.ts,
   processingJobs.ts, schema.ts, testing.ts, http.ts,
   healthCheck.ts, chunking.ts, testingActions.ts, privateData.ts
@@ -97,7 +97,7 @@ Functions in domain folders reference each other via internal APIs:
 
 ```typescript
 // From within pipeline/
-await ctx.scheduler.runAfter(0, internal.pipeline.parsing.pollDatalabResult, { ... });
+await ctx.scheduler.runAfter(0, internal.pipeline.parsing.submitMarkerParsing, { ... });
 
 // Cross-domain
 await ctx.scheduler.runAfter(0, internal.pipeline.embedding.fanOutEmbedding, { ... });
