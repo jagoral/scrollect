@@ -2,6 +2,11 @@ export type MarkerJobResult =
   | { kind: "submitted"; jobId: string }
   | { kind: "immediate"; markdown: string };
 
+export interface RunPodJobStatus {
+  executionTimeMs: number;
+  delayTimeMs: number;
+}
+
 export interface MarkerClient {
   submitJob(opts: {
     fileUrl: string;
@@ -9,6 +14,8 @@ export interface MarkerClient {
     fileType: string;
     webhookUrl: string;
   }): Promise<MarkerJobResult>;
+
+  getJobStatus?(jobId: string): Promise<RunPodJobStatus | null>;
 }
 
 export class RunPodMarkerClient implements MarkerClient {
@@ -53,6 +60,24 @@ export class RunPodMarkerClient implements MarkerClient {
     }
 
     return { kind: "submitted", jobId: data.id };
+  }
+
+  async getJobStatus(jobId: string): Promise<RunPodJobStatus | null> {
+    const response = await fetch(`https://api.runpod.ai/v2/${this.endpointId}/status/${jobId}`, {
+      headers: { Authorization: `Bearer ${this.apiKey}` },
+    });
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as {
+      executionTime?: number;
+      delayTime?: number;
+    };
+
+    return {
+      executionTimeMs: data.executionTime ?? 0,
+      delayTimeMs: data.delayTime ?? 0,
+    };
   }
 }
 
