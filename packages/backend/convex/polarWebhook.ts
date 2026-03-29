@@ -18,6 +18,11 @@ export const polarWebhookHandler = httpAction(async (ctx, request) => {
     return new Response("Internal Server Error", { status: 500 });
   }
 
-  // Handle subscription lifecycle events here later
+  // Handle subscription lifecycle events
+  if (event.type === "subscription.created" || event.type === "subscription.updated") {
+    // Process subscription logic via mutations later
+    console.log("Subscription event received", event.data);
+  }
+
   return new Response("OK", { status: 200 });
 });
