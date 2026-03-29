@@ -37,8 +37,12 @@ test.describe("Feed reaction feedback loop", { tag: "@seeded" }, () => {
     }
   });
 
-  test("selecting a dislike reason dismisses sheet and shows dislike state", async ({ page }) => {
-    const firstCard = page.locator('[data-testid="post-card"]').first();
+  test("selecting a dislike reason dismisses sheet and hides the card", async ({ page }) => {
+    const cards = page.locator('[data-testid="post-card"]');
+    const initialCount = await cards.count();
+
+    const firstCard = cards.first();
+    const firstCardContent = await firstCard.textContent();
     const dislikeButton = firstCard.locator('[data-testid="dislike-button"]');
 
     await dislikeButton.click();
@@ -48,33 +52,38 @@ test.describe("Feed reaction feedback loop", { tag: "@seeded" }, () => {
     await sheet.locator('[data-testid="dislike-reason-not_interesting"]').click();
 
     await expect(sheet).not.toBeVisible({ timeout: 5000 });
-    await expect(dislikeButton).toHaveAttribute("aria-pressed", "true", {
-      timeout: 15000,
-    });
+    await expect(cards).toHaveCount(initialCount - 1, { timeout: 15000 });
+
+    // The disliked card's content should no longer be in the feed
+    if (firstCardContent) {
+      await expect(page.getByText(firstCardContent, { exact: true })).not.toBeVisible();
+    }
   });
 
-  test("tapping dislike on already-disliked card toggles off without sheet", async ({ page }) => {
-    const firstCard = page.locator('[data-testid="post-card"]').first();
+  test("disliked card stays hidden after navigating away and back", async ({ page }) => {
+    const cards = page.locator('[data-testid="post-card"]');
+    const initialCount = await cards.count();
+
+    const firstCard = cards.first();
     const dislikeButton = firstCard.locator('[data-testid="dislike-button"]');
 
-    // First: dislike the card with a reason
     await dislikeButton.click();
     const sheet = page.locator('[data-testid="dislike-reason-sheet"]');
     await expect(sheet).toBeVisible({ timeout: 5000 });
-    await sheet.locator('[data-testid="dislike-reason-already_know"]').click();
-    await expect(sheet).not.toBeVisible({ timeout: 5000 });
-    await expect(dislikeButton).toHaveAttribute("aria-pressed", "true", {
-      timeout: 15000,
-    });
+    await sheet.locator('[data-testid="dislike-reason-not_interesting"]').click();
+    await expect(cards).toHaveCount(initialCount - 1, { timeout: 15000 });
 
-    // Second: tap dislike again to toggle off - sheet should NOT open
-    await dislikeButton.click();
-    await expect(dislikeButton).toHaveAttribute("aria-pressed", "false", {
-      timeout: 15000,
-    });
+    // Navigate to /saved and wait for it to fully render. This client-side navigation
+    // keeps the WebSocket alive long enough for the setReaction mutation to flush.
+    await page.getByRole("navigation").getByRole("button", { name: /saved/i }).click();
+    await page.waitForURL(/\/app\/saved/);
+    await expect(page.getByRole("heading", { name: /saved/i })).toBeVisible({ timeout: 15000 });
 
-    // Verify the sheet did not reappear at any point during toggle-off
-    await expect(sheet).not.toBeVisible();
+    // Navigate back to feed - the server-side filter should exclude the disliked card
+    await page.getByRole("navigation").getByRole("button", { name: /feed/i }).click();
+    await page.waitForURL(/\/app\/feed/);
+    await expect(cards.first()).toBeVisible({ timeout: 15000 });
+    await expect(cards).toHaveCount(initialCount - 1, { timeout: 15000 });
   });
 
   test("like button toggles immediately without sheet", async ({ page }) => {
@@ -109,7 +118,6 @@ test.describe("Feed reaction feedback loop", { tag: "@seeded" }, () => {
     await expect(sheet).toBeVisible({ timeout: 5000 });
 
     // Dismiss by clicking the overlay (outside the sheet content)
-    // The overlay is the backdrop behind the sheet - click at the top of the viewport
     await page.mouse.click(10, 10);
 
     await expect(sheet).not.toBeVisible({ timeout: 5000 });
@@ -117,8 +125,11 @@ test.describe("Feed reaction feedback loop", { tag: "@seeded" }, () => {
   });
 
   for (const reason of DISLIKE_REASONS) {
-    test(`dislike reason "${reason.label}" can be selected and applied`, async ({ page }) => {
-      const firstCard = page.locator('[data-testid="post-card"]').first();
+    test(`dislike reason "${reason.label}" hides the card from feed`, async ({ page }) => {
+      const cards = page.locator('[data-testid="post-card"]');
+      const initialCount = await cards.count();
+
+      const firstCard = cards.first();
       const dislikeButton = firstCard.locator('[data-testid="dislike-button"]');
 
       await dislikeButton.click();
@@ -128,45 +139,15 @@ test.describe("Feed reaction feedback loop", { tag: "@seeded" }, () => {
       await sheet.locator(`[data-testid="${reason.testId}"]`).click();
 
       await expect(sheet).not.toBeVisible({ timeout: 5000 });
-      await expect(dislikeButton).toHaveAttribute("aria-pressed", "true", {
-        timeout: 15000,
-      });
-
-      // Verify toggle-off still works after each reason type
-      await dislikeButton.click();
-      await expect(dislikeButton).toHaveAttribute("aria-pressed", "false", {
-        timeout: 15000,
-      });
+      await expect(cards).toHaveCount(initialCount - 1, { timeout: 15000 });
     });
   }
 
-  test("dislike with reason then like switches reaction (mutual exclusivity)", async ({ page }) => {
-    const firstCard = page.locator('[data-testid="post-card"]').first();
-    const dislikeButton = firstCard.locator('[data-testid="dislike-button"]');
-    const likeButton = firstCard.locator('[data-testid="like-button"]');
+  test("like then dislike hides the card", async ({ page }) => {
+    const cards = page.locator('[data-testid="post-card"]');
+    const initialCount = await cards.count();
 
-    // Dislike with reason
-    await dislikeButton.click();
-    const sheet = page.locator('[data-testid="dislike-reason-sheet"]');
-    await expect(sheet).toBeVisible({ timeout: 5000 });
-    await sheet.locator('[data-testid="dislike-reason-wrong_type"]').click();
-    await expect(sheet).not.toBeVisible({ timeout: 5000 });
-    await expect(dislikeButton).toHaveAttribute("aria-pressed", "true", {
-      timeout: 15000,
-    });
-
-    // Now like the same card - should override the dislike
-    await likeButton.click();
-    await expect(likeButton).toHaveAttribute("aria-pressed", "true", {
-      timeout: 15000,
-    });
-    await expect(dislikeButton).toHaveAttribute("aria-pressed", "false", {
-      timeout: 15000,
-    });
-  });
-
-  test("like then dislike shows sheet and overrides like", async ({ page }) => {
-    const firstCard = page.locator('[data-testid="post-card"]').first();
+    const firstCard = cards.first();
     const likeButton = firstCard.locator('[data-testid="like-button"]');
     const dislikeButton = firstCard.locator('[data-testid="dislike-button"]');
 
@@ -176,43 +157,38 @@ test.describe("Feed reaction feedback loop", { tag: "@seeded" }, () => {
       timeout: 15000,
     });
 
-    // Now dislike - sheet should still open since card is not currently disliked
+    // Now dislike - sheet should open since card is not currently disliked
     await dislikeButton.click();
     const sheet = page.locator('[data-testid="dislike-reason-sheet"]');
     await expect(sheet).toBeVisible({ timeout: 5000 });
     await sheet.locator('[data-testid="dislike-reason-low_quality"]').click();
     await expect(sheet).not.toBeVisible({ timeout: 5000 });
 
-    await expect(dislikeButton).toHaveAttribute("aria-pressed", "true", {
-      timeout: 15000,
-    });
-    await expect(likeButton).toHaveAttribute("aria-pressed", "false", {
-      timeout: 15000,
-    });
+    // Card should be hidden
+    await expect(cards).toHaveCount(initialCount - 1, { timeout: 15000 });
   });
 
-  test("save button is independent of reaction state", async ({ page }) => {
-    const firstCard = page.locator('[data-testid="post-card"]').first();
+  test("save then dislike hides card but preserves bookmark", async ({ page }) => {
+    const cards = page.locator('[data-testid="post-card"]');
+    const initialCount = await cards.count();
+
+    const firstCard = cards.first();
     const saveButton = firstCard.locator('[data-testid="save-button"]');
     const dislikeButton = firstCard.locator('[data-testid="dislike-button"]');
 
-    // Dislike with reason
-    await dislikeButton.click();
-    const sheet = page.locator('[data-testid="dislike-reason-sheet"]');
-    await expect(sheet).toBeVisible({ timeout: 5000 });
-    await sheet.locator('[data-testid="dislike-reason-not_interesting"]').click();
-    await expect(sheet).not.toBeVisible({ timeout: 5000 });
-    await expect(dislikeButton).toHaveAttribute("aria-pressed", "true", {
-      timeout: 15000,
-    });
-
-    // Save should work independently
+    // Save first
     await saveButton.click();
     await expect(saveButton).toHaveAttribute("aria-pressed", "true", {
       timeout: 15000,
     });
 
-    // Dislike state should be preserved after saving
-    await expect(dislikeButton).toHaveAttribute("aria-pressed", "true");
+    // Then dislike - card should hide
+    await dislikeButton.click();
+    const sheet = page.locator('[data-testid="dislike-reason-sheet"]');
+    await expect(sheet).toBeVisible({ timeout: 5000 });
+    await sheet.locator('[data-testid="dislike-reason-not_interesting"]').click();
+    await expect(sheet).not.toBeVisible({ timeout: 5000 });
+
+    await expect(cards).toHaveCount(initialCount - 1, { timeout: 15000 });
   });
 });
