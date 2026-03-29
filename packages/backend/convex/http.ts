@@ -6,6 +6,7 @@ import { authComponent, createAuth } from "./auth";
 import { E2E_EMAIL_PATTERN, isE2EEnabled } from "./lib/e2e";
 import { markerWebhookHandler } from "./pipeline/markerWebhook";
 import { polarWebhookHandler } from "./polarWebhook";
+import { createCheckoutSession } from "./polarCheckout";
 
 const http = httpRouter();
 
@@ -118,6 +119,12 @@ http.route({
   path: "/api/polar-webhook",
   method: "POST",
   handler: polarWebhookHandler,
+});
+
+http.route({
+  path: "/api/polar/checkout",
+  method: "POST",
+  handler: createCheckoutSession,
 });
 
 export default http;
