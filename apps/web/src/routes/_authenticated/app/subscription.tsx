@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PolarCheckoutButton } from "@/components/polar-checkout";
 
 export const Route = createFileRoute("/_authenticated/app/subscription")({
   ssr: false,
@@ -8,11 +9,6 @@ export const Route = createFileRoute("/_authenticated/app/subscription")({
 });
 
 function SubscriptionPage() {
-  const handleSubscribe = async () => {
-    // We will connect this to Polar SDK checkout session creation later
-    console.log("Initialize Polar checkout");
-  };
-
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 md:px-6">
       <div className="mb-8 flex flex-col gap-2">
@@ -99,12 +95,7 @@ function SubscriptionPage() {
                   Cross-document connections
                 </li>
               </ul>
-              <Button
-                onClick={handleSubscribe}
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-              >
-                Subscribe with Polar
-              </Button>
+              <PolarCheckoutButton />
             </CardContent>
           </Card>
         </div>
