@@ -6,6 +6,11 @@ import { UploadUrlTab } from "@/components/upload/upload-url-tab";
 import { UploadTextTab } from "@/components/upload/upload-text-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@scrollect/backend/convex/_generated/api";
+import { UpgradePrompt } from "@/components/upgrade-prompt";
+
 export const Route = createFileRoute("/_authenticated/app/upload")({
   ssr: false,
   head: () => ({
@@ -15,6 +20,22 @@ export const Route = createFileRoute("/_authenticated/app/upload")({
 });
 
 function UploadPage() {
+  const { data: budget } = useQuery(convexQuery(api.subscriptions.getUserPageBudget, {}));
+  const isFreeTierLimited = budget && !budget.isPro && budget.pagesUsed >= 3;
+
+  if (isFreeTierLimited) {
+    return (
+      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+        <h1 className="text-2xl font-bold tracking-tight mb-8">Upload Content</h1>
+        <UpgradePrompt
+          limitType="documents"
+          title="Free Tier Limit Reached"
+          description="You have reached the 3 document limit on the Free tier. Upgrade to Pro to unlock unlimited documents and a 2,000 pages/month budget."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
       <div className="mb-8">
