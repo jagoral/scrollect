@@ -1,9 +1,8 @@
-import { Link } from "@tanstack/react-router";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { Bookmark, BookmarkCheck, FileText, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Bookmark, BookmarkCheck, ChevronRight, ThumbsDown, ThumbsUp } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import type { ReactNode } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -17,8 +16,9 @@ import { cn } from "@/lib/utils";
 import { useCardImpression } from "@/hooks/use-card-impression";
 
 import { DislikeReasonSheet } from "./dislike-reason-sheet";
+import { getFileTypeConfig } from "./file-type-config";
+import { SourceDetailSheet } from "./source-detail-sheet";
 import type { DislikeReason, PostCardData } from "./types";
-import { formatAttribution } from "./utils";
 
 function updatePostInPaginatedPages(
   localStore: OptimisticLocalStore,
@@ -37,35 +37,40 @@ function updatePostInPaginatedPages(
   }
 }
 
-function getSourceLabel(post: PostCardData): string {
-  return formatAttribution({
-    title: post.primarySourceDocumentTitle ?? "Untitled",
-    fileType: post.fileType,
-    sectionTitle: post.sectionTitle,
-    pageStart: post.pageStart,
-    pageEnd: post.pageEnd,
-  });
-}
-
 export function SourceBadge({ post, className }: { post: PostCardData; className?: string }) {
   const posthog = usePostHog();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const badgeRef = useRef<HTMLButtonElement>(null);
+
+  const { Icon } = getFileTypeConfig(post.fileType);
 
   return (
     <div className={cn("mb-3", className)}>
-      <Link
-        to="/app/library/$documentId"
-        params={{ documentId: post.primarySourceDocumentId }}
+      <button
+        ref={badgeRef}
+        type="button"
         data-testid="source-badge"
-        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
+        aria-label={`Source details: ${post.primarySourceDocumentTitle ?? "Untitled"}`}
+        className="inline-flex max-w-full cursor-pointer items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground/80"
         onClick={() => {
-          posthog.capture("source.revisited", {
+          posthog.capture("source.detail_opened", {
             card_type: post.postType,
           });
+          setSheetOpen(true);
         }}
       >
-        <FileText className="size-3 shrink-0" />
-        <span>{getSourceLabel(post)}</span>
-      </Link>
+        <Icon className="size-3.5 shrink-0" />
+        <span className="truncate">{post.primarySourceDocumentTitle ?? "Untitled"}</span>
+        <ChevronRight className="size-3 shrink-0 text-muted-foreground/50" />
+      </button>
+
+      <SourceDetailSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        postId={post._id}
+        documentId={post.primarySourceDocumentId}
+        anchorRef={badgeRef}
+      />
     </div>
   );
 }
@@ -230,8 +235,7 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
                 size="icon-sm"
                 className={cn(
                   "transition-all duration-200 active:scale-90",
-                  post.isBookmarked &&
-                    "bg-primary/10 text-primary hover:bg-primary/15 dark:bg-primary/20 dark:hover:bg-primary/25",
+                  post.isBookmarked && "bg-primary/10 text-primary hover:bg-primary/15",
                 )}
                 onClick={() => {
                   posthog.capture("card.bookmarked", {
@@ -256,7 +260,7 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
                 className={cn(
                   "transition-all duration-200 active:scale-90",
                   post.reaction === "like" &&
-                    "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/25",
+                    "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15",
                 )}
                 onClick={handleLikeClick}
                 data-testid="like-button"
@@ -271,8 +275,7 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
                 size="icon-sm"
                 className={cn(
                   "transition-all duration-200 active:scale-90",
-                  post.reaction === "dislike" &&
-                    "bg-red-500/10 text-red-500 hover:bg-red-500/15 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/25",
+                  post.reaction === "dislike" && "bg-red-500/10 text-red-500 hover:bg-red-500/15",
                 )}
                 onClick={handleDislikeClick}
                 data-testid="dislike-button"

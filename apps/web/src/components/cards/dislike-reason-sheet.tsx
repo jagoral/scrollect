@@ -3,7 +3,7 @@ import { Ban, BookCheck, Shapes, ThumbsDown } from "lucide-react";
 import type { RefObject } from "react";
 import { useCallback } from "react";
 
-import { Popover, PopoverContent, PopoverTitle } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverDescription, PopoverTitle } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 
@@ -87,6 +87,9 @@ export function DislikeReasonSheet({
           className="w-56 gap-0 p-0 py-1"
         >
           <PopoverTitle className="sr-only">Why do you dislike this card?</PopoverTitle>
+          <PopoverDescription className="sr-only">
+            Select a reason to help improve your feed.
+          </PopoverDescription>
           <p className="px-3 pt-2 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground/70 uppercase">
             What went wrong?
           </p>

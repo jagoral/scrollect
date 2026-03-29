@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, FileText, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Globe, Loader2, Trash2 } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -104,6 +104,17 @@ function DocumentDetailPage() {
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <StatusBadge status={document.status} />
           <span className="text-sm text-muted-foreground">{document.fileType.toUpperCase()}</span>
+          {document.sourceUrl && (
+            <a
+              href={document.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              <Globe className="size-3.5" />
+              {new URL(document.sourceUrl).hostname}
+            </a>
+          )}
           <span className="text-sm text-muted-foreground">
             {formatDistanceToNow(document.createdAt, { addSuffix: true })}
           </span>

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { usePaginatedQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, Loader2, Upload } from "lucide-react";
+import { FileText, Globe, Loader2, Upload } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 
@@ -168,9 +168,9 @@ function LibraryPage() {
                   params={{ documentId: doc._id }}
                   className="block"
                 >
-                  <Card className="overflow-hidden transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
+                  <Card className="overflow-hidden py-0 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
                     <div className="grid grid-cols-[1fr_8rem] sm:grid-cols-[1fr_10rem]">
-                      <div className="min-w-0">
+                      <div className="min-w-0 py-4">
                         <CardHeader className="pb-3">
                           <CardTitle className="flex items-start gap-2.5 text-base">
                             <span className="mt-0.5 shrink-0">
@@ -191,6 +191,12 @@ function LibraryPage() {
                               <span className="text-xs text-muted-foreground">
                                 {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
                               </span>
+                            )}
+                            {doc.sourceUrl && (
+                              <Globe
+                                className="size-3 text-muted-foreground"
+                                aria-label="Added from URL"
+                              />
                             )}
                             <span className="text-xs text-muted-foreground">
                               {formatDistanceToNow(doc.createdAt, { addSuffix: true })}

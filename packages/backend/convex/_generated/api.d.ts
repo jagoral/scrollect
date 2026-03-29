@@ -47,6 +47,7 @@ import type * as pipeline_services from "../pipeline/services.js";
 import type * as pipeline_summarizing from "../pipeline/summarizing.js";
 import type * as pipeline_tagging from "../pipeline/tagging.js";
 import type * as pipeline_thematicDraftGeneration from "../pipeline/thematicDraftGeneration.js";
+import type * as posts from "../posts.js";
 import type * as privateData from "../privateData.js";
 import type * as processingJobs from "../processingJobs.js";
 import type * as sectionSummaries from "../sectionSummaries.js";
@@ -100,6 +101,7 @@ declare const fullApi: ApiFromModules<{
   "pipeline/summarizing": typeof pipeline_summarizing;
   "pipeline/tagging": typeof pipeline_tagging;
   "pipeline/thematicDraftGeneration": typeof pipeline_thematicDraftGeneration;
+  posts: typeof posts;
   privateData: typeof privateData;
   processingJobs: typeof processingJobs;
   sectionSummaries: typeof sectionSummaries;
