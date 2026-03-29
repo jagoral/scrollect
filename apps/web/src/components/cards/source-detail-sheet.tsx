@@ -4,14 +4,13 @@ import { Link } from "@tanstack/react-router";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { BookOpen, ExternalLink, MapPin } from "lucide-react";
+import { BookOpen, ExternalLink, Loader2, MapPin } from "lucide-react";
 import type { RefObject } from "react";
 import { usePostHog } from "posthog-js/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverDescription, PopoverTitle } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 
 import { getFileTypeConfig } from "./file-type-config";
@@ -50,11 +49,8 @@ function SourceDetailsContent({
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-3 px-5 py-2">
-        <Skeleton className="h-5 w-20" />
-        <Skeleton className="h-5 w-48" />
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-16 w-full" />
+      <div className="flex items-center justify-center px-5 py-8">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
