@@ -14,11 +14,20 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { useCardImpression } from "@/hooks/use-card-impression";
+import { useDetailPanel } from "@/components/detail-panel";
 
 import { DislikeReasonSheet } from "./dislike-reason-sheet";
 import { getFileTypeConfig } from "./file-type-config";
 import { SourceDetailSheet } from "./source-detail-sheet";
-import type { DislikeReason, PostCardData } from "./types";
+import type { DislikeReason, PostCardData, PostType } from "./types";
+
+const cardAccentColor: Record<PostType, string> = {
+  insight: "border-l-primary",
+  quote: "border-l-amber-500",
+  summary: "border-l-blue-500",
+  connection: "border-l-violet-500",
+  quiz: "border-l-emerald-500",
+};
 
 function updatePostInPaginatedPages(
   localStore: OptimisticLocalStore,
@@ -68,7 +77,8 @@ export function SourceBadge({ post, className }: { post: PostCardData; className
         data-testid="source-badge"
         aria-label={`Source details: ${post.primarySourceDocumentTitle ?? "Untitled"}`}
         className="inline-flex max-w-full cursor-pointer items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground/80"
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           posthog.capture("source.detail_opened", {
             card_type: post.postType,
           });
@@ -94,12 +104,12 @@ export function SourceBadge({ post, className }: { post: PostCardData; className
 interface CardShellProps {
   post: PostCardData;
   children: ReactNode;
-  accentClassName?: string;
   quizVariant?: "multiple_choice" | "true_false";
 }
 
-export function CardShell({ post, children, accentClassName, quizVariant }: CardShellProps) {
+export function CardShell({ post, children, quizVariant }: CardShellProps) {
   const posthog = usePostHog();
+  const detailPanel = useDetailPanel();
   const [sheetOpen, setSheetOpen] = useState(false);
   const reasonSelectedRef = useRef(false);
   const dislikeButtonRef = useRef<HTMLButtonElement>(null);
@@ -210,24 +220,22 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
         data-testid="post-card"
         data-card-type={post.postType}
         data-quiz-variant={quizVariant}
-        className="group/card relative overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-foreground/[0.06] transition-all duration-300 hover:-translate-y-0.5 hover:ring-primary/15 hover:shadow-lg hover:shadow-primary/[0.06]"
+        className={cn(
+          "group/card relative border-l-[2px] border-t border-border first:border-t-0 bg-card text-card-foreground transition-colors",
+          cardAccentColor[post.postType],
+          detailPanel && "cursor-pointer hover:bg-accent/30",
+        )}
+        onClick={() => detailPanel?.openDetail(post)}
       >
-        <div
-          className={cn(
-            "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent transition-all duration-300 group-hover/card:h-0.5 group-hover/card:via-primary/60",
-            accentClassName,
-          )}
-        />
-
-        <div className="px-5 pt-5 pb-4">
+        <div className="px-6 pt-6 pb-5">
           {post.isNew && (
             <Badge
               data-testid="new-badge"
               aria-label="New: from a recently added document"
-              className="mb-2 gap-1"
+              className="mb-2 gap-1 rounded-none border-emerald-500/40 bg-transparent text-emerald-600 dark:text-emerald-400"
               variant="freshness"
             >
-              <span aria-hidden="true" className="size-1 shrink-0 rounded-full bg-emerald-500" />
+              <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
               New
             </Badge>
           )}
@@ -239,20 +247,21 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
             </div>
           )}
 
-          <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
             <time className="text-xs tracking-wide text-muted-foreground/70">
               {formatDistanceToNow(post.createdAt, { addSuffix: true })}
             </time>
 
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 className={cn(
-                  "transition-all duration-200 active:scale-90",
-                  post.isBookmarked && "bg-primary/10 text-primary hover:bg-primary/15",
+                  "transition-all duration-200 active:scale-95 [&_svg]:transition-all [&_svg]:duration-200",
+                  post.isBookmarked && "bg-primary/15 text-primary hover:bg-primary/20",
                 )}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   posthog.capture("card.bookmarked", {
                     card_type: post.postType,
                     bookmarked: !post.isBookmarked,
@@ -264,41 +273,47 @@ export function CardShell({ post, children, accentClassName, quizVariant }: Card
                 title="Save"
               >
                 {post.isBookmarked ? (
-                  <BookmarkCheck className="size-3.5" />
+                  <BookmarkCheck className="size-4" />
                 ) : (
-                  <Bookmark className="size-3.5" />
+                  <Bookmark className="size-4" />
                 )}
               </Button>
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 className={cn(
-                  "transition-all duration-200 active:scale-90",
+                  "transition-all duration-200 active:scale-95 [&_svg]:transition-all [&_svg]:duration-200",
                   post.reaction === "like" &&
-                    "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15",
+                    "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20",
                 )}
-                onClick={handleLikeClick}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLikeClick();
+                }}
                 data-testid="like-button"
                 aria-pressed={post.reaction === "like"}
                 title="Like"
               >
-                <ThumbsUp className={cn("size-3.5", post.reaction === "like" && "fill-current")} />
+                <ThumbsUp className={cn("size-4", post.reaction === "like" && "fill-current")} />
               </Button>
               <Button
                 ref={dislikeButtonRef}
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 className={cn(
-                  "transition-all duration-200 active:scale-90",
-                  post.reaction === "dislike" && "bg-red-500/10 text-red-500 hover:bg-red-500/15",
+                  "transition-all duration-200 active:scale-95 [&_svg]:transition-all [&_svg]:duration-200",
+                  post.reaction === "dislike" && "bg-red-500/15 text-red-500 hover:bg-red-500/20",
                 )}
-                onClick={handleDislikeClick}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDislikeClick();
+                }}
                 data-testid="dislike-button"
                 aria-pressed={post.reaction === "dislike"}
                 title="Dislike"
               >
                 <ThumbsDown
-                  className={cn("size-3.5", post.reaction === "dislike" && "fill-current")}
+                  className={cn("size-4", post.reaction === "dislike" && "fill-current")}
                 />
               </Button>
             </div>

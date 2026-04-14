@@ -26,34 +26,46 @@ function SavedPage() {
 
   if (status === "LoadingFirstPage") {
     return (
-      <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
-        <div className="mb-8">
+      <div className="py-6">
+        <div className="mb-6 px-4 md:px-6">
           <h1 className="text-2xl font-bold tracking-tight">Saved</h1>
-          <p className="mt-1 text-muted-foreground">Your bookmarked learning cards.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Your bookmarked learning cards.</p>
         </div>
-        <div className="grid gap-4">
-          <Skeleton className="h-36 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
+        <div className="border-y border-border">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="border-l-[2px] border-l-muted border-t border-border first:border-t-0 px-6 pt-6 pb-5"
+            >
+              <Skeleton className="mb-3 h-4 w-32" />
+              <Skeleton className="mb-2 h-4 w-full" />
+              <Skeleton className="mb-4 h-4 w-3/4" />
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <Skeleton className="h-3 w-20" />
+                <div className="flex gap-1">
+                  <Skeleton className="size-8 rounded-md" />
+                  <Skeleton className="size-8 rounded-md" />
+                  <Skeleton className="size-8 rounded-md" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
-      <div className="mb-8">
+    <div className="py-6">
+      <div className="mb-6 px-4 md:px-6">
         <h1 className="text-2xl font-bold tracking-tight">Saved</h1>
         <p className="mt-1 text-sm text-muted-foreground">Your bookmarked learning cards.</p>
       </div>
 
       {results.length === 0 ? (
         <div className="mt-16 flex flex-col items-center gap-5 text-center">
-          <div className="relative">
-            <div className="absolute -inset-3 rounded-3xl bg-primary/[0.04]" />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
-              <Bookmark className="h-7 w-7 text-primary/60" />
-            </div>
+          <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
+            <Bookmark className="size-7 text-primary/60" />
           </div>
           <div>
             <p className="text-lg font-semibold tracking-tight">No saved posts yet</p>
@@ -63,19 +75,21 @@ function SavedPage() {
           </div>
         </div>
       ) : (
-        <div className="animate-stagger-in grid gap-4">
-          {results.map((bookmark) => {
-            if (!bookmark.post) return null;
-            return (
-              <PostCard
-                key={bookmark._id}
-                post={{
-                  ...bookmark.post,
-                  isBookmarked: true,
-                }}
-              />
-            );
-          })}
+        <div className="animate-stagger-in">
+          <div className="border-y border-border">
+            {results.map((bookmark) => {
+              if (!bookmark.post) return null;
+              return (
+                <PostCard
+                  key={bookmark._id}
+                  post={{
+                    ...bookmark.post,
+                    isBookmarked: true,
+                  }}
+                />
+              );
+            })}
+          </div>
 
           <div ref={sentinelRef} className="h-1" />
 
@@ -87,7 +101,7 @@ function SavedPage() {
 
           {status === "Exhausted" && results.length > 0 && (
             <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
+              <div className="h-px w-16 bg-border" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">
                 You&apos;ve seen all your saved posts
               </p>

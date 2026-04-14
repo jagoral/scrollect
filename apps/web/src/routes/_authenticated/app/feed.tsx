@@ -91,7 +91,9 @@ function FeedPage() {
   }, [noAutoServe, status, results.length, serve]);
 
   const handleServe = useCallback(() => {
-    posthog.capture("feed.serve_clicked", { existing_card_count: results.length });
+    posthog.capture("feed.serve_clicked", {
+      existing_card_count: results.length,
+    });
     serve();
   }, [posthog, serve, results.length]);
 
@@ -125,7 +127,9 @@ function FeedPage() {
   useEffect(() => {
     if (status === "Exhausted" && !exhaustedTracked.current) {
       exhaustedTracked.current = true;
-      posthog.capture("feed.exhausted", { total_cards: enrichedResults.length });
+      posthog.capture("feed.exhausted", {
+        total_cards: enrichedResults.length,
+      });
     }
     if (status !== "Exhausted") {
       exhaustedTracked.current = false;
@@ -134,28 +138,43 @@ function FeedPage() {
 
   if (status === "LoadingFirstPage") {
     return (
-      <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
-        <div className="mb-8">
+      <div className="py-6">
+        <div className="mb-6 px-4 md:px-6">
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
         </div>
-        <div className="grid gap-4">
-          <Skeleton className="h-36 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
+        <div className="border-y border-border">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="border-l-[2px] border-l-muted border-t border-border first:border-t-0 px-6 pt-6 pb-5"
+            >
+              <Skeleton className="mb-3 h-4 w-32" />
+              <Skeleton className="mb-2 h-4 w-full" />
+              <Skeleton className="mb-4 h-4 w-3/4" />
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <Skeleton className="h-3 w-20" />
+                <div className="flex gap-1">
+                  <Skeleton className="size-8 rounded-md" />
+                  <Skeleton className="size-8 rounded-md" />
+                  <Skeleton className="size-8 rounded-md" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 md:px-6">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="py-6">
+      <div className="mb-6 flex items-center justify-between px-4 md:px-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
         </div>
-        <Button onClick={handleServe} disabled={serving} size="sm" data-testid="feed-serve-button">
+        <Button onClick={handleServe} disabled={serving} data-testid="feed-serve-button">
           {serving ? (
             <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
           ) : (
@@ -174,10 +193,12 @@ function FeedPage() {
       {enrichedResults.length === 0 && !serving ? (
         <FeedEmptyState reason={serveReason} onServe={handleServe} serving={serving} />
       ) : (
-        <div className="animate-stagger-in grid gap-4">
-          {enrichedResults.map((post) => (
-            <PostCard key={post._id} post={post} />
-          ))}
+        <div className="animate-stagger-in">
+          <div className="border-y border-border">
+            {enrichedResults.map((post) => (
+              <PostCard key={post._id} post={post} />
+            ))}
+          </div>
 
           <div ref={sentinelRef} className="h-1" />
 
@@ -190,16 +211,27 @@ function FeedPage() {
           {status === "Exhausted" && enrichedResults.length > 0 && (
             <div
               data-testid="feed-end-state"
-              className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground"
+              className="flex flex-col items-center gap-4 py-12 text-center text-muted-foreground animate-in fade-in duration-500"
             >
               <div className="flex items-center gap-4">
-                <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
-                <CheckCircle className="size-5" />
-                <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
+                <div className="h-px w-16 bg-border" />
+                <div className="flex size-10 items-center justify-center border-y border border-border">
+                  <CheckCircle className="size-5 text-primary" />
+                </div>
+                <div className="h-px w-16 bg-border" />
               </div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">
-                You&apos;re all caught up
-              </p>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em]">
+                  You&apos;re all caught up
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground/60">
+                  Generate more cards to keep learning.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleServe} disabled={serving}>
+                <Sparkles className="size-3.5" />
+                Generate more
+              </Button>
             </div>
           )}
         </div>
@@ -221,9 +253,9 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
         data-testid="feed-processing-state"
         className="mt-12 flex flex-col items-center gap-5 text-center"
       >
-        <div className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-500/5 ring-1 ring-amber-500/10">
+        <div className="relative flex size-16 items-center justify-center border border-amber-500/30 bg-transparent">
           <Timer className="size-8 text-amber-600/70 dark:text-amber-400/70" />
-          <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-card ring-2 ring-background">
+          <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center border border-border bg-card">
             <Loader2 className="size-3 animate-spin text-amber-600 dark:text-amber-400" />
           </span>
         </div>
@@ -247,7 +279,7 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
         data-testid="feed-empty-state"
         className="mt-12 flex flex-col items-center gap-5 text-center"
       >
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+        <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
           <FileUp className="size-8 text-primary/70" />
         </div>
         <div>
@@ -270,7 +302,7 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
       data-testid="feed-empty-state"
       className="mt-12 flex flex-col items-center gap-5 text-center"
     >
-      <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+      <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
         <Rss className="size-8 text-primary/70" />
       </div>
       <div>

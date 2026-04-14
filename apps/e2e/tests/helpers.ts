@@ -118,11 +118,12 @@ export async function signInToSeededFeed(page: Page) {
 export async function goToFirstDocument(page: Page) {
   await page.goto("/app/library");
   await page.waitForLoadState("networkidle");
-  const docLink = page.locator("a[href^='/app/library/']").first();
-  await expect(docLink).toBeVisible({ timeout: 15000 });
-  await docLink.click();
-  await expect(page).toHaveURL(/\/app\/library\/.+/);
-  await expect(page.getByText(/back to library/i)).toBeVisible({ timeout: 15000 });
+  const docButton = page.locator('[data-testid="document-item"]').first();
+  await expect(docButton).toBeVisible({ timeout: 15000 });
+  await docButton.click();
+  await expect(page.locator('[data-testid="status-ready"]').first()).toBeVisible({
+    timeout: 15000,
+  });
 }
 
 export async function fetchConnectionDrafts(email: string) {

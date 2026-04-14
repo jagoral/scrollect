@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/app/upload")({
 
 function UploadPage() {
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+    <div className="px-4 py-6 md:px-6">
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight">Upload Content</h1>
         <p className="mt-1 text-muted-foreground">

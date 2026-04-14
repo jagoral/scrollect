@@ -49,12 +49,14 @@ test.describe("Learning goal - document detail (seeded account)", { tag: "@seede
     // Wait for the "Saved" toast to confirm persistence
     await expect(page.getByText("Learning goal saved")).toBeVisible({ timeout: 10000 });
 
-    // Reload the page and verify the goal persists
-    const currentUrl = page.url();
-    await page.goto(currentUrl);
+    // Reload the page and re-select the document to verify the goal persists
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 15000 });
+    await docButton.click();
 
-    // Wait for the document page to fully load (Convex subscription must reconnect)
+    // Wait for the document detail to fully load (Convex subscription must reconnect)
     await expect(page.locator('[data-testid="learning-goal-section"]')).toBeVisible({
       timeout: 15000,
     });
@@ -79,12 +81,14 @@ test.describe("Learning goal - document detail (seeded account)", { tag: "@seede
     await textarea.blur();
     await expect(page.getByText("Learning goal cleared")).toBeVisible({ timeout: 10000 });
 
-    // Reload and verify the goal is gone
-    const currentUrl = page.url();
-    await page.goto(currentUrl);
+    // Reload the page and re-select the document to verify the goal is gone
+    await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 15000 });
+    await docButton.click();
 
-    // Wait for the document page to fully load (Convex subscription must reconnect)
+    // Wait for the document detail to fully load (Convex subscription must reconnect)
     await expect(page.locator('[data-testid="learning-goal-section"]')).toBeVisible({
       timeout: 15000,
     });

@@ -62,7 +62,7 @@ export function LearningGoalSection({ documentId, initialGoal }: LearningGoalSec
   const charCount = value.length;
 
   return (
-    <div data-testid="learning-goal-section" className="mt-6 border-t border-border/40 pt-5">
+    <div data-testid="learning-goal-section" className="mt-6 border-t border-border pt-5">
       <h2 className="mb-3 flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
         <GraduationCap className="size-3.5" />
         Learning goal

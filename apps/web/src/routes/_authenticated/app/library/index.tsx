@@ -13,9 +13,10 @@ import {
   ProcessingProgressBar,
   isProcessingStatus,
 } from "@/components/documents/processing-progress";
+import { useLibraryDetail } from "@/components/library-detail-panel";
 import { TagFilterBar, TagList, buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
@@ -53,6 +54,7 @@ function LibraryPage() {
   } = usePaginatedQuery(api.documents.list, {}, { initialNumItems: 20 });
 
   const sentinelRef = useInfiniteScroll(status, loadMore);
+  const libraryDetail = useLibraryDetail();
 
   const posthog = usePostHog();
   const { tags: tagsParam } = Route.useSearch();
@@ -107,11 +109,11 @@ function LibraryPage() {
   const hasDocuments = documents.length > 0;
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="py-6">
+      <div className="mb-6 flex items-center justify-between px-4 md:px-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Your uploaded documents and their processing status.
           </p>
         </div>
@@ -124,15 +126,20 @@ function LibraryPage() {
       </div>
 
       {status === "LoadingFirstPage" ? (
-        <div className="grid gap-3">
-          <Skeleton className="h-28 w-full rounded-xl" />
-          <Skeleton className="h-28 w-full rounded-xl" />
-          <Skeleton className="h-28 w-full rounded-xl" />
-          <Skeleton className="h-28 w-full rounded-xl" />
+        <div className="border-y border-r border-border">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="border-l-[2px] border-l-muted border-t border-border first:border-t-0 px-6 py-5"
+            >
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="mt-3 h-3 w-32" />
+            </div>
+          ))}
         </div>
       ) : !hasDocuments ? (
         <div className="mt-8 flex flex-col items-center gap-4 text-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+          <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
             <FileText className="size-8 text-primary/70" />
           </div>
           <div>
@@ -149,7 +156,7 @@ function LibraryPage() {
       ) : (
         <>
           {tagOptions.length > 0 && (
-            <div className="mb-6">
+            <div className="mb-6 px-4 md:px-6">
               <TagFilterBar
                 allTags={tagOptions}
                 selectedTags={selectedTags}
@@ -158,58 +165,77 @@ function LibraryPage() {
               />
             </div>
           )}
-          <div className="animate-stagger-in grid gap-3">
-            {filteredDocuments.map((doc) => {
-              const docTags = docTagMap.get(doc._id) ?? [];
-              return (
-                <Link
-                  key={doc._id}
-                  to="/app/library/$documentId"
-                  params={{ documentId: doc._id }}
-                  className="block"
-                >
-                  <Card className="overflow-hidden py-0 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
-                    <div className="grid grid-cols-[1fr_8rem] sm:grid-cols-[1fr_10rem]">
-                      <div className="min-w-0 py-4">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-start gap-2.5 text-base">
-                            <span className="mt-0.5 shrink-0">
-                              {fileTypeIcons[doc.fileType] ?? (
-                                <FileText className="size-4 text-muted-foreground" />
-                              )}
-                            </span>
-                            <span className="line-clamp-2">{doc.title}</span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center gap-3">
-                            <StatusBadge status={doc.status} />
-                            {isProcessingStatus(doc.status) && (
-                              <ProcessingProgressBar status={doc.status} />
+          <div className="animate-stagger-in">
+            <div className="border-y border-border">
+              {filteredDocuments.map((doc) => {
+                const docTags = docTagMap.get(doc._id) ?? [];
+                const statusColor =
+                  doc.status === "ready"
+                    ? "border-l-emerald-500"
+                    : doc.status === "error"
+                      ? "border-l-red-500"
+                      : "border-l-primary";
+
+                const isSelected = libraryDetail?.selectedDocumentId === doc._id;
+
+                return (
+                  <button
+                    type="button"
+                    key={doc._id}
+                    data-testid="document-item"
+                    onClick={() => {
+                      if (libraryDetail) {
+                        libraryDetail.openDetail(doc._id);
+                      } else {
+                        navigate({
+                          to: "/app/library/$documentId",
+                          params: { documentId: doc._id },
+                        });
+                      }
+                    }}
+                    className={cn(
+                      "block w-full cursor-pointer border-l-[2px] border-t border-border first:border-t-0 bg-card text-left transition-colors hover:bg-accent/30",
+                      isSelected ? "bg-accent/30" : "",
+                      statusColor,
+                    )}
+                  >
+                    <div className="grid grid-cols-[1fr_6rem] sm:grid-cols-[1fr_8rem]">
+                      <div className="min-w-0 px-6 py-4">
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5 shrink-0">
+                            {fileTypeIcons[doc.fileType] ?? (
+                              <FileText className="size-4 text-muted-foreground" />
                             )}
-                            {doc.status === "ready" && (
-                              <span className="text-xs text-muted-foreground">
-                                {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
-                              </span>
-                            )}
-                            {doc.sourceUrl && (
-                              <Globe
-                                className="size-3 text-muted-foreground"
-                                aria-label="Added from URL"
-                              />
-                            )}
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(doc.createdAt, { addSuffix: true })}
-                            </span>
-                          </div>
-                          {docTags.length > 0 && (
-                            <div className="mt-2">
-                              <TagList tags={docTags} maxVisible={2} size="sm" />
-                            </div>
+                          </span>
+                          <span className="line-clamp-2 text-sm font-semibold">{doc.title}</span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-3">
+                          <StatusBadge status={doc.status} />
+                          {isProcessingStatus(doc.status) && (
+                            <ProcessingProgressBar status={doc.status} />
                           )}
-                        </CardContent>
+                          {doc.status === "ready" && (
+                            <span className="text-xs text-muted-foreground">
+                              {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {doc.sourceUrl && (
+                            <Globe
+                              className="size-3 text-muted-foreground"
+                              aria-label="Added from URL"
+                            />
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(doc.createdAt, { addSuffix: true })}
+                          </span>
+                        </div>
+                        {docTags.length > 0 && (
+                          <div className="mt-2">
+                            <TagList tags={docTags} maxVisible={2} size="sm" />
+                          </div>
+                        )}
                       </div>
-                      <div className="relative bg-muted/30">
+                      <div className="relative border-l border-border bg-transparent">
                         {doc.thumbnailUrl && (
                           <img
                             src={doc.thumbnailUrl}
@@ -220,17 +246,17 @@ function LibraryPage() {
                         )}
                       </div>
                     </div>
-                  </Card>
-                </Link>
-              );
-            })}
-            {filteredDocuments.length === 0 && selectedTags.size > 0 && (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                {status === "Exhausted"
-                  ? "No documents match the selected tags."
-                  : "No matches yet — loading more documents…"}
-              </div>
-            )}
+                  </button>
+                );
+              })}
+              {filteredDocuments.length === 0 && selectedTags.size > 0 && (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  {status === "Exhausted"
+                    ? "No documents match the selected tags."
+                    : "No matches yet - loading more documents..."}
+                </div>
+              )}
+            </div>
           </div>
 
           <div ref={sentinelRef} className="h-1" />
@@ -243,7 +269,7 @@ function LibraryPage() {
 
           {status === "Exhausted" && filteredDocuments.length > 0 && (
             <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent via-border to-transparent" />
+              <div className="h-px w-16 bg-border" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">End of library</p>
             </div>
           )}

@@ -24,7 +24,7 @@ export function BookmarkedCardsSection({ documentId }: BookmarkedCardsSectionPro
   if (bookmarkedPosts === undefined || bookmarkedPosts.length === 0) return null;
 
   return (
-    <div data-testid="bookmarked-cards-section" className="mt-6 border-t border-border/40 pt-5">
+    <div data-testid="bookmarked-cards-section" className="mt-6 border-t border-border pt-5">
       <Collapsible
         open={isOpen}
         onOpenChange={(open) => {
@@ -51,7 +51,7 @@ export function BookmarkedCardsSection({ documentId }: BookmarkedCardsSectionPro
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="mt-3 grid gap-4" data-testid="bookmarked-cards-list">
+          <div className="mt-3 border-y border-r border-border" data-testid="bookmarked-cards-list">
             {bookmarkedPosts.map((post) => (
               <PostCard key={post._id} post={post} />
             ))}

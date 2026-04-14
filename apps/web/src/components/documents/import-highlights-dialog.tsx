@@ -133,7 +133,7 @@ export function ImportHighlightsDialog({ documentId }: ImportHighlightsDialogPro
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          <div className="rounded-lg border bg-muted/30 p-3">
+          <div className="border border-border bg-transparent p-3">
             <p className="mb-2 text-xs font-medium text-muted-foreground">
               How to export notes from Pocketbook
             </p>

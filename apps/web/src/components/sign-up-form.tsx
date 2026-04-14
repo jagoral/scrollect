@@ -1,12 +1,10 @@
 import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
-
-import { Link } from "@tanstack/react-router";
 
 import { ScrollectLogo } from "./scrollect-logo";
 import { Button } from "./ui/button";
@@ -15,7 +13,6 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
 export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
-  const navigate = useNavigate();
   const posthog = usePostHog();
   const form = useForm({
     defaultValues: {
@@ -33,7 +30,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
         {
           onSuccess: () => {
             posthog.capture("user.signed_up");
-            navigate({ to: "/app/library" });
+            window.location.href = "/app/library";
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);

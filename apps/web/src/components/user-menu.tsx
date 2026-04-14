@@ -1,7 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Settings, User } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 
@@ -26,7 +26,7 @@ export default function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-        <div className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="flex size-5 items-center justify-center rounded-full border border-primary/30 text-primary">
           <User className="size-3" />
         </div>
         <span className="max-w-[120px] truncate">{user?.name}</span>
@@ -40,7 +40,7 @@ export default function UserMenu() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem render={<Link to="/app/settings" />}>
+          <DropdownMenuItem onClick={() => navigate({ to: "/app/settings" })}>
             <Settings />
             Settings
           </DropdownMenuItem>

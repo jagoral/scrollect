@@ -35,30 +35,21 @@ function PreviewCardActions() {
 
 function PreviewCardShell({
   accentClassName,
-  cardType,
   children,
 }: {
   accentClassName?: string;
-  cardType: string;
   children: React.ReactNode;
 }) {
   return (
-    <article className="group/card relative overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-foreground/[0.06] transition-[box-shadow,ring-color] duration-300 hover:ring-primary/15 hover:shadow-lg hover:shadow-primary/[0.06]">
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent transition-[height,color] duration-300 group-hover/card:h-0.5 group-hover/card:via-primary/60",
-          accentClassName,
-        )}
-      />
-      <div className="px-5 pt-5 pb-4">
-        <Badge
-          variant="outline"
-          className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60"
-        >
-          {cardType}
-        </Badge>
+    <article
+      className={cn(
+        "group/card relative border border-border border-l-[2px] bg-card text-card-foreground transition-colors hover:bg-accent/30",
+        accentClassName,
+      )}
+    >
+      <div className="px-6 pt-6 pb-5">
         {children}
-        <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
+        <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
           <span className="text-xs tracking-wide text-muted-foreground/70">2 hours ago</span>
           <PreviewCardActions />
         </div>
@@ -80,7 +71,7 @@ function PreviewSourceBadge({ label }: { label: string }) {
 
 export function PreviewInsightCard() {
   return (
-    <PreviewCardShell cardType="Insight">
+    <PreviewCardShell accentClassName="border-l-primary/50">
       <PreviewSourceBadge label="Clean Code - Chapter 3" />
       <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
         <p>
@@ -94,20 +85,10 @@ export function PreviewInsightCard() {
 
 export function PreviewQuoteCard() {
   return (
-    <PreviewCardShell
-      cardType="Quote"
-      accentClassName="via-amber-500/30 group-hover/card:via-amber-500/60"
-    >
+    <PreviewCardShell accentClassName="border-l-amber-500/50">
       <PreviewSourceBadge label="Thinking, Fast and Slow - Part II" />
-      <div className="relative pl-4">
-        <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-amber-500/40" />
-        <span
-          className="pointer-events-none absolute -left-1 -top-3 font-serif text-4xl leading-none text-amber-500/20 select-none"
-          aria-hidden="true"
-        >
-          &ldquo;
-        </span>
-        <blockquote className="text-base leading-relaxed italic text-foreground/90">
+      <div>
+        <blockquote className="text-base leading-relaxed text-foreground/90">
           Nothing in life is as important as you think it is, while you are thinking about it.
         </blockquote>
         <p className="mt-2 text-sm text-muted-foreground/70">&mdash; Daniel Kahneman</p>
@@ -134,10 +115,7 @@ export function PreviewQuizCard({ interactive = false }: { interactive?: boolean
   const answered = selected !== null;
 
   return (
-    <PreviewCardShell
-      cardType="Quiz"
-      accentClassName="via-emerald-500/30 group-hover/card:via-emerald-500/60"
-    >
+    <PreviewCardShell accentClassName="border-l-emerald-500/50">
       <PreviewSourceBadge label="Designing Data-Intensive Applications" />
       <div className="mb-3 text-sm font-medium text-foreground">
         What is the primary advantage of an append-only log over in-place updates in a database
@@ -199,10 +177,7 @@ export function PreviewQuizCard({ interactive = false }: { interactive?: boolean
 
 export function PreviewSummaryCard() {
   return (
-    <PreviewCardShell
-      cardType="Summary"
-      accentClassName="via-blue-500/30 group-hover/card:via-blue-500/60"
-    >
+    <PreviewCardShell accentClassName="border-l-blue-500/50">
       <PreviewSourceBadge label="System Design Interview - Ch. 5" />
       <ul className="flex flex-col gap-2 text-sm leading-relaxed text-foreground/90">
         {[
@@ -222,14 +197,11 @@ export function PreviewSummaryCard() {
 
 export function PreviewConnectionCard() {
   return (
-    <PreviewCardShell
-      cardType="Connection"
-      accentClassName="via-violet-500/30 group-hover/card:via-violet-500/60"
-    >
+    <PreviewCardShell accentClassName="border-l-violet-500/50">
       <div className="mb-3 flex items-center gap-2">
         <Badge
           variant="outline"
-          className="border-violet-500/30 text-[10px] font-medium uppercase tracking-wider text-violet-600 dark:text-violet-400"
+          className="gap-1.5 border-violet-500/15 bg-violet-500/[0.03] font-normal text-muted-foreground"
         >
           Cross-source
         </Badge>

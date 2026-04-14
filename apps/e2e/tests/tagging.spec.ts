@@ -93,18 +93,13 @@ test.describe(
         timeout: 10000,
       });
 
-      // Navigate to the second document via client-side navigation (Link clicks)
-      // to preserve the Convex WebSocket connection. Full-page navigation (page.goto)
-      // causes a race: the tag mutation may not have propagated to the new subscription
-      // by the time the combobox opens.
-      await page.getByText(/back to library/i).click();
-      await page.waitForURL(/\/app\/library$/);
-      const docLinks = page.locator("a[href^='/app/library/']");
-      await expect(docLinks.first()).toBeVisible({ timeout: 10000 });
-      const count = await docLinks.count();
+      // Click the second document in the library list (panel switches document
+      // via client-side state, preserving the Convex WebSocket connection)
+      const docButtons = page.locator('[data-testid="document-item"]');
+      await expect(docButtons.first()).toBeVisible({ timeout: 10000 });
+      const count = await docButtons.count();
       expect(count).toBeGreaterThan(1);
-      await docLinks.nth(1).click();
-      await expect(page).toHaveURL(/\/app\/library\/.+/);
+      await docButtons.nth(1).click();
       await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
         timeout: 15000,
       });
@@ -213,11 +208,12 @@ test.describe(
     // P0-9: Max 20 tags per document enforced
     test("shows limit message when document has 20 tags", async ({ page }) => {
       await goToFirstDocument(page);
-      await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
+      const tagSection = page.locator('[data-testid="document-tag-section"]');
+      await expect(tagSection).toBeVisible({
         timeout: 15000,
       });
 
-      const existingCount = await page.locator("[data-tag-source]").count();
+      const existingCount = await tagSection.locator("[data-tag-source]").count();
       const tagsToAdd = 20 - existingCount;
 
       for (let i = 0; i < tagsToAdd; i++) {
@@ -315,19 +311,19 @@ test.describe("Tagging — library filtering (seeded account)", { tag: "@seeded"
     );
     await expect(filterButtons.first()).toBeVisible({ timeout: 10000 });
 
-    const allDocs = page.locator("a[href^='/app/library/']");
+    const allDocs = page.locator('[data-testid="document-item"]');
     const totalCount = await allDocs.count();
     expect(totalCount).toBeGreaterThan(0);
 
     await filterButtons.first().click();
     await expect(page.locator('[data-testid="clear-tag-filters"]')).toBeVisible();
 
-    const filteredCount = await page.locator("a[href^='/app/library/']").count();
+    const filteredCount = await page.locator('[data-testid="document-item"]').count();
     expect(filteredCount).toBeLessThanOrEqual(totalCount);
 
     await page.locator('[data-testid="clear-tag-filters"]').click();
     await expect(page.locator('[data-testid="clear-tag-filters"]')).not.toBeVisible();
-    const resetCount = await page.locator("a[href^='/app/library/']").count();
+    const resetCount = await page.locator('[data-testid="document-item"]').count();
     expect(resetCount).toBe(totalCount);
   });
 
@@ -336,7 +332,7 @@ test.describe("Tagging — library filtering (seeded account)", { tag: "@seeded"
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
 
-    const docCard = page.locator("a[href^='/app/library/']").first();
+    const docCard = page.locator('[data-testid="document-item"]').first();
     await expect(docCard).toBeVisible({ timeout: 10000 });
 
     // Seeded doc 1 has 3 tags, doc 2 has 3 tags — at least one should show tag-list
@@ -385,10 +381,9 @@ test.describe("Tagging — feed cards (seeded account)", { tag: "@seeded" }, () 
     // Add extra tags to the seeded document to ensure > 3 total
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/app/library/']").first();
-    await expect(docLink).toBeVisible({ timeout: 10000 });
-    await docLink.click();
-    await expect(page).toHaveURL(/\/app\/library\/.+/);
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 10000 });
+    await docButton.click();
     await expect(page.locator('[data-testid="document-tag-section"]')).toBeVisible({
       timeout: 15000,
     });
