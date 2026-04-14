@@ -19,11 +19,11 @@ export function ConnectionCard({ post }: ConnectionCardProps) {
   const isWithinDocument = connectionType === "within_document";
 
   return (
-    <CardShell post={post} accentClassName="via-violet-500/30 group-hover/card:via-violet-500/60">
+    <CardShell post={post}>
       <div className="mb-3 flex items-center gap-2" data-testid="connection-header">
         <Badge
           variant="outline"
-          className="gap-1.5 border-violet-500/15 bg-violet-500/[0.03] font-normal text-muted-foreground"
+          className="gap-1.5 rounded-none border-violet-500/30 bg-transparent font-normal text-muted-foreground"
         >
           <ArrowLeftRight className="size-3 shrink-0 text-violet-500/60" />
           {isWithinDocument ? "Cross-section" : "Cross-source"}

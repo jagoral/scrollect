@@ -24,12 +24,12 @@ export function ProcessingProgress({ status }: { status: ProcessingStage }) {
   return (
     <div className="mt-10" data-testid="processing-progress">
       <div
-        className="rounded-xl bg-card p-5 ring-1 ring-foreground/[0.06]"
+        className="border border-border bg-card p-5"
         role="status"
         aria-label="Processing progress"
       >
         <div className="mb-4 flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+          <div className="flex size-8 items-center justify-center border border-primary/30">
             <Cog
               className="size-4 animate-spin text-primary/70"
               style={{ animationDuration: "3s" }}
@@ -50,12 +50,11 @@ export function ProcessingProgress({ status }: { status: ProcessingStage }) {
                 <div className="flex flex-col items-center">
                   <div
                     className={cn(
-                      "flex size-6 shrink-0 items-center justify-center rounded-full transition-all duration-300",
+                      "flex size-6 shrink-0 items-center justify-center transition-all duration-300",
                       isComplete &&
-                        "bg-emerald-500/15 text-emerald-600 ring-1 ring-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400",
-                      isCurrent &&
-                        "bg-primary/15 text-primary ring-1 ring-primary/25 shadow-sm shadow-primary/10",
-                      isPending && "bg-muted text-muted-foreground/30 ring-1 ring-border/50",
+                        "border border-emerald-500/30 bg-transparent text-emerald-600 dark:text-emerald-400",
+                      isCurrent && "border border-primary/30 bg-transparent text-primary",
+                      isPending && "border border-border bg-transparent text-muted-foreground/30",
                     )}
                   >
                     {isComplete ? (

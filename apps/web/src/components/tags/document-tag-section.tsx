@@ -87,7 +87,7 @@ export function DocumentTagSection({ documentId }: DocumentTagSectionProps) {
   };
 
   return (
-    <div data-testid="document-tag-section" className="mt-6 border-t border-border/40 pt-5">
+    <div data-testid="document-tag-section" className="mt-6 border-t border-border pt-5">
       <h2 className="mb-3 flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
         <Tag className="size-3.5" />
         Tags

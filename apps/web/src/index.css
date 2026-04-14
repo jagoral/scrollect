@@ -35,7 +35,7 @@
   --chart-3: oklch(0.65 0.12 185);
   --chart-4: oklch(0.45 0.1 185);
   --chart-5: oklch(0.35 0.08 185);
-  --radius: 0.625rem;
+  --radius: 0.25rem;
   --sidebar: oklch(0.98 0.005 200);
   --sidebar-foreground: oklch(0.18 0.02 230);
   --sidebar-primary: oklch(0.47 0.14 185);
@@ -49,23 +49,23 @@
 }
 
 .dark {
-  --background: oklch(0.13 0.02 240);
+  --background: oklch(0.12 0.015 240);
   --foreground: oklch(0.93 0.01 200);
-  --card: oklch(0.17 0.025 240);
+  --card: oklch(0.15 0.02 240);
   --card-foreground: oklch(0.93 0.01 200);
-  --popover: oklch(0.17 0.025 240);
+  --popover: oklch(0.15 0.02 240);
   --popover-foreground: oklch(0.93 0.01 200);
   --primary: oklch(0.65 0.13 185);
-  --primary-foreground: oklch(0.13 0.02 240);
-  --secondary: oklch(0.23 0.03 240);
+  --primary-foreground: oklch(0.12 0.015 240);
+  --secondary: oklch(0.2 0.025 240);
   --secondary-foreground: oklch(0.93 0.01 200);
-  --muted: oklch(0.23 0.03 240);
-  --muted-foreground: oklch(0.58 0.03 200);
-  --accent: oklch(0.25 0.04 200);
+  --muted: oklch(0.2 0.025 240);
+  --muted-foreground: oklch(0.55 0.025 200);
+  --accent: oklch(0.22 0.03 200);
   --accent-foreground: oklch(0.93 0.01 200);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.27 0.03 240);
-  --input: oklch(0.27 0.03 240);
+  --border: oklch(0.25 0.02 240);
+  --input: oklch(0.25 0.02 240);
   --ring: oklch(0.65 0.13 185);
   --chart-1: oklch(0.65 0.13 185);
   --chart-2: oklch(0.8 0.1 55);
@@ -254,6 +254,27 @@
 
 .animate-ring-pulse {
   animation: ring-pulse 1.2s ease-out 1;
+}
+
+/* Wrong answer shake */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-out;
+}
+
+/* Gentle float for drag-and-drop */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 1.5s ease-in-out infinite;
 }
 
 /* Phone frame - titanium gradient with layered shadow */

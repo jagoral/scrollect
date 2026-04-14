@@ -33,9 +33,9 @@ export function TagFilterBar({ allTags, selectedTags, onToggle, onClear }: TagFi
             variant={isSelected ? "default" : "outline"}
             data-testid={`tag-filter-${tag.name}`}
             className={cn(
-              "shrink-0 cursor-pointer transition-all",
+              "shrink-0 cursor-pointer rounded-none transition-all",
               isSelected && "gap-1",
-              !isSelected && "hover:bg-muted hover:text-foreground",
+              !isSelected && "bg-transparent hover:bg-accent/30 hover:text-foreground",
             )}
             onClick={() => onToggle(tag.name)}
           >

@@ -13,7 +13,7 @@ function RateLimitedError({ error, reset }: { error: Error; reset: () => void })
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16 text-center">
       <div
         aria-hidden="true"
-        className="mb-6 flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-500/5 text-amber-500 ring-1 ring-amber-500/10"
+        className="mb-6 flex size-20 items-center justify-center border border-amber-500/30 text-amber-500"
       >
         <Clock className="size-10" />
       </div>
@@ -50,7 +50,7 @@ function ServerError({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16 text-center">
       <div
         aria-hidden="true"
-        className="mb-6 flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-destructive/15 to-destructive/5 text-destructive ring-1 ring-destructive/10"
+        className="mb-6 flex size-20 items-center justify-center border border-destructive/30 text-destructive"
       >
         <AlertTriangle className="size-10" />
       </div>

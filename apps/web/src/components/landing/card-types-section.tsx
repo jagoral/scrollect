@@ -1,4 +1,6 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Brain, Lightbulb, Link2, List, Quote } from "lucide-react";
+import { useState } from "react";
+
 import { useLandingSection } from "@/hooks/use-landing-section";
 import { cn } from "@/lib/utils";
 
@@ -10,108 +12,170 @@ import {
   PreviewSummaryCard,
 } from "./preview-cards";
 
-const cardTypes = [
+type CardTypeValue = "insight" | "quote" | "quiz" | "summary" | "connection";
+
+const cardTypes: ReadonlyArray<{
+  value: CardTypeValue;
+  label: string;
+  icon: typeof Lightbulb;
+  accentColor: string;
+  borderColor: string;
+  description: string;
+}> = [
   {
     value: "insight",
     label: "Insight",
-    accentClass: "data-active:text-primary",
+    icon: Lightbulb,
+    accentColor: "text-primary",
+    borderColor: "border-l-primary",
     description: "Key takeaways distilled from your content - the ideas worth remembering.",
-    Card: PreviewInsightCard,
   },
   {
     value: "quote",
     label: "Quote",
-    accentClass: "data-active:text-amber-600 dark:data-active:text-amber-400",
+    icon: Quote,
+    accentColor: "text-amber-500 dark:text-amber-400",
+    borderColor: "border-l-amber-500 dark:border-l-amber-400",
     description: "Memorable passages preserved with full attribution.",
-    Card: PreviewQuoteCard,
   },
   {
     value: "quiz",
     label: "Quiz",
-    accentClass: "data-active:text-emerald-600 dark:data-active:text-emerald-400",
+    icon: Brain,
+    accentColor: "text-emerald-500 dark:text-emerald-400",
+    borderColor: "border-l-emerald-500 dark:border-l-emerald-400",
     description: "Test yourself on what you read. Try clicking an answer.",
-    Card: PreviewQuizCard,
-    interactive: true,
   },
   {
     value: "summary",
     label: "Summary",
-    accentClass: "data-active:text-blue-600 dark:data-active:text-blue-400",
+    icon: List,
+    accentColor: "text-blue-500 dark:text-blue-400",
+    borderColor: "border-l-blue-500 dark:border-l-blue-400",
     description: "Section summaries condensed into scannable bullet points.",
-    Card: PreviewSummaryCard,
   },
   {
     value: "connection",
     label: "Connection",
-    accentClass: "data-active:text-violet-600 dark:data-active:text-violet-400",
+    icon: Link2,
+    accentColor: "text-violet-500 dark:text-violet-400",
+    borderColor: "border-l-violet-500 dark:border-l-violet-400",
     description: "AI finds links between ideas across different documents.",
-    Card: PreviewConnectionCard,
   },
-] as const;
+];
+
+function CardPreview({ value }: { value: CardTypeValue }) {
+  switch (value) {
+    case "insight":
+      return <PreviewInsightCard />;
+    case "quote":
+      return <PreviewQuoteCard />;
+    case "quiz":
+      return <PreviewQuizCard interactive />;
+    case "summary":
+      return <PreviewSummaryCard />;
+    case "connection":
+      return <PreviewConnectionCard />;
+  }
+}
 
 export function CardTypesSection() {
   const { ref, isVisible } = useLandingSection("card_types");
+  const [activeTab, setActiveTab] = useState<CardTypeValue>("insight");
 
   return (
     <section
       ref={ref}
       aria-labelledby="card-types-heading"
       className={cn(
-        "px-4 py-16 md:py-20",
+        "border-t border-border px-4 py-16 md:py-20",
         "transition-[transform,opacity] duration-700 ease-out",
         isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0",
       )}
     >
-      <div className="mx-auto max-w-3xl">
-        <div className="text-center">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-10 md:mb-12">
+          <span className="mb-3 inline-flex items-center border border-border px-3 py-1 text-xs tracking-widest text-muted-foreground uppercase">
+            Card types
+          </span>
           <h2
             id="card-types-heading"
-            className="text-3xl font-bold tracking-tight text-pretty sm:text-4xl"
+            className="text-2xl font-bold tracking-[-0.02em] text-pretty sm:text-3xl"
           >
             Five ways to learn from every document
           </h2>
-          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+          <p className="mt-2 max-w-lg text-muted-foreground">
             Each card type reinforces knowledge differently - from active recall quizzes to
             cross-document connections.
           </p>
         </div>
 
-        <Tabs defaultValue="insight" className="mt-10">
-          <TabsList
-            variant="line"
-            className="mx-auto flex w-full gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:justify-center sm:gap-1"
-          >
-            {cardTypes.map((type) => (
-              <TabsTrigger
-                key={type.value}
-                value={type.value}
-                className={cn(
-                  "shrink-0 rounded-full px-2.5 py-1.5 text-xs font-medium sm:px-4 sm:text-sm",
-                  type.accentClass,
-                )}
-              >
-                {type.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <div className="mt-8 min-h-[320px]">
-            {cardTypes.map((type) => (
-              <TabsContent key={type.value} value={type.value}>
-                <div className="mx-auto max-w-xl">
-                  <p className="mb-4 text-center text-sm text-muted-foreground">
-                    {type.description}
-                  </p>
-                  {"interactive" in type && type.interactive ? (
-                    <type.Card interactive />
-                  ) : (
-                    <type.Card />
-                  )}
-                </div>
-              </TabsContent>
-            ))}
+        <div className="grid items-start gap-6 md:grid-cols-2 md:gap-8">
+          <div className="relative hidden md:block">
+            <div className="sticky top-24">
+              <CardPreview key={activeTab} value={activeTab} />
+            </div>
           </div>
-        </Tabs>
+
+          <div
+            role="tablist"
+            aria-label="Card types"
+            className="flex flex-col border border-border"
+          >
+            {cardTypes.map((type, i) => {
+              const isActive = type.value === activeTab;
+              const Icon = type.icon;
+
+              return (
+                <button
+                  key={type.value}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`panel-${type.value}`}
+                  onClick={() => setActiveTab(type.value)}
+                  className={cn(
+                    "flex items-start gap-4 border-l-2 px-5 py-4 text-left transition-colors duration-150",
+                    i > 0 && "border-t border-t-border",
+                    isActive
+                      ? cn(type.borderColor, "bg-card")
+                      : "border-l-transparent hover:bg-accent/50",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 flex size-8 shrink-0 items-center justify-center transition-colors duration-150",
+                      isActive ? type.accentColor : "text-muted-foreground",
+                    )}
+                  >
+                    <Icon className="size-[18px]" />
+                  </span>
+                  <div className="min-w-0">
+                    <span
+                      className={cn(
+                        "text-sm font-semibold transition-colors duration-150",
+                        isActive ? "text-foreground" : "text-foreground/80",
+                      )}
+                    >
+                      {type.label}
+                    </span>
+                    <p
+                      className={cn(
+                        "mt-0.5 text-sm transition-colors duration-150",
+                        isActive ? "text-muted-foreground" : "text-muted-foreground/60",
+                      )}
+                    >
+                      {type.description}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="md:hidden" id={`panel-${activeTab}`} role="tabpanel">
+            <CardPreview key={activeTab} value={activeTab} />
+          </div>
+        </div>
       </div>
     </section>
   );

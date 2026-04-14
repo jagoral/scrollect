@@ -42,9 +42,9 @@ export function PipelineError({ documentId, errorMessage, failedAt }: PipelineEr
 
   return (
     <div className="mt-8" data-testid="pipeline-error">
-      <div className="rounded-xl bg-card p-5 ring-1 ring-foreground/[0.06]" role="alert">
+      <div className="border border-border bg-card p-5" role="alert">
         <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500/15 to-amber-500/5 ring-1 ring-amber-500/15">
+          <div className="flex size-9 shrink-0 items-center justify-center border border-amber-500/30">
             <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
           </div>
           <div className="min-w-0 flex-1">
