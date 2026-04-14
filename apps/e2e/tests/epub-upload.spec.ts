@@ -42,10 +42,9 @@ test.describe("EPUB file upload", () => {
 
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/app/library/']").first();
-    await expect(docLink).toBeVisible({ timeout: 10000 });
-    await docLink.click();
-    await expect(page).toHaveURL(/\/app\/library\/.+/);
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 10000 });
+    await docButton.click();
 
     await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 90000 });
   });

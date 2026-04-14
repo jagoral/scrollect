@@ -75,12 +75,12 @@ test.describe("Feed reaction feedback loop", { tag: "@seeded" }, () => {
 
     // Navigate to /saved and wait for it to fully render. This client-side navigation
     // keeps the WebSocket alive long enough for the setReaction mutation to flush.
-    await page.getByRole("navigation").getByRole("button", { name: /saved/i }).click();
+    await page.locator('[data-slot="sidebar"]').getByRole("link", { name: /saved/i }).click();
     await page.waitForURL(/\/app\/saved/);
     await expect(page.getByRole("heading", { name: /saved/i })).toBeVisible({ timeout: 15000 });
 
     // Navigate back to feed - the server-side filter should exclude the disliked card
-    await page.getByRole("navigation").getByRole("button", { name: /feed/i }).click();
+    await page.locator('[data-slot="sidebar"]').getByRole("link", { name: /feed/i }).click();
     await page.waitForURL(/\/app\/feed/);
     await expect(cards.first()).toBeVisible({ timeout: 15000 });
     await expect(cards).toHaveCount(initialCount - 1, { timeout: 15000 });

@@ -182,6 +182,7 @@ function LibraryPage() {
                   <button
                     type="button"
                     key={doc._id}
+                    data-testid="document-item"
                     onClick={() => {
                       if (libraryDetail) {
                         libraryDetail.openDetail(doc._id);

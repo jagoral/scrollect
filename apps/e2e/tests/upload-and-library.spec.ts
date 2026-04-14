@@ -19,8 +19,8 @@ test.describe("Upload and Content Library flow", () => {
 
   test("authenticated user can navigate to the upload page", async ({ page }) => {
     await page
-      .locator("nav")
-      .getByRole("button", { name: /upload/i })
+      .locator('[data-slot="sidebar"]')
+      .getByRole("link", { name: /upload/i })
       .click();
     await expect(page).toHaveURL(/\/upload/);
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
@@ -44,10 +44,12 @@ test.describe("Upload and Content Library flow", () => {
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
-    // Navigate to library and find the document by its card link
+    // Navigate to library and find the document
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("a[href^='/app/library/']").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="document-item"]').first()).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("clicking a document in library navigates to detail page", async ({ page }) => {
@@ -57,16 +59,19 @@ test.describe("Upload and Content Library flow", () => {
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
 
-    // Go to library and click the first document link
+    // Go to library and click the first document
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/app/library/']").first();
-    await expect(docLink).toBeVisible({ timeout: 10000 });
-    await docLink.click();
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 10000 });
+    await docButton.click();
 
-    // Should be on detail page
-    await expect(page).toHaveURL(/\/app\/library\/.+/);
-    await expect(page.getByText(/back to library/i)).toBeVisible();
+    // Detail panel should show document content
+    await expect(
+      page.locator('[data-testid="status-ready"], [data-testid="status-extracting"]').first(),
+    ).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("document detail page shows title and status after processing", async ({ page }) => {
@@ -79,16 +84,15 @@ test.describe("Upload and Content Library flow", () => {
     // Navigate to library and click the document
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/app/library/']").first();
-    await expect(docLink).toBeVisible({ timeout: 10000 });
-    await docLink.click();
-    await expect(page).toHaveURL(/\/app\/library\/.+/);
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 10000 });
+    await docButton.click();
 
-    // Wait for processing to complete (ready or error — fail fast on error)
+    // Wait for processing to complete (ready or error - fail fast on error)
     await expect(
       page.locator('[data-testid="status-ready"], [data-testid="status-error"]').first(),
     ).toBeVisible({ timeout: 90000 });
-    await expect(page.locator('[data-testid="status-ready"]')).toBeVisible();
+    await expect(page.locator('[data-testid="status-ready"]').first()).toBeVisible();
   });
 
   test("upload page rejects unsupported file types", async ({ page }) => {
