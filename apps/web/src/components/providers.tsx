@@ -6,6 +6,7 @@ import { authClient } from "@/lib/auth-client";
 
 import { ThemeProvider } from "./theme-provider";
 import { Toaster } from "./ui/sonner";
+import { TooltipProvider } from "./ui/tooltip";
 
 export default function Providers({
   children,
@@ -18,14 +19,16 @@ export default function Providers({
 }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <ConvexBetterAuthProvider
-        client={convexClient}
-        authClient={authClient}
-        initialToken={initialToken}
-      >
-        {children}
-        <ReactQueryDevtools buttonPosition="bottom-left" />
-      </ConvexBetterAuthProvider>
+      <TooltipProvider>
+        <ConvexBetterAuthProvider
+          client={convexClient}
+          authClient={authClient}
+          initialToken={initialToken}
+        >
+          {children}
+          <ReactQueryDevtools buttonPosition="bottom-left" />
+        </ConvexBetterAuthProvider>
+      </TooltipProvider>
       <Toaster richColors duration={6000} />
     </ThemeProvider>
   );

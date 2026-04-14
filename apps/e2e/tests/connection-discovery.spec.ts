@@ -14,10 +14,9 @@ async function uploadMarkdownFile(page: import("@playwright/test").Page, filenam
 async function waitForLatestDocumentReady(page: import("@playwright/test").Page) {
   await page.goto("/app/library");
   await page.waitForLoadState("networkidle");
-  const docLink = page.locator("a[href^='/app/library/']").first();
-  await expect(docLink).toBeVisible({ timeout: 15000 });
-  await docLink.click();
-  await expect(page).toHaveURL(/\/app\/library\/.+/);
+  const docButton = page.locator('[data-testid="document-item"]').first();
+  await expect(docButton).toBeVisible({ timeout: 15000 });
+  await docButton.click();
 
   await expect(
     page.locator('[data-testid="status-ready"], [data-testid="status-error"]').first(),
@@ -32,7 +31,7 @@ async function waitForLatestDocumentReady(page: import("@playwright/test").Page)
     }
   }
 
-  await expect(page.locator('[data-testid="status-ready"]')).toBeVisible();
+  await expect(page.locator('[data-testid="status-ready"]').first()).toBeVisible();
 }
 
 async function pollConnectionDrafts(
@@ -86,6 +85,6 @@ test.describe("Connection discovery pipeline", () => {
   }) => {
     await uploadMarkdownFile(page, "connection-doc-a.md");
     await waitForLatestDocumentReady(page);
-    await expect(page.getByText(/back to library/i)).toBeVisible();
+    await expect(page.locator('[data-testid="status-ready"]').first()).toBeVisible();
   });
 });

@@ -101,7 +101,8 @@ This avoids a window where the old frontend calls a function that no longer exis
 | `BETTER_AUTH_SECRET` | Dashboard               | Dashboard               |
 | `SITE_URL`           | `http://localhost:3000` | `https://scrollect.app` |
 | `POSTHOG_API_KEY`    | Dashboard               | Dashboard               |
-| `DATALAB_API_KEY`    | Dashboard               | Dashboard               |
+| `RUNPOD_API_KEY`     | Dashboard               | Dashboard               |
+| `RUNPOD_ENDPOINT_ID` | Dashboard               | Dashboard               |
 
 Convex env vars persist across deploys. Set once per deployment.
 

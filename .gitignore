@@ -60,3 +60,5 @@ tmp
 temp
 settings.local.json
 .claude/prompts
+
+.playwright-mcp

@@ -6,57 +6,60 @@ import { Badge } from "@/components/ui/badge";
 export const statusConfig = {
   uploaded: {
     label: "Uploaded",
-    className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    className: "rounded-none border-amber-500/30 bg-transparent text-amber-600 dark:text-amber-400",
     dotClassName: "bg-amber-500",
   },
   parsing: {
     label: "Parsing",
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    className: "rounded-none border-blue-500/30 bg-transparent text-blue-600 dark:text-blue-400",
     dotClassName: "bg-blue-500 animate-pulse",
   },
   chunking: {
     label: "Chunking",
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    className: "rounded-none border-blue-500/30 bg-transparent text-blue-600 dark:text-blue-400",
     dotClassName: "bg-blue-500 animate-pulse",
   },
   embedding: {
     label: "Embedding",
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    className: "rounded-none border-blue-500/30 bg-transparent text-blue-600 dark:text-blue-400",
     dotClassName: "bg-blue-500 animate-pulse",
   },
   summarizing: {
     label: "Summarizing",
-    className: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400",
+    className:
+      "rounded-none border-violet-500/30 bg-transparent text-violet-600 dark:text-violet-400",
     dotClassName: "bg-violet-500 animate-pulse",
   },
   generating_cards: {
     label: "Generating Cards",
-    className: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400",
+    className:
+      "rounded-none border-violet-500/30 bg-transparent text-violet-600 dark:text-violet-400",
     dotClassName: "bg-violet-500 animate-pulse",
   },
   ready: {
     label: "Ready",
-    className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+    className:
+      "rounded-none border-emerald-500/30 bg-transparent text-emerald-600 dark:text-emerald-400",
     dotClassName: "bg-emerald-500",
   },
   deleting: {
     label: "Deleting",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    className: "rounded-none border-red-500/30 bg-transparent text-red-600 dark:text-red-400",
     dotClassName: "bg-red-500 animate-pulse",
   },
   error: {
     label: "Error",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    className: "rounded-none border-red-500/30 bg-transparent text-red-600 dark:text-red-400",
     dotClassName: "bg-red-500",
   },
   pending: {
     label: "Pending",
-    className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    className: "rounded-none border-amber-500/30 bg-transparent text-amber-600 dark:text-amber-400",
     dotClassName: "bg-amber-500",
   },
   processing: {
     label: "Processing",
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    className: "rounded-none border-blue-500/30 bg-transparent text-blue-600 dark:text-blue-400",
     dotClassName: "bg-blue-500 animate-pulse",
   },
 } as const;

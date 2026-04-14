@@ -11,6 +11,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { fileTypeIcons, StatusBadge } from "@/components/document-status";
+import { Badge } from "@/components/ui/badge";
 import { HighlightsSection } from "@/components/documents/highlights-section";
 import { BookmarkedCardsSection } from "@/components/documents/bookmarked-cards-section";
 import { ImportHighlightsDialog } from "@/components/documents/import-highlights-dialog";
@@ -57,12 +58,12 @@ function DocumentDetailPage() {
 
   if (document === undefined) {
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+      <div className="px-4 py-6 md:px-6">
         <div className="mb-6 h-4 w-24">
           <Skeleton className="h-full w-full" />
         </div>
         <Skeleton className="h-8 w-2/3 rounded" />
-        <Skeleton className="mt-4 h-64 w-full rounded-xl" />
+        <Skeleton className="mt-4 h-64 w-full" />
       </div>
     );
   }
@@ -85,7 +86,7 @@ function DocumentDetailPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
+    <div className="px-4 py-6 md:px-6">
       <Link
         to="/app/library"
         className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -103,7 +104,12 @@ function DocumentDetailPage() {
         </h1>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <StatusBadge status={document.status} />
-          <span className="text-sm text-muted-foreground">{document.fileType.toUpperCase()}</span>
+          <Badge
+            variant="outline"
+            className="rounded-none border-border bg-transparent font-normal text-muted-foreground"
+          >
+            {document.fileType.toUpperCase()}
+          </Badge>
           {document.sourceUrl && (
             <a
               href={document.sourceUrl}
@@ -189,7 +195,7 @@ function DocumentDetailPage() {
 
       {document.status === "deleting" && (
         <div className="mt-10 flex flex-col items-center gap-4 text-center" role="status">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-destructive/10 to-destructive/5 ring-1 ring-destructive/10">
+          <div className="flex size-12 items-center justify-center border border-destructive/30 bg-transparent">
             <Loader2 className="size-5 animate-spin text-destructive" aria-hidden="true" />
           </div>
           <p className="text-sm text-muted-foreground">Deleting document...</p>

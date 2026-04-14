@@ -19,7 +19,9 @@ async function bookmarkFirstCardAndNavigateToDocument(page: Page) {
   await detailSheet.getByText(/view in library/i).click();
 
   await expect(page).toHaveURL(/\/app\/library\/.+/, { timeout: 15000 });
-  await expect(page.getByText(/back to library/i)).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('[data-testid="status-ready"]').first()).toBeVisible({
+    timeout: 15000,
+  });
 }
 
 test.describe("Bookmarked cards section on document detail page", { tag: "@seeded" }, () => {
@@ -31,9 +33,11 @@ test.describe("Bookmarked cards section on document detail page", { tag: "@seede
 
   test("section is hidden when document has no bookmarked cards", async ({ page }) => {
     await goToFirstDocument(page);
-    // Wait for the document detail page to fully load its Convex queries
+    // Wait for the document detail panel to fully load its Convex queries
     // by confirming a section that always renders for ready documents
-    await expect(page.getByText(/chunk/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="status-ready"]').first()).toBeVisible({
+      timeout: 15000,
+    });
     await expect(page.locator('[data-testid="bookmarked-cards-section"]')).toHaveCount(0);
   });
 

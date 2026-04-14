@@ -148,9 +148,9 @@ export function UploadFileTab() {
       <Card
         data-testid="file-drop-zone"
         className={cn(
-          "group relative flex min-h-[320px] cursor-pointer flex-col items-center justify-center gap-5 overflow-hidden rounded-xl border-2 border-dashed p-8 transition-all",
+          "group relative flex min-h-[320px] cursor-pointer flex-col items-center justify-center gap-5 overflow-hidden border-2 border-dashed p-8 transition-all",
           dragOver
-            ? "scale-[1.01] border-primary bg-primary/5 shadow-lg shadow-primary/10"
+            ? "border-primary bg-primary/5"
             : "border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/30",
         )}
         onDrop={handleDrop}
@@ -160,22 +160,14 @@ export function UploadFileTab() {
         onClick={() => fileInputRef.current?.click()}
       >
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.15]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, var(--color-muted-foreground) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div
           className={cn(
-            "relative flex size-16 items-center justify-center rounded-2xl transition-colors",
+            "relative flex size-16 items-center justify-center border transition-colors",
             dragOver
-              ? "bg-primary/15 text-primary"
-              : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary",
+              ? "border-primary/30 text-primary"
+              : "border-border text-muted-foreground group-hover:border-primary/30 group-hover:text-primary",
           )}
         >
-          <CloudUpload className={cn("size-8", dragOver && "animate-bounce")} />
+          <CloudUpload className={cn("size-8", dragOver && "animate-float")} />
         </div>
         <div className="text-center">
           <p className="text-lg font-semibold">
@@ -214,7 +206,7 @@ export function UploadFileTab() {
       </Card>
 
       {activeUploads.length > 0 && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-primary/5 px-4 py-3 text-sm text-primary animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="mt-4 flex items-center gap-2 border border-primary/30 px-4 py-3 text-sm text-primary animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Loader2 className="size-4 animate-spin" />
           Uploading {activeUploads.length} file{activeUploads.length > 1 ? "s" : ""}...
         </div>
@@ -226,10 +218,10 @@ export function UploadFileTab() {
             <div
               key={u.file.name + u.file.lastModified}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg px-4 py-3 text-sm",
+                "flex items-center gap-2.5 border px-4 py-3 text-sm",
                 u.status === "done"
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                  : "bg-destructive/10 text-destructive",
+                  ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                  : "border-destructive/30 text-destructive",
               )}
             >
               {u.status === "done" ? (

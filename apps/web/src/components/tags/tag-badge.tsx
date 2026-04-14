@@ -21,10 +21,10 @@ export function TagBadge({ tag, onRemove, size = "default" }: TagBadgeProps) {
       data-testid={`tag-badge-${tag.tagName}`}
       data-tag-source={tag.source}
       className={cn(
-        "gap-1 font-normal",
+        "gap-1 rounded-none font-normal",
         isAi
-          ? "border-primary/20 bg-primary/5 text-primary dark:border-primary/30 dark:bg-primary/10"
-          : "border-border/60 bg-muted/50 text-muted-foreground",
+          ? "border-primary/30 bg-transparent text-primary"
+          : "border-border bg-transparent text-muted-foreground",
         isSmall && "h-[18px] px-1.5 text-[11px]",
       )}
     >

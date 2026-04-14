@@ -149,15 +149,21 @@ function RootComponent() {
     return <Outlet />;
   }
 
+  const isAppRoute = pathname.startsWith("/app/");
+
   return (
     <Providers initialToken={initialToken} convexClient={convexClient}>
-      <div className="flex min-h-svh flex-col">
-        <Header />
-        <main className="flex flex-1 flex-col">
-          <Outlet />
-        </main>
-        <Footer />
-      </div>
+      {isAppRoute ? (
+        <Outlet />
+      ) : (
+        <div className="flex min-h-svh flex-col">
+          <Header />
+          <main className="flex flex-1 flex-col">
+            <Outlet />
+          </main>
+          <Footer />
+        </div>
+      )}
     </Providers>
   );
 }

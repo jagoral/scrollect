@@ -19,7 +19,7 @@ This split introduces several problems:
 | **Split deployment**             | Two services to deploy, monitor, and keep in sync                                                                                                         |
 | **Duplicated logic**             | `chunkContent()` and `chunkMarkdown()` exist in both `packages/backend/convex/chunking.ts` and `apps/processing/api/process.ts`                           |
 | **Fragile completion detection** | The processing app fires embedding batches as fire-and-forget `fetch()` calls. If any batch fails silently, the document is stuck in `processing` forever |
-| **No resumability**              | If any step fails (Datalab timeout, OpenAI rate limit, Qdrant downtime), the entire document is stuck. The user must re-upload                            |
+| **No resumability**              | If any step fails (parser timeout, OpenAI rate limit, Qdrant downtime), the entire document is stuck. The user must re-upload                             |
 | **No progress tracking**         | Users see `pending                                                                                                                                        | processing | ready | error` with no granularity — no way to know if a document is 10% or 90% done |
 | **Tight coupling via HTTP**      | Convex calls the processing app via `fetch()`, which calls Convex back via HTTP routes with a shared `PROCESSING_SECRET`                                  |
 | **Duplicated credentials**       | `OPENAI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` are configured in both services                                                                      |
@@ -39,7 +39,7 @@ Documents progress through a 6-state pipeline:
 | State       | Description                                                                       |
 | ----------- | --------------------------------------------------------------------------------- |
 | `uploaded`  | File stored in Convex, no processing started                                      |
-| `parsing`   | PDF submitted to Datalab or markdown being fetched                                |
+| `parsing`   | PDF submitted to Marker (RunPod) or markdown being fetched                        |
 | `chunking`  | Content is being split into chunks and stored                                     |
 | `embedding` | Chunks are being embedded in batches                                              |
 | `ready`     | All chunks embedded, document is searchable                                       |
@@ -47,24 +47,24 @@ Documents progress through a 6-state pipeline:
 
 The `error` state records both `errorMessage` (what went wrong) and `failedAt` (which stage: `"parsing"`, `"chunking"`, or `"embedding"`). This enables **stage-level resumability**: when a user retries a failed document, `pipeline.resumeProcessing` reads `failedAt` to re-enter at the correct stage — it never re-does work that already succeeded.
 
-- `failedAt = "parsing"` → re-submit to Datalab
+- `failedAt = "parsing"` → re-submit to Marker (RunPod)
 - `failedAt = "chunking"` → re-chunk (skip existing chunks if any)
 - `failedAt = "embedding"` → re-embed only unembedded chunks (using the `embedded: boolean` flag on each chunk)
 
-A `datalabCheckUrl` field on documents persists the Datalab polling URL so parsing can resume even after a Convex action crash — the poll URL is saved before the first poll attempt.
+A `runpodJobId` field on documents tracks the active parsing job for status queries and timeout handling.
 
 ### 3. Provider interfaces behind factory functions
 
 Three interfaces in `providers/types.ts`:
 
-- **`PdfParser`** — Async submit/poll pattern for Datalab. `submit(fileUrl)` returns a check URL; `poll(checkUrl)` returns pending/complete/error with optional markdown.
+- **`MarkerClient`** — Submits files to self-hosted Marker on RunPod. Results are delivered via webhook callback.
 - **`EmbeddingProvider`** — Batch text → vectors. `embed(texts)` returns one vector per input. Exposes `dimensions` for vector store configuration.
 - **`VectorStore`** — `ensureCollection()`, `upsert(points)`, `search(vector, filter, topK)`, `delete(ids)`. Abstracts the backing store.
 
-Each interface has concrete implementations (DatalabParser, OpenAIEmbeddings, QdrantVectorStore) swappable via factory functions in `pipeline/helpers.ts`. This enables:
+Each interface has concrete implementations (MarkerClient, OpenAIEmbeddings, QdrantVectorStore) swappable via factory functions in `pipeline/helpers.ts`. This enables:
 
 - Swapping Qdrant for Convex native vector search (or vice versa) without touching pipeline code
-- Replacing Datalab with another PDF parser
+- Swapping the parsing backend without changing pipeline orchestration
 - Injecting stubs for testing (see ADR-005)
 
 The vector store decision specifically: Qdrant is mature and feature-rich (payload filtering, sharding), but adds operational overhead (separate service). Convex native vector search is zero-ops (schema-only setup, included in pricing), but has limited filtering (`filterFields` only). Starting with Qdrant for its flexibility, but the `VectorStore` interface makes the swap trivial if we want to simplify ops later.
@@ -83,7 +83,7 @@ After chunking, the pipeline creates a `processingJobs` record tracking `totalBa
 
 This replaces the old fire-and-forget approach where completion was racily determined by "whichever batch finishes last" — atomic counters make the determination deterministic.
 
-**Datalab polling** uses exponential backoff (5s → 10s → 20s → 40s cap, 5 minute total timeout) instead of the current fixed 5s interval. For a typical 2-minute parse, this reduces action invocations from ~24 to ~8.
+**Note:** The original polling pattern described here was replaced by webhook-based communication in ADR-017. Marker results are now delivered via webhook callback, eliminating polling entirely.
 
 ### Alternatives considered
 

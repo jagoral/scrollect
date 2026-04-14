@@ -14,16 +14,9 @@ export function QuoteCard({ post }: QuoteCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <CardShell post={post} accentClassName="via-amber-500/30 group-hover/card:via-amber-500/60">
+    <CardShell post={post}>
       <SourceBadge post={post} />
-      <div className="relative pl-4">
-        <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-amber-500/40" />
-        <span
-          className="pointer-events-none absolute -left-1 -top-3 font-serif text-4xl leading-none text-amber-500/20 select-none"
-          aria-hidden="true"
-        >
-          &ldquo;
-        </span>
+      <div>
         <blockquote
           data-testid="quoted-text"
           className="text-base leading-relaxed text-foreground/90"
@@ -43,7 +36,10 @@ export function QuoteCard({ post }: QuoteCardProps) {
               !expanded && "line-clamp-2",
               expanded && "text-sm",
             )}
-            onClick={() => setExpanded((prev) => !prev)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((prev) => !prev);
+            }}
           >
             {post.content}
           </p>

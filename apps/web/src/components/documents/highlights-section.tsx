@@ -59,7 +59,7 @@ export function HighlightsSection({ documentId }: HighlightsSectionProps) {
   };
 
   return (
-    <div data-testid="highlights-section" className="mt-6 border-t border-border/40 pt-5">
+    <div data-testid="highlights-section" className="mt-6 border-t border-border pt-5">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center justify-between">
           <CollapsibleTrigger
@@ -117,7 +117,7 @@ export function HighlightsSection({ documentId }: HighlightsSectionProps) {
             {highlights.map((highlight) => (
               <li
                 key={highlight._id}
-                className="rounded-lg border bg-card p-3"
+                className="border border-border bg-card p-3"
                 data-testid="highlight-item"
               >
                 <div className="flex items-start gap-2.5">

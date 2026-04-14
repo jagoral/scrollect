@@ -115,7 +115,7 @@ test.describe(
         await test.step("verify document appears in library", async () => {
           await page.goto("/app/library");
           await page.waitForLoadState("networkidle");
-          await expect(page.locator("a[href^='/app/library/']").first()).toBeVisible({
+          await expect(page.locator('[data-testid="document-item"]').first()).toBeVisible({
             timeout: 10000,
           });
         });
@@ -147,7 +147,7 @@ test.describe(
         await test.step("verify document appears in library", async () => {
           await page.goto("/app/library");
           await page.waitForLoadState("networkidle");
-          await expect(page.locator("a[href^='/app/library/']").first()).toBeVisible({
+          await expect(page.locator('[data-testid="document-item"]').first()).toBeVisible({
             timeout: 10000,
           });
         });
@@ -607,14 +607,15 @@ test.describe(
       await test.step("verify document renders in library", async () => {
         await page.goto("/app/library");
         await page.waitForLoadState("networkidle");
-        const docLink = page.locator("a[href^='/app/library/']").first();
-        await expect(docLink).toBeVisible({ timeout: 10000 });
-        await docLink.click();
+        const docButton = page.locator('[data-testid="document-item"]').first();
+        await expect(docButton).toBeVisible({ timeout: 10000 });
+        await docButton.click();
       });
 
-      await test.step("verify detail page renders without errors", async () => {
-        await expect(page).toHaveURL(/\/app\/library\/.+/);
-        await expect(page.getByText(/back to library/i)).toBeVisible();
+      await test.step("verify detail panel renders without errors", async () => {
+        await expect(page.locator('[data-testid^="status-"]').first()).toBeVisible({
+          timeout: 15000,
+        });
         await expect(page.locator("text=Something went wrong")).not.toBeVisible();
         await expect(page.locator("text=undefined")).not.toBeVisible();
       });

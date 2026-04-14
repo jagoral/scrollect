@@ -21,7 +21,7 @@ function FileTypeBadge({ fileType }: { fileType?: string }) {
   return (
     <Badge
       variant="outline"
-      className="gap-1.5 border-primary/15 bg-primary/[0.03] font-normal text-muted-foreground"
+      className="gap-1.5 rounded-none border-border bg-transparent font-normal text-muted-foreground"
     >
       <Icon className="size-4" />
       {label}
@@ -35,7 +35,7 @@ function formatPageRange(pageStart?: number, pageEnd?: number): string | null {
   return `Page ${pageStart}`;
 }
 
-function SourceDetailsContent({
+export function SourceDetailsContent({
   postId,
   documentId,
 }: {
@@ -49,7 +49,7 @@ function SourceDetailsContent({
 
   if (isPending) {
     return (
-      <div className="flex items-center justify-center px-5 py-8">
+      <div className="flex items-center justify-center py-8">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     );
@@ -57,7 +57,7 @@ function SourceDetailsContent({
 
   if (!details) {
     return (
-      <div className="flex flex-col items-center gap-2 px-5 py-6 text-center">
+      <div className="flex flex-col items-center gap-2 py-6 text-center">
         <p className="text-sm text-muted-foreground">Source details unavailable.</p>
       </div>
     );
@@ -66,7 +66,7 @@ function SourceDetailsContent({
   const pageRange = formatPageRange(details.pageStart, details.pageEnd);
 
   return (
-    <div className="flex flex-col gap-4 px-5 py-2">
+    <div className="flex flex-col gap-4 py-2">
       <div className="flex flex-col gap-2">
         <FileTypeBadge fileType={details.fileType} />
         <p className="text-base font-medium leading-snug text-foreground">
@@ -97,7 +97,7 @@ function SourceDetailsContent({
       )}
 
       {details.sectionSummary && (
-        <div className="rounded-lg bg-muted/50 p-3">
+        <div className="border border-border p-3">
           <p className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Section context
           </p>
@@ -105,7 +105,7 @@ function SourceDetailsContent({
         </div>
       )}
 
-      <div className="flex flex-col gap-2 border-t border-border/40 pt-3">
+      <div className="flex flex-col gap-2 border-t border-border pt-3">
         {details.sourceUrl && (
           <a
             href={details.sourceUrl}

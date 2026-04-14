@@ -82,10 +82,10 @@ export function UploadUrlTab() {
   );
 
   return (
-    <Card className="rounded-xl border-2 border-muted-foreground/20 p-8">
+    <Card className="border border-border p-8">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+          <div className="flex size-16 items-center justify-center border border-border text-muted-foreground">
             <Globe className="size-8" />
           </div>
           <div>

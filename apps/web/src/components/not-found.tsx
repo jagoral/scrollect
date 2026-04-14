@@ -8,10 +8,10 @@ export function NotFound({ children }: { children?: React.ReactNode }) {
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16 text-center">
       <div
         aria-hidden="true"
-        className="relative mb-6 flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary ring-1 ring-primary/10"
+        className="relative mb-6 flex size-20 items-center justify-center border border-primary/30 text-primary"
       >
         <Search className="size-10" />
-        <span className="absolute -right-1 -top-1 flex size-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground ring-2 ring-background">
+        <span className="absolute -right-1 -top-1 flex size-7 items-center justify-center border border-border bg-card text-xs font-bold text-muted-foreground">
           ?
         </span>
       </div>

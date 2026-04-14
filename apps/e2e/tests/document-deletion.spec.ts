@@ -27,35 +27,24 @@ test.describe("Document deletion", () => {
 
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");
-    const docLink = page.locator("a[href^='/app/library/']").first();
-    await expect(docLink).toBeVisible({ timeout: 10000 });
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 10000 });
 
-    const docTitle = await docLink.textContent();
-    await docLink.click();
+    await docButton.click();
 
-    await expect(page).toHaveURL(/\/app\/library\/.+/);
-    await expect(page.getByText(/back to library/i)).toBeVisible({
-      timeout: 10000,
+    // Wait for detail panel to load
+    await expect(page.locator('[data-testid="delete-document-button"]')).toBeVisible({
+      timeout: 15000,
     });
 
-    await page.getByRole("button", { name: /delete document/i }).click();
+    await page.locator('[data-testid="delete-document-button"]').click();
 
     const dialog = page.getByRole("alertdialog");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
     await dialog.getByRole("button", { name: /^delete$/i }).click();
 
-    await expect(page).toHaveURL(/\/app\/library\/?$/, { timeout: 30000 });
-    await page.waitForLoadState("networkidle");
-
-    const remainingLinks = page.locator("a[href^='/app/library/']");
-    const linkCount = await remainingLinks.count();
-
-    if (linkCount > 0 && docTitle) {
-      for (let i = 0; i < linkCount; i++) {
-        const text = await remainingLinks.nth(i).textContent();
-        expect(text).not.toBe(docTitle);
-      }
-    }
+    // After deletion, the document should no longer be in the library list
+    await expect(page.locator('[data-testid="document-item"]')).toHaveCount(0, { timeout: 30000 });
   });
 });

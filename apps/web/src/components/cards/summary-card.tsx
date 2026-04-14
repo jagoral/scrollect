@@ -13,12 +13,12 @@ export function SummaryCard({ post }: SummaryCardProps) {
   const { bulletPoints } = post.typeData;
 
   return (
-    <CardShell post={post} accentClassName="via-blue-500/30 group-hover/card:via-blue-500/60">
+    <CardShell post={post}>
       <div className="mb-3 flex items-center gap-2">
         <SourceBadge post={post} className="mb-0" />
         <Badge
           data-testid="summary-badge"
-          className="bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+          className="rounded-none border-blue-500/30 bg-transparent text-blue-600 dark:text-blue-400"
         >
           Summary
         </Badge>
