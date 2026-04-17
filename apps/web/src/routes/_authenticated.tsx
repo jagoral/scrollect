@@ -63,7 +63,7 @@ function AuthenticatedLayout() {
           ) : isLibraryList ? (
             <LibraryDetailProvider>
               <div className="flex flex-1 overflow-hidden">
-                <main className="min-w-0 flex-1 overflow-y-auto border-r border-border">
+                <main className="w-full max-w-2xl shrink-0 border-r border-border">
                   <Outlet />
                 </main>
                 <LibraryDetailPanel />
