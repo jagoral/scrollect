@@ -5,10 +5,18 @@ import { httpAction } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { E2E_EMAIL_PATTERN, isE2EEnabled } from "./lib/e2e";
 import { markerWebhookHandler } from "./pipeline/markerWebhook";
+import { polar } from "./polar";
 
 const http = httpRouter();
 
+// Better-auth mounts on /api/auth/* and /.well-known/openid-configuration;
+// Polar mounts on /polar/events. Paths are disjoint so registration order is
+// irrelevant. Webhook route is skipped when the secret is unset so unconfigured
+// deployments return 404 instead of failing signature verification at runtime.
 authComponent.registerRoutes(http, createAuth);
+if (process.env.POLAR_WEBHOOK_SECRET) {
+  polar.registerRoutes(http);
+}
 
 async function parseEmail(request: Request): Promise<string> {
   const body = (await request.json()) as { email?: string };
