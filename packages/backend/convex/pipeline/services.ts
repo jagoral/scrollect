@@ -2,6 +2,7 @@
 
 import type {
   ConnectionDiscoveryServiceContext,
+  DocumentMetadataServiceContext,
   DraftGenerationServiceContext,
   EmbeddingServiceContext,
   ExtractionServiceContext,
@@ -14,12 +15,14 @@ import type {
 import { AiSdkCardDraftLlm } from "../../src/providers/cardDraftLlm";
 import { AiSdkCardDraftValidator } from "../../src/providers/cardDraftValidator";
 import { AiSdkConnectionDiscoveryLlm } from "../../src/providers/connectionDiscoveryLlm";
+import { AiSdkDocumentMetadataLlm } from "../../src/providers/documentMetadataLlm";
 import { AiSdkHighlightDraftLlm } from "../../src/providers/highlightDraftLlm";
 import { AiSdkSummarizingLlm } from "../../src/providers/summarizingLlm";
 import {
   StubCardDraftLlm,
   StubCardDraftValidator,
   StubConnectionDiscoveryLlm,
+  StubDocumentMetadataLlm,
   StubHighlightDraftLlm,
   StubThematicLlm,
 } from "../../src/providers/stubs";
@@ -60,6 +63,13 @@ export function createTaggingServiceContext(): TaggingServiceContext {
   return {
     llm: new AiSdkTaggingLlm(),
   };
+}
+
+export function createDocumentMetadataServiceContext(): DocumentMetadataServiceContext {
+  if (process.env.USE_STUB_EXTRACTORS === "true") {
+    return { llm: new StubDocumentMetadataLlm() };
+  }
+  return { llm: new AiSdkDocumentMetadataLlm() };
 }
 
 export function createVectorDeletionServices(): VectorDeletionServices {

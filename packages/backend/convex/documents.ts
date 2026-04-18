@@ -342,6 +342,28 @@ export const updateTitle = internalMutation({
   },
 });
 
+export const updateMetadata = internalMutation({
+  args: {
+    id: v.id("documents"),
+    title: v.optional(v.string()),
+    thumbnailUrl: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const update: { title?: string; thumbnailUrl?: string } = {};
+    if (args.title !== undefined) {
+      update.title = args.title;
+    }
+    if (args.thumbnailUrl !== undefined) {
+      update.thumbnailUrl = args.thumbnailUrl;
+    }
+    if (Object.keys(update).length > 0) {
+      await ctx.db.patch(args.id, update);
+    }
+    return null;
+  },
+});
+
 export const list = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {

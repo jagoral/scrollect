@@ -28,9 +28,19 @@ Format is auto-routed based on `file_type` in the job input.
 ### Build and push
 
 ```bash
-docker build -t tomaszgoral/scrollect-marker:latest .
+docker build --platform linux/amd64 -t tomaszgoral/scrollect-marker:latest .
 docker push tomaszgoral/scrollect-marker:latest
 ```
+
+The `Deploy Marker Worker` GitHub Action builds the same image for `linux/amd64`, pushes both
+`:latest` and a commit SHA tag, then updates the RunPod Serverless template. RunPod rolls the
+endpoints that use the template after the image is changed. Configure these repository secrets
+before relying on the workflow:
+
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+- `RUNPOD_API_KEY`
+- `RUNPOD_MARKER_TEMPLATE_ID`
 
 ### Create RunPod endpoint
 
@@ -74,7 +84,11 @@ Success:
 ```json
 {
   "markdown": "# Chapter 1\n\nContent...",
-  "document_id": "abc123"
+  "document_id": "abc123",
+  "title": "Optional parsed document title",
+  "author": "Optional parsed EPUB author",
+  "image_base64": "Optional base64-encoded JPEG/PNG cover or preview",
+  "image_mime_type": "image/jpeg"
 }
 ```
 

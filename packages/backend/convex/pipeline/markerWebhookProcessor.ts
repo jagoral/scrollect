@@ -9,6 +9,10 @@ import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 import { captureEvent } from "../../src/providers/analytics";
 import { storeMarkdownBlob, createMarkerClient } from "./helpers";
+import {
+  cleanDocumentTitle,
+  shouldInferDocumentTitle,
+} from "../../src/pipeline/logic/documentMetadata";
 
 interface RunPodWebhookPayload {
   id: string;
@@ -19,6 +23,12 @@ interface RunPodWebhookPayload {
   output?: {
     markdown?: string;
     document_id?: string;
+    title?: string;
+    author?: string;
+    image_base64?: string;
+    image_mime_type?: string;
+    cover_base64?: string;
+    cover_mime_type?: string;
   };
   error?: string;
 }
@@ -92,10 +102,15 @@ async function handleCompleted(ctx: ActionCtx, body: RunPodWebhookPayload, evt: 
   const parsingDurationMs = doc.runpodSubmittedAt ? Date.now() - doc.runpodSubmittedAt : undefined;
   evt.set({ parsingDurationMs, markdownLength: markdown.length });
 
+  const metadata = await applyParsedMetadata({ ctx, docId, output: body.output, evt });
   const markdownStorageId = await storeMarkdownBlob(ctx, markdown);
   await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
     documentId: docId,
     markdownStorageId,
+    inferTitle: shouldInferDocumentTitle({
+      fileType: doc.fileType,
+      hasParsedTitle: metadata.hasTitle,
+    }),
   });
 
   try {
@@ -117,6 +132,59 @@ async function handleCompleted(ctx: ActionCtx, body: RunPodWebhookPayload, evt: 
   await captureRunPodCost({ jobId: body.id, documentId, userId: doc.userId, evt });
 
   evt.set("result", "complete");
+}
+
+async function applyParsedMetadata(opts: {
+  ctx: ActionCtx;
+  docId: Id<"documents">;
+  output: RunPodWebhookPayload["output"];
+  evt: WideEvent;
+}): Promise<{ hasTitle: boolean; hasThumbnail: boolean }> {
+  const title = cleanDocumentTitle(opts.output?.title);
+  const thumbnailUrl = await storeParsedImage({
+    ctx: opts.ctx,
+    output: opts.output,
+    evt: opts.evt,
+  });
+
+  if (title || thumbnailUrl) {
+    await opts.ctx.runMutation(internal.documents.updateMetadata, {
+      id: opts.docId,
+      ...(title ? { title } : {}),
+      ...(thumbnailUrl ? { thumbnailUrl } : {}),
+    });
+  }
+
+  opts.evt.set({
+    parsedTitle: !!title,
+    parsedAuthor: !!opts.output?.author,
+    parsedThumbnail: !!thumbnailUrl,
+  });
+
+  return { hasTitle: !!title, hasThumbnail: !!thumbnailUrl };
+}
+
+async function storeParsedImage(opts: {
+  ctx: ActionCtx;
+  output: RunPodWebhookPayload["output"];
+  evt: WideEvent;
+}): Promise<string | undefined> {
+  const imageBase64 = opts.output?.image_base64 ?? opts.output?.cover_base64;
+  if (!imageBase64) return undefined;
+
+  try {
+    const mimeType = opts.output?.image_mime_type ?? opts.output?.cover_mime_type ?? "image/jpeg";
+    const imageBytes = Buffer.from(imageBase64, "base64");
+    if (imageBytes.length === 0) return undefined;
+
+    const storageId = await opts.ctx.storage.store(new Blob([imageBytes], { type: mimeType }));
+    return (await opts.ctx.storage.getUrl(storageId)) ?? undefined;
+  } catch (error) {
+    opts.evt.set({
+      parsedImageStorageError: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
 }
 
 const RUNPOD_COST_PER_SEC = 0.00016; // RTX A4500

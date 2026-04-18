@@ -167,6 +167,15 @@ export interface TaggingLlm {
   suggestTags(opts: { prompt: string }): Promise<{ tags: string[]; usage: TokenUsage }>;
 }
 
+export interface DocumentMetadataLlm {
+  inferTitle(opts: {
+    firstChunk: string;
+    currentTitle: string;
+    fileType: string;
+    language?: string;
+  }): Promise<{ title?: string; usage: TokenUsage }>;
+}
+
 /** Card types eligible for draft generation (excludes "connection"). Standalone mirror of the Convex validator type. */
 export type DraftCardType = "insight" | "quiz" | "quote" | "summary";
 
@@ -277,6 +286,10 @@ export type ExtractionServiceContext = {
 
 export type TaggingServiceContext = {
   llm: TaggingLlm;
+};
+
+export type DocumentMetadataServiceContext = {
+  llm: DocumentMetadataLlm;
 };
 
 export type DraftGenerationServiceContext = {
