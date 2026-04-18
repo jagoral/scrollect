@@ -4,6 +4,7 @@ import type {
   CardDraftValidator,
   ConnectionDiscoveryLlm,
   ContentExtractor,
+  DocumentMetadataLlm,
   DraftCardType,
   ExtractResult,
   HighlightDraftLlm,
@@ -130,6 +131,21 @@ export class StubYouTubeExtractor implements ContentExtractor {
         provider: "stub",
         thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
       },
+    };
+  }
+}
+
+export class StubDocumentMetadataLlm implements DocumentMetadataLlm {
+  async inferTitle(opts: {
+    firstChunk: string;
+    currentTitle: string;
+    fileType: string;
+    language?: string;
+  }): Promise<{ title?: string; usage: TokenUsage }> {
+    const heading = opts.firstChunk.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    return {
+      title: heading || "Stub Document Title",
+      usage: ZERO_USAGE,
     };
   }
 }
