@@ -10,6 +10,7 @@
 
 import type * as account from "../account.js";
 import type * as accountActions from "../accountActions.js";
+import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as cardDrafts from "../cardDrafts.js";
@@ -17,6 +18,8 @@ import type * as chunks from "../chunks.js";
 import type * as connectionPairs from "../connectionPairs.js";
 import type * as documentActions from "../documentActions.js";
 import type * as documents from "../documents.js";
+import type * as entitlementGrants from "../entitlementGrants.js";
+import type * as entitlements from "../entitlements.js";
 import type * as feed_queries from "../feed/queries.js";
 import type * as feed_serving from "../feed/serving.js";
 import type * as feed_servingAnalytics from "../feed/servingAnalytics.js";
@@ -30,6 +33,7 @@ import type * as lib_logging from "../lib/logging.js";
 import type * as lib_rateLimitChecks from "../lib/rateLimitChecks.js";
 import type * as lib_rateLimitConfig from "../lib/rateLimitConfig.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as migrateEarlyAdopters from "../migrateEarlyAdopters.js";
 import type * as migrations from "../migrations.js";
 import type * as pipeline_cardDraftGeneration from "../pipeline/cardDraftGeneration.js";
 import type * as pipeline_chunking from "../pipeline/chunking.js";
@@ -47,6 +51,8 @@ import type * as pipeline_services from "../pipeline/services.js";
 import type * as pipeline_summarizing from "../pipeline/summarizing.js";
 import type * as pipeline_tagging from "../pipeline/tagging.js";
 import type * as pipeline_thematicDraftGeneration from "../pipeline/thematicDraftGeneration.js";
+import type * as polar from "../polar.js";
+import type * as polarAuth from "../polarAuth.js";
 import type * as posts from "../posts.js";
 import type * as privateData from "../privateData.js";
 import type * as processingJobs from "../processingJobs.js";
@@ -64,6 +70,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   account: typeof account;
   accountActions: typeof accountActions;
+  admin: typeof admin;
   auth: typeof auth;
   bookmarks: typeof bookmarks;
   cardDrafts: typeof cardDrafts;
@@ -71,6 +78,8 @@ declare const fullApi: ApiFromModules<{
   connectionPairs: typeof connectionPairs;
   documentActions: typeof documentActions;
   documents: typeof documents;
+  entitlementGrants: typeof entitlementGrants;
+  entitlements: typeof entitlements;
   "feed/queries": typeof feed_queries;
   "feed/serving": typeof feed_serving;
   "feed/servingAnalytics": typeof feed_servingAnalytics;
@@ -84,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimitChecks": typeof lib_rateLimitChecks;
   "lib/rateLimitConfig": typeof lib_rateLimitConfig;
   "lib/validators": typeof lib_validators;
+  migrateEarlyAdopters: typeof migrateEarlyAdopters;
   migrations: typeof migrations;
   "pipeline/cardDraftGeneration": typeof pipeline_cardDraftGeneration;
   "pipeline/chunking": typeof pipeline_chunking;
@@ -101,6 +111,8 @@ declare const fullApi: ApiFromModules<{
   "pipeline/summarizing": typeof pipeline_summarizing;
   "pipeline/tagging": typeof pipeline_tagging;
   "pipeline/thematicDraftGeneration": typeof pipeline_thematicDraftGeneration;
+  polar: typeof polar;
+  polarAuth: typeof polarAuth;
   posts: typeof posts;
   privateData: typeof privateData;
   processingJobs: typeof processingJobs;
@@ -2197,6 +2209,871 @@ export declare const components: {
           processed: number;
           state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
         }
+      >;
+    };
+  };
+  polar: {
+    lib: {
+      createProduct: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          product: {
+            benefits?: Array<{
+              createdAt: string;
+              deletable: boolean;
+              description: string;
+              id: string;
+              metadata?: Record<string, any>;
+              modifiedAt: string | null;
+              organizationId: string;
+              properties?: any;
+              selectable: boolean;
+              type: string;
+            }>;
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              capAmount?: number | null;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              maximumAmount?: number | null;
+              meter?: { id: string; name: string };
+              meterId?: string;
+              minimumAmount?: number | null;
+              modifiedAt: string | null;
+              presetAmount?: number | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: string | null;
+              seatTiers?: Array<{
+                maxSeats: number | null;
+                minSeats: number;
+                pricePerSeat: number;
+              }>;
+              source?: string;
+              type?: string;
+              unitAmount?: string;
+            }>;
+            recurringInterval?: string | null;
+            recurringIntervalCount?: number | null;
+            trialInterval?: string | null;
+            trialIntervalCount?: number | null;
+          };
+        },
+        any
+      >;
+      createSubscription: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          subscription: {
+            amount: number | null;
+            cancelAtPeriodEnd: boolean;
+            canceledAt?: string | null;
+            checkoutId: string | null;
+            createdAt: string;
+            currency: string | null;
+            currentPeriodEnd: string | null;
+            currentPeriodStart: string;
+            customFieldData?: Record<string, any>;
+            customerCancellationComment?: string | null;
+            customerCancellationReason?: string | null;
+            customerId: string;
+            discountId?: string | null;
+            endedAt: string | null;
+            endsAt?: string | null;
+            id: string;
+            metadata: Record<string, any>;
+            modifiedAt: string | null;
+            priceId?: string;
+            productId: string;
+            recurringInterval: string | null;
+            recurringIntervalCount?: number;
+            seats?: number | null;
+            startedAt: string | null;
+            status: string;
+            trialEnd?: string | null;
+            trialStart?: string | null;
+          };
+        },
+        any
+      >;
+      getCurrentSubscription: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        {
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          canceledAt?: string | null;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customFieldData?: Record<string, any>;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          discountId?: string | null;
+          endedAt: string | null;
+          endsAt?: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          product: {
+            benefits?: Array<{
+              createdAt: string;
+              deletable: boolean;
+              description: string;
+              id: string;
+              metadata?: Record<string, any>;
+              modifiedAt: string | null;
+              organizationId: string;
+              properties?: any;
+              selectable: boolean;
+              type: string;
+            }>;
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              capAmount?: number | null;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              maximumAmount?: number | null;
+              meter?: { id: string; name: string };
+              meterId?: string;
+              minimumAmount?: number | null;
+              modifiedAt: string | null;
+              presetAmount?: number | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: string | null;
+              seatTiers?: Array<{
+                maxSeats: number | null;
+                minSeats: number;
+                pricePerSeat: number;
+              }>;
+              source?: string;
+              type?: string;
+              unitAmount?: string;
+            }>;
+            recurringInterval?: string | null;
+            recurringIntervalCount?: number | null;
+            trialInterval?: string | null;
+            trialIntervalCount?: number | null;
+          };
+          productId: string;
+          recurringInterval: string | null;
+          recurringIntervalCount?: number;
+          seats?: number | null;
+          startedAt: string | null;
+          status: string;
+          trialEnd?: string | null;
+          trialStart?: string | null;
+        } | null
+      >;
+      getCustomerByUserId: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        { id: string; metadata?: Record<string, any>; userId: string } | null
+      >;
+      getProduct: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        {
+          benefits?: Array<{
+            createdAt: string;
+            deletable: boolean;
+            description: string;
+            id: string;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            organizationId: string;
+            properties?: any;
+            selectable: boolean;
+            type: string;
+          }>;
+          createdAt: string;
+          description: string | null;
+          id: string;
+          isArchived: boolean;
+          isRecurring: boolean;
+          medias: Array<{
+            checksumEtag: string | null;
+            checksumSha256Base64: string | null;
+            checksumSha256Hex: string | null;
+            createdAt: string;
+            id: string;
+            isUploaded: boolean;
+            lastModifiedAt: string | null;
+            mimeType: string;
+            name: string;
+            organizationId: string;
+            path: string;
+            publicUrl: string;
+            service?: string;
+            size: number;
+            sizeReadable: string;
+            storageVersion: string | null;
+            version: string | null;
+          }>;
+          metadata?: Record<string, any>;
+          modifiedAt: string | null;
+          name: string;
+          organizationId: string;
+          prices: Array<{
+            amountType?: string;
+            capAmount?: number | null;
+            createdAt: string;
+            id: string;
+            isArchived: boolean;
+            maximumAmount?: number | null;
+            meter?: { id: string; name: string };
+            meterId?: string;
+            minimumAmount?: number | null;
+            modifiedAt: string | null;
+            presetAmount?: number | null;
+            priceAmount?: number;
+            priceCurrency?: string;
+            productId: string;
+            recurringInterval?: string | null;
+            seatTiers?: Array<{
+              maxSeats: number | null;
+              minSeats: number;
+              pricePerSeat: number;
+            }>;
+            source?: string;
+            type?: string;
+            unitAmount?: string;
+          }>;
+          recurringInterval?: string | null;
+          recurringIntervalCount?: number | null;
+          trialInterval?: string | null;
+          trialIntervalCount?: number | null;
+        } | null
+      >;
+      getSubscription: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        {
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          canceledAt?: string | null;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customFieldData?: Record<string, any>;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          discountId?: string | null;
+          endedAt: string | null;
+          endsAt?: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          productId: string;
+          recurringInterval: string | null;
+          recurringIntervalCount?: number;
+          seats?: number | null;
+          startedAt: string | null;
+          status: string;
+          trialEnd?: string | null;
+          trialStart?: string | null;
+        } | null
+      >;
+      insertCustomer: FunctionReference<
+        "mutation",
+        "internal",
+        { id: string; metadata?: Record<string, any>; userId: string },
+        string
+      >;
+      listAllUserSubscriptions: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        Array<{
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          canceledAt?: string | null;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customFieldData?: Record<string, any>;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          discountId?: string | null;
+          endedAt: string | null;
+          endsAt?: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          product: {
+            benefits?: Array<{
+              createdAt: string;
+              deletable: boolean;
+              description: string;
+              id: string;
+              metadata?: Record<string, any>;
+              modifiedAt: string | null;
+              organizationId: string;
+              properties?: any;
+              selectable: boolean;
+              type: string;
+            }>;
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              capAmount?: number | null;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              maximumAmount?: number | null;
+              meter?: { id: string; name: string };
+              meterId?: string;
+              minimumAmount?: number | null;
+              modifiedAt: string | null;
+              presetAmount?: number | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: string | null;
+              seatTiers?: Array<{
+                maxSeats: number | null;
+                minSeats: number;
+                pricePerSeat: number;
+              }>;
+              source?: string;
+              type?: string;
+              unitAmount?: string;
+            }>;
+            recurringInterval?: string | null;
+            recurringIntervalCount?: number | null;
+            trialInterval?: string | null;
+            trialIntervalCount?: number | null;
+          } | null;
+          productId: string;
+          recurringInterval: string | null;
+          recurringIntervalCount?: number;
+          seats?: number | null;
+          startedAt: string | null;
+          status: string;
+          trialEnd?: string | null;
+          trialStart?: string | null;
+        }>
+      >;
+      listCustomerSubscriptions: FunctionReference<
+        "query",
+        "internal",
+        { customerId: string },
+        Array<{
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          canceledAt?: string | null;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customFieldData?: Record<string, any>;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          discountId?: string | null;
+          endedAt: string | null;
+          endsAt?: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          productId: string;
+          recurringInterval: string | null;
+          recurringIntervalCount?: number;
+          seats?: number | null;
+          startedAt: string | null;
+          status: string;
+          trialEnd?: string | null;
+          trialStart?: string | null;
+        }>
+      >;
+      listProducts: FunctionReference<
+        "query",
+        "internal",
+        { includeArchived?: boolean },
+        Array<{
+          benefits?: Array<{
+            createdAt: string;
+            deletable: boolean;
+            description: string;
+            id: string;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            organizationId: string;
+            properties?: any;
+            selectable: boolean;
+            type: string;
+          }>;
+          createdAt: string;
+          description: string | null;
+          id: string;
+          isArchived: boolean;
+          isRecurring: boolean;
+          medias: Array<{
+            checksumEtag: string | null;
+            checksumSha256Base64: string | null;
+            checksumSha256Hex: string | null;
+            createdAt: string;
+            id: string;
+            isUploaded: boolean;
+            lastModifiedAt: string | null;
+            mimeType: string;
+            name: string;
+            organizationId: string;
+            path: string;
+            publicUrl: string;
+            service?: string;
+            size: number;
+            sizeReadable: string;
+            storageVersion: string | null;
+            version: string | null;
+          }>;
+          metadata?: Record<string, any>;
+          modifiedAt: string | null;
+          name: string;
+          organizationId: string;
+          priceAmount?: number;
+          prices: Array<{
+            amountType?: string;
+            capAmount?: number | null;
+            createdAt: string;
+            id: string;
+            isArchived: boolean;
+            maximumAmount?: number | null;
+            meter?: { id: string; name: string };
+            meterId?: string;
+            minimumAmount?: number | null;
+            modifiedAt: string | null;
+            presetAmount?: number | null;
+            priceAmount?: number;
+            priceCurrency?: string;
+            productId: string;
+            recurringInterval?: string | null;
+            seatTiers?: Array<{
+              maxSeats: number | null;
+              minSeats: number;
+              pricePerSeat: number;
+            }>;
+            source?: string;
+            type?: string;
+            unitAmount?: string;
+          }>;
+          recurringInterval?: string | null;
+          recurringIntervalCount?: number | null;
+          trialInterval?: string | null;
+          trialIntervalCount?: number | null;
+        }>
+      >;
+      listUserSubscriptions: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        Array<{
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          canceledAt?: string | null;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customFieldData?: Record<string, any>;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          discountId?: string | null;
+          endedAt: string | null;
+          endsAt?: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          product: {
+            benefits?: Array<{
+              createdAt: string;
+              deletable: boolean;
+              description: string;
+              id: string;
+              metadata?: Record<string, any>;
+              modifiedAt: string | null;
+              organizationId: string;
+              properties?: any;
+              selectable: boolean;
+              type: string;
+            }>;
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              capAmount?: number | null;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              maximumAmount?: number | null;
+              meter?: { id: string; name: string };
+              meterId?: string;
+              minimumAmount?: number | null;
+              modifiedAt: string | null;
+              presetAmount?: number | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: string | null;
+              seatTiers?: Array<{
+                maxSeats: number | null;
+                minSeats: number;
+                pricePerSeat: number;
+              }>;
+              source?: string;
+              type?: string;
+              unitAmount?: string;
+            }>;
+            recurringInterval?: string | null;
+            recurringIntervalCount?: number | null;
+            trialInterval?: string | null;
+            trialIntervalCount?: number | null;
+          } | null;
+          productId: string;
+          recurringInterval: string | null;
+          recurringIntervalCount?: number;
+          seats?: number | null;
+          startedAt: string | null;
+          status: string;
+          trialEnd?: string | null;
+          trialStart?: string | null;
+        }>
+      >;
+      syncProducts: FunctionReference<
+        "action",
+        "internal",
+        { polarAccessToken: string; server: "sandbox" | "production" },
+        any
+      >;
+      updateProduct: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          product: {
+            benefits?: Array<{
+              createdAt: string;
+              deletable: boolean;
+              description: string;
+              id: string;
+              metadata?: Record<string, any>;
+              modifiedAt: string | null;
+              organizationId: string;
+              properties?: any;
+              selectable: boolean;
+              type: string;
+            }>;
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              capAmount?: number | null;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              maximumAmount?: number | null;
+              meter?: { id: string; name: string };
+              meterId?: string;
+              minimumAmount?: number | null;
+              modifiedAt: string | null;
+              presetAmount?: number | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: string | null;
+              seatTiers?: Array<{
+                maxSeats: number | null;
+                minSeats: number;
+                pricePerSeat: number;
+              }>;
+              source?: string;
+              type?: string;
+              unitAmount?: string;
+            }>;
+            recurringInterval?: string | null;
+            recurringIntervalCount?: number | null;
+            trialInterval?: string | null;
+            trialIntervalCount?: number | null;
+          };
+        },
+        any
+      >;
+      updateProducts: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          polarAccessToken: string;
+          products: Array<{
+            benefits?: Array<{
+              createdAt: string;
+              deletable: boolean;
+              description: string;
+              id: string;
+              metadata?: Record<string, any>;
+              modifiedAt: string | null;
+              organizationId: string;
+              properties?: any;
+              selectable: boolean;
+              type: string;
+            }>;
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              capAmount?: number | null;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              maximumAmount?: number | null;
+              meter?: { id: string; name: string };
+              meterId?: string;
+              minimumAmount?: number | null;
+              modifiedAt: string | null;
+              presetAmount?: number | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: string | null;
+              seatTiers?: Array<{
+                maxSeats: number | null;
+                minSeats: number;
+                pricePerSeat: number;
+              }>;
+              source?: string;
+              type?: string;
+              unitAmount?: string;
+            }>;
+            recurringInterval?: string | null;
+            recurringIntervalCount?: number | null;
+            trialInterval?: string | null;
+            trialIntervalCount?: number | null;
+          }>;
+        },
+        any
+      >;
+      updateSubscription: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          subscription: {
+            amount: number | null;
+            cancelAtPeriodEnd: boolean;
+            canceledAt?: string | null;
+            checkoutId: string | null;
+            createdAt: string;
+            currency: string | null;
+            currentPeriodEnd: string | null;
+            currentPeriodStart: string;
+            customFieldData?: Record<string, any>;
+            customerCancellationComment?: string | null;
+            customerCancellationReason?: string | null;
+            customerId: string;
+            discountId?: string | null;
+            endedAt: string | null;
+            endsAt?: string | null;
+            id: string;
+            metadata: Record<string, any>;
+            modifiedAt: string | null;
+            priceId?: string;
+            productId: string;
+            recurringInterval: string | null;
+            recurringIntervalCount?: number;
+            seats?: number | null;
+            startedAt: string | null;
+            status: string;
+            trialEnd?: string | null;
+            trialStart?: string | null;
+          };
+        },
+        any
       >;
     };
   };

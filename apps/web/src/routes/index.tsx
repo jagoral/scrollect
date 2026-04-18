@@ -4,6 +4,7 @@ import { BottomCtaSection } from "@/components/landing/bottom-cta-section";
 import { CardTypesSection } from "@/components/landing/card-types-section";
 import { HeroSection } from "@/components/landing/hero-section";
 import { HowItWorksSection } from "@/components/landing/how-it-works-section";
+import { PricingSection } from "@/components/landing/pricing-section";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async ({ context }) => {
@@ -31,6 +32,7 @@ function HomePage() {
       <HeroSection />
       <CardTypesSection />
       <HowItWorksSection />
+      <PricingSection />
       <BottomCtaSection />
     </div>
   );

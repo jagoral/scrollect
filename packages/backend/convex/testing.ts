@@ -5,6 +5,7 @@ import { maxBy } from "es-toolkit";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
+import { insertEarlyAdopterGrantIfMissing } from "./entitlementGrants";
 import { E2E_EMAIL_PATTERN } from "./lib/e2e";
 import { requireAuth } from "./lib/functions";
 import type { PostType, TypeData } from "./lib/validators";
@@ -103,6 +104,14 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
     await ctx.db.delete(post._id);
   }
 
+  const grants = await ctx.db
+    .query("entitlementGrants")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const grant of grants) {
+    await ctx.db.delete(grant._id);
+  }
+
   return {
     deleted: {
       bookmarks: bookmarks.length,
@@ -111,6 +120,7 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
       tags: tags.length,
       documents: documents.length,
       posts: posts.length,
+      entitlementGrants: grants.length,
     },
   };
 }
@@ -168,6 +178,104 @@ async function resetUserData(ctx: MutationCtx, userId: string) {
 export const cleanupByUserId = internalMutation({
   args: { userId: v.string() },
   handler: async (ctx, args) => cleanupUserData(ctx, args.userId),
+});
+
+// Seeds an active Pro subscription directly into the Polar component's tables.
+// Avoids the real sandbox checkout flow (which can't be exercised end-to-end on
+// ephemeral Convex previews because Polar only supports a single webhook URL
+// per org, so subscription.created events never reach the preview deployment).
+// Mirrors what polar.registerRoutes would do on a `subscription.created` webhook.
+export const seedProSubscriptionByEmail = internalMutation({
+  args: { email: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (!E2E_EMAIL_PATTERN.test(args.email)) {
+      throw new Error(`Seed refused: email "${args.email}" does not match E2E test pattern`);
+    }
+    const productId = process.env.POLAR_PRODUCT_PRO_ID;
+    if (!productId) {
+      throw new Error("POLAR_PRODUCT_PRO_ID is not configured");
+    }
+    const user = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "user",
+      where: [{ field: "email", value: args.email }],
+    })) as { _id: string } | null;
+    if (!user) {
+      throw new Error(`User not found for email: ${args.email}`);
+    }
+
+    const customerId = `e2e-customer-${user._id}`;
+    const subscriptionId = `e2e-subscription-${user._id}`;
+    const nowIso = new Date().toISOString();
+    const periodStartIso = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+    const periodEndIso = new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString();
+
+    await ctx.runMutation(components.polar.lib.insertCustomer, {
+      id: customerId,
+      userId: user._id,
+      metadata: {},
+    });
+
+    await ctx.runMutation(components.polar.lib.createProduct, {
+      product: {
+        id: productId,
+        createdAt: nowIso,
+        modifiedAt: nowIso,
+        name: "Pro (E2E seed)",
+        description: null,
+        isRecurring: true,
+        isArchived: false,
+        organizationId: "e2e-organization",
+        prices: [],
+        medias: [],
+      },
+    });
+
+    await ctx.runMutation(components.polar.lib.createSubscription, {
+      subscription: {
+        id: subscriptionId,
+        customerId,
+        createdAt: nowIso,
+        modifiedAt: nowIso,
+        amount: 999,
+        currency: "USD",
+        recurringInterval: "month",
+        status: "active",
+        currentPeriodStart: periodStartIso,
+        currentPeriodEnd: periodEndIso,
+        cancelAtPeriodEnd: false,
+        startedAt: periodStartIso,
+        endedAt: null,
+        productId,
+        checkoutId: null,
+        metadata: {},
+      },
+    });
+    return null;
+  },
+});
+
+export const seedEarlyAdopterGrantByEmail = internalMutation({
+  args: { email: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (!E2E_EMAIL_PATTERN.test(args.email)) {
+      throw new Error(`Seed refused: email "${args.email}" does not match E2E test pattern`);
+    }
+    const user = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "user",
+      where: [{ field: "email", value: args.email }],
+    })) as { _id: string } | null;
+    if (!user) {
+      throw new Error(`User not found for email: ${args.email}`);
+    }
+    await insertEarlyAdopterGrantIfMissing(ctx, {
+      userId: user._id,
+      source: "admin",
+      note: "E2E seed",
+    });
+    return null;
+  },
 });
 
 export const cleanupCurrentUser = mutation({

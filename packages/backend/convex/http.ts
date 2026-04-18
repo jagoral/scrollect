@@ -5,10 +5,18 @@ import { httpAction } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { E2E_EMAIL_PATTERN, isE2EEnabled } from "./lib/e2e";
 import { markerWebhookHandler } from "./pipeline/markerWebhook";
+import { polar } from "./polar";
 
 const http = httpRouter();
 
+// Better-auth mounts on /api/auth/* and /.well-known/openid-configuration;
+// Polar mounts on /polar/events. Paths are disjoint so registration order is
+// irrelevant. Webhook route is skipped when the secret is unset so unconfigured
+// deployments return 404 instead of failing signature verification at runtime.
 authComponent.registerRoutes(http, createAuth);
+if (process.env.POLAR_WEBHOOK_SECRET) {
+  polar.registerRoutes(http);
+}
 
 async function parseEmail(request: Request): Promise<string> {
   const body = (await request.json()) as { email?: string };
@@ -80,6 +88,38 @@ http.route({
       return Response.json(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Reset failed";
+      return Response.json({ error: message }, { status: 500 });
+    }
+  }),
+});
+
+http.route({
+  path: "/api/e2e-seed-pro",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!isE2EEnabled()) return e2eNotFound();
+    try {
+      const email = await parseEmail(request);
+      await ctx.runMutation(internal.testing.seedProSubscriptionByEmail, { email });
+      return Response.json({ ok: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Seed Pro failed";
+      return Response.json({ error: message }, { status: 500 });
+    }
+  }),
+});
+
+http.route({
+  path: "/api/e2e-seed-grant",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!isE2EEnabled()) return e2eNotFound();
+    try {
+      const email = await parseEmail(request);
+      await ctx.runMutation(internal.testing.seedEarlyAdopterGrantByEmail, { email });
+      return Response.json({ ok: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Seed grant failed";
       return Response.json({ error: message }, { status: 500 });
     }
   }),

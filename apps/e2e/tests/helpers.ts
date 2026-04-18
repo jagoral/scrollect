@@ -59,6 +59,20 @@ export async function resetTestData(email: string) {
   }
 }
 
+export async function seedProSubscription(email: string) {
+  const { ok, status, body } = await convexE2ERequest("/api/e2e-seed-pro", email);
+  if (!ok) {
+    throw new Error(`E2E seed Pro failed: ${status} ${body}`);
+  }
+}
+
+export async function seedEarlyAdopterGrant(email: string) {
+  const { ok, status, body } = await convexE2ERequest("/api/e2e-seed-grant", email);
+  if (!ok) {
+    throw new Error(`E2E seed grant failed: ${status} ${body}`);
+  }
+}
+
 export async function cleanupTestData(email: string) {
   try {
     const { ok, status, body } = await convexE2ERequest("/api/e2e-cleanup", email);

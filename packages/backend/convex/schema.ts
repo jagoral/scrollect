@@ -8,6 +8,8 @@ import {
   connectionType,
   dislikeReason,
   documentStatus,
+  entitlementGrantType,
+  entitlementTier,
   failedAtStage,
   fileType,
   highlightSource,
@@ -40,9 +42,16 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
+    .index("by_userId_createdAt", ["userId", "createdAt"])
     .index("by_status", ["status"])
     .index("by_userId_status", ["userId", "status"])
     .index("by_runpodJobId", ["runpodJobId"]),
+
+  userProfiles: defineTable({
+    userId: v.string(),
+    onboardingCompleted: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
 
   posts: defineTable({
     content: v.string(),
@@ -183,6 +192,14 @@ export default defineSchema({
     .index("by_documentId_status", ["documentId", "status"])
     .index("by_userId_contentHash", ["userId", "contentHash"])
     .index("by_userId_status_cardType", ["userId", "status", "cardType"]),
+
+  entitlementGrants: defineTable({
+    userId: v.string(),
+    grantType: entitlementGrantType,
+    tier: entitlementTier,
+    grantedAt: v.number(),
+    note: v.optional(v.string()),
+  }).index("by_userId", ["userId"]),
 
   connectionPairs: defineTable({
     userId: v.string(),
