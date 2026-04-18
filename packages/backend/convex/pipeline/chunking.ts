@@ -4,21 +4,24 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { chunkMarkdown } from "../../src/pipeline/chunking";
 import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../../src/providers/analytics";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
 
 import { fanOutEmbedding } from "./embedding";
 import { CHUNK_STORE_BATCH_SIZE, fetchMarkdownBlob } from "./helpers";
 import { detectLanguage } from "../../src/pipeline/languageDetection";
+import { createDocumentMetadataServiceContext } from "./services";
 
 export const chunkAndStore = internalAction({
   args: {
     documentId: v.id("documents"),
     markdownStorageId: v.id("_storage"),
+    inferTitle: v.optional(v.boolean()),
   },
-  handler: async (ctx, { documentId, markdownStorageId }) => {
+  handler: async (ctx, { documentId, markdownStorageId, inferTitle }) => {
     const evt = new WideEvent("pipeline.chunkAndStore");
     evt.set({ documentId, markdownStorageId });
     const startMs = Date.now();
@@ -65,6 +68,19 @@ export const chunkAndStore = internalAction({
       const language = await detectLanguage(markdown);
       evt.set("detectedLanguage", language);
 
+      if (inferTitle && chunks[0]) {
+        await inferDocumentTitleFromFirstChunk({
+          ctx,
+          documentId,
+          currentTitle: doc.title,
+          firstChunk: chunks[0].content,
+          fileType: doc.fileType,
+          language,
+          userId: doc.userId,
+          evt,
+        });
+      }
+
       await ctx.runMutation(internal.documents.updateStatus, {
         id: documentId,
         status: "embedding",
@@ -109,3 +125,48 @@ export const chunkAndStore = internalAction({
     }
   },
 });
+
+async function inferDocumentTitleFromFirstChunk(opts: {
+  ctx: ActionCtx;
+  documentId: Id<"documents">;
+  currentTitle: string;
+  firstChunk: string;
+  fileType: string;
+  language?: string;
+  userId: string;
+  evt: WideEvent;
+}) {
+  try {
+    const services = createDocumentMetadataServiceContext();
+    const result = await services.llm.inferTitle({
+      firstChunk: opts.firstChunk,
+      currentTitle: opts.currentTitle,
+      fileType: opts.fileType,
+      language: opts.language,
+    });
+
+    if (result.title && result.title !== opts.currentTitle) {
+      await opts.ctx.runMutation(internal.documents.updateMetadata, {
+        id: opts.documentId,
+        title: result.title,
+      });
+      opts.evt.set("inferredTitle", true);
+    } else {
+      opts.evt.set("inferredTitle", false);
+    }
+
+    if (result.usage.modelId) {
+      await captureAiUsage({
+        distinctId: opts.userId,
+        operation: "document_title_inference",
+        usage: result.usage,
+        model: result.usage.modelId,
+        documentId: opts.documentId,
+      });
+    }
+  } catch (error) {
+    opts.evt.set({
+      titleInferenceError: error instanceof Error ? error.message : String(error),
+    });
+  }
+}

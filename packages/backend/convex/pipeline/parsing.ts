@@ -8,6 +8,7 @@ import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../lib/logging";
 import { captureEvent } from "../../src/providers/analytics";
+import { shouldInferDocumentTitle } from "../../src/pipeline/logic/documentMetadata";
 
 import { storeMarkdownBlob } from "./helpers";
 import type { MarkerClient } from "../../src/providers/marker";
@@ -54,6 +55,7 @@ export async function submitMarkerParsing({
       await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
         documentId,
         markdownStorageId,
+        inferTitle: shouldInferDocumentTitle({ fileType, hasParsedTitle: false }),
       });
       return;
     }
@@ -164,6 +166,7 @@ export async function fetchAndParseMarkdownImpl({
     await ctx.scheduler.runAfter(0, internal.pipeline.chunking.chunkAndStore, {
       documentId,
       markdownStorageId,
+      inferTitle: false,
     });
 
     await captureEvent({
