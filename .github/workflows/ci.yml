@@ -82,6 +82,9 @@ jobs:
   deploy-vercel-preview:
     name: Deploy Vercel Preview (atomic Convex + frontend)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     outputs:
       convex_url: ${{ steps.extract.outputs.convex_url }}
       convex_site_url: ${{ steps.extract.outputs.convex_site_url }}
@@ -136,24 +139,24 @@ jobs:
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           DEPLOY_URL: ${{ steps.vercel-deploy.outputs.deploy_url }}
 
-      - name: Set Convex env vars on preview
+      - name: Set Convex env vars on the deployed preview
         working-directory: packages/backend
         run: |
-          bunx convex env set USE_STUB_EXTRACTORS true --preview-name "$PREVIEW_NAME"
-          bunx convex env set OPENAI_API_KEY "$OPENAI_API_KEY" --preview-name "$PREVIEW_NAME"
-          bunx convex env set GEMINI_API_KEY "$GEMINI_API_KEY" --preview-name "$PREVIEW_NAME"
-          bunx convex env set QDRANT_URL "$QDRANT_URL" --preview-name "$PREVIEW_NAME"
-          bunx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --preview-name "$PREVIEW_NAME"
-          bunx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "$PREVIEW_NAME"
-          bunx convex env set SITE_URL http://localhost:3000 --preview-name "$PREVIEW_NAME"
-          bunx convex env set ENABLE_E2E_ROUTES true --preview-name "$PREVIEW_NAME"
-          bunx convex env set POLAR_ORGANIZATION_TOKEN "$POLAR_ORGANIZATION_TOKEN" --preview-name "$PREVIEW_NAME"
-          bunx convex env set POLAR_WEBHOOK_SECRET "$POLAR_WEBHOOK_SECRET" --preview-name "$PREVIEW_NAME"
-          bunx convex env set POLAR_PRODUCT_PRO_ID "$POLAR_PRODUCT_PRO_ID" --preview-name "$PREVIEW_NAME"
-          bunx convex env set POLAR_SERVER "$POLAR_SERVER" --preview-name "$PREVIEW_NAME"
+          bunx convex env set USE_STUB_EXTRACTORS true --url "$CONVEX_URL"
+          bunx convex env set OPENAI_API_KEY "$OPENAI_API_KEY" --url "$CONVEX_URL"
+          bunx convex env set GEMINI_API_KEY "$GEMINI_API_KEY" --url "$CONVEX_URL"
+          bunx convex env set QDRANT_URL "$QDRANT_URL" --url "$CONVEX_URL"
+          bunx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --url "$CONVEX_URL"
+          bunx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --url "$CONVEX_URL"
+          bunx convex env set SITE_URL http://localhost:3000 --url "$CONVEX_URL"
+          bunx convex env set ENABLE_E2E_ROUTES true --url "$CONVEX_URL"
+          bunx convex env set POLAR_ORGANIZATION_TOKEN "$POLAR_ORGANIZATION_TOKEN" --url "$CONVEX_URL"
+          bunx convex env set POLAR_WEBHOOK_SECRET "$POLAR_WEBHOOK_SECRET" --url "$CONVEX_URL"
+          bunx convex env set POLAR_PRODUCT_PRO_ID "$POLAR_PRODUCT_PRO_ID" --url "$CONVEX_URL"
+          bunx convex env set POLAR_SERVER "$POLAR_SERVER" --url "$CONVEX_URL"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
-          PREVIEW_NAME: ${{ github.head_ref }}
+          CONVEX_URL: ${{ steps.extract.outputs.convex_url }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           QDRANT_URL: ${{ vars.QDRANT_URL }}
@@ -163,6 +166,19 @@ jobs:
           POLAR_WEBHOOK_SECRET: ${{ secrets.POLAR_WEBHOOK_SECRET }}
           POLAR_PRODUCT_PRO_ID: ${{ vars.POLAR_PRODUCT_PRO_ID }}
           POLAR_SERVER: ${{ vars.POLAR_SERVER }}
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview-deploy
+          message: |
+            Preview deploy for ${{ github.event.pull_request.head.sha }}:
+
+            | Surface | URL |
+            | --- | --- |
+            | Web | ${{ steps.vercel-deploy.outputs.deploy_url }} |
+            | Convex | ${{ steps.extract.outputs.convex_url }} |
 
   e2e-seeded:
     name: E2E Seeded Tests
