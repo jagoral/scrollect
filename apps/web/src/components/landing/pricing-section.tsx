@@ -1,3 +1,8 @@
+import {
+  FILE_SIZE_LIMITS_FREE,
+  FILE_SIZE_LIMITS_PRO,
+  formatFileSize,
+} from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
@@ -28,7 +33,7 @@ const tiers: ReadonlyArray<PricingTier> = [
     blurb: "See the loop end-to-end. Upload, generate, scroll - no commitment.",
     features: [
       "3 documents total",
-      "PDF up to 10 MB, EPUB up to 5 MB",
+      `PDF up to ${formatFileSize(FILE_SIZE_LIMITS_FREE.pdf)}, EPUB up to ${formatFileSize(FILE_SIZE_LIMITS_FREE.epub)}`,
       "YouTube videos up to 30 minutes",
       "All card types",
       "3 feed refreshes per hour",
@@ -45,7 +50,7 @@ const tiers: ReadonlyArray<PricingTier> = [
     blurb: "Everything Scrollect does, with enough headroom to actually lean on it.",
     features: [
       "30 documents per month",
-      "PDF up to 50 MB, EPUB up to 30 MB",
+      `PDF up to ${formatFileSize(FILE_SIZE_LIMITS_PRO.pdf)}, EPUB up to ${formatFileSize(FILE_SIZE_LIMITS_PRO.epub)}`,
       "No YouTube duration cap",
       "Cross-document connections",
       "Highlights import",

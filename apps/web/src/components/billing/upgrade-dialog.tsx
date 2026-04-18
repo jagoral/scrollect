@@ -1,3 +1,4 @@
+import { FILE_SIZE_LIMITS_PRO, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef } from "react";
@@ -16,7 +17,7 @@ import { useBilling } from "@/hooks/use-billing";
 
 const PRO_PERKS = [
   "30 documents per month",
-  "Larger files (50 MB PDF, 30 MB EPUB)",
+  `Larger files (${formatFileSize(FILE_SIZE_LIMITS_PRO.pdf)} PDF, ${formatFileSize(FILE_SIZE_LIMITS_PRO.epub)} EPUB)`,
   "No YouTube duration cap",
   "Cross-document connections",
   "Highlights import",
