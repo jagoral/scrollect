@@ -86,8 +86,8 @@ jobs:
       contents: read
       pull-requests: write
     outputs:
-      convex_url: ${{ steps.extract.outputs.convex_url }}
-      convex_site_url: ${{ steps.extract.outputs.convex_site_url }}
+      convex_url: ${{ steps.convex-deploy.outputs.convex_url }}
+      convex_site_url: ${{ steps.convex-deploy.outputs.convex_site_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,11 +105,61 @@ jobs:
       - name: Install Vercel CLI
         run: bun install -g vercel@latest
 
-      - name: Deploy to Vercel
+      - name: Deploy Convex preview
+        id: convex-deploy
+        working-directory: packages/backend
+        run: |
+          set -o pipefail
+          bunx convex deploy --preview-create "$PREVIEW_NAME" 2>&1 | tee convex.log
+          CONVEX_URL=$(sed 's/\x1b\[[0-9;]*m//g' convex.log | grep -oE 'https://[a-z0-9.-]+\.convex\.cloud' | head -1)
+          if [ -z "$CONVEX_URL" ]; then
+            echo "::error::Could not extract Convex preview URL"
+            exit 1
+          fi
+          SITE_URL="${CONVEX_URL/.convex.cloud/.convex.site}"
+          echo "convex_url=$CONVEX_URL" >> "$GITHUB_OUTPUT"
+          echo "convex_site_url=$SITE_URL" >> "$GITHUB_OUTPUT"
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+          PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
+
+      - name: Set Convex env vars on preview
+        working-directory: packages/backend
+        run: |
+          bunx convex env set USE_STUB_EXTRACTORS true --preview-name "$PREVIEW_NAME"
+          bunx convex env set OPENAI_API_KEY "$OPENAI_API_KEY" --preview-name "$PREVIEW_NAME"
+          bunx convex env set GEMINI_API_KEY "$GEMINI_API_KEY" --preview-name "$PREVIEW_NAME"
+          bunx convex env set QDRANT_URL "$QDRANT_URL" --preview-name "$PREVIEW_NAME"
+          bunx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --preview-name "$PREVIEW_NAME"
+          bunx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "$PREVIEW_NAME"
+          bunx convex env set SITE_URL http://localhost:3000 --preview-name "$PREVIEW_NAME"
+          bunx convex env set ENABLE_E2E_ROUTES true --preview-name "$PREVIEW_NAME"
+          bunx convex env set POLAR_ORGANIZATION_TOKEN "$POLAR_ORGANIZATION_TOKEN" --preview-name "$PREVIEW_NAME"
+          bunx convex env set POLAR_WEBHOOK_SECRET "$POLAR_WEBHOOK_SECRET" --preview-name "$PREVIEW_NAME"
+          bunx convex env set POLAR_PRODUCT_PRO_ID "$POLAR_PRODUCT_PRO_ID" --preview-name "$PREVIEW_NAME"
+          bunx convex env set POLAR_SERVER "$POLAR_SERVER" --preview-name "$PREVIEW_NAME"
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+          PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          QDRANT_URL: ${{ vars.QDRANT_URL }}
+          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          POLAR_ORGANIZATION_TOKEN: ${{ secrets.POLAR_ORGANIZATION_TOKEN }}
+          POLAR_WEBHOOK_SECRET: ${{ secrets.POLAR_WEBHOOK_SECRET }}
+          POLAR_PRODUCT_PRO_ID: ${{ vars.POLAR_PRODUCT_PRO_ID }}
+          POLAR_SERVER: ${{ vars.POLAR_SERVER }}
+
+      - name: Deploy frontend to Vercel
         id: vercel-deploy
         run: |
           set -o pipefail
-          vercel deploy --token="$VERCEL_TOKEN" --yes 2>&1 | tee deploy.log
+          vercel deploy --token="$VERCEL_TOKEN" \
+            --build-env "SKIP_CONVEX_DEPLOY=1" \
+            --build-env "VITE_CONVEX_URL=$CONVEX_URL" \
+            --build-env "VITE_CONVEX_SITE_URL=$CONVEX_SITE_URL" \
+            --yes 2>&1 | tee deploy.log
           DEPLOY_URL=$(sed 's/\x1b\[[0-9;]*m//g' deploy.log | grep -oE 'https://[a-z0-9-]+-[a-z0-9-]+\.vercel\.app' | head -1)
           if [ -z "$DEPLOY_URL" ]; then
             echo "::error::Could not extract Vercel deployment URL"
@@ -120,52 +170,8 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-
-      - name: Extract Convex URL from build logs
-        id: extract
-        run: |
-          vercel inspect "$DEPLOY_URL" --logs --token="$VERCEL_TOKEN" 2>&1 | tee build.log
-          CONVEX_URL=$(sed 's/\x1b\[[0-9;]*m//g' build.log | grep -oE 'https://[a-z0-9.-]+\.convex\.cloud' | head -1)
-          if [ -z "$CONVEX_URL" ]; then
-            echo "::error::Could not extract Convex URL from Vercel build logs"
-            exit 1
-          fi
-          SITE_URL="${CONVEX_URL/.convex.cloud/.convex.site}"
-          echo "convex_url=$CONVEX_URL" >> "$GITHUB_OUTPUT"
-          echo "convex_site_url=$SITE_URL" >> "$GITHUB_OUTPUT"
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-          DEPLOY_URL: ${{ steps.vercel-deploy.outputs.deploy_url }}
-
-      - name: Set Convex env vars on the deployed preview
-        working-directory: packages/backend
-        run: |
-          bunx convex env set USE_STUB_EXTRACTORS true --url "$CONVEX_URL"
-          bunx convex env set OPENAI_API_KEY "$OPENAI_API_KEY" --url "$CONVEX_URL"
-          bunx convex env set GEMINI_API_KEY "$GEMINI_API_KEY" --url "$CONVEX_URL"
-          bunx convex env set QDRANT_URL "$QDRANT_URL" --url "$CONVEX_URL"
-          bunx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --url "$CONVEX_URL"
-          bunx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --url "$CONVEX_URL"
-          bunx convex env set SITE_URL http://localhost:3000 --url "$CONVEX_URL"
-          bunx convex env set ENABLE_E2E_ROUTES true --url "$CONVEX_URL"
-          bunx convex env set POLAR_ORGANIZATION_TOKEN "$POLAR_ORGANIZATION_TOKEN" --url "$CONVEX_URL"
-          bunx convex env set POLAR_WEBHOOK_SECRET "$POLAR_WEBHOOK_SECRET" --url "$CONVEX_URL"
-          bunx convex env set POLAR_PRODUCT_PRO_ID "$POLAR_PRODUCT_PRO_ID" --url "$CONVEX_URL"
-          bunx convex env set POLAR_SERVER "$POLAR_SERVER" --url "$CONVEX_URL"
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
-          CONVEX_URL: ${{ steps.extract.outputs.convex_url }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          QDRANT_URL: ${{ vars.QDRANT_URL }}
-          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          POLAR_ORGANIZATION_TOKEN: ${{ secrets.POLAR_ORGANIZATION_TOKEN }}
-          POLAR_WEBHOOK_SECRET: ${{ secrets.POLAR_WEBHOOK_SECRET }}
-          POLAR_PRODUCT_PRO_ID: ${{ vars.POLAR_PRODUCT_PRO_ID }}
-          POLAR_SERVER: ${{ vars.POLAR_SERVER }}
+          CONVEX_URL: ${{ steps.convex-deploy.outputs.convex_url }}
+          CONVEX_SITE_URL: ${{ steps.convex-deploy.outputs.convex_site_url }}
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
@@ -178,7 +184,7 @@ jobs:
             | Surface | URL |
             | --- | --- |
             | Web | ${{ steps.vercel-deploy.outputs.deploy_url }} |
-            | Convex | ${{ steps.extract.outputs.convex_url }} |
+            | Convex | ${{ steps.convex-deploy.outputs.convex_url }} |
 
   e2e-seeded:
     name: E2E Seeded Tests
