@@ -11,11 +11,10 @@ export const SEEDED_USER = {
   password: "testpassword123",
 };
 
-export function testUser(options?: { emailDomain?: string }) {
-  const domain = options?.emailDomain ?? "test.scrollect.dev";
+export function testUser() {
   return {
     name: "E2E Tester",
-    email: `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@${domain}`,
+    email: `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.scrollect.dev`,
     password: "testpassword123",
   };
 }
@@ -60,6 +59,13 @@ export async function resetTestData(email: string) {
   }
 }
 
+export async function seedProSubscription(email: string) {
+  const { ok, status, body } = await convexE2ERequest("/api/e2e-seed-pro", email);
+  if (!ok) {
+    throw new Error(`E2E seed Pro failed: ${status} ${body}`);
+  }
+}
+
 export async function cleanupTestData(email: string) {
   try {
     const { ok, status, body } = await convexE2ERequest("/api/e2e-cleanup", email);
@@ -83,11 +89,8 @@ export async function dismissCookieConsent(page: Page) {
   }
 }
 
-export async function signUp(
-  page: Page,
-  options?: { emailDomain?: string },
-): Promise<{ email: string }> {
-  const user = testUser(options);
+export async function signUp(page: Page): Promise<{ email: string }> {
+  const user = testUser();
   await page.goto("/signin");
   await page.waitForLoadState("networkidle");
   await dismissCookieConsent(page);
