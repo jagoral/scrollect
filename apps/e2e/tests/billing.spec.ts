@@ -1,9 +1,8 @@
-import { test, expect, type FrameLocator, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, cleanupTestData, signUp } from "./helpers";
+import { FIXTURES_DIR, cleanupTestData, seedProSubscription, signUp } from "./helpers";
 
-const POLAR_CHECKOUT_URL = /sandbox\.polar\.sh\/checkout/;
 const APP_SUCCESS_URL = /\/app\/library/;
 
 test.describe("Landing pricing section", () => {
@@ -99,75 +98,35 @@ test.describe("Free-tier billing UX", () => {
   });
 });
 
-// Opt-in: this suite drives a real Polar sandbox checkout, which requires
-// POLAR_ORGANIZATION_TOKEN / POLAR_PRODUCT_PRO_ID / POLAR_WEBHOOK_SECRET on the
-// Convex deployment. CI preview deployments don't have those wired, so skip by
-// default and run with `POLAR_SANDBOX_E2E=1` locally once the org is configured.
-test.describe("Polar sandbox checkout flow", () => {
-  test.skip(
-    !process.env.POLAR_SANDBOX_E2E,
-    "Requires Polar sandbox credentials; set POLAR_SANDBOX_E2E=1 to run",
-  );
-  test.setTimeout(180_000);
+// Bypasses the real sandbox checkout and seeds an active Pro subscription
+// directly into the Polar component's tables. Required because Polar only
+// supports one webhook URL per organization, so subscription.created events
+// from a real sandbox checkout don't reach per-PR Convex preview deployments.
+// The real webhook handler is covered by a separate unit test against a signed
+// payload.
+test.describe("Pro-tier billing UX", () => {
+  test.setTimeout(60_000);
 
   let ephemeralEmail: string;
 
   test.beforeEach(async ({ page }) => {
-    const { email } = await signUp(page, { emailDomain: "scrollect.app" });
+    const { email } = await signUp(page);
     ephemeralEmail = email;
+    await seedProSubscription(email);
   });
 
   test.afterEach(async () => {
     await cleanupTestData(ephemeralEmail);
   });
 
-  test("free user completes sandbox checkout and unlocks Pro billing UI", async ({ page }) => {
+  test("Settings shows Pro plan state and billing portal entry point", async ({ page }) => {
     await page.goto("/app/settings");
-    await page.getByRole("button", { name: /upgrade to pro/i }).click();
+    await page.waitForLoadState("networkidle");
 
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    await Promise.all([
-      page.waitForURL(POLAR_CHECKOUT_URL, { timeout: 30_000 }),
-      dialog.getByRole("button", { name: /continue to checkout/i }).click(),
-    ]);
-
-    await completeSandboxCheckout(page, ephemeralEmail);
-
-    await page.waitForURL(APP_SUCCESS_URL, { timeout: 120_000 });
-
-    await page.goto("/app/settings");
-    await expect(page.getByText(/pro plan/i)).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: /plan & usage/i })).toBeVisible();
+    await expect(page.getByText(/pro plan/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/manage billing/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /open billing portal/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /upgrade to pro/i })).toHaveCount(0);
   });
 });
-
-async function completeSandboxCheckout(page: Page, email: string) {
-  const emailField = page.getByRole("textbox", { name: /^email$/i });
-  if (await emailField.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    const current = await emailField.inputValue();
-    if (!current) await emailField.fill(email);
-  }
-
-  await page.getByRole("textbox", { name: /cardholder name/i }).fill("E2E Tester");
-
-  const countryButton = page.locator('button[role="combobox"]');
-  await countryButton.click();
-  await page.getByRole("option", { name: /^poland$/i }).click();
-
-  const cardFrame = findCardFrame(page);
-  await cardFrame.getByRole("textbox", { name: /card number/i }).fill("4242424242424242");
-  await cardFrame.getByRole("textbox", { name: /expiration/i }).fill("1230");
-  await cardFrame.getByRole("textbox", { name: /security code/i }).fill("123");
-
-  // Polar auto-PATCHes the checkout on every field change and returns 409
-  // `CheckoutLocked` if the Subscribe click races with an in-flight PATCH.
-  // Letting the network settle before submitting avoids that race.
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: /subscribe now/i }).click();
-}
-
-function findCardFrame(page: Page): FrameLocator {
-  return page.frameLocator("iframe[title='Secure payment input frame']");
-}

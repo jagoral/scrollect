@@ -94,6 +94,22 @@ http.route({
 });
 
 http.route({
+  path: "/api/e2e-seed-pro",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!isE2EEnabled()) return e2eNotFound();
+    try {
+      const email = await parseEmail(request);
+      await ctx.runMutation(internal.testing.seedProSubscriptionByEmail, { email });
+      return Response.json({ ok: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Seed Pro failed";
+      return Response.json({ error: message }, { status: 500 });
+    }
+  }),
+});
+
+http.route({
   path: "/api/e2e-connection-drafts",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
