@@ -102,6 +102,13 @@ jobs:
       - name: Install Vercel CLI
         run: bun install -g vercel@latest
 
+      - name: Ensure Convex preview exists
+        working-directory: packages/backend
+        run: bunx convex deploy --preview-create "$PREVIEW_NAME"
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+          PREVIEW_NAME: ${{ github.head_ref }}
+
       - name: Set Convex env vars on preview
         working-directory: packages/backend
         run: |
