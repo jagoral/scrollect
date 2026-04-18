@@ -1,7 +1,13 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, cleanupTestData, seedProSubscription, signUp } from "./helpers";
+import {
+  FIXTURES_DIR,
+  cleanupTestData,
+  seedEarlyAdopterGrant,
+  seedProSubscription,
+  signUp,
+} from "./helpers";
 
 const APP_SUCCESS_URL = /\/app\/library/;
 
@@ -127,6 +133,45 @@ test.describe("Pro-tier billing UX", () => {
     await expect(page.getByText(/pro plan/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/manage billing/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /open billing portal/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /upgrade to pro/i })).toHaveCount(0);
+  });
+});
+
+test.describe("Early Adopter grant", () => {
+  test.setTimeout(180_000);
+
+  let ephemeralEmail: string;
+
+  test.beforeEach(async ({ page }) => {
+    const { email } = await signUp(page);
+    ephemeralEmail = email;
+    await seedEarlyAdopterGrant(email);
+  });
+
+  test.afterEach(async () => {
+    await cleanupTestData(ephemeralEmail);
+  });
+
+  test("granted user can upload past the Free 3-document limit", async ({ page }) => {
+    const fixturePath = path.join(FIXTURES_DIR, "test.md");
+    for (let i = 0; i < 4; i++) {
+      await page.goto("/app/upload");
+      await page.getByTestId("file-input").setInputFiles(fixturePath);
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .getByText(/uploaded!/i)
+          .first(),
+      ).toBeVisible({ timeout: 30_000 });
+    }
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("granted user sees Pro plan state and no upgrade CTA", async ({ page }) => {
+    await page.goto("/app/settings");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByText(/pro plan/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("button", { name: /upgrade to pro/i })).toHaveCount(0);
   });
 });

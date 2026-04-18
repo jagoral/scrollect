@@ -42,17 +42,19 @@ async function enforceFileSizeLimit(
 
 async function enforceDocumentUploadLimit(
   ctx: MutationCtx,
-  userId: string,
-  evt: WideEvent,
+  args: { userId: string; userCreatedAt: number; evt: WideEvent },
 ): Promise<Tier> {
   // `enforceDocumentLimit` already reads the Polar subscription to compute the tier;
   // reuse its result so we don't fetch it twice per upload.
-  const tier: Tier = await enforceDocumentLimit(ctx, userId);
-  evt.set("tier", tier);
+  const tier: Tier = await enforceDocumentLimit(ctx, {
+    userId: args.userId,
+    userCreatedAt: args.userCreatedAt,
+  });
+  args.evt.set("tier", tier);
   const name = tieredLimiterName("documentUpload", tier);
-  const result = await rateLimiter.limit(ctx, name, { key: userId });
+  const result = await rateLimiter.limit(ctx, name, { key: args.userId });
   if (!result.ok) {
-    evt.set({ rateLimited: true, endpoint: name, retryAfterMs: result.retryAfter });
+    args.evt.set({ rateLimited: true, endpoint: name, retryAfterMs: result.retryAfter });
     throw new ConvexError({
       kind: "RateLimited" as const,
       name: "documentUpload",
@@ -66,7 +68,7 @@ export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireAuth(ctx);
-    const tier = await resolveTier(ctx, user._id);
+    const tier = await resolveTier(ctx, { userId: user._id, userCreatedAt: user.createdAt });
     const name = tieredLimiterName("uploadUrlGeneration", tier);
     const result = await rateLimiter.limit(ctx, name, { key: user._id });
     if (!result.ok) {
@@ -92,7 +94,11 @@ export const create = mutation({
     try {
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
-      const tier = await enforceDocumentUploadLimit(ctx, user._id, evt);
+      const tier = await enforceDocumentUploadLimit(ctx, {
+        userId: user._id,
+        userCreatedAt: user.createdAt,
+        evt,
+      });
       await enforceFileSizeLimit(ctx, {
         storageId: args.storageId,
         fileType: args.fileType,
@@ -134,7 +140,11 @@ export const createFromUrl = mutation({
     try {
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
-      await enforceDocumentUploadLimit(ctx, user._id, evt);
+      await enforceDocumentUploadLimit(ctx, {
+        userId: user._id,
+        userCreatedAt: user.createdAt,
+        evt,
+      });
 
       const parsed = new URL(args.url);
       if (!["http:", "https:"].includes(parsed.protocol)) {
@@ -182,7 +192,11 @@ export const createFromText = mutation({
     try {
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
-      const tier = await enforceDocumentUploadLimit(ctx, user._id, evt);
+      const tier = await enforceDocumentUploadLimit(ctx, {
+        userId: user._id,
+        userCreatedAt: user.createdAt,
+        evt,
+      });
       await enforceFileSizeLimit(ctx, {
         storageId: args.storageId,
         fileType: "text",

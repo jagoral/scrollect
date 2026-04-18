@@ -21,6 +21,7 @@ export const deleteRemainingUserData = internalMutation({
     deletedBookmarkLists: v.number(),
     deletedTags: v.number(),
     deletedReactionFeedback: v.number(),
+    deletedEntitlementGrants: v.number(),
   }),
   handler: async (ctx, args) => {
     const bookmarks = await ctx.db
@@ -55,11 +56,20 @@ export const deleteRemainingUserData = internalMutation({
       await ctx.db.delete(fb._id);
     }
 
+    const grants = await ctx.db
+      .query("entitlementGrants")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const grant of grants) {
+      await ctx.db.delete(grant._id);
+    }
+
     return {
       deletedBookmarks: bookmarks.length,
       deletedBookmarkLists: bookmarkLists.length,
       deletedTags: tags.length,
       deletedReactionFeedback: reactionFeedback.length,
+      deletedEntitlementGrants: grants.length,
     };
   },
 });
