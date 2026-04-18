@@ -82,6 +82,9 @@ jobs:
   deploy-vercel-preview:
     name: Deploy Vercel Preview (atomic Convex + frontend)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     outputs:
       convex_url: ${{ steps.extract.outputs.convex_url }}
       convex_site_url: ${{ steps.extract.outputs.convex_site_url }}
