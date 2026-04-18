@@ -25,7 +25,13 @@ export async function ensureSeededAccount() {
 
   const res = await fetch(`${siteUrl}/api/auth/sign-up/email`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      // Node's fetch auto-sends Sec-Fetch-* headers, which trips better-auth's
+      // CSRF check and requires an Origin. Send the Convex site as Origin —
+      // it's already trusted via allowedHosts in the auth config.
+      Origin: siteUrl,
+    },
     body: JSON.stringify({
       email: SEEDED_USER.email,
       password: SEEDED_USER.password,
