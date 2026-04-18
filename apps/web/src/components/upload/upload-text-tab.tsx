@@ -12,10 +12,15 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import type { LearningGoalOnboardingPrompt } from "@/components/upload/learning-goal-onboarding-dialog";
 import { useUploadErrorHandler } from "@/components/upload/upload-error-provider";
 import { useBilling } from "@/hooks/use-billing";
 
-export function UploadTextTab() {
+type UploadTextTabProps = {
+  onDocumentCreated: (prompt: LearningGoalOnboardingPrompt) => void;
+};
+
+export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -67,10 +72,11 @@ export function UploadTextTab() {
 
         const { storageId } = (await result.json()) as { storageId: string };
 
-        await createFromText({
+        const documentId = await createFromText({
           title: trimmedTitle,
           storageId: storageId as never,
         });
+        onDocumentCreated({ documentId, documentTitle: trimmedTitle, sourceType: "text" });
 
         setTitle("");
         setText("");
@@ -83,7 +89,7 @@ export function UploadTextTab() {
         toast.success(
           <span>
             <strong>{trimmedTitle}</strong> added! Processing typically takes 3-5 minutes and
-            continues in the background.{" "}
+            continues in the background. Add a learning goal now so cards use it.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>
@@ -96,7 +102,16 @@ export function UploadTextTab() {
         setSubmitting(false);
       }
     },
-    [title, text, generateUploadUrl, createFromText, posthog, handleUploadError, fileSizeLimits],
+    [
+      title,
+      text,
+      generateUploadUrl,
+      createFromText,
+      posthog,
+      handleUploadError,
+      fileSizeLimits,
+      onDocumentCreated,
+    ],
   );
 
   return (

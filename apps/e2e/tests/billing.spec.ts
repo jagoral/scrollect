@@ -6,6 +6,7 @@ import {
   cleanupTestData,
   seedEarlyAdopterGrant,
   seedProSubscription,
+  skipLearningGoalPrompt,
   signUp,
 } from "./helpers";
 
@@ -92,6 +93,7 @@ test.describe("Free-tier billing UX", () => {
           .getByText(/uploaded!/i)
           .first(),
       ).toBeVisible({ timeout: 30_000 });
+      await skipLearningGoalPrompt(page);
     }
 
     await page.goto("/app/upload");
@@ -163,6 +165,7 @@ test.describe("Early Adopter grant", () => {
           .getByText(/uploaded!/i)
           .first(),
       ).toBeVisible({ timeout: 30_000 });
+      await skipLearningGoalPrompt(page);
     }
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });

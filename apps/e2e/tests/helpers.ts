@@ -96,6 +96,13 @@ export async function dismissCookieConsent(page: Page) {
   }
 }
 
+export async function skipLearningGoalPrompt(page: Page) {
+  const dialog = page.getByRole("dialog", { name: /what do you want to learn from this/i });
+  if (!(await dialog.isVisible({ timeout: 5000 }).catch(() => false))) return;
+  await dialog.getByRole("button", { name: /skip for now/i }).click();
+  await expect(dialog).toBeHidden({ timeout: 10000 });
+}
+
 export async function signUp(page: Page): Promise<{ email: string }> {
   const user = testUser();
   await page.goto("/signin");

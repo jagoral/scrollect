@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { ThematicLlm } from "./types";
 import { type TokenUsage, generate } from "./ai";
-import { buildLanguageInstruction } from "./promptUtils";
+import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
 
 const themeSchema = z.object({
   themes: z.array(
@@ -43,6 +43,7 @@ export class AiSdkThematicLlm implements ThematicLlm {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
     language?: string;
+    learningGoal?: string;
   }): Promise<{
     themes: Array<{ title: string; description: string; relevantSections: string[] }>;
     usage: TokenUsage;
@@ -55,7 +56,7 @@ export class AiSdkThematicLlm implements ThematicLlm {
       model: "generate",
       schema: themeSchema,
       system: buildSystemPrompt(opts.language),
-      prompt: `Document: "${opts.documentTitle}"\n\n${sectionText}`,
+      prompt: `Document: "${opts.documentTitle}"${buildLearningGoalContext(opts.learningGoal)}\n\n${sectionText}`,
       temperature: 0.4,
     });
 

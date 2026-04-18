@@ -202,6 +202,7 @@ export interface CardDraftLlm {
     documentTitle: string;
     language?: string;
     fileType?: string;
+    learningGoal?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;
@@ -229,6 +230,7 @@ export interface ThematicLlm {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
     language?: string;
+    learningGoal?: string;
   }): Promise<{
     themes: Array<{ title: string; description: string; relevantSections: string[] }>;
     usage: TokenUsage;
@@ -303,6 +305,7 @@ export interface HighlightDraftLlm {
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
     language?: string;
+    learningGoal?: string;
   }): Promise<{
     cards: Array<{
       highlightId: string;

@@ -111,6 +111,7 @@ export const create = mutation({
         storageId: args.storageId,
         status: "uploaded",
         chunkCount: 0,
+        learningGoalOnboardingStatus: "pending",
         userId: user._id,
         createdAt: Date.now(),
       });
@@ -164,6 +165,7 @@ export const createFromUrl = mutation({
         sourceUrl: args.url,
         status: "uploaded",
         chunkCount: 0,
+        learningGoalOnboardingStatus: "pending",
         userId: user._id,
         createdAt: Date.now(),
       });
@@ -209,6 +211,7 @@ export const createFromText = mutation({
         storageId: args.storageId,
         status: "uploaded",
         chunkCount: 0,
+        learningGoalOnboardingStatus: "pending",
         userId: user._id,
         createdAt: Date.now(),
       });
@@ -251,7 +254,10 @@ export const updateLearningGoal = mutation({
       if (trimmed.length > LEARNING_GOAL_MAX_LENGTH) {
         throw new Error(`Learning goal must be at most ${LEARNING_GOAL_MAX_LENGTH} characters`);
       }
-      await ctx.db.patch(args.id, { learningGoal: trimmed });
+      await ctx.db.patch(args.id, {
+        learningGoal: trimmed,
+        learningGoalOnboardingStatus: "set",
+      });
       return null;
     } catch (error) {
       evt.setError(error);
@@ -277,7 +283,39 @@ export const clearLearningGoal = mutation({
       if (!doc || doc.userId !== user._id) {
         throw new Error("Document not found");
       }
-      await ctx.db.patch(args.id, { learningGoal: undefined });
+      await ctx.db.patch(args.id, {
+        learningGoal: undefined,
+        learningGoalOnboardingStatus: "skipped",
+      });
+      return null;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
+  },
+});
+
+export const skipLearningGoalOnboarding = mutation({
+  args: {
+    id: v.id("documents"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const evt = new WideEvent("documents.skipLearningGoalOnboarding");
+    evt.set("documentId", args.id);
+    try {
+      const user = await requireAuth(ctx);
+      evt.set("userId", user._id);
+      const doc = await ctx.db.get(args.id);
+      if (!doc || doc.userId !== user._id) {
+        throw new Error("Document not found");
+      }
+      await ctx.db.patch(args.id, {
+        learningGoal: undefined,
+        learningGoalOnboardingStatus: "skipped",
+      });
       return null;
     } catch (error) {
       evt.setError(error);

@@ -34,6 +34,7 @@ export const getSourceDetails = query({
       pageEnd: v.optional(v.number()),
       sourceUrl: v.optional(v.string()),
       sectionSummary: v.optional(v.string()),
+      learningGoal: v.optional(v.string()),
       tags: v.array(v.object({ _id: v.id("tags"), name: v.string() })),
     }),
     v.null(),
@@ -60,6 +61,7 @@ export const getSourceDetails = query({
       pageEnd: post.pageEnd,
       sourceUrl: doc.sourceUrl,
       sectionSummary,
+      learningGoal: doc.learningGoal,
       tags,
     };
   },

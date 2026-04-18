@@ -123,6 +123,7 @@ export function createMockCardDraftLlm(overrides?: Partial<CardDraftLlm>): CardD
       sectionTitle: string;
       chunks: Array<{ content: string; chunkId: string }>;
       documentTitle: string;
+      learningGoal?: string;
     }) => ({
       card: {
         content: `Draft ${opts.cardType} for "${opts.sectionTitle}": a useful learning card.`,
@@ -184,12 +185,17 @@ export function createMockDraftGenerationServices(
 
 export function createMockThematicLlm(overrides?: Partial<ThematicLlm>): ThematicLlm {
   return {
-    discoverThemes: async ({ sectionSummaries }) => ({
+    discoverThemes: async (opts: {
+      sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+      documentTitle: string;
+      language?: string;
+      learningGoal?: string;
+    }) => ({
       themes: [
         {
           title: "Core Concepts",
           description: "The fundamental ideas that connect multiple sections.",
-          relevantSections: sectionSummaries.slice(0, 2).map((s) => s.sectionTitle),
+          relevantSections: opts.sectionSummaries.slice(0, 2).map((s) => s.sectionTitle),
         },
       ],
       usage: ZERO_USAGE,
@@ -246,7 +252,15 @@ export function createMockHighlightDraftLlm(
   overrides?: Partial<HighlightDraftLlm>,
 ): HighlightDraftLlm {
   return {
-    generateDraftsFromHighlights: async (opts) => ({
+    generateDraftsFromHighlights: async (opts: {
+      highlights: Array<{ highlightId: string; highlightText: string }>;
+      sectionSummary: string;
+      sectionTitle: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+      documentTitle: string;
+      language?: string;
+      learningGoal?: string;
+    }) => ({
       cards: opts.highlights.map((h) => ({
         highlightId: h.highlightId,
         content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}`,

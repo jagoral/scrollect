@@ -181,6 +181,7 @@ export class StubCardDraftLlm implements CardDraftLlm {
     documentTitle: string;
     language?: string;
     fileType?: string;
+    learningGoal?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;
@@ -197,6 +198,7 @@ export class StubThematicLlm implements ThematicLlm {
     sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
     documentTitle: string;
     language?: string;
+    learningGoal?: string;
   }): Promise<{
     themes: Array<{ title: string; description: string; relevantSections: string[] }>;
     usage: TokenUsage;
@@ -269,6 +271,7 @@ export class StubHighlightDraftLlm implements HighlightDraftLlm {
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
     language?: string;
+    learningGoal?: string;
   }): Promise<{
     cards: Array<{
       highlightId: string;

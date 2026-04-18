@@ -111,6 +111,34 @@ describe("discoverThemes", () => {
 
     expect(result.usage.totalTokens).toBe(700);
   });
+
+  it("passes learningGoal through to thematic discovery", async () => {
+    const discoverThemesSpy = vi.fn().mockResolvedValue({
+      themes: [{ title: "Theme", description: "Desc", relevantSections: ["A", "B"] }],
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
+    });
+    const thematicLlm = createMockThematicLlm({ discoverThemes: discoverThemesSpy });
+
+    await discoverThemes({
+      input: {
+        sectionSummaries: SECTION_SUMMARIES,
+        documentTitle: "Test",
+        learningGoal: "Learn how architecture patterns fit together",
+      },
+      services: { thematicLlm },
+    });
+
+    expect(discoverThemesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        learningGoal: "Learn how architecture patterns fit together",
+      }),
+    );
+  });
 });
 
 describe("generateThematicDrafts", () => {
@@ -232,21 +260,23 @@ describe("generateThematicDrafts", () => {
     const draftLlm = createMockCardDraftLlm({
       generateDraft: vi
         .fn()
-        .mockImplementation(async (opts: { cardType: string; sectionTitle: string }) => {
-          if (opts.cardType === "insight") throw new Error("LLM failure");
-          return {
-            card: {
-              content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful thematic card content here.`,
-              typeData: { type: "summary", bulletPoints: ["Point 1", "Point 2"] },
-            },
-            usage: {
-              inputTokens: 0,
-              outputTokens: 0,
-              totalTokens: 0,
-              costUsd: { input: 0, output: 0, total: 0 },
-            },
-          };
-        }),
+        .mockImplementation(
+          async (opts: { cardType: string; sectionTitle: string; learningGoal?: string }) => {
+            if (opts.cardType === "insight") throw new Error("LLM failure");
+            return {
+              card: {
+                content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful thematic card content here.`,
+                typeData: { type: "summary", bulletPoints: ["Point 1", "Point 2"] },
+              },
+              usage: {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+                costUsd: { input: 0, output: 0, total: 0 },
+              },
+            };
+          },
+        ),
     });
     const services = createMockThematicDraftGenerationServices({ vectorStore, draftLlm });
 
@@ -309,16 +339,18 @@ describe("generateThematicDrafts", () => {
     const draftLlm = createMockCardDraftLlm({
       generateDraft: vi
         .fn()
-        .mockImplementation(async (opts: { cardType: string; sectionTitle: string }) => ({
-          card: {
-            content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful thematic card content.`,
-            typeData:
-              opts.cardType === "summary"
-                ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
-                : { type: "insight" },
-          },
-          usage,
-        })),
+        .mockImplementation(
+          async (opts: { cardType: string; sectionTitle: string; learningGoal?: string }) => ({
+            card: {
+              content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful thematic card content.`,
+              typeData:
+                opts.cardType === "summary"
+                  ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
+                  : { type: "insight" },
+            },
+            usage,
+          }),
+        ),
     });
     const services = createMockThematicDraftGenerationServices({ vectorStore, draftLlm });
 
@@ -346,6 +378,35 @@ describe("generateThematicDrafts", () => {
     for (const draft of result.drafts) {
       expect(draft.sourceChunkIds).toEqual(["chunk-1", "chunk-2", "chunk-3"]);
     }
+  });
+
+  it("passes learningGoal through to thematic draft generation", async () => {
+    const vectorStore = createMockVectorStore({
+      search: async (): Promise<VectorSearchResult[]> => makeSearchResults(),
+    });
+    const generateDraft = vi.fn().mockResolvedValue({
+      card: {
+        content: "Draft insight for testing: a useful thematic card.",
+        typeData: { type: "insight" },
+      },
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
+    });
+    const draftLlm = createMockCardDraftLlm({ generateDraft });
+    const services = createMockThematicDraftGenerationServices({ vectorStore, draftLlm });
+
+    await generateThematicDrafts({
+      input: makeInput({ learningGoal: "Understand architecture tradeoffs" }),
+      services,
+    });
+
+    expect(generateDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ learningGoal: "Understand architecture tradeoffs" }),
+    );
   });
 
   it("skips chunks not found in content map", async () => {

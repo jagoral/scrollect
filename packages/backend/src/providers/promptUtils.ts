@@ -20,3 +20,9 @@ export function buildLanguageInstruction(isoCode?: string): string {
   }
   return `Write in the same language as the source text. Do not mix languages.`;
 }
+
+export function buildLearningGoalContext(learningGoal?: string): string {
+  const trimmed = learningGoal?.trim();
+  if (!trimmed) return "";
+  return `\n\nThe user wants to learn: ${trimmed}`;
+}
