@@ -123,7 +123,7 @@ jobs:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
 
-      - name: Set Convex env vars on preview
+      - name: Set Convex env vars on the preview
         working-directory: packages/backend
         run: |
           bunx convex env set USE_STUB_EXTRACTORS true --preview-name "$PREVIEW_NAME"
