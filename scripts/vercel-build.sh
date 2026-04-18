@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+echo "[vercel-build] CONVEX_PREVIEW_NAME=${CONVEX_PREVIEW_NAME:-<unset>}"
+echo "[vercel-build] VERCEL_GIT_COMMIT_REF=${VERCEL_GIT_COMMIT_REF:-<unset>}"
+
 cd "$(dirname "$0")/../packages/backend"
 
 if [ -n "$CONVEX_PREVIEW_NAME" ]; then
