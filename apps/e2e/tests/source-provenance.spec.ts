@@ -24,7 +24,10 @@ test.describe("Source provenance on feed cards", { tag: "@seeded" }, () => {
     const firstCard = page.locator('[data-testid="post-card"]').first();
     await expect(firstCard).toBeVisible({ timeout: 10000 });
 
-    await firstCard.click();
+    // Click the source badge — a non-interactive region that reliably bubbles
+    // to the article's onClick regardless of the card type (quiz cards have
+    // answer buttons that stopPropagation on clicks in their area).
+    await firstCard.locator('[data-testid="source-badge"]').click();
 
     const libraryLink = page.getByRole("link", { name: /view in library/i });
     await expect(libraryLink).toBeVisible({ timeout: 5000 });

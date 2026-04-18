@@ -10,7 +10,10 @@ async function bookmarkFirstCardAndNavigateToDocument(page: Page) {
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("aria-pressed", "true", { timeout: 15000 });
 
-  await firstCard.click();
+  // Click the source badge (not the whole card) — quiz cards have answer
+  // buttons that stopPropagation, so Playwright's center-click doesn't
+  // reliably reach the article's onClick.
+  await firstCard.locator('[data-testid="source-badge"]').click();
 
   const libraryLink = page.getByRole("link", { name: /view in library/i });
   await expect(libraryLink).toBeVisible({ timeout: 10000 });
