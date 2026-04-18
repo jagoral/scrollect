@@ -110,7 +110,7 @@ jobs:
         run: bunx convex deploy --preview-create "$PREVIEW_NAME"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
-          PREVIEW_NAME: ${{ github.head_ref }}
+          PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
 
       - name: Set Convex env vars on preview
         working-directory: packages/backend
@@ -129,7 +129,7 @@ jobs:
           bunx convex env set POLAR_SERVER "$POLAR_SERVER" --preview-name "$PREVIEW_NAME"
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
-          PREVIEW_NAME: ${{ github.head_ref }}
+          PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           QDRANT_URL: ${{ vars.QDRANT_URL }}
@@ -155,7 +155,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-          PREVIEW_NAME: ${{ github.head_ref }}
+          PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
 
       - name: Extract Convex URL from build logs
         id: extract
