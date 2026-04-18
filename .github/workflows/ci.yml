@@ -122,7 +122,7 @@ jobs:
         id: extract
         run: |
           vercel inspect "$DEPLOY_URL" --logs --token="$VERCEL_TOKEN" 2>&1 | tee build.log
-          CONVEX_URL=$(sed 's/\x1b\[[0-9;]*m//g' build.log | grep -oE 'https://[a-z0-9-]+\.convex\.cloud' | head -1)
+          CONVEX_URL=$(sed 's/\x1b\[[0-9;]*m//g' build.log | grep -oE 'https://[a-z0-9.-]+\.convex\.cloud' | head -1)
           if [ -z "$CONVEX_URL" ]; then
             echo "::error::Could not extract Convex URL from Vercel build logs"
             exit 1
