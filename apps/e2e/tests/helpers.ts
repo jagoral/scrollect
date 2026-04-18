@@ -11,10 +11,11 @@ export const SEEDED_USER = {
   password: "testpassword123",
 };
 
-export function testUser() {
+export function testUser(options?: { emailDomain?: string }) {
+  const domain = options?.emailDomain ?? "test.scrollect.dev";
   return {
     name: "E2E Tester",
-    email: `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.scrollect.dev`,
+    email: `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@${domain}`,
     password: "testpassword123",
   };
 }
@@ -82,8 +83,11 @@ export async function dismissCookieConsent(page: Page) {
   }
 }
 
-export async function signUp(page: Page): Promise<{ email: string }> {
-  const user = testUser();
+export async function signUp(
+  page: Page,
+  options?: { emailDomain?: string },
+): Promise<{ email: string }> {
+  const user = testUser(options);
   await page.goto("/signin");
   await page.waitForLoadState("networkidle");
   await dismissCookieConsent(page);

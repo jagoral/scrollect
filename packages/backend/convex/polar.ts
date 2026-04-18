@@ -97,3 +97,18 @@ export const getCustomerPortalUrl = action({
     return { url: result.url };
   },
 });
+
+// One-shot bootstrap to populate the Polar component's products table. The
+// component normally keeps it in sync via `product.created`/`product.updated`
+// webhooks; call this once after wiring up a new Polar org (or after
+// registering the webhook endpoint late) so `getCurrentSubscription` can
+// resolve the product for subscriptions created before the first product
+// webhook arrives.
+export const syncProducts = action({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx): Promise<null> => {
+    await polar.syncProducts(ctx);
+    return null;
+  },
+});
