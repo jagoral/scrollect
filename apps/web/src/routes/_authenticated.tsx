@@ -1,5 +1,4 @@
 import { Link, Outlet, createFileRoute, redirect, useRouterState } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { DetailPanel, DetailPanelProvider } from "@/components/detail-panel";
@@ -12,6 +11,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { usePostHogIdentify } from "@/hooks/use-posthog-identify";
 
 export const Route = createFileRoute("/_authenticated")({
+  ssr: false,
   head: () => ({
     meta: [{ name: "robots", content: "noindex, nofollow" }],
   }),
@@ -20,12 +20,6 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/signin" });
     }
   },
-  pendingMs: 200,
-  pendingComponent: () => (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  ),
   component: AuthenticatedLayout,
 });
 
@@ -54,7 +48,7 @@ function AuthenticatedLayout() {
           {isFeedRoute ? (
             <DetailPanelProvider>
               <div className="flex flex-1">
-                <main className="w-full max-w-2xl shrink-0 border-r border-border">
+                <main className="w-full max-w-2xl shrink-0">
                   <Outlet />
                 </main>
                 <DetailPanel />

@@ -1,17 +1,12 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { BookOpen, ExternalLink, Loader2, MapPin } from "lucide-react";
-import type { RefObject } from "react";
 import { usePostHog } from "posthog-js/react";
 
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverDescription, PopoverTitle } from "@/components/ui/popover";
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 
 import { getFileTypeConfig } from "./file-type-config";
 
@@ -138,65 +133,5 @@ export function SourceDetailsContent({
         </Link>
       </div>
     </div>
-  );
-}
-
-interface SourceDetailSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  postId: Id<"posts">;
-  documentId: Id<"documents">;
-  anchorRef: RefObject<HTMLButtonElement | null>;
-}
-
-export function SourceDetailSheet({
-  open,
-  onOpenChange,
-  postId,
-  documentId,
-  anchorRef,
-}: SourceDetailSheetProps) {
-  const isMobile = useIsMobile();
-
-  if (!isMobile) {
-    return (
-      <Popover open={open} onOpenChange={onOpenChange}>
-        <PopoverPrimitive.Backdrop className="fixed inset-0 z-40" />
-        <PopoverContent
-          anchor={anchorRef}
-          side="bottom"
-          align="start"
-          sideOffset={8}
-          data-testid="source-detail-sheet"
-          className="w-80 gap-0 p-0 py-3"
-        >
-          <PopoverTitle className="sr-only">Source details</PopoverTitle>
-          <PopoverDescription className="sr-only">
-            Details about the source of this learning card.
-          </PopoverDescription>
-          <SourceDetailsContent postId={postId} documentId={documentId} />
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        showCloseButton={false}
-        className="max-h-[70dvh] overflow-y-auto rounded-t-2xl px-0 pb-[env(safe-area-inset-bottom)]"
-        data-testid="source-detail-sheet"
-      >
-        <div className="mx-auto mb-1 mt-0 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/25" />
-
-        <SheetTitle className="sr-only">Source details</SheetTitle>
-        <SheetDescription className="sr-only">
-          Details about the source of this learning card.
-        </SheetDescription>
-
-        <SourceDetailsContent postId={postId} documentId={documentId} />
-      </SheetContent>
-    </Sheet>
   );
 }

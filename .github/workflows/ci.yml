@@ -132,7 +132,6 @@ jobs:
           bunx convex env set QDRANT_URL "$QDRANT_URL" --preview-name "$PREVIEW_NAME"
           bunx convex env set QDRANT_API_KEY "$QDRANT_API_KEY" --preview-name "$PREVIEW_NAME"
           bunx convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --preview-name "$PREVIEW_NAME"
-          bunx convex env set SITE_URL http://localhost:3000 --preview-name "$PREVIEW_NAME"
           bunx convex env set ENABLE_E2E_ROUTES true --preview-name "$PREVIEW_NAME"
           bunx convex env set POLAR_ORGANIZATION_TOKEN "$POLAR_ORGANIZATION_TOKEN" --preview-name "$PREVIEW_NAME"
           bunx convex env set POLAR_WEBHOOK_SECRET "$POLAR_WEBHOOK_SECRET" --preview-name "$PREVIEW_NAME"

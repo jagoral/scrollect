@@ -2,7 +2,7 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { Bookmark, BookmarkCheck, ChevronRight, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Bookmark, BookmarkCheck, ThumbsDown, ThumbsUp } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import type { ReactNode } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -18,7 +18,6 @@ import { useDetailPanel } from "@/components/detail-panel";
 
 import { DislikeReasonSheet } from "./dislike-reason-sheet";
 import { getFileTypeConfig } from "./file-type-config";
-import { SourceDetailSheet } from "./source-detail-sheet";
 import type { DislikeReason, PostCardData, PostType } from "./types";
 
 const cardAccentColor: Record<PostType, string> = {
@@ -63,40 +62,18 @@ function removePostFromPaginatedPages(
 }
 
 export function SourceBadge({ post, className }: { post: PostCardData; className?: string }) {
-  const posthog = usePostHog();
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const badgeRef = useRef<HTMLButtonElement>(null);
-
   const { Icon } = getFileTypeConfig(post.fileType);
 
   return (
-    <div className={cn("mb-3", className)}>
-      <button
-        ref={badgeRef}
-        type="button"
-        data-testid="source-badge"
-        aria-label={`Source details: ${post.primarySourceDocumentTitle ?? "Untitled"}`}
-        className="inline-flex max-w-full cursor-pointer items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground/80"
-        onClick={(e) => {
-          e.stopPropagation();
-          posthog.capture("source.detail_opened", {
-            card_type: post.postType,
-          });
-          setSheetOpen(true);
-        }}
-      >
-        <Icon className="size-3.5 shrink-0" />
-        <span className="truncate">{post.primarySourceDocumentTitle ?? "Untitled"}</span>
-        <ChevronRight className="size-3 shrink-0 text-muted-foreground/50" />
-      </button>
-
-      <SourceDetailSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        postId={post._id}
-        documentId={post.primarySourceDocumentId}
-        anchorRef={badgeRef}
-      />
+    <div
+      data-testid="source-badge"
+      className={cn(
+        "mb-3 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground",
+        className,
+      )}
+    >
+      <Icon className="size-3.5 shrink-0" />
+      <span className="truncate">{post.primarySourceDocumentTitle ?? "Untitled"}</span>
     </div>
   );
 }

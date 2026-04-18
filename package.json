@@ -12,8 +12,8 @@
       "zod": "^4.1.13",
       "typescript": "^5",
       "convex": "^1.33.1",
-      "better-auth": "1.4.9",
-      "@convex-dev/better-auth": "^0.10.13"
+      "better-auth": "1.5.6",
+      "@convex-dev/better-auth": "^0.11.4"
     }
   },
   "type": "module",
