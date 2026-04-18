@@ -344,7 +344,9 @@ test.describe(
       await test.step("verify document appears in library", async () => {
         await page.goto("/app/library");
         await page.waitForLoadState("networkidle");
-        await expect(page.getByText("My Test Notes")).toBeVisible({ timeout: 10000 });
+        await expect(
+          page.getByTestId("document-item").filter({ hasText: "My Test Notes" }),
+        ).toBeVisible({ timeout: 10000 });
       });
     });
   },
