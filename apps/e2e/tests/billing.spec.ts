@@ -99,7 +99,15 @@ test.describe("Free-tier billing UX", () => {
   });
 });
 
+// Opt-in: this suite drives a real Polar sandbox checkout, which requires
+// POLAR_ORGANIZATION_TOKEN / POLAR_PRODUCT_PRO_ID / POLAR_WEBHOOK_SECRET on the
+// Convex deployment. CI preview deployments don't have those wired, so skip by
+// default and run with `POLAR_SANDBOX_E2E=1` locally once the org is configured.
 test.describe("Polar sandbox checkout flow", () => {
+  test.skip(
+    !process.env.POLAR_SANDBOX_E2E,
+    "Requires Polar sandbox credentials; set POLAR_SANDBOX_E2E=1 to run",
+  );
   test.setTimeout(180_000);
 
   let ephemeralEmail: string;
