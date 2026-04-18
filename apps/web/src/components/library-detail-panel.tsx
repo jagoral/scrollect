@@ -74,7 +74,7 @@ export function LibraryDetailPanel() {
     if (isMobile) return null;
 
     return (
-      <aside className="-ml-px hidden flex-1 border-l border-border lg:block">
+      <aside className="-ml-px hidden min-w-0 flex-1 border-l border-border lg:block">
         <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] flex-col items-center justify-center px-6 text-center">
           <div className="flex size-12 items-center justify-center border border-border">
             <MousePointerClick className="size-5 text-muted-foreground" />
@@ -108,7 +108,7 @@ export function LibraryDetailPanel() {
   }
 
   return (
-    <aside className="-ml-px hidden flex-1 border-l border-border lg:block">
+    <aside className="-ml-px hidden min-w-0 flex-1 border-l border-border lg:block">
       <div className="sticky top-14 h-[calc(100svh-3.5rem)] overflow-y-auto">
         <div
           key={selectedDocumentId}
@@ -174,11 +174,11 @@ function DocumentDetailContent({
   return (
     <div className="px-6 py-5">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="flex items-start gap-2.5 text-lg font-bold tracking-tight">
+        <h2 className="flex min-w-0 items-start gap-2.5 text-lg font-bold tracking-tight">
           <span className="mt-0.5 shrink-0 text-muted-foreground">
             {fileTypeIcons[document.fileType] ?? <FileText className="size-4" />}
           </span>
-          <span className="min-w-0 break-words">{document.title}</span>
+          <span className="min-w-0 break-all">{document.title}</span>
         </h2>
         <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
           <X className="size-4" />

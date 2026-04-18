@@ -4,6 +4,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Mail, User } from "lucide-react";
 
+import { BillingSection } from "@/components/billing/billing-section";
 import { DeleteAccountDialog } from "@/components/delete-account-dialog";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
@@ -40,6 +41,10 @@ function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <div className="mt-8">
+        <BillingSection />
+      </div>
 
       <section className="mt-8">
         <h2 className="mb-3 text-sm font-semibold text-destructive">Danger zone</h2>

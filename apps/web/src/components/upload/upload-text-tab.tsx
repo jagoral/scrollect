@@ -1,5 +1,5 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
-import { FILE_SIZE_LIMITS, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { useMutation } from "convex/react";
 import { Link } from "@tanstack/react-router";
 import { FileText, Loader2 } from "lucide-react";
@@ -12,7 +12,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toastRateLimitOrFallback } from "@/lib/rate-limit-error";
+import { useUploadErrorHandler } from "@/components/upload/upload-error-provider";
+import { useBilling } from "@/hooks/use-billing";
 
 export function UploadTextTab() {
   const [title, setTitle] = useState("");
@@ -21,6 +22,9 @@ export function UploadTextTab() {
   const [titleTouched, setTitleTouched] = useState(false);
   const [textTouched, setTextTouched] = useState(false);
   const posthog = usePostHog();
+  const handleUploadError = useUploadErrorHandler();
+  const { usage } = useBilling();
+  const fileSizeLimits = getFileSizeLimits(usage?.tier ?? "free");
 
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createFromText = useMutation(api.documents.createFromText);
@@ -41,9 +45,9 @@ export function UploadTextTab() {
       }
 
       const textBytes = new Blob([trimmedText]).size;
-      if (textBytes > FILE_SIZE_LIMITS.text) {
+      if (textBytes > fileSizeLimits.text) {
         toast.error(
-          `Text too large (${formatFileSize(textBytes)}). Maximum is ${formatFileSize(FILE_SIZE_LIMITS.text)}.`,
+          `Text too large (${formatFileSize(textBytes)}). Maximum is ${formatFileSize(fileSizeLimits.text)}.`,
         );
         return;
       }
@@ -87,15 +91,12 @@ export function UploadTextTab() {
         );
       } catch (error) {
         posthog.captureException(error);
-        toastRateLimitOrFallback(
-          error,
-          "Something went wrong while saving your text. Please try again.",
-        );
+        handleUploadError(error, "Something went wrong while saving your text. Please try again.");
       } finally {
         setSubmitting(false);
       }
     },
-    [title, text, generateUploadUrl, createFromText, posthog],
+    [title, text, generateUploadUrl, createFromText, posthog, handleUploadError, fileSizeLimits],
   );
 
   return (
@@ -108,7 +109,7 @@ export function UploadTextTab() {
           <div>
             <p className="text-lg font-semibold">Paste Text</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Paste any text to add it to your library (max {formatFileSize(FILE_SIZE_LIMITS.text)}
+              Paste any text to add it to your library (max {formatFileSize(fileSizeLimits.text)}
               ).
             </p>
           </div>
@@ -149,7 +150,7 @@ export function UploadTextTab() {
           {text.trim() && (
             <p className="text-xs text-muted-foreground">
               {formatFileSize(new Blob([text.trim()]).size)} of{" "}
-              {formatFileSize(FILE_SIZE_LIMITS.text)}
+              {formatFileSize(fileSizeLimits.text)}
             </p>
           )}
         </div>

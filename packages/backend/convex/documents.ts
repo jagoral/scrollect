@@ -5,17 +5,19 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { enforceDocumentLimit, resolveTier } from "./entitlements";
+import type { Tier } from "./entitlements";
 import { formatFileSize, getFileSizeLimit } from "./lib/fileSizeLimits";
 import { requireAuth, optionalAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
-import { rateLimiter } from "./lib/rateLimitConfig";
+import { rateLimiter, tieredLimiterName } from "./lib/rateLimitConfig";
 import { documentStatus, failedAtStage, fileType, urlFileType } from "./lib/validators";
 
 async function enforceFileSizeLimit(
   ctx: MutationCtx,
-  args: { storageId: Id<"_storage">; fileType: string; evt: WideEvent },
+  args: { storageId: Id<"_storage">; fileType: string; tier: Tier; evt: WideEvent },
 ) {
-  const limit = getFileSizeLimit(args.fileType);
+  const limit = getFileSizeLimit(args.fileType, args.tier);
   if (!limit) {
     throw new Error(`No file size limit configured for type: ${args.fileType}`);
   }
@@ -26,34 +28,47 @@ async function enforceFileSizeLimit(
     // Storage deletion is NOT transactional (persists even if mutation rolls back).
     // This must be called BEFORE db.insert to avoid orphaned document rows.
     await ctx.storage.delete(args.storageId);
-    args.evt.set({ fileTooLarge: true, maxSize: limit });
+    args.evt.set({ fileTooLarge: true, maxSize: limit, tier: args.tier });
     throw new ConvexError({
       kind: "FileTooLarge" as const,
       fileSize: metadata.size,
       maxSize: limit,
       maxSizeFormatted: formatFileSize(limit),
       fileSizeFormatted: formatFileSize(metadata.size),
+      tier: args.tier,
     });
   }
 }
 
-async function enforceDocumentUploadLimit(ctx: MutationCtx, userId: string, evt: WideEvent) {
-  const result = await rateLimiter.limit(ctx, "documentUpload", { key: userId });
+async function enforceDocumentUploadLimit(
+  ctx: MutationCtx,
+  userId: string,
+  evt: WideEvent,
+): Promise<Tier> {
+  // `enforceDocumentLimit` already reads the Polar subscription to compute the tier;
+  // reuse its result so we don't fetch it twice per upload.
+  const tier: Tier = await enforceDocumentLimit(ctx, userId);
+  evt.set("tier", tier);
+  const name = tieredLimiterName("documentUpload", tier);
+  const result = await rateLimiter.limit(ctx, name, { key: userId });
   if (!result.ok) {
-    evt.set({ rateLimited: true, endpoint: "documentUpload", retryAfterMs: result.retryAfter });
+    evt.set({ rateLimited: true, endpoint: name, retryAfterMs: result.retryAfter });
     throw new ConvexError({
       kind: "RateLimited" as const,
       name: "documentUpload",
       retryAfter: result.retryAfter,
     });
   }
+  return tier;
 }
 
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireAuth(ctx);
-    const result = await rateLimiter.limit(ctx, "uploadUrlGeneration", { key: user._id });
+    const tier = await resolveTier(ctx, user._id);
+    const name = tieredLimiterName("uploadUrlGeneration", tier);
+    const result = await rateLimiter.limit(ctx, name, { key: user._id });
     if (!result.ok) {
       throw new ConvexError({
         kind: "RateLimited" as const,
@@ -77,10 +92,11 @@ export const create = mutation({
     try {
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
-      await enforceDocumentUploadLimit(ctx, user._id, evt);
+      const tier = await enforceDocumentUploadLimit(ctx, user._id, evt);
       await enforceFileSizeLimit(ctx, {
         storageId: args.storageId,
         fileType: args.fileType,
+        tier,
         evt,
       });
       const documentId = await ctx.db.insert("documents", {
@@ -166,10 +182,11 @@ export const createFromText = mutation({
     try {
       const user = await requireAuth(ctx);
       evt.set("userId", user._id);
-      await enforceDocumentUploadLimit(ctx, user._id, evt);
+      const tier = await enforceDocumentUploadLimit(ctx, user._id, evt);
       await enforceFileSizeLimit(ctx, {
         storageId: args.storageId,
         fileType: "text",
+        tier,
         evt,
       });
       const documentId = await ctx.db.insert("documents", {

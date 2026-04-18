@@ -1,5 +1,5 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
-import { FILE_SIZE_LIMITS, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { CheckCircle2, CloudUpload, FileUp, Loader2, XCircle } from "lucide-react";
@@ -9,7 +9,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { toastRateLimitOrFallback } from "@/lib/rate-limit-error";
+import { useUploadErrorHandler } from "@/components/upload/upload-error-provider";
+import { useBilling } from "@/hooks/use-billing";
 import { cn } from "@/lib/utils";
 
 const UPLOAD_FILE_TYPES = ["pdf", "epub", "md"] as const;
@@ -35,6 +36,9 @@ export function UploadFileTab() {
   const [uploads, setUploads] = useState<FileUploadState[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const posthog = usePostHog();
+  const handleUploadError = useUploadErrorHandler();
+  const { usage } = useBilling();
+  const fileSizeLimits = getFileSizeLimits(usage?.tier ?? "free");
 
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createDocument = useMutation(api.documents.create);
@@ -54,7 +58,7 @@ export function UploadFileTab() {
         return;
       }
 
-      const sizeLimit = FILE_SIZE_LIMITS[ext];
+      const sizeLimit = fileSizeLimits[ext];
       if (file.size > sizeLimit) {
         toast.error(
           `File too large (${formatFileSize(file.size)}). Maximum for .${ext} files is ${formatFileSize(sizeLimit)}.`,
@@ -106,10 +110,10 @@ export function UploadFileTab() {
           prev.map((u) => (u.file === file ? { ...u, status: "error" as const } : u)),
         );
         posthog.captureException(error);
-        toastRateLimitOrFallback(error, `Failed to upload ${file.name}`);
+        handleUploadError(error, `Failed to upload ${file.name}`);
       }
     },
-    [generateUploadUrl, createDocument, posthog],
+    [generateUploadUrl, createDocument, posthog, handleUploadError, fileSizeLimits],
   );
 
   const handleFiles = useCallback(
@@ -187,9 +191,8 @@ export function UploadFileTab() {
           Choose files
         </Button>
         <p className="text-xs text-muted-foreground">
-          Accepts .pdf (max {formatFileSize(FILE_SIZE_LIMITS.pdf)}), .epub (max{" "}
-          {formatFileSize(FILE_SIZE_LIMITS.epub)}), and .md (max{" "}
-          {formatFileSize(FILE_SIZE_LIMITS.md)})
+          Accepts .pdf (max {formatFileSize(fileSizeLimits.pdf)}), .epub (max{" "}
+          {formatFileSize(fileSizeLimits.epub)}), and .md (max {formatFileSize(fileSizeLimits.md)})
         </p>
         <input
           ref={fileInputRef}

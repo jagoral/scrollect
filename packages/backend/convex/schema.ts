@@ -40,9 +40,16 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
+    .index("by_userId_createdAt", ["userId", "createdAt"])
     .index("by_status", ["status"])
     .index("by_userId_status", ["userId", "status"])
     .index("by_runpodJobId", ["runpodJobId"]),
+
+  userProfiles: defineTable({
+    userId: v.string(),
+    onboardingCompleted: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
 
   posts: defineTable({
     content: v.string(),

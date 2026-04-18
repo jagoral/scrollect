@@ -1,5 +1,6 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
+import { formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { useMutation } from "convex/react";
 import { BookMarked, Loader2, Upload } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { parsePocketbookHtml, type ParsedHighlight } from "@/lib/pocketbook-parser";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 interface ImportHighlightsDialogProps {
   documentId: Id<"documents">;
@@ -49,7 +50,7 @@ export function ImportHighlightsDialog({ documentId }: ImportHighlightsDialogPro
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      toast.error("File is too large. Maximum size is 5MB.");
+      toast.error(`File is too large. Maximum size is ${formatFileSize(MAX_FILE_SIZE)}.`);
       return;
     }
 

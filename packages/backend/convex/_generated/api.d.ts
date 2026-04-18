@@ -17,6 +17,7 @@ import type * as chunks from "../chunks.js";
 import type * as connectionPairs from "../connectionPairs.js";
 import type * as documentActions from "../documentActions.js";
 import type * as documents from "../documents.js";
+import type * as entitlements from "../entitlements.js";
 import type * as feed_queries from "../feed/queries.js";
 import type * as feed_serving from "../feed/serving.js";
 import type * as feed_servingAnalytics from "../feed/servingAnalytics.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   connectionPairs: typeof connectionPairs;
   documentActions: typeof documentActions;
   documents: typeof documents;
+  entitlements: typeof entitlements;
   "feed/queries": typeof feed_queries;
   "feed/serving": typeof feed_serving;
   "feed/servingAnalytics": typeof feed_servingAnalytics;

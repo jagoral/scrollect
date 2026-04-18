@@ -6,8 +6,10 @@ import { usePaginatedQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { FileText, Globe, Loader2, Upload } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
-import { useCallback, useMemo } from "react";
 
+import { DocumentUsageMeter } from "@/components/billing/document-usage-meter";
+import { UpgradeDialog } from "@/components/billing/upgrade-dialog";
+import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
 import {
   ProcessingProgressBar,
@@ -19,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useCallback, useMemo, useState } from "react";
 
 type LibrarySearch = {
   tags?: string[];
@@ -107,23 +110,32 @@ function LibraryPage() {
   }, [navigate]);
 
   const hasDocuments = documents.length > 0;
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const { data: userProfile } = useQuery(convexQuery(api.entitlements.getUserProfile, {}));
+  const onboardingActive = userProfile ? !userProfile.onboardingCompleted : false;
 
   return (
     <div className="py-6">
-      <div className="mb-6 flex items-center justify-between px-4 md:px-6">
+      <div className="mb-6 flex flex-col gap-4 px-4 md:px-6 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Your uploaded documents and their processing status.
           </p>
         </div>
-        {hasDocuments && (
-          <Button size="sm" variant="outline" render={<Link to="/app/upload" />}>
-            <Upload className="size-4" />
-            Upload
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-4">
+          <DocumentUsageMeter onUpgradeClick={() => setUpgradeOpen(true)} />
+          {hasDocuments && (
+            <Button size="sm" variant="outline" render={<Link to="/app/upload" />}>
+              <Upload className="size-4" />
+              Upload
+            </Button>
+          )}
+        </div>
       </div>
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} source="library_header" />
+
+      <OnboardingWizard documents={documents} />
 
       {status === "LoadingFirstPage" ? (
         <div className="border-y border-r border-border">
@@ -138,21 +150,23 @@ function LibraryPage() {
           ))}
         </div>
       ) : !hasDocuments ? (
-        <div className="mt-8 flex flex-col items-center gap-4 text-center">
-          <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
-            <FileText className="size-8 text-primary/70" />
+        onboardingActive ? null : (
+          <div className="mt-8 flex flex-col items-center gap-4 text-center">
+            <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
+              <FileText className="size-8 text-primary/70" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold">No documents yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Upload your first file to get started.
+              </p>
+            </div>
+            <Button render={<Link to="/app/upload" />}>
+              <Upload className="size-4" />
+              Upload your first file
+            </Button>
           </div>
-          <div>
-            <p className="text-lg font-semibold">No documents yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Upload your first file to get started.
-            </p>
-          </div>
-          <Button render={<Link to="/app/upload" />}>
-            <Upload className="size-4" />
-            Upload your first file
-          </Button>
-        </div>
+        )
       ) : (
         <>
           {tagOptions.length > 0 && (
