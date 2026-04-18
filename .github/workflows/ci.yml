@@ -103,25 +103,38 @@ jobs:
         run: bun install -g vercel@latest
 
       - name: Deploy to Vercel
+        id: vercel-deploy
         run: |
           set -o pipefail
           vercel deploy --token="$VERCEL_TOKEN" --yes 2>&1 | tee deploy.log
+          DEPLOY_URL=$(sed 's/\x1b\[[0-9;]*m//g' deploy.log | grep -oE 'https://[a-z0-9-]+-[a-z0-9-]+\.vercel\.app' | head -1)
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "::error::Could not extract Vercel deployment URL"
+            exit 1
+          fi
+          echo "deploy_url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
 
-      - name: Extract Convex URL from build log
+      - name: Extract Convex URL from build logs
         id: extract
         run: |
-          CONVEX_URL=$(sed 's/\x1b\[[0-9;]*m//g' deploy.log | grep -oE 'https://[a-z0-9-]+\.convex\.cloud' | head -1)
+          vercel inspect "$DEPLOY_URL" --logs --token="$VERCEL_TOKEN" 2>&1 | tee build.log
+          CONVEX_URL=$(sed 's/\x1b\[[0-9;]*m//g' build.log | grep -oE 'https://[a-z0-9-]+\.convex\.cloud' | head -1)
           if [ -z "$CONVEX_URL" ]; then
-            echo "::error::Could not extract Convex URL from Vercel deploy log"
+            echo "::error::Could not extract Convex URL from Vercel build logs"
             exit 1
           fi
           SITE_URL="${CONVEX_URL/.convex.cloud/.convex.site}"
           echo "convex_url=$CONVEX_URL" >> "$GITHUB_OUTPUT"
           echo "convex_site_url=$SITE_URL" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          DEPLOY_URL: ${{ steps.vercel-deploy.outputs.deploy_url }}
 
       - name: Set Convex env vars on preview
         working-directory: packages/backend
