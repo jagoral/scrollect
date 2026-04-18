@@ -172,6 +172,19 @@ jobs:
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           DEPLOY_URL: ${{ steps.vercel-deploy.outputs.deploy_url }}
 
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview-deploy
+          message: |
+            Preview deploy for ${{ github.event.pull_request.head.sha }}:
+
+            | Surface | URL |
+            | --- | --- |
+            | Web | ${{ steps.vercel-deploy.outputs.deploy_url }} |
+            | Convex | ${{ steps.extract.outputs.convex_url }} |
+
   e2e-seeded:
     name: E2E Seeded Tests
     runs-on: ubuntu-latest
