@@ -20,20 +20,14 @@ test.describe("Source provenance on feed cards", { tag: "@seeded" }, () => {
     await expect(sourceBadge).toContainText("E2E Seed Document");
   });
 
-  test("source badge opens detail sheet with attribution info", async ({ page }) => {
+  test("clicking a card opens detail panel with library link", async ({ page }) => {
     const firstCard = page.locator('[data-testid="post-card"]').first();
-    const sourceBadge = firstCard.locator('[data-testid="source-badge"]');
-    await expect(sourceBadge).toBeVisible({ timeout: 10000 });
+    await expect(firstCard).toBeVisible({ timeout: 10000 });
 
-    await sourceBadge.click();
+    await firstCard.click();
 
-    const sheet = page.locator('[data-testid="source-detail-sheet"]');
-    await expect(sheet).toBeVisible({ timeout: 5000 });
-
-    await expect(sheet).toContainText("E2E Seed Document");
-
-    const libraryLink = sheet.getByRole("link", { name: /view in library/i });
-    await expect(libraryLink).toBeVisible();
+    const libraryLink = page.getByRole("link", { name: /view in library/i });
+    await expect(libraryLink).toBeVisible({ timeout: 5000 });
 
     await libraryLink.click();
     await expect(page).toHaveURL(/\/app\/library\/.+/, { timeout: 15000 });

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useState } from "react";
-import { MousePointerClick, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { PostCard } from "@/components/post-card";
 import type { PostCardData } from "@/components/cards/types";
@@ -44,23 +44,7 @@ export function DetailPanel() {
   if (!ctx) return null;
   const { selectedPost, closeDetail } = ctx;
 
-  if (!selectedPost) {
-    if (isMobile) return null;
-
-    return (
-      <aside className="-ml-px hidden flex-1 border-l border-border lg:block">
-        <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] flex-col items-center justify-center px-6 text-center">
-          <div className="flex size-12 items-center justify-center border border-border">
-            <MousePointerClick className="size-5 text-muted-foreground" />
-          </div>
-          <p className="mt-4 text-sm font-medium text-foreground">Select a card</p>
-          <p className="mt-1 max-w-[200px] text-xs text-muted-foreground">
-            Click any card in the feed to see its full content and source details here.
-          </p>
-        </div>
-      </aside>
-    );
-  }
+  if (!selectedPost) return null;
 
   if (isMobile) {
     return (
@@ -82,7 +66,7 @@ export function DetailPanel() {
   }
 
   return (
-    <aside className="-ml-px hidden flex-1 border-l border-border lg:block">
+    <aside className="-ml-px hidden min-w-0 flex-1 border-l border-border lg:block">
       <div className="sticky top-14 h-[calc(100svh-3.5rem)] overflow-y-auto">
         <div key={selectedPost._id} className="animate-in fade-in slide-in-from-top-2 duration-200">
           <DetailPanelContent post={selectedPost} onClose={closeDetail} />

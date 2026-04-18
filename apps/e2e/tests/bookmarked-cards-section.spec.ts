@@ -10,13 +10,11 @@ async function bookmarkFirstCardAndNavigateToDocument(page: Page) {
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("aria-pressed", "true", { timeout: 15000 });
 
-  const sourceBadge = firstCard.locator('[data-testid="source-badge"]');
-  await expect(sourceBadge).toBeVisible();
-  await sourceBadge.click();
+  await firstCard.click();
 
-  const detailSheet = page.locator('[data-testid="source-detail-sheet"]');
-  await expect(detailSheet).toBeVisible({ timeout: 10000 });
-  await detailSheet.getByText(/view in library/i).click();
+  const libraryLink = page.getByRole("link", { name: /view in library/i });
+  await expect(libraryLink).toBeVisible({ timeout: 10000 });
+  await libraryLink.click();
 
   await expect(page).toHaveURL(/\/app\/library\/.+/, { timeout: 15000 });
   await expect(page.locator('[data-testid="status-ready"]').first()).toBeVisible({
