@@ -62,3 +62,4 @@ settings.local.json
 .claude/prompts
 
 .playwright-mcp
+.vercel
