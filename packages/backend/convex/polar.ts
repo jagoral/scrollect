@@ -14,13 +14,13 @@
  */
 
 import { Polar, subscriptionValidator } from "@convex-dev/polar";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 import type { DataModel } from "./_generated/dataModel";
 
 import { api, components } from "./_generated/api";
-import { query } from "./_generated/server";
-import { optionalAuth } from "./lib/functions";
+import { action, query } from "./_generated/server";
+import { optionalAuth, requireAuth } from "./lib/functions";
 
 const proProductId = process.env.POLAR_PRODUCT_PRO_ID;
 
@@ -52,5 +52,48 @@ export const getCurrentSubscription = query({
     const user = await optionalAuth(ctx);
     if (!user) return null;
     return await polar.getCurrentSubscription(ctx, { userId: user._id });
+  },
+});
+
+export const startProCheckout = action({
+  args: {
+    origin: v.string(),
+    successUrl: v.string(),
+  },
+  returns: v.object({ url: v.string() }),
+  handler: async (ctx, args): Promise<{ url: string }> => {
+    const user = await requireAuth(ctx);
+    if (!proProductId) {
+      throw new Error("Pro checkout is not configured. Missing POLAR_PRODUCT_PRO_ID.");
+    }
+    if (!user.email) {
+      throw new Error("Pro checkout requires a verified email on the account.");
+    }
+    const existing = await polar.getCurrentSubscription(ctx, { userId: user._id });
+    if (
+      existing &&
+      existing.productKey === "pro" &&
+      (existing.status === "active" || existing.status === "trialing")
+    ) {
+      throw new ConvexError({ kind: "AlreadySubscribed" as const, tier: "pro" });
+    }
+    const checkout = await polar.createCheckoutSession(ctx, {
+      productIds: [proProductId],
+      userId: user._id,
+      email: user.email,
+      origin: args.origin,
+      successUrl: args.successUrl,
+    });
+    return { url: checkout.url };
+  },
+});
+
+export const getCustomerPortalUrl = action({
+  args: {},
+  returns: v.object({ url: v.string() }),
+  handler: async (ctx): Promise<{ url: string }> => {
+    const user = await requireAuth(ctx);
+    const result = await polar.createCustomerPortalSession(ctx, { userId: user._id });
+    return { url: result.url };
   },
 });

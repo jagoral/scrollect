@@ -1,13 +1,24 @@
 const MB = 1024 * 1024;
 
-export const FILE_SIZE_LIMITS = {
+export const FILE_SIZE_LIMITS_PRO = {
   pdf: 50 * MB,
   epub: 30 * MB,
   md: 5 * MB,
   text: 5 * MB,
 } as const;
 
-export type UploadFileType = keyof typeof FILE_SIZE_LIMITS;
+export const FILE_SIZE_LIMITS_FREE = {
+  pdf: 10 * MB,
+  epub: 5 * MB,
+  md: 1 * MB,
+  text: 1 * MB,
+} as const;
+
+// Legacy export - equivalent to the Pro limits. Keep for callers that are not yet tier-aware.
+export const FILE_SIZE_LIMITS = FILE_SIZE_LIMITS_PRO;
+
+export type UploadFileType = keyof typeof FILE_SIZE_LIMITS_PRO;
+export type FileSizeTier = "free" | "pro";
 
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -15,9 +26,14 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / MB).toFixed(1)} MB`;
 }
 
-export function getFileSizeLimit(fileType: string): number | undefined {
-  if (fileType in FILE_SIZE_LIMITS) {
-    return FILE_SIZE_LIMITS[fileType as UploadFileType];
+export function getFileSizeLimits(tier: FileSizeTier) {
+  return tier === "pro" ? FILE_SIZE_LIMITS_PRO : FILE_SIZE_LIMITS_FREE;
+}
+
+export function getFileSizeLimit(fileType: string, tier: FileSizeTier = "pro"): number | undefined {
+  const table = getFileSizeLimits(tier);
+  if (fileType in table) {
+    return table[fileType as UploadFileType];
   }
   return undefined;
 }

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { toastRateLimitOrFallback } from "@/lib/rate-limit-error";
+import { useUploadErrorHandler } from "@/components/upload/upload-error-provider";
 
 export function detectUrlType(url: string): "youtube" | "article" {
   try {
@@ -37,6 +37,7 @@ export function UploadUrlTab() {
   const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const posthog = usePostHog();
+  const handleUploadError = useUploadErrorHandler();
 
   const createFromUrl = useMutation(api.documents.createFromUrl);
 
@@ -70,7 +71,7 @@ export function UploadUrlTab() {
         setUrl("");
       } catch (error) {
         posthog.captureException(error);
-        toastRateLimitOrFallback(
+        handleUploadError(
           error,
           "Something went wrong while processing this URL. Please try again.",
         );
@@ -78,7 +79,7 @@ export function UploadUrlTab() {
         setSubmitting(false);
       }
     },
-    [url, createFromUrl, posthog],
+    [url, createFromUrl, posthog, handleUploadError],
   );
 
   return (
