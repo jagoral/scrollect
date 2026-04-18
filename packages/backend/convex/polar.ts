@@ -69,6 +69,15 @@ export const startProCheckout = action({
     if (!user.email) {
       throw new Error("Pro checkout requires a verified email on the account.");
     }
+    // Run the grant check in a query context — `hasEarlyAdopterEntitlement`
+    // reads ctx.db, which actions can't do directly.
+    const entitled = await ctx.runQuery(
+      api.polarAuth.hasAuthenticatedUserEarlyAdopterEntitlement,
+      {},
+    );
+    if (entitled) {
+      throw new ConvexError({ kind: "AlreadySubscribed" as const, tier: "pro" });
+    }
     const existing = await polar.getCurrentSubscription(ctx, { userId: user._id });
     if (
       existing &&

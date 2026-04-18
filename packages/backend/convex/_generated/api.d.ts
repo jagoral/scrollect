@@ -10,6 +10,7 @@
 
 import type * as account from "../account.js";
 import type * as accountActions from "../accountActions.js";
+import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as cardDrafts from "../cardDrafts.js";
@@ -17,6 +18,7 @@ import type * as chunks from "../chunks.js";
 import type * as connectionPairs from "../connectionPairs.js";
 import type * as documentActions from "../documentActions.js";
 import type * as documents from "../documents.js";
+import type * as entitlementGrants from "../entitlementGrants.js";
 import type * as entitlements from "../entitlements.js";
 import type * as feed_queries from "../feed/queries.js";
 import type * as feed_serving from "../feed/serving.js";
@@ -31,6 +33,7 @@ import type * as lib_logging from "../lib/logging.js";
 import type * as lib_rateLimitChecks from "../lib/rateLimitChecks.js";
 import type * as lib_rateLimitConfig from "../lib/rateLimitConfig.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as migrateEarlyAdopters from "../migrateEarlyAdopters.js";
 import type * as migrations from "../migrations.js";
 import type * as pipeline_cardDraftGeneration from "../pipeline/cardDraftGeneration.js";
 import type * as pipeline_chunking from "../pipeline/chunking.js";
@@ -67,6 +70,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   account: typeof account;
   accountActions: typeof accountActions;
+  admin: typeof admin;
   auth: typeof auth;
   bookmarks: typeof bookmarks;
   cardDrafts: typeof cardDrafts;
@@ -74,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   connectionPairs: typeof connectionPairs;
   documentActions: typeof documentActions;
   documents: typeof documents;
+  entitlementGrants: typeof entitlementGrants;
   entitlements: typeof entitlements;
   "feed/queries": typeof feed_queries;
   "feed/serving": typeof feed_serving;
@@ -88,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimitChecks": typeof lib_rateLimitChecks;
   "lib/rateLimitConfig": typeof lib_rateLimitConfig;
   "lib/validators": typeof lib_validators;
+  migrateEarlyAdopters: typeof migrateEarlyAdopters;
   migrations: typeof migrations;
   "pipeline/cardDraftGeneration": typeof pipeline_cardDraftGeneration;
   "pipeline/chunking": typeof pipeline_chunking;

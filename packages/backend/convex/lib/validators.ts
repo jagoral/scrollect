@@ -64,6 +64,12 @@ export const tagSource = v.union(v.literal("ai"), v.literal("manual"));
 
 export type TagSource = Infer<typeof tagSource>;
 
+export const entitlementGrantType = v.union(v.literal("early_adopter"));
+export type EntitlementGrantType = Infer<typeof entitlementGrantType>;
+
+export const entitlementTier = v.union(v.literal("pro"));
+export type EntitlementTier = Infer<typeof entitlementTier>;
+
 export const dislikeReason = v.union(
   v.literal("not_interesting"),
   v.literal("already_know"),

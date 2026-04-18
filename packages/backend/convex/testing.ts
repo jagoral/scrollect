@@ -5,6 +5,7 @@ import { maxBy } from "es-toolkit";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
+import { insertEarlyAdopterGrantIfMissing } from "./entitlementGrants";
 import { E2E_EMAIL_PATTERN } from "./lib/e2e";
 import { requireAuth } from "./lib/functions";
 import type { PostType, TypeData } from "./lib/validators";
@@ -103,6 +104,14 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
     await ctx.db.delete(post._id);
   }
 
+  const grants = await ctx.db
+    .query("entitlementGrants")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const grant of grants) {
+    await ctx.db.delete(grant._id);
+  }
+
   return {
     deleted: {
       bookmarks: bookmarks.length,
@@ -111,6 +120,7 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
       tags: tags.length,
       documents: documents.length,
       posts: posts.length,
+      entitlementGrants: grants.length,
     },
   };
 }
@@ -240,6 +250,29 @@ export const seedProSubscriptionByEmail = internalMutation({
         checkoutId: null,
         metadata: {},
       },
+    });
+    return null;
+  },
+});
+
+export const seedEarlyAdopterGrantByEmail = internalMutation({
+  args: { email: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (!E2E_EMAIL_PATTERN.test(args.email)) {
+      throw new Error(`Seed refused: email "${args.email}" does not match E2E test pattern`);
+    }
+    const user = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "user",
+      where: [{ field: "email", value: args.email }],
+    })) as { _id: string } | null;
+    if (!user) {
+      throw new Error(`User not found for email: ${args.email}`);
+    }
+    await insertEarlyAdopterGrantIfMissing(ctx, {
+      userId: user._id,
+      source: "admin",
+      note: "E2E seed",
     });
     return null;
   },
