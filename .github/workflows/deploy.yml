@@ -46,10 +46,6 @@ jobs:
         working-directory: packages/backend
         run: npx convex deploy
 
-      - name: Run migrations
-        working-directory: packages/backend
-        run: npx convex run migrations:runAll
-
       - name: Backfill Early Adopter grants
         working-directory: packages/backend
         run: npx convex run migrateEarlyAdopters:runGrantEarlyAdopters
