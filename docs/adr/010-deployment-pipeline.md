@@ -113,7 +113,12 @@ Convex env vars persist across deploys. Set once per deployment.
 - Feature PRs target `dev`. CI runs on the PR (branch protection requires it to pass). Merging to `dev` triggers Vercel preview build, which deploys Convex functions to the dev deployment.
 - When ready for production, merge `dev` into `main`. Vercel production build triggers, deploying Convex functions to the production deployment.
 
-**Vercel previews** (auto-created per PR) use the dev Convex deployment via the Preview-scoped `CONVEX_DEPLOY_KEY`. No per-PR Convex preview deployments needed for Vercel previews - the E2E CI pipeline handles isolated previews separately (ADR-005).
+**Vercel previews** are orchestrated by GitHub Actions (see `.github/workflows/ci.yml`). Auto-deploys from Vercel's Git integration for PR branches are blocked via an **Ignored Build Step** script in the Vercel dashboard (returns exit 0 for anything that isn't `main` or `dev`), so only CI triggers PR deploys. For PRs, CI invokes `vercel deploy`, which runs `scripts/vercel-build.sh`. That script branches on `VERCEL_GIT_COMMIT_REF`:
+
+- `main` / `dev`: `npx convex deploy --cmd 'npx convex run migrations:runAll && cd ../../apps/web && bun run build'` (atomic — deploy-key is deployment-specific, so `convex run` targets the same deployment)
+- PR branches: `npx convex deploy --cmd 'cd ../../apps/web && bun run build' --preview-run 'migrations:runAll'` (Convex's Preview Deploy Key is project-wide — `convex run` inside `--cmd` would fail authorization, so we use Convex's official `--preview-run` hook instead)
+
+The Preview-scoped `CONVEX_DEPLOY_KEY` is a Convex **Preview Deploy Key**; `npx convex deploy` infers the preview name from the Git branch and exposes its URL to the build as `CONVEX_URL`. A `dev`-branch override in Vercel env vars preserves the shared dev deployment for pushes to `dev`. After `vercel deploy` finishes, CI fetches the build logs via `vercel inspect --logs`, extracts the preview's `.convex.cloud` URL, and sets runtime env vars (`OPENAI_API_KEY`, etc.) on it via `convex env set --preview-name <branch>`. E2E + Lighthouse then run against `localhost` pointing at that preview. One Convex preview per PR — shared by the Vercel preview link and the CI test environment.
 
 ### 6. Rollback strategy
 
@@ -135,7 +140,7 @@ Convex env vars persist across deploys. Set once per deployment.
 
 - **Separate Convex production project for staging** - Adds billing, manual env var sync, and drift. Overkill for a personal app. E2E preview deployments already provide pre-merge validation.
 
-- **Per-PR Convex preview for Vercel previews** - Requires a build hook to create the preview, extract the URL, and pass it as a build-time env var. Fragile timing and cleanup concerns. The dev deployment is sufficient for visual PR review.
+- **Per-PR Convex preview for Vercel previews via Vercel build hook** - Requires Vercel's build to create the Convex preview itself. Fragile timing and cleanup concerns. Superseded by the GitHub Actions orchestration described in section 5: CI creates the preview, runs tests, and triggers `vercel deploy` with the preview URL injected as `--build-env`.
 
 - **Manual backfills via Convex dashboard** - Relies on human memory. Forgotten backfills cause silent bugs when deploy 2 (making a field required) fails against un-backfilled data. `@convex-dev/migrations` automates this.
 
