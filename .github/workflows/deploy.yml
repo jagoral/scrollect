@@ -5,6 +5,7 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [main, dev]
+  workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.event.workflow_run.head_branch }}
