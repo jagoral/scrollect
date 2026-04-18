@@ -33,11 +33,11 @@ export async function ensureSeededAccount() {
     }),
   });
 
-  // 200 = created, 4xx = already exists — both are fine
-  if (!res.ok && res.status >= 500) {
-    const body = await res.text();
-    throw new Error(`Failed to ensure seeded account: ${res.status} ${body}`);
-  }
+  // 200 = created, 422 = already exists — both are fine.
+  // Anything else is a real failure we want to see.
+  if (res.ok || res.status === 422) return;
+  const body = await res.text();
+  throw new Error(`Failed to ensure seeded account: ${res.status} ${body}`);
 }
 
 export async function seedTestData(email: string) {
