@@ -1,4 +1,5 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
+import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/convex/lib/fileSizeLimits";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
@@ -9,6 +10,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import type { LearningGoalOnboardingPrompt } from "@/components/upload/learning-goal-onboarding-dialog";
 import { useUploadErrorHandler } from "@/components/upload/upload-error-provider";
 import { useBilling } from "@/hooks/use-billing";
 import { cn } from "@/lib/utils";
@@ -31,7 +33,11 @@ export interface FileUploadState {
   status: "uploading" | "done" | "error";
 }
 
-export function UploadFileTab() {
+type UploadFileTabProps = {
+  onDocumentCreated: (prompt: LearningGoalOnboardingPrompt) => void;
+};
+
+export function UploadFileTab({ onDocumentCreated }: UploadFileTabProps) {
   const [dragOver, setDragOver] = useState(false);
   const [uploads, setUploads] = useState<FileUploadState[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,15 +89,16 @@ export function UploadFileTab() {
         const { storageId } = (await result.json()) as { storageId: string };
 
         const title = file.name.replace(/\.[^.]+$/, "");
-        await createDocument({
+        const documentId = (await createDocument({
           title,
           fileType: ext,
           storageId: storageId as never,
-        });
+        })) as Id<"documents">;
 
         setUploads((prev) =>
           prev.map((u) => (u.file === file ? { ...u, status: "done" as const } : u)),
         );
+        onDocumentCreated({ documentId, documentTitle: title, sourceType: ext });
         posthog.capture("content.uploaded", {
           source_type: ext,
           file_size: file.size,
@@ -99,7 +106,7 @@ export function UploadFileTab() {
         toast.success(
           <span>
             <strong>{file.name}</strong> uploaded! Processing typically takes 3-5 minutes and
-            continues in the background.{" "}
+            continues in the background. Add a learning goal now so cards use it.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>
@@ -113,7 +120,14 @@ export function UploadFileTab() {
         handleUploadError(error, `Failed to upload ${file.name}`);
       }
     },
-    [generateUploadUrl, createDocument, posthog, handleUploadError, fileSizeLimits],
+    [
+      generateUploadUrl,
+      createDocument,
+      posthog,
+      handleUploadError,
+      fileSizeLimits,
+      onDocumentCreated,
+    ],
   );
 
   const handleFiles = useCallback(

@@ -1,7 +1,14 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, SEEDED_USER, cleanupTestData, resetTestData, signUp } from "./helpers";
+import {
+  FIXTURES_DIR,
+  SEEDED_USER,
+  cleanupTestData,
+  resetTestData,
+  signUp,
+  skipLearningGoalPrompt,
+} from "./helpers";
 
 test.describe("Upload and Content Library flow", () => {
   test.setTimeout(120000);
@@ -35,6 +42,116 @@ test.describe("Upload and Content Library flow", () => {
 
     // Should show success toast with link to library, or error toast
     await expect(page.getByText(/uploaded|failed/i)).toBeVisible({ timeout: 30000 });
+    await skipLearningGoalPrompt(page);
+  });
+
+  test("after upload, user can set a learning goal before cards are generated", async ({
+    page,
+  }) => {
+    await page.goto("/app/upload");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+
+    await page
+      .locator('[data-testid="file-input"]')
+      .setInputFiles(path.join(FIXTURES_DIR, "test.md"));
+
+    await expect(page.getByRole("dialog", { name: /what do you want to learn/i })).toBeVisible({
+      timeout: 30000,
+    });
+    await page.locator('[data-testid="learning-goal-preset-learn-the-key-concepts"]').click();
+
+    const textarea = page.locator('[data-testid="onboarding-learning-goal-textarea"]');
+    await expect(textarea).toHaveValue("Learn the key concepts");
+    await textarea.fill("Key concepts I can reuse in TypeScript architecture");
+    await expect(page.locator('[data-testid="onboarding-learning-goal-char-count"]')).toHaveText(
+      "51/500",
+    );
+
+    await page.locator('[data-testid="learning-goal-save"]').click();
+    await expect(page.locator("[data-sonner-toast]").getByText(/goal saved/i)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.getByRole("dialog", { name: /what do you want to learn/i })).toBeHidden();
+
+    await page.goto("/app/library");
+    await page.waitForLoadState("networkidle");
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 10000 });
+    await docButton.click();
+
+    await expect(page.locator('[data-testid="status-ready"]').first()).toBeVisible({
+      timeout: 90000,
+    });
+    await expect(page.locator('[data-testid="learning-goal-textarea"]')).toHaveValue(
+      "Key concepts I can reuse in TypeScript architecture",
+    );
+  });
+
+  test("after upload, user can skip the learning goal prompt", async ({ page }) => {
+    await page.goto("/app/upload");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+
+    await page
+      .locator('[data-testid="file-input"]')
+      .setInputFiles(path.join(FIXTURES_DIR, "test.md"));
+
+    const dialog = page.getByRole("dialog", { name: /what do you want to learn/i });
+    await expect(dialog).toBeVisible({ timeout: 30000 });
+    await page.locator('[data-testid="learning-goal-skip"]').click();
+    await expect(dialog).toBeHidden();
+
+    await page.goto("/app/library");
+    await page.waitForLoadState("networkidle");
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 10000 });
+    await docButton.click();
+    await expect(
+      page
+        .locator(
+          [
+            '[data-testid="status-ready"]',
+            '[data-testid="status-uploaded"]',
+            '[data-testid="status-parsing"]',
+            '[data-testid="status-chunking"]',
+            '[data-testid="status-embedding"]',
+            '[data-testid="status-summarizing"]',
+            '[data-testid="status-generating_cards"]',
+          ].join(", "),
+        )
+        .first(),
+    ).toBeVisible({ timeout: 30000 });
+  });
+
+  test("multiple uploads queue a learning goal choice for each document", async ({ page }) => {
+    await page.goto("/app/upload");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+
+    await page.locator('[data-testid="file-input"]').setInputFiles([
+      {
+        name: "queue-one.md",
+        mimeType: "text/markdown",
+        buffer: Buffer.from("# Queue one\n\nFirst document for learning goal queue coverage."),
+      },
+      {
+        name: "queue-two.md",
+        mimeType: "text/markdown",
+        buffer: Buffer.from("# Queue two\n\nSecond document for learning goal queue coverage."),
+      },
+    ]);
+
+    const dialog = page.getByRole("dialog", { name: /what do you want to learn/i });
+    await expect(dialog).toBeVisible({ timeout: 30000 });
+
+    const skipButton = page.locator('[data-testid="learning-goal-skip"]');
+    await expect(skipButton).toBeEnabled({ timeout: 30000 });
+    await skipButton.click();
+
+    await expect(skipButton).toBeEnabled({ timeout: 30000 });
+    await skipButton.click();
+    await expect(dialog).toBeHidden({ timeout: 10000 });
   });
 
   test("after upload, document appears in library with correct title", async ({ page }) => {
@@ -43,6 +160,7 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+    await skipLearningGoalPrompt(page);
 
     // Navigate to library and find the document
     await page.goto("/app/library");
@@ -58,6 +176,7 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+    await skipLearningGoalPrompt(page);
 
     // Go to library and click the first document
     await page.goto("/app/library");
@@ -68,7 +187,19 @@ test.describe("Upload and Content Library flow", () => {
 
     // Detail panel should show document content
     await expect(
-      page.locator('[data-testid="status-ready"], [data-testid="status-extracting"]').first(),
+      page
+        .locator(
+          [
+            '[data-testid="status-ready"]',
+            '[data-testid="status-uploaded"]',
+            '[data-testid="status-parsing"]',
+            '[data-testid="status-chunking"]',
+            '[data-testid="status-embedding"]',
+            '[data-testid="status-summarizing"]',
+            '[data-testid="status-generating_cards"]',
+          ].join(", "),
+        )
+        .first(),
     ).toBeVisible({
       timeout: 15000,
     });
@@ -80,6 +211,7 @@ test.describe("Upload and Content Library flow", () => {
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+    await skipLearningGoalPrompt(page);
 
     // Navigate to library and click the document
     await page.goto("/app/library");
@@ -152,16 +284,16 @@ test.describe("File upload size validation", { tag: "@seeded" }, () => {
     });
   });
 
-  test("upload help text displays correct size limits", async ({ page }) => {
+  test("upload help text displays accepted types and size limits", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
 
     const helpText = page.locator('[data-testid="file-drop-zone"]').getByText(/accepts/i);
     await expect(helpText).toBeVisible();
-    await expect(helpText).toContainText("10.0 MB");
-    await expect(helpText).toContainText("5.0 MB");
-    await expect(helpText).toContainText("1.0 MB");
+    await expect(helpText).toContainText(
+      /Accepts \.pdf \(max \d+\.\d MB\), \.epub \(max \d+\.\d MB\), and \.md \(max \d+\.\d MB\)/,
+    );
   });
 });
 

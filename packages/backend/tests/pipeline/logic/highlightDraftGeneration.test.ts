@@ -221,6 +221,38 @@ describe("generateHighlightDrafts", () => {
     expect(result.metrics.draftsProduced).toBe(2);
   });
 
+  it("passes learningGoal through to highlight draft generation", async () => {
+    const generateDraftsFromHighlights = vi.fn().mockResolvedValue({
+      cards: [
+        {
+          highlightId: "h-0",
+          content: 'Insight from highlight in "Introduction": useful content.',
+          cardType: "insight",
+          typeData: { type: "insight" },
+        },
+      ],
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
+    });
+    const llm = createMockHighlightDraftLlm({ generateDraftsFromHighlights });
+    const services = createMockHighlightDraftGenerationServices({ llm });
+
+    await generateHighlightDrafts({
+      input: makeInput({ learningGoal: "Understand how highlight cards are generated" }),
+      services,
+    });
+
+    expect(generateDraftsFromHighlights).toHaveBeenCalledWith(
+      expect.objectContaining({
+        learningGoal: "Understand how highlight cards are generated",
+      }),
+    );
+  });
+
   it("returns empty results for empty highlights array", async () => {
     const services = createMockHighlightDraftGenerationServices();
     const result = await generateHighlightDrafts({

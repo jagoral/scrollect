@@ -16,6 +16,8 @@ import {
 } from "../../src/pipeline/logic/thematicDraftGeneration";
 import { createThematicDraftGenerationServiceContext } from "./services";
 
+const LEARNING_GOAL_CHECK_DELAY_MS = 5000;
+
 export const generateThematicDraftsForDocument = internalAction({
   args: { documentId: v.id("documents") },
   returns: v.null(),
@@ -33,6 +35,15 @@ export const generateThematicDraftsForDocument = internalAction({
         await transitionToReady({ ctx, documentId, userId: doc.userId, evt });
         return;
       }
+      if (doc.learningGoalOnboardingStatus === "pending") {
+        evt.set("learningGoalPending", true);
+        await ctx.scheduler.runAfter(
+          LEARNING_GOAL_CHECK_DELAY_MS,
+          internal.pipeline.thematicDraftGeneration.generateThematicDraftsForDocument,
+          { documentId },
+        );
+        return;
+      }
       userId = doc.userId;
       evt.set("userId", userId);
 
@@ -48,7 +59,12 @@ export const generateThematicDraftsForDocument = internalAction({
       const services = createThematicDraftGenerationServiceContext();
 
       const discoveryResult = await discoverThemes({
-        input: { sectionSummaries, documentTitle: doc.title, language: doc.language },
+        input: {
+          sectionSummaries,
+          documentTitle: doc.title,
+          language: doc.language,
+          learningGoal: doc.learningGoal,
+        },
         services,
       });
       tokenUsage = discoveryResult.usage;
@@ -77,6 +93,7 @@ export const generateThematicDraftsForDocument = internalAction({
           documentTitle: doc.title,
           language: doc.language,
           fileType: doc.fileType,
+          learningGoal: doc.learningGoal,
           themes: discoveryResult.themes,
           sectionSummaries,
           chunkContentMap,

@@ -96,6 +96,15 @@ export function SourceDetailsContent({
         </div>
       )}
 
+      {details.learningGoal && (
+        <div className="border border-border p-3">
+          <p className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Learning goal applied
+          </p>
+          <p className="text-sm leading-relaxed text-foreground/80">{details.learningGoal}</p>
+        </div>
+      )}
+
       {details.sectionSummary && (
         <div className="border border-border p-3">
           <p className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">

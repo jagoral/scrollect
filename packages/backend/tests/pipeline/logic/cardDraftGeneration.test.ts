@@ -277,27 +277,29 @@ describe("generateDraftsForSection", () => {
     const llm = createMockCardDraftLlm({
       generateDraft: vi
         .fn()
-        .mockImplementation(async (opts: { cardType: string; sectionTitle: string }) => ({
-          card: {
-            content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful learning card content here.`,
-            typeData:
-              opts.cardType === "quiz"
-                ? {
-                    type: "quiz",
-                    variant: "multiple_choice",
-                    question: "Test?",
-                    options: ["A", "B", "C", "D"],
-                    correctIndex: 0,
-                    explanation: "Because A.",
-                  }
-                : opts.cardType === "quote"
-                  ? { type: "quote", quotedText: "A notable passage." }
-                  : opts.cardType === "summary"
-                    ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
-                    : { type: "insight" },
-          },
-          usage,
-        })),
+        .mockImplementation(
+          async (opts: { cardType: string; sectionTitle: string; learningGoal?: string }) => ({
+            card: {
+              content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful learning card content here.`,
+              typeData:
+                opts.cardType === "quiz"
+                  ? {
+                      type: "quiz",
+                      variant: "multiple_choice",
+                      question: "Test?",
+                      options: ["A", "B", "C", "D"],
+                      correctIndex: 0,
+                      explanation: "Because A.",
+                    }
+                  : opts.cardType === "quote"
+                    ? { type: "quote", quotedText: "A notable passage." }
+                    : opts.cardType === "summary"
+                      ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
+                      : { type: "insight" },
+            },
+            usage,
+          }),
+        ),
     });
     const services = createMockDraftGenerationServices({ llm });
 
@@ -318,26 +320,28 @@ describe("generateDraftsForSection", () => {
     const llm = createMockCardDraftLlm({
       generateDraft: vi
         .fn()
-        .mockImplementation(async (opts: { cardType: string; sectionTitle: string }) => {
-          if (opts.cardType === "quiz") throw new Error("LLM failure");
-          return {
-            card: {
-              content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful card content here.`,
-              typeData:
-                opts.cardType === "quote"
-                  ? { type: "quote", quotedText: "A quote." }
-                  : opts.cardType === "summary"
-                    ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
-                    : { type: opts.cardType },
-            },
-            usage: {
-              inputTokens: 0,
-              outputTokens: 0,
-              totalTokens: 0,
-              costUsd: { input: 0, output: 0, total: 0 },
-            },
-          };
-        }),
+        .mockImplementation(
+          async (opts: { cardType: string; sectionTitle: string; learningGoal?: string }) => {
+            if (opts.cardType === "quiz") throw new Error("LLM failure");
+            return {
+              card: {
+                content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful card content here.`,
+                typeData:
+                  opts.cardType === "quote"
+                    ? { type: "quote", quotedText: "A quote." }
+                    : opts.cardType === "summary"
+                      ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
+                      : { type: opts.cardType },
+              },
+              usage: {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+                costUsd: { input: 0, output: 0, total: 0 },
+              },
+            };
+          },
+        ),
     });
     const services = createMockDraftGenerationServices({ llm });
 
@@ -372,6 +376,32 @@ describe("generateDraftsForSection", () => {
     });
 
     expect(generateDraft).toHaveBeenCalledWith(expect.objectContaining({ fileType: "youtube" }));
+  });
+
+  it("passes learningGoal through to the LLM when present", async () => {
+    const generateDraft = vi.fn().mockResolvedValue({
+      card: {
+        content: "Draft insight for testing: a useful learning card.",
+        typeData: { type: "insight" },
+      },
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
+    });
+    const llm = createMockCardDraftLlm({ generateDraft });
+    const services = createMockDraftGenerationServices({ llm });
+
+    await generateDraftsForSection({
+      input: makeInput({ learningGoal: "Understand layered architecture tradeoffs" }),
+      services,
+    });
+
+    expect(generateDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ learningGoal: "Understand layered architecture tradeoffs" }),
+    );
   });
 
   it("sets correct metadata on generated drafts", async () => {

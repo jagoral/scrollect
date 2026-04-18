@@ -1,7 +1,13 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, cleanupTestData, fetchConnectionDrafts, signUp } from "./helpers";
+import {
+  FIXTURES_DIR,
+  cleanupTestData,
+  fetchConnectionDrafts,
+  signUp,
+  skipLearningGoalPrompt,
+} from "./helpers";
 
 async function uploadMarkdownFile(page: import("@playwright/test").Page, filename: string) {
   await page.goto("/app/upload");
@@ -9,6 +15,7 @@ async function uploadMarkdownFile(page: import("@playwright/test").Page, filenam
   await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, filename));
   await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+  await skipLearningGoalPrompt(page);
 }
 
 async function waitForLatestDocumentReady(page: import("@playwright/test").Page) {

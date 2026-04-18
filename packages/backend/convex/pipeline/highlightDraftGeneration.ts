@@ -15,6 +15,7 @@ import { createHighlightDraftGenerationServiceContext } from "./services";
 
 const BATCH_SIZE = 10;
 const CHAIN_DELAY_MS = 5000;
+const LEARNING_GOAL_CHECK_DELAY_MS = 5000;
 const MAX_RETRIES = 3;
 
 export const generateHighlightDraftsForDocument = internalAction({
@@ -36,6 +37,20 @@ export const generateHighlightDraftsForDocument = internalAction({
       if (!doc) throw new Error(`Document ${documentId} not found`);
       if (doc.status === "deleting") {
         evt.set("exitReason", "document_deleting");
+        return;
+      }
+      if (doc.learningGoalOnboardingStatus === "pending") {
+        evt.set("learningGoalPending", true);
+        await ctx.scheduler.runAfter(
+          LEARNING_GOAL_CHECK_DELAY_MS,
+          internal.pipeline.highlightDraftGeneration.generateHighlightDraftsForDocument,
+          {
+            documentId,
+            userId,
+            batchNumber,
+            retryCount,
+          },
+        );
         return;
       }
 
@@ -87,6 +102,7 @@ export const generateHighlightDraftsForDocument = internalAction({
           userId,
           documentTitle: doc.title,
           language: doc.language,
+          learningGoal: doc.learningGoal,
           highlights: highlights.map((h) => ({
             _id: h._id as string,
             text: h.text,

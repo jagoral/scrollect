@@ -10,7 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import type { LearningGoalOnboardingPrompt } from "@/components/upload/learning-goal-onboarding-dialog";
 import { useUploadErrorHandler } from "@/components/upload/upload-error-provider";
+
+type UploadUrlTabProps = {
+  onDocumentCreated: (prompt: LearningGoalOnboardingPrompt) => void;
+};
 
 export function detectUrlType(url: string): "youtube" | "article" {
   try {
@@ -33,7 +38,7 @@ export function isValidUrl(input: string): boolean {
   }
 }
 
-export function UploadUrlTab() {
+export function UploadUrlTab({ onDocumentCreated }: UploadUrlTabProps) {
   const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const posthog = usePostHog();
@@ -56,13 +61,15 @@ export function UploadUrlTab() {
       setSubmitting(true);
       try {
         const fileType = detectUrlType(trimmed);
-        await createFromUrl({ url: trimmed, fileType });
+        const documentId = await createFromUrl({ url: trimmed, fileType });
+        onDocumentCreated({ documentId, documentTitle: trimmed, sourceType: fileType });
         posthog.capture("content.uploaded", {
           source_type: fileType,
         });
         toast.success(
           <span>
-            Submitted! Processing typically takes 3-5 minutes and continues in the background.{" "}
+            Submitted! Processing continues in the background. Add a learning goal now so cards use
+            it.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>
@@ -79,7 +86,7 @@ export function UploadUrlTab() {
         setSubmitting(false);
       }
     },
-    [url, createFromUrl, posthog, handleUploadError],
+    [url, createFromUrl, posthog, handleUploadError, onDocumentCreated],
   );
 
   return (
