@@ -25,7 +25,13 @@ export async function ensureSeededAccount() {
 
   const res = await fetch(`${siteUrl}/api/auth/sign-up/email`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      // Node's fetch auto-sends Sec-Fetch-* headers, which trips better-auth's
+      // CSRF check and requires an Origin. Send the Convex site as Origin —
+      // it's already trusted via allowedHosts in the auth config.
+      Origin: siteUrl,
+    },
     body: JSON.stringify({
       email: SEEDED_USER.email,
       password: SEEDED_USER.password,
@@ -33,11 +39,11 @@ export async function ensureSeededAccount() {
     }),
   });
 
-  // 200 = created, 4xx = already exists — both are fine
-  if (!res.ok && res.status >= 500) {
-    const body = await res.text();
-    throw new Error(`Failed to ensure seeded account: ${res.status} ${body}`);
-  }
+  // 200 = created, 422 = already exists — both are fine.
+  // Anything else is a real failure we want to see.
+  if (res.ok || res.status === 422) return;
+  const body = await res.text();
+  throw new Error(`Failed to ensure seeded account: ${res.status} ${body}`);
 }
 
 export async function seedTestData(email: string) {
@@ -94,6 +100,13 @@ export async function dismissCookieConsent(page: Page) {
   if (await rejectBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
     await rejectBtn.click();
   }
+}
+
+export async function skipLearningGoalPrompt(page: Page) {
+  const dialog = page.getByRole("dialog", { name: /what do you want to learn from this/i });
+  if (!(await dialog.isVisible({ timeout: 5000 }).catch(() => false))) return;
+  await dialog.getByRole("button", { name: /skip for now/i }).click();
+  await expect(dialog).toBeHidden({ timeout: 10000 });
 }
 
 export async function signUp(page: Page): Promise<{ email: string }> {

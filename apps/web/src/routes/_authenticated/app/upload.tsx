@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FileText, FileUp, Globe } from "lucide-react";
+import { useCallback, useState } from "react";
 
 import { DocumentUsageMeter } from "@/components/billing/document-usage-meter";
+import {
+  LearningGoalOnboardingDialog,
+  type LearningGoalOnboardingPrompt,
+} from "@/components/upload/learning-goal-onboarding-dialog";
 import { UploadErrorProvider } from "@/components/upload/upload-error-provider";
 import { UploadFileTab } from "@/components/upload/upload-file-tab";
 import { UploadUrlTab } from "@/components/upload/upload-url-tab";
@@ -17,6 +22,19 @@ export const Route = createFileRoute("/_authenticated/app/upload")({
 });
 
 function UploadPage() {
+  const [learningGoalPrompts, setLearningGoalPrompts] = useState<LearningGoalOnboardingPrompt[]>(
+    [],
+  );
+  const learningGoalPrompt = learningGoalPrompts[0] ?? null;
+
+  const enqueueLearningGoalPrompt = useCallback((prompt: LearningGoalOnboardingPrompt) => {
+    setLearningGoalPrompts((current) => [...current, prompt]);
+  }, []);
+
+  const completeLearningGoalPrompt = useCallback(() => {
+    setLearningGoalPrompts((current) => current.slice(1));
+  }, []);
+
   return (
     <UploadErrorProvider>
       <div className="px-4 py-6 md:px-6">
@@ -47,18 +65,22 @@ function UploadPage() {
           </TabsList>
 
           <TabsContent value="file">
-            <UploadFileTab />
+            <UploadFileTab onDocumentCreated={enqueueLearningGoalPrompt} />
           </TabsContent>
 
           <TabsContent value="url">
-            <UploadUrlTab />
+            <UploadUrlTab onDocumentCreated={enqueueLearningGoalPrompt} />
           </TabsContent>
 
           <TabsContent value="text">
-            <UploadTextTab />
+            <UploadTextTab onDocumentCreated={enqueueLearningGoalPrompt} />
           </TabsContent>
         </Tabs>
       </div>
+      <LearningGoalOnboardingDialog
+        prompt={learningGoalPrompt}
+        onComplete={completeLearningGoalPrompt}
+      />
     </UploadErrorProvider>
   );
 }

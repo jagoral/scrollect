@@ -255,12 +255,17 @@ function DocumentDetailContent({
         </AlertDialog>
       </div>
 
-      {document.status === "ready" && (
+      {(document.status === "ready" || document.learningGoalOnboardingStatus === "pending") && (
         <>
-          <DocumentTagSection documentId={document._id} />
-          <LearningGoalSection documentId={document._id} initialGoal={document.learningGoal} />
-          <HighlightsSection documentId={document._id} />
-          <BookmarkedCardsSection documentId={document._id} />
+          {document.status === "ready" && <DocumentTagSection documentId={document._id} />}
+          <LearningGoalSection
+            documentId={document._id}
+            initialGoal={document.learningGoal}
+            onboardingStatus={document.learningGoalOnboardingStatus}
+            sourceType={document.fileType}
+          />
+          {document.status === "ready" && <HighlightsSection documentId={document._id} />}
+          {document.status === "ready" && <BookmarkedCardsSection documentId={document._id} />}
         </>
       )}
 

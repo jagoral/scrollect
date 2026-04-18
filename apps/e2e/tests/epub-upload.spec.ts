@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, cleanupTestData, signUp } from "./helpers";
+import { FIXTURES_DIR, cleanupTestData, signUp, skipLearningGoalPrompt } from "./helpers";
 
 test.describe("EPUB file upload", () => {
   test.setTimeout(120000);
@@ -27,6 +27,7 @@ test.describe("EPUB file upload", () => {
       .setInputFiles(path.join(FIXTURES_DIR, "test.epub"));
 
     await expect(page.getByText(/uploaded|failed/i)).toBeVisible({ timeout: 30000 });
+    await skipLearningGoalPrompt(page);
   });
 
   test("EPUB document reaches ready status and produces chunks", async ({ page }) => {
@@ -39,6 +40,7 @@ test.describe("EPUB file upload", () => {
       .setInputFiles(path.join(FIXTURES_DIR, "test.epub"));
 
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+    await skipLearningGoalPrompt(page);
 
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");

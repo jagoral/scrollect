@@ -1,14 +1,15 @@
 #!/bin/sh
 set -e
 
-echo "[vercel-build] CONVEX_PREVIEW_NAME=${CONVEX_PREVIEW_NAME:-<unset>}"
-echo "[vercel-build] VERCEL_GIT_COMMIT_REF=${VERCEL_GIT_COMMIT_REF:-<unset>}"
+if [ "$SKIP_CONVEX_DEPLOY" = "1" ]; then
+  cd "$(dirname "$0")/../apps/web"
+  bun run build
+  exit 0
+fi
 
 cd "$(dirname "$0")/../packages/backend"
 
-if [ -n "$CONVEX_PREVIEW_NAME" ]; then
-  npx convex deploy --preview-create "$CONVEX_PREVIEW_NAME" --cmd 'cd ../../apps/web && bun run build' --preview-run 'migrations:runAll'
-elif [ "$VERCEL_GIT_COMMIT_REF" = "main" ] || [ "$VERCEL_GIT_COMMIT_REF" = "dev" ]; then
+if [ "$VERCEL_GIT_COMMIT_REF" = "main" ] || [ "$VERCEL_GIT_COMMIT_REF" = "dev" ]; then
   npx convex deploy --cmd 'npx convex run migrations:runAll && cd ../../apps/web && bun run build'
 else
   npx convex deploy --cmd 'cd ../../apps/web && bun run build' --preview-run 'migrations:runAll'

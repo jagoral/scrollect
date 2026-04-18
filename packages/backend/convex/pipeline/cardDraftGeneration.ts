@@ -16,6 +16,7 @@ import { createDraftGenerationServiceContext } from "./services";
 
 const MAX_DRAFT_RETRIES = 3;
 const MIN_SECTIONS_FOR_THEMATIC = 3;
+const LEARNING_GOAL_CHECK_DELAY_MS = 5000;
 
 export const generateDraftsForDocument = internalAction({
   args: { documentId: v.id("documents") },
@@ -27,6 +28,15 @@ export const generateDraftsForDocument = internalAction({
       const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
       if (!doc) throw new Error(`Document ${documentId} not found`);
       if (doc.status === "deleting") return;
+      if (doc.learningGoalOnboardingStatus === "pending") {
+        evt.set("learningGoalPending", true);
+        await ctx.scheduler.runAfter(
+          LEARNING_GOAL_CHECK_DELAY_MS,
+          internal.pipeline.cardDraftGeneration.generateDraftsForDocument,
+          { documentId },
+        );
+        return;
+      }
 
       evt.set("userId", doc.userId);
 
@@ -102,6 +112,20 @@ export const generateDraftsForSectionBatch = internalAction({
       const doc = await ctx.runQuery(internal.documents.getInternal, { id: documentId });
       if (!doc) throw new Error(`Document ${documentId} not found`);
       if (doc.status === "deleting") return;
+      if (doc.learningGoalOnboardingStatus === "pending") {
+        evt.set("learningGoalPending", true);
+        await ctx.scheduler.runAfter(
+          LEARNING_GOAL_CHECK_DELAY_MS,
+          internal.pipeline.cardDraftGeneration.generateDraftsForSectionBatch,
+          {
+            jobId,
+            documentId,
+            sectionSummaryId,
+            retryCount,
+          },
+        );
+        return;
+      }
       userId = doc.userId;
 
       const section = await ctx.runQuery(internal.sectionSummaries.getInternal, {
@@ -134,6 +158,7 @@ export const generateDraftsForSectionBatch = internalAction({
           documentTitle: doc.title,
           language: doc.language,
           fileType: doc.fileType,
+          learningGoal: doc.learningGoal,
           section: {
             sectionSummaryId: sectionSummaryId as string,
             sectionTitle: section.sectionTitle,

@@ -29,9 +29,6 @@ type LibrarySearch = {
 
 export const Route = createFileRoute("/_authenticated/app/library/")({
   ssr: false,
-  loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(convexQuery(api.tags.listUserTags, {}));
-  },
   head: () => ({
     meta: [{ title: "Library | Scrollect" }],
   }),

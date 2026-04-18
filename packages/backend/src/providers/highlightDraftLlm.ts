@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { DraftCardType, HighlightDraftLlm } from "./types";
 import { ZERO_USAGE, type TokenUsage, addUsage, generate } from "./ai";
-import { buildLanguageInstruction } from "./promptUtils";
+import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
 
 const classificationSchema = z.object({
   classifications: z.array(
@@ -116,12 +116,15 @@ function buildClassificationPrompt(opts: {
   highlights: Array<{ highlightId: string; highlightText: string }>;
   documentTitle: string;
   sectionTitle: string;
+  learningGoal?: string;
 }): string {
   const highlightList = opts.highlights
     .map((h) => `- [${h.highlightId}] (${h.highlightText.length} chars): "${h.highlightText}"`)
     .join("\n");
 
-  return `Document: "${opts.documentTitle}", Section: "${opts.sectionTitle}"
+  return `Document: "${opts.documentTitle}", Section: "${opts.sectionTitle}"${buildLearningGoalContext(
+    opts.learningGoal,
+  )}
 
 Highlights to classify:
 ${highlightList}
@@ -211,12 +214,13 @@ function buildGenerationPrompt(opts: {
   sectionTitle: string;
   chunks: Array<{ content: string; chunkId: string }>;
   documentTitle: string;
+  learningGoal?: string;
 }): string {
   const chunkText = opts.chunks.map((c, i) => `Chunk ${i}:\n${c.content}`).join("\n\n---\n\n");
 
   return `Document: "${opts.documentTitle}"
 Section: "${opts.sectionTitle}"
-Section summary: ${opts.sectionSummary}
+Section summary: ${opts.sectionSummary}${buildLearningGoalContext(opts.learningGoal)}
 
 Source chunks:
 ${chunkText}
@@ -233,6 +237,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
     chunks: Array<{ content: string; chunkId: string }>;
     documentTitle: string;
     language?: string;
+    learningGoal?: string;
   }): Promise<{
     cards: Array<{
       highlightId: string;
@@ -252,6 +257,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
         highlights: opts.highlights,
         documentTitle: opts.documentTitle,
         sectionTitle: opts.sectionTitle,
+        learningGoal: opts.learningGoal,
       }),
     });
 
@@ -276,6 +282,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
           sectionTitle: opts.sectionTitle,
           chunks: opts.chunks,
           documentTitle: opts.documentTitle,
+          learningGoal: opts.learningGoal,
         }),
       });
 

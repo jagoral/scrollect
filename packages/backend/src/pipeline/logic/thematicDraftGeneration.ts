@@ -14,6 +14,7 @@ export type ThemeDiscoveryInput = {
   sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
   documentTitle: string;
   language?: string;
+  learningGoal?: string;
 };
 
 export type Theme = {
@@ -33,6 +34,7 @@ export type ThematicDraftInput = {
   documentTitle: string;
   language?: string;
   fileType?: string;
+  learningGoal?: string;
   themes: Theme[];
   sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
   chunkContentMap: ReadonlyMap<string, string>;
@@ -79,6 +81,7 @@ export async function discoverThemes(opts: {
     sectionSummaries: input.sectionSummaries,
     documentTitle: input.documentTitle,
     language: input.language,
+    learningGoal: input.learningGoal,
   });
   return { themes: result.themes, usage: result.usage };
 }
@@ -174,6 +177,7 @@ async function generateDraftsForTheme(opts: {
           documentTitle: input.documentTitle,
           language: input.language,
           fileType: input.fileType,
+          learningGoal: input.learningGoal,
         })
         .then((result) => ({ cardType, ...result })),
     ),

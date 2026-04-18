@@ -24,6 +24,12 @@ export const documentStatus = v.union(
   v.literal("error"),
 );
 
+export const learningGoalOnboardingStatus = v.union(
+  v.literal("pending"),
+  v.literal("set"),
+  v.literal("skipped"),
+);
+
 export const failedAtStage = v.union(
   v.literal("parsing"),
   v.literal("chunking"),

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, cleanupTestData, signUp } from "./helpers";
+import { FIXTURES_DIR, cleanupTestData, signUp, skipLearningGoalPrompt } from "./helpers";
 
 test.describe("Document deletion", () => {
   test.setTimeout(120000);
@@ -24,6 +24,7 @@ test.describe("Document deletion", () => {
 
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+    await skipLearningGoalPrompt(page);
 
     await page.goto("/app/library");
     await page.waitForLoadState("networkidle");

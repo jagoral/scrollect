@@ -24,6 +24,7 @@ export type GenerateDraftsInput = {
   documentTitle: string;
   language?: string;
   fileType?: string;
+  learningGoal?: string;
   section: SectionInput;
   allChunks: ChunkData[];
   existingHashes: ReadonlySet<string>;
@@ -245,6 +246,7 @@ export async function generateDraftsForSection(opts: {
           documentTitle,
           language: input.language,
           fileType: input.fileType,
+          learningGoal: input.learningGoal,
         })
         .then((result) => ({ cardType, ...result })),
     ),

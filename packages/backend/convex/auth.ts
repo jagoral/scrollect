@@ -8,14 +8,21 @@ import { components } from "./_generated/api";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
 
-const siteUrl = process.env.SITE_URL!;
-
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
 function createAuth(ctx: GenericCtx<DataModel>) {
   return betterAuth({
-    baseURL: siteUrl,
-    trustedOrigins: [siteUrl],
+    baseURL: {
+      allowedHosts: [
+        "scrollect.app",
+        "www.scrollect.app",
+        "*-tomaszgl69gmailcoms-projects.vercel.app",
+        "*.convex.site",
+        "localhost:3000",
+      ],
+      protocol: "auto",
+      fallback: process.env.SITE_URL ?? "https://scrollect.app",
+    },
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,

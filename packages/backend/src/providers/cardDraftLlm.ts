@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { CardDraftLlm, DraftCardType } from "./types";
 import { type TokenUsage, generate } from "./ai";
 import { isSpeechSource } from "./contentTypes";
-import { buildLanguageInstruction } from "./promptUtils";
+import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
 
 const insightSchema = z.object({
   content: z
@@ -182,6 +182,7 @@ export class AiSdkCardDraftLlm implements CardDraftLlm {
     documentTitle: string;
     language?: string;
     fileType?: string;
+    learningGoal?: string;
   }): Promise<{
     card: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;
@@ -190,6 +191,7 @@ export class AiSdkCardDraftLlm implements CardDraftLlm {
 
     const prompt = `Document: "${opts.documentTitle}"
 Section: "${opts.sectionTitle}"
+${buildLearningGoalContext(opts.learningGoal)}
 
 Section summary: ${opts.sectionSummary}
 

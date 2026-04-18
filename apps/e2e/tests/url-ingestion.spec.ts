@@ -1,7 +1,14 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-import { FIXTURES_DIR, SEEDED_USER, cleanupTestData, resetTestData, signUp } from "./helpers";
+import {
+  FIXTURES_DIR,
+  SEEDED_USER,
+  cleanupTestData,
+  resetTestData,
+  signUp,
+  skipLearningGoalPrompt,
+} from "./helpers";
 
 test.describe(
   "Upload page tab structure",
@@ -110,6 +117,7 @@ test.describe(
 
         await test.step("verify success toast", async () => {
           await expect(page.getByText(/submitted!.*processing/i)).toBeVisible({ timeout: 30000 });
+          await skipLearningGoalPrompt(page);
         });
 
         await test.step("verify document appears in library", async () => {
@@ -142,6 +150,7 @@ test.describe(
           await expect(page.getByText(/submitted!.*processing/i)).toBeVisible({
             timeout: 30000,
           });
+          await skipLearningGoalPrompt(page);
         });
 
         await test.step("verify document appears in library", async () => {
@@ -339,6 +348,7 @@ test.describe(
       await test.step("submit and verify success toast", async () => {
         await page.locator('[data-testid="text-submit"]').click();
         await expect(page.getByText(/added/i)).toBeVisible({ timeout: 30000 });
+        await skipLearningGoalPrompt(page);
       });
 
       await test.step("verify document appears in library", async () => {
@@ -439,6 +449,7 @@ test.describe(
         .setInputFiles(path.join(FIXTURES_DIR, "test.md"));
 
       await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
+      await skipLearningGoalPrompt(page);
     });
 
     test("file upload rejects unsupported file types on Upload File tab", async ({ page }) => {
@@ -553,6 +564,7 @@ test.describe(
         .filter({ hasText: /submitted!.*processing/i });
       await expect(toastEl).toBeVisible({ timeout: 30000 });
       await expect(toastEl.getByRole("link", { name: /library/i })).toBeVisible();
+      await skipLearningGoalPrompt(page);
     });
 
     test("Text tab success toast contains entered title and library link", async ({ page }) => {
@@ -569,6 +581,7 @@ test.describe(
       await expect(toastEl).toBeVisible({ timeout: 30000 });
       await expect(toastEl).toContainText("My Notes");
       await expect(toastEl.getByRole("link", { name: /library/i })).toBeVisible();
+      await skipLearningGoalPrompt(page);
     });
   },
 );
@@ -604,6 +617,7 @@ test.describe(
         await page.locator('[data-testid="url-input"]').fill("https://example.com/article");
         await page.locator('[data-testid="url-submit"]').click();
         await expect(page.getByText(/submitted!.*processing/i)).toBeVisible({ timeout: 30000 });
+        await skipLearningGoalPrompt(page);
       });
 
       await test.step("verify document renders in library", async () => {
