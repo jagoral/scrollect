@@ -10,7 +10,10 @@ fi
 cd "$(dirname "$0")/../packages/backend"
 
 if [ "$VERCEL_GIT_COMMIT_REF" = "main" ] || [ "$VERCEL_GIT_COMMIT_REF" = "dev" ]; then
-  npx convex deploy --cmd 'npx convex run --prod migrations:runAll && cd ../../apps/web && bun run build'
+  npx convex deploy
+  npx convex run migrations:runAll
+  cd ../../apps/web
+  bun run build
 else
   npx convex deploy --cmd 'cd ../../apps/web && bun run build' --preview-run 'migrations:runAll'
 fi
