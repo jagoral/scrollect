@@ -8,13 +8,20 @@ import { components } from "../_generated/api";
  * Tier-aware rates: each endpoint has a `free` variant (base rate) and a `_pro`
  * variant (tier factor applied). Callers resolve the user's tier and pick the
  * matching name — see `tieredLimiterName`.
+ *
+ * Document upload / URL generation rates are intentionally loose for free users:
+ * the real volume cap is `enforceDocumentLimit` (3 documents lifetime). These
+ * rates exist only as burst / retry protection.
+ *
+ * Feed generation rates must match the advertised values on the pricing page
+ * (landing/pricing-section.tsx).
  */
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
   documentUpload: { kind: "fixed window", rate: 10, period: HOUR },
   documentUpload_pro: { kind: "fixed window", rate: 30, period: HOUR },
   uploadUrlGeneration: { kind: "fixed window", rate: 20, period: HOUR },
   uploadUrlGeneration_pro: { kind: "fixed window", rate: 60, period: HOUR },
-  feedGeneration: { kind: "fixed window", rate: 5, period: HOUR },
+  feedGeneration: { kind: "fixed window", rate: 3, period: HOUR },
   feedGeneration_pro: { kind: "fixed window", rate: 15, period: HOUR },
 });
 
