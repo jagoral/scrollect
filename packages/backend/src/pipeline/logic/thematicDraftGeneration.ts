@@ -192,6 +192,7 @@ async function generateDraftsForTheme(opts: {
     const { cardType, card, usage } = result.value;
     totalUsage = addUsage(totalUsage, usage);
 
+    if (!card) continue;
     if (!card.content) continue;
 
     const contentHash = input.hashContent(card.content);

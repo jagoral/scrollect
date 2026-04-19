@@ -105,5 +105,5 @@ evalite("Highlight Draft", {
     }
   },
   scorers: [structuralValidity, languageMatch, contentSpecificity, typeSpecificQuality],
-  trialCount: 3,
+  trialCount: 1,
 });

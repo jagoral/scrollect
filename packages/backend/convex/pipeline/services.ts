@@ -17,6 +17,7 @@ import { AiSdkCardDraftValidator } from "../../src/providers/cardDraftValidator"
 import { AiSdkConnectionDiscoveryLlm } from "../../src/providers/connectionDiscoveryLlm";
 import { AiSdkDocumentMetadataLlm } from "../../src/providers/documentMetadataLlm";
 import { AiSdkHighlightDraftLlm } from "../../src/providers/highlightDraftLlm";
+import { AiSdkSectionDraftRankerLlm } from "../../src/providers/sectionDraftRankerLlm";
 import { AiSdkSummarizingLlm } from "../../src/providers/summarizingLlm";
 import {
   StubCardDraftLlm,
@@ -24,6 +25,7 @@ import {
   StubConnectionDiscoveryLlm,
   StubDocumentMetadataLlm,
   StubHighlightDraftLlm,
+  StubSectionDraftRankerLlm,
   StubThematicLlm,
 } from "../../src/providers/stubs";
 import { AiSdkTaggingLlm } from "../../src/providers/taggingLlm";
@@ -81,9 +83,17 @@ export function createVectorDeletionServices(): VectorDeletionServices {
 
 export function createDraftGenerationServiceContext(): DraftGenerationServiceContext {
   if (process.env.USE_STUB_EXTRACTORS === "true") {
-    return { llm: new StubCardDraftLlm(), validator: new StubCardDraftValidator() };
+    return {
+      llm: new StubCardDraftLlm(),
+      validator: new StubCardDraftValidator(),
+      ranker: new StubSectionDraftRankerLlm(),
+    };
   }
-  return { llm: new AiSdkCardDraftLlm(), validator: new AiSdkCardDraftValidator() };
+  return {
+    llm: new AiSdkCardDraftLlm(),
+    validator: new AiSdkCardDraftValidator(),
+    ranker: new AiSdkSectionDraftRankerLlm(),
+  };
 }
 
 export function createThematicDraftGenerationServiceContext(): ThematicDraftGenerationServiceContext {

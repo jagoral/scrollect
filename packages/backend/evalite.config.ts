@@ -13,6 +13,8 @@ export default defineConfig({
   scoreThreshold: 80,
   forceRerunTriggers: [
     "src/providers/cardDraftLlm.ts",
+    "src/providers/sectionDraftRankerLlm.ts",
+    "src/pipeline/logic/draftGenerationPlan.ts",
     "src/providers/highlightDraftLlm.ts",
     "src/providers/thematicLlm.ts",
     "src/providers/connectionDiscoveryLlm.ts",

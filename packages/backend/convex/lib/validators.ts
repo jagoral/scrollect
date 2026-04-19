@@ -95,6 +95,13 @@ export const postType = v.union(
   v.literal("connection"),
 );
 
+export const draftCardType = v.union(
+  v.literal("insight"),
+  v.literal("quiz"),
+  v.literal("quote"),
+  v.literal("summary"),
+);
+
 export const quizVariant = v.union(v.literal("multiple_choice"), v.literal("true_false"));
 
 export const typeData = v.union(
