@@ -18,6 +18,7 @@ import type * as chunks from "../chunks.js";
 import type * as connectionPairs from "../connectionPairs.js";
 import type * as documentActions from "../documentActions.js";
 import type * as documents from "../documents.js";
+import type * as documents_deletion from "../documents/deletion.js";
 import type * as entitlementGrants from "../entitlementGrants.js";
 import type * as entitlements from "../entitlements.js";
 import type * as feed_learningGoal from "../feed/learningGoal.js";
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   connectionPairs: typeof connectionPairs;
   documentActions: typeof documentActions;
   documents: typeof documents;
+  "documents/deletion": typeof documents_deletion;
   entitlementGrants: typeof entitlementGrants;
   entitlements: typeof entitlements;
   "feed/learningGoal": typeof feed_learningGoal;

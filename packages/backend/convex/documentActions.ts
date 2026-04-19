@@ -8,117 +8,20 @@ import type { ActionCtx } from "./_generated/server";
 import { action, internalAction } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
 import { WideEvent } from "./lib/logging";
-import { deleteDocumentVectors } from "../src/logic/documentDeletion";
 import { createEmbeddingProvider } from "./pipeline/helpers";
-import { createVectorDeletionServices } from "./pipeline/services";
+import { executeDocumentDeletionCascade, markDocumentDeletionFailed } from "./documents/deletion";
 
-type DeletionData = {
-  document: {
-    _id: Id<"documents">;
-    userId: string;
-    storageId?: Id<"_storage">;
-    summaryEmbeddingId?: string;
-  };
-  chunkEmbeddingIds: string[];
-  sectionSummaryEmbeddingIds: string[];
-};
-
-async function executeDeletionCascade(
+async function captureDeletionFailure(
   ctx: ActionCtx,
-  {
-    documentId,
-    userId,
-    data,
-    evt,
-  }: {
-    documentId: Id<"documents">;
-    userId: string;
-    data: DeletionData;
-    evt: WideEvent;
-  },
+  opts: { documentId: Id<"documents">; error: unknown; evt: WideEvent },
 ) {
-  await ctx.runMutation(internal.documents.updateStatus, {
-    id: documentId,
-    status: "deleting",
+  const recovery = await markDocumentDeletionFailed({
+    ctx,
+    documentId: opts.documentId,
+    error: opts.error,
   });
-
-  const services = createVectorDeletionServices();
-  const deletionResult = await deleteDocumentVectors({
-    input: {
-      chunkEmbeddingIds: data.chunkEmbeddingIds,
-      sectionSummaryEmbeddingIds: data.sectionSummaryEmbeddingIds,
-      documentSummaryEmbeddingId: data.document.summaryEmbeddingId,
-    },
-    services,
-  });
-
-  evt.set({
-    chunkVectorCount: deletionResult.deletedChunkVectorCount,
-    summaryVectorCount: deletionResult.deletedSummaryVectorCount,
-  });
-
-  const [highlightResult, postResult, connectionPairResult] = await Promise.all([
-    ctx.runMutation(internal.highlights.cascadeDeleteHighlights, {
-      documentId,
-      userId,
-    }),
-    ctx.runMutation(internal.documents.cascadeDeletePosts, {
-      documentId,
-      userId,
-    }),
-    ctx.runMutation(internal.connectionPairs.cascadeDeleteByDocumentId, {
-      documentId,
-    }),
-  ]);
-
-  const chunkResult = await ctx.runMutation(internal.documents.cascadeDeleteChunksAndSummaries, {
-    documentId,
-    userId,
-  });
-
-  const docResult = await ctx.runMutation(internal.documents.cascadeDeleteDocument, {
-    documentId,
-  });
-
-  evt.set({
-    deleted: {
-      highlights: highlightResult.deletedHighlights,
-      posts: postResult.deletedPosts,
-      bookmarks: postResult.deletedBookmarks,
-      connectionPairs: connectionPairResult.deletedConnectionPairs,
-      chunks: chunkResult.deletedChunks,
-      sectionSummaries: chunkResult.deletedSectionSummaries,
-      processingJobs: chunkResult.deletedProcessingJobs,
-      cardDrafts: chunkResult.deletedCardDrafts,
-      reactionFeedback: chunkResult.deletedReactionFeedback,
-      orphanedTags: docResult.deletedOrphanedTags,
-    },
-  });
-}
-
-async function setDeletionErrorStatus(
-  ctx: ActionCtx,
-  {
-    documentId,
-    error,
-    evt,
-  }: {
-    documentId: Id<"documents">;
-    error: unknown;
-    evt: WideEvent;
-  },
-) {
-  try {
-    await ctx.runMutation(internal.documents.updateStatus, {
-      id: documentId,
-      status: "error",
-      failedAt: "deleting",
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
-    });
-  } catch (recoveryError) {
-    // Recovery may fail if cascadeDeleteDocument already deleted the document row.
-    // This is expected — the document is gone, so there's nothing to mark as errored.
-    evt.set("recoveryError", String(recoveryError));
+  if (recovery.recoveryError) {
+    opts.evt.set("recoveryError", recovery.recoveryError);
   }
 }
 
@@ -141,15 +44,16 @@ export const deleteDocument = action({
         throw new Error("Document not found");
       }
 
-      await executeDeletionCascade(ctx, {
+      const deletionResult = await executeDocumentDeletionCascade({
+        ctx,
         documentId: args.documentId,
         userId: user._id,
         data,
-        evt,
       });
+      evt.set(deletionResult);
     } catch (error) {
       evt.setError(error);
-      await setDeletionErrorStatus(ctx, { documentId: args.documentId, error, evt });
+      await captureDeletionFailure(ctx, { documentId: args.documentId, error, evt });
       throw error;
     } finally {
       evt.emit();
@@ -226,15 +130,16 @@ export const retryDeleteDocument = internalAction({
         throw new Error("Document not found");
       }
 
-      await executeDeletionCascade(ctx, {
+      const deletionResult = await executeDocumentDeletionCascade({
+        ctx,
         documentId: args.documentId,
         userId: data.document.userId,
         data,
-        evt,
       });
+      evt.set(deletionResult);
     } catch (error) {
       evt.setError(error);
-      await setDeletionErrorStatus(ctx, { documentId: args.documentId, error, evt });
+      await captureDeletionFailure(ctx, { documentId: args.documentId, error, evt });
       throw error;
     } finally {
       evt.emit();
