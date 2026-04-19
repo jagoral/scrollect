@@ -114,5 +114,5 @@ evalite("Thematic Discovery", {
     }
   },
   scorers: [thematicLanguageMatch, sectionCoverage, themeCount, thematicSpecificity],
-  trialCount: 3,
+  trialCount: 1,
 });

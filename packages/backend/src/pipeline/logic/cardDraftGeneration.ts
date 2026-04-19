@@ -1,8 +1,9 @@
 import { ZERO_USAGE, addUsage, type TokenUsage } from "../../providers/ai";
 import type { DraftCardType, DraftGenerationServiceContext, TypeData } from "../../providers/types";
 
-const DRAFT_CARD_TYPES: DraftCardType[] = ["insight", "quiz", "quote", "summary"];
+export const DRAFT_CARD_TYPES: DraftCardType[] = ["insight", "quiz", "quote", "summary"];
 const MIN_QUALITY_SCORE = 0.3;
+type ContextDepth = "representative" | "full";
 
 export type SectionInput = {
   sectionSummaryId: string;
@@ -27,6 +28,9 @@ export type GenerateDraftsInput = {
   learningGoal?: string;
   section: SectionInput;
   allChunks: ChunkData[];
+  cardTypes?: DraftCardType[];
+  generationBatch?: number;
+  contextDepth?: ContextDepth;
   existingHashes: ReadonlySet<string>;
   hashContent: (content: string) => string;
 };
@@ -57,6 +61,7 @@ export type GenerateDraftsMetrics = {
   draftsDeduplicated: number;
   draftsDiscardedLowQuality: number;
   draftsFailedLlm: number;
+  draftsSkippedNoQuote: number;
   draftsRejectedValidation: number;
   draftsValidatorErrored: number;
   validationRejections: ValidationRejection[];
@@ -91,6 +96,24 @@ export function selectRepresentativeChunks(opts: {
 
   return [first, last];
 }
+
+export function selectSectionChunks(opts: {
+  allChunks: ChunkData[];
+  chunkStartIndex: number;
+  chunkEndIndex: number;
+}): ChunkData[] {
+  return opts.allChunks.filter(
+    (c) => c.chunkIndex >= opts.chunkStartIndex && c.chunkIndex <= opts.chunkEndIndex,
+  );
+}
+
+const CHUNK_SELECTION_STRATEGIES = {
+  representative: selectRepresentativeChunks,
+  full: selectSectionChunks,
+} satisfies Record<
+  ContextDepth,
+  (opts: { allChunks: ChunkData[]; chunkStartIndex: number; chunkEndIndex: number }) => ChunkData[]
+>;
 
 export function computeQualityScore(opts: {
   cardType: DraftCardType;
@@ -204,29 +227,31 @@ export async function generateDraftsForSection(opts: {
   const { documentId, userId, documentTitle, section, allChunks, existingHashes, hashContent } =
     input;
 
-  const representativeChunks = selectRepresentativeChunks({
+  const sourceChunks = CHUNK_SELECTION_STRATEGIES[input.contextDepth ?? "representative"]({
     allChunks,
     chunkStartIndex: section.chunkStartIndex,
     chunkEndIndex: section.chunkEndIndex,
   });
+  const cardTypes = input.cardTypes ?? DRAFT_CARD_TYPES;
 
   const metrics: GenerateDraftsMetrics = {
     sectionTitle: section.sectionTitle,
-    cardTypesAttempted: DRAFT_CARD_TYPES.length,
+    cardTypesAttempted: cardTypes.length,
     draftsGenerated: 0,
     draftsDeduplicated: 0,
     draftsDiscardedLowQuality: 0,
     draftsFailedLlm: 0,
+    draftsSkippedNoQuote: 0,
     draftsRejectedValidation: 0,
     draftsValidatorErrored: 0,
     validationRejections: [],
   };
 
-  if (representativeChunks.length === 0) {
+  if (sourceChunks.length === 0 || cardTypes.length === 0) {
     return { drafts: [], tokenUsage: ZERO_USAGE, metrics };
   }
 
-  const chunksForLlm = representativeChunks.map((c) => ({
+  const chunksForLlm = sourceChunks.map((c) => ({
     content: c.content,
     chunkId: c._id,
   }));
@@ -236,7 +261,7 @@ export async function generateDraftsForSection(opts: {
   const seenHashes = new Set(existingHashes);
 
   const settled = await Promise.allSettled(
-    DRAFT_CARD_TYPES.map((cardType) =>
+    cardTypes.map((cardType) =>
       services.llm
         .generateDraft({
           cardType,
@@ -263,6 +288,11 @@ export async function generateDraftsForSection(opts: {
     const { cardType, card, usage } = result.value;
     totalUsage = addUsage(totalUsage, usage);
 
+    if (!card) {
+      if (cardType === "quote") metrics.draftsSkippedNoQuote++;
+      continue;
+    }
+
     if (!card.content) continue;
 
     const contentHash = hashContent(card.content);
@@ -275,7 +305,7 @@ export async function generateDraftsForSection(opts: {
       cardType,
       content: card.content,
       typeData: card.typeData,
-      sourceChunkCount: representativeChunks.length,
+      sourceChunkCount: sourceChunks.length,
     });
 
     if (qualityScore < MIN_QUALITY_SCORE) {
@@ -291,10 +321,10 @@ export async function generateDraftsForSection(opts: {
       cardType,
       content: card.content,
       typeData: castTypeData(cardType, card.typeData),
-      sourceChunkIds: representativeChunks.map((c) => c._id),
+      sourceChunkIds: sourceChunks.map((c) => c._id),
       contentHash,
       qualityScore,
-      generationBatch: 1,
+      generationBatch: input.generationBatch ?? 1,
       strategy: "section",
     });
   }
