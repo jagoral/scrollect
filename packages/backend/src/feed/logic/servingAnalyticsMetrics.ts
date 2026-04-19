@@ -186,16 +186,18 @@ export function computeQualityDistribution(drafts: ScoredDraft[]): QualityDistri
 }
 
 export function summarizeGoalRelevance(opts: {
-  goalEmbedding: number[] | undefined;
+  /** Per-document goal embeddings, keyed by `documentId`. Per ADR-018 §3. */
+  goalEmbeddingByDocument: ReadonlyMap<string, number[]> | undefined;
   topDrafts: ScoredDraftWithScore[];
   /** Raw section-vec map passed to the scorer (post-fetch). May be undefined when no goal. */
-  sectionEmbeddings: Map<string, number[]> | undefined;
+  sectionEmbeddings: ReadonlyMap<string, number[]> | undefined;
   /** Section IDs considered for the bounded top-K candidate fetch. */
   candidateSectionIds: string[];
   goalRelevanceAlpha: number;
   goalRelevanceFloor: number;
 }): GoalRelevanceSummary {
-  if (!opts.goalEmbedding || opts.goalEmbedding.length === 0) {
+  const goalMap = opts.goalEmbeddingByDocument;
+  if (!goalMap || goalMap.size === 0) {
     return {
       applied: false,
       sectionEmbeddingCoveragePercent: 0,
@@ -204,10 +206,13 @@ export function summarizeGoalRelevance(opts: {
     };
   }
 
+  // Embedding dimensions are shared across the goal map (same provider, same model) so
+  // peek the first entry to size coverage checks.
+  const expectedDim = goalMap.values().next().value?.length ?? 0;
   const unique = [...new Set(opts.candidateSectionIds)];
   const covered = unique.filter((id) => {
     const vec = opts.sectionEmbeddings?.get(id);
-    return vec !== undefined && vec.length === opts.goalEmbedding!.length;
+    return vec !== undefined && vec.length === expectedDim;
   });
   const coverage = unique.length === 0 ? 0 : covered.length / unique.length;
 
@@ -215,12 +220,14 @@ export function summarizeGoalRelevance(opts: {
   let boostedCards = 0;
   let relevantDrafts = 0;
   for (const draft of opts.topDrafts) {
+    const goalEmbedding = goalMap.get(draft.documentId);
+    if (!goalEmbedding || goalEmbedding.length === 0) continue;
     const sectionId = draft.sectionSummaryId;
     if (!sectionId) continue;
     const vec = opts.sectionEmbeddings?.get(sectionId);
     if (!vec || vec.length === 0) continue;
-    if (vec.length !== opts.goalEmbedding.length) continue;
-    const cosine = cosineSimilarity(opts.goalEmbedding, vec);
+    if (vec.length !== goalEmbedding.length) continue;
+    const cosine = cosineSimilarity(goalEmbedding, vec);
     const boost = opts.goalRelevanceAlpha * Math.max(0, cosine - opts.goalRelevanceFloor);
     totalBoost += boost;
     if (boost > 0) boostedCards++;

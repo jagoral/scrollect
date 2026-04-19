@@ -1107,7 +1107,7 @@ describe("scoreDrafts", () => {
         drafts,
         config: DEFAULT_SCORING_CONFIG,
         now: NOW,
-        goalEmbedding: vec("x"),
+        goalEmbeddingByDocument: new Map([["doc-1", vec("x")]]),
         sectionEmbeddings: new Map(),
       });
       expect(result[0]!.score).toBeCloseTo(0.6, 3);
@@ -1120,7 +1120,7 @@ describe("scoreDrafts", () => {
         drafts,
         config: DEFAULT_SCORING_CONFIG,
         now: NOW,
-        goalEmbedding: vec("x"),
+        goalEmbeddingByDocument: new Map([["doc-1", vec("x")]]),
         sectionEmbeddings,
       });
       expect(result[0]!.score).toBeCloseTo(0.6, 3);
@@ -1132,7 +1132,7 @@ describe("scoreDrafts", () => {
         drafts,
         config: DEFAULT_SCORING_CONFIG,
         now: NOW,
-        goalEmbedding: vec("x"),
+        goalEmbeddingByDocument: new Map([["doc-1", vec("x")]]),
         sectionEmbeddings: new Map([["sec-1", vec("x")]]),
       });
       expect(result[0]!.score).toBeCloseTo(0.6, 3);
@@ -1142,13 +1142,13 @@ describe("scoreDrafts", () => {
       const drafts = [
         makeDraft({ id: "aligned", sectionSummaryId: "sec-aligned", ...STATIC_BASE }),
       ];
-      const goalEmbedding = vec("x");
+      const goalEmbeddingByDocument = new Map([["doc-1", vec("x")]]);
       const sectionEmbeddings = new Map([["sec-aligned", vec("x")]]);
       const result = scoreDrafts({
         drafts,
         config: DEFAULT_SCORING_CONFIG,
         now: NOW,
-        goalEmbedding,
+        goalEmbeddingByDocument,
         sectionEmbeddings,
       });
       // cosine = 1.0, goalRelevance = 1 + 0.6 * (1 - 0.1) = 1.54
@@ -1160,13 +1160,13 @@ describe("scoreDrafts", () => {
       const drafts = [
         makeDraft({ id: "orthogonal", sectionSummaryId: "sec-orth", ...STATIC_BASE }),
       ];
-      const goalEmbedding = vec("x");
+      const goalEmbeddingByDocument = new Map([["doc-1", vec("x")]]);
       const sectionEmbeddings = new Map([["sec-orth", vec("y")]]);
       const result = scoreDrafts({
         drafts,
         config: DEFAULT_SCORING_CONFIG,
         now: NOW,
-        goalEmbedding,
+        goalEmbeddingByDocument,
         sectionEmbeddings,
       });
       // cosine = 0, max(0, 0 - 0.1) = 0 → goalRelevance = 1.0
@@ -1186,7 +1186,7 @@ describe("scoreDrafts", () => {
           ...STATIC_BASE,
         }),
       ];
-      const goalEmbedding = vec("x");
+      const goalEmbeddingByDocument = new Map([["doc-1", vec("x")]]);
       const sectionEmbeddings = new Map([
         ["sec-aligned", vec("x")],
         ["sec-orth", vec("y")],
@@ -1195,7 +1195,7 @@ describe("scoreDrafts", () => {
         drafts,
         config: DEFAULT_SCORING_CONFIG,
         now: NOW,
-        goalEmbedding,
+        goalEmbeddingByDocument,
         sectionEmbeddings,
       });
       expect(result[0]!.id).toBe("aligned");
@@ -1231,7 +1231,7 @@ describe("scoreDrafts", () => {
         drafts,
         config: DEFAULT_SCORING_CONFIG,
         now: NOW,
-        goalEmbedding: vec("x"),
+        goalEmbeddingByDocument: new Map([["doc-1", vec("x")]]),
         sectionEmbeddings,
       });
       // With α=0.6 floor=0.1: aligned 0.5 * 1.54 = 0.77; orth 0.65 * 1 = 0.65 → aligned wins.
@@ -1694,7 +1694,7 @@ describe("scoreDrafts", () => {
         drafts,
         config: DEFAULT_SCORING_CONFIG,
         now: NOW,
-        goalEmbedding,
+        goalEmbeddingByDocument: new Map([["doc-1", goalEmbedding]]),
         sectionEmbeddings,
       });
 

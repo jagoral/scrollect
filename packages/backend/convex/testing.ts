@@ -188,6 +188,24 @@ export const cleanupByUserId = internalMutation({
   handler: async (ctx, args) => cleanupUserData(ctx, args.userId),
 });
 
+/**
+ * E2E-only: counts the user's documents that have a `learningGoalEmbedding` populated.
+ * `updateLearningGoal` schedules `embedLearningGoal` via `runAfter(0, ...)`, so tests
+ * must poll this to confirm the embedding is ready before asserting goal-relevance
+ * analytics.
+ */
+export const countDocumentsWithGoalEmbeddingByUserId = internalQuery({
+  args: { userId: v.string() },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const docs = await ctx.db
+      .query("documents")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    return docs.filter((d) => d.learningGoalEmbedding !== undefined).length;
+  },
+});
+
 const E2E_ANALYTICS_BUFFER_LIMIT = 1000;
 
 /**

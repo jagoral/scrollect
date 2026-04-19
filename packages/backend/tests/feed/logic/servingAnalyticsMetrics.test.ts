@@ -301,7 +301,7 @@ describe("summarizeGoalRelevance", () => {
 
   it("reports applied=false when goal is absent", () => {
     const result = summarizeGoalRelevance({
-      goalEmbedding: undefined,
+      goalEmbeddingByDocument: undefined,
       topDrafts: [scored({ id: "a", sectionSummaryId: "s1" })],
       sectionEmbeddings: new Map([["s1", [1, 0]]]),
       candidateSectionIds: ["s1"],
@@ -314,9 +314,21 @@ describe("summarizeGoalRelevance", () => {
     expect(result.sectionEmbeddingCoveragePercent).toBe(0);
   });
 
+  it("reports applied=false when goal map is empty", () => {
+    const result = summarizeGoalRelevance({
+      goalEmbeddingByDocument: new Map(),
+      topDrafts: [scored({ id: "a", sectionSummaryId: "s1" })],
+      sectionEmbeddings: new Map([["s1", [1, 0]]]),
+      candidateSectionIds: ["s1"],
+      goalRelevanceAlpha: alpha,
+      goalRelevanceFloor: floor,
+    });
+    expect(result.applied).toBe(false);
+  });
+
   it("reports coverage = 1.0 when every candidate section has a usable vector", () => {
     const result = summarizeGoalRelevance({
-      goalEmbedding: [1, 0],
+      goalEmbeddingByDocument: new Map([["doc-1", [1, 0]]]),
       topDrafts: [
         scored({ id: "a", sectionSummaryId: "s1" }),
         scored({ id: "b", sectionSummaryId: "s2" }),
@@ -335,7 +347,7 @@ describe("summarizeGoalRelevance", () => {
 
   it("reports degraded coverage when some candidate sections lack vectors (I3)", () => {
     const result = summarizeGoalRelevance({
-      goalEmbedding: [1, 0],
+      goalEmbeddingByDocument: new Map([["doc-1", [1, 0]]]),
       topDrafts: [scored({ id: "a", sectionSummaryId: "s1" })],
       sectionEmbeddings: new Map([["s1", [1, 0]]]),
       candidateSectionIds: ["s1", "s2", "s3", "s4"],
@@ -348,7 +360,7 @@ describe("summarizeGoalRelevance", () => {
 
   it("treats mismatched vector dimensions as missing coverage", () => {
     const result = summarizeGoalRelevance({
-      goalEmbedding: [1, 0, 0],
+      goalEmbeddingByDocument: new Map([["doc-1", [1, 0, 0]]]),
       topDrafts: [scored({ id: "a", sectionSummaryId: "s1" })],
       sectionEmbeddings: new Map([["s1", [1, 0]]]),
       candidateSectionIds: ["s1"],
@@ -361,7 +373,7 @@ describe("summarizeGoalRelevance", () => {
   });
 
   it("reports meanRelevanceBoost matching the scorer's goalRelevance - 1 term", () => {
-    const goalEmbedding = [1, 0];
+    const goalEmbeddingByDocument = new Map([["doc-1", [1, 0]]]);
     const sectionEmbeddings = new Map([
       ["s-aligned", [1, 0]],
       ["s-half", [1, 1]],
@@ -371,7 +383,7 @@ describe("summarizeGoalRelevance", () => {
       scored({ id: "b", sectionSummaryId: "s-half" }),
     ];
     const result = summarizeGoalRelevance({
-      goalEmbedding,
+      goalEmbeddingByDocument,
       topDrafts,
       sectionEmbeddings,
       candidateSectionIds: ["s-aligned", "s-half"],
@@ -387,7 +399,7 @@ describe("summarizeGoalRelevance", () => {
 
   it("ignores topDrafts without a sectionSummaryId (highlight/thematic)", () => {
     const result = summarizeGoalRelevance({
-      goalEmbedding: [1, 0],
+      goalEmbeddingByDocument: new Map([["doc-1", [1, 0]]]),
       topDrafts: [scored({ id: "no-section" })],
       sectionEmbeddings: new Map(),
       candidateSectionIds: [],
@@ -401,7 +413,7 @@ describe("summarizeGoalRelevance", () => {
 
   it("clamps boosts below the floor to zero", () => {
     const result = summarizeGoalRelevance({
-      goalEmbedding: [1, 0],
+      goalEmbeddingByDocument: new Map([["doc-1", [1, 0]]]),
       topDrafts: [scored({ id: "orthogonal", sectionSummaryId: "s-orth" })],
       sectionEmbeddings: new Map([["s-orth", [0, 1]]]),
       candidateSectionIds: ["s-orth"],
@@ -410,5 +422,24 @@ describe("summarizeGoalRelevance", () => {
     });
     expect(result.boostedCardCount).toBe(0);
     expect(result.meanRelevanceBoost).toBe(0);
+  });
+
+  it("skips drafts whose document is not in the goal map", () => {
+    const result = summarizeGoalRelevance({
+      goalEmbeddingByDocument: new Map([["doc-with-goal", [1, 0]]]),
+      topDrafts: [
+        scored({ id: "covered", sectionSummaryId: "s1", documentId: "doc-with-goal" }),
+        scored({ id: "uncovered", sectionSummaryId: "s2", documentId: "doc-no-goal" }),
+      ],
+      sectionEmbeddings: new Map([
+        ["s1", [1, 0]],
+        ["s2", [1, 0]],
+      ]),
+      candidateSectionIds: ["s1", "s2"],
+      goalRelevanceAlpha: alpha,
+      goalRelevanceFloor: floor,
+    });
+    expect(result.applied).toBe(true);
+    expect(result.boostedCardCount).toBe(1);
   });
 });

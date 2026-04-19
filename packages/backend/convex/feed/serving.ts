@@ -115,14 +115,19 @@ export const serveFeed = mutation({
         draftsToScore,
       );
 
-      // Per ADR-018 §3: resolve the user goal vector via the future-ready resolver seam,
-      // pinned to any document in the pool (today the resolver returns the user-level
-      // vector regardless of documentId; per-topic resolution will refine this later).
-      // Resolve to undefined when the pool is empty or no document carries a goal.
-      const anchorDocId = draftsToScore[0]?.documentId;
-      const goalEmbedding = anchorDocId
-        ? await getEffectiveLearningGoalEmbedding(ctx, anchorDocId)
-        : undefined;
+      // Per ADR-018 §3: resolve per-document goal embeddings through the future-ready
+      // resolver seam. The scorer looks up each draft's own document embedding, so a
+      // pool spanning multiple documents ranks each draft against its own goal.
+      const goalResolutions = await Promise.all(
+        uniqueDocIds.map(async (id) => ({
+          id,
+          embedding: await getEffectiveLearningGoalEmbedding(ctx, id),
+        })),
+      );
+      const goalEmbeddingByDocument = new Map<string, number[]>();
+      for (const { id, embedding } of goalResolutions) {
+        if (embedding !== undefined) goalEmbeddingByDocument.set(id, embedding);
+      }
 
       // Two-pass scoring: first pass without goal vectors picks top-K candidates whose
       // section vectors we then fetch; second pass re-scores with the partial map. Drafts
@@ -131,7 +136,7 @@ export const serveFeed = mutation({
       let sectionEmbeddings: Map<string, number[]> | undefined;
       let sectionEmbeddingCoverage = 1;
       let candidateSectionIds: string[] = [];
-      if (goalEmbedding) {
+      if (goalEmbeddingByDocument.size > 0) {
         const candidatePass = scoreDrafts({
           drafts: scoringInput,
           config,
@@ -160,7 +165,7 @@ export const serveFeed = mutation({
         config,
         now: Date.now(),
         reactionSummary,
-        goalEmbedding,
+        goalEmbeddingByDocument,
         sectionEmbeddings,
       });
       const topDrafts = ranked.slice(0, config.batchSize);
@@ -224,7 +229,8 @@ export const serveFeed = mutation({
         isDepleted,
         remainingPending,
         replenishmentTriggered,
-        goalEmbeddingPresent: goalEmbedding !== undefined,
+        goalEmbeddingPresent: goalEmbeddingByDocument.size > 0,
+        goalEmbeddingDocumentCount: goalEmbeddingByDocument.size,
         sectionEmbeddingCoverage,
         ...reactionStats,
       });
@@ -263,7 +269,7 @@ export const serveFeed = mutation({
       const cardTypeMixes = firstSessionBatches.map(computeCardTypeMix);
       const qualityDistribution = computeQualityDistribution(topDrafts);
       const goalRelevance = summarizeGoalRelevance({
-        goalEmbedding,
+        goalEmbeddingByDocument,
         topDrafts,
         sectionEmbeddings,
         candidateSectionIds,

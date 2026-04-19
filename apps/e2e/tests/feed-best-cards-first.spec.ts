@@ -6,6 +6,7 @@ import {
   drainAnalyticsEvents,
   reseedAccount,
   waitForAnalyticsEvents,
+  waitForGoalEmbedding,
 } from "./helpers";
 import type { DrainedAnalyticsEvent } from "./helpers";
 
@@ -50,6 +51,10 @@ test.describe("Feed: best cards first (issue #216)", { tag: "@seeded" }, () => {
 
   test("serves a feed batch for a seeded user with a learning goal", async ({ page }) => {
     await setLearningGoal(page, LEARNING_GOAL);
+    // `updateLearningGoal` schedules the embedding action via `runAfter(0)`. Wait for
+    // it to populate at least one document before serving so goal-relevance analytics
+    // are deterministic.
+    await waitForGoalEmbedding(SEEDED_USER.email, { minCount: 1 });
 
     await page.goto("/app/feed?noAutoServe");
     const cards = page.locator(CARD);

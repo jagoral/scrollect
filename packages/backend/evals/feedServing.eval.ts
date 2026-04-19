@@ -55,11 +55,14 @@ function runRanking(fixture: FeedServingFixture): FixtureDraft[] {
     documentChunkCount: fixture.documentChunkCount,
   }));
 
+  const goalEmbeddingByDocument = fixture.goalEmbedding
+    ? new Map(fixture.drafts.map((d) => [d.documentId, fixture.goalEmbedding!]))
+    : undefined;
   const ranked = scoreDrafts({
     drafts: scoringInput,
     config: DEFAULT_SCORING_CONFIG,
     now,
-    goalEmbedding: fixture.goalEmbedding,
+    goalEmbeddingByDocument,
     sectionEmbeddings: fixture.sectionEmbeddings,
   });
 

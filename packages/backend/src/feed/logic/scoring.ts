@@ -105,10 +105,15 @@ export type ReactionSummary = {
  * - When `semanticQualityScore` is missing, falls back to `qualityScore` for that draft.
  * - When `sectionQualitySignal` is missing, the front-matter penalty does not apply
  *   (penalty is `1.0`).
- * - When `goalEmbedding` is missing or a draft's section vector is missing, that draft's
- *   `goalRelevance` is `1.0`.
+ * - When the draft's document has no entry in `goalEmbeddingByDocument`, or the draft's
+ *   section vector is missing, that draft's `goalRelevance` is `1.0`.
  * - When `chunkStartIndex` / `documentChunkCount` are missing for any draft in the pool,
  *   the book-position diversity pass is a no-op for the entire pool.
+ *
+ * Per ADR-018 §3, learning-goal embeddings are per-document. The scorer looks up each
+ * draft's embedding by its `documentId`, so a pool spanning docs with different goals
+ * ranks each draft against its own goal — a doc with goal "learn Rust" never has its
+ * cards boosted by another doc's "learn React" vector.
  *
  * Pass order (each later pass may demote earlier picks): score → sort → book-position
  * round-robin → quote-share cap → quiz-share cap → type diversity → section diversity →
@@ -119,10 +124,10 @@ export function scoreDrafts(opts: {
   config: ScoringConfig;
   now: number;
   reactionSummary?: ReactionSummary;
-  goalEmbedding?: number[];
-  sectionEmbeddings?: Map<string, number[]>;
+  goalEmbeddingByDocument?: ReadonlyMap<string, number[]>;
+  sectionEmbeddings?: ReadonlyMap<string, number[]>;
 }): ScoredDraftWithScore[] {
-  const { drafts, config, now, reactionSummary, goalEmbedding, sectionEmbeddings } = opts;
+  const { drafts, config, now, reactionSummary, goalEmbeddingByDocument, sectionEmbeddings } = opts;
 
   const eligibleDrafts = reactionSummary
     ? drafts.filter((d) => !reactionSummary.rejectedDraftIds.has(d.id))
@@ -136,7 +141,12 @@ export function scoreDrafts(opts: {
       ? computeReactionMultiplier(draft, reactionSummary, config)
       : 1.0;
     const effectiveQuality = computeEffectiveQuality(draft);
-    const goalRelevance = computeGoalRelevance(draft, goalEmbedding, sectionEmbeddings, config);
+    const goalRelevance = computeGoalRelevance(
+      draft,
+      goalEmbeddingByDocument,
+      sectionEmbeddings,
+      config,
+    );
     const frontMatterPenalty = computeFrontMatterPenalty(draft, config);
     const score =
       effectiveQuality *
@@ -186,10 +196,12 @@ export function computeEffectiveQuality(draft: ScoredDraft): number {
 
 function computeGoalRelevance(
   draft: ScoredDraft,
-  goalEmbedding: number[] | undefined,
-  sectionEmbeddings: Map<string, number[]> | undefined,
+  goalEmbeddingByDocument: ReadonlyMap<string, number[]> | undefined,
+  sectionEmbeddings: ReadonlyMap<string, number[]> | undefined,
   config: ScoringConfig,
 ): number {
+  if (!goalEmbeddingByDocument) return 1.0;
+  const goalEmbedding = goalEmbeddingByDocument.get(draft.documentId);
   if (!goalEmbedding || goalEmbedding.length === 0) return 1.0;
   if (!draft.sectionSummaryId) return 1.0;
   if (!sectionEmbeddings) return 1.0;

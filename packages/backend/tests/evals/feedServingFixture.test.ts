@@ -29,11 +29,14 @@ function runScoring(fixture: FeedServingFixture) {
     chunkStartIndex: d.chunkStartIndex,
     documentChunkCount: fixture.documentChunkCount,
   }));
+  const goalEmbeddingByDocument = fixture.goalEmbedding
+    ? new Map(fixture.drafts.map((d) => [d.documentId, fixture.goalEmbedding!]))
+    : undefined;
   return scoreDrafts({
     drafts,
     config: DEFAULT_SCORING_CONFIG,
     now,
-    goalEmbedding: fixture.goalEmbedding,
+    goalEmbeddingByDocument,
     sectionEmbeddings: fixture.sectionEmbeddings,
   });
 }

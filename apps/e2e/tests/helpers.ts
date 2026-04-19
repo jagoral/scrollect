@@ -174,6 +174,34 @@ export async function drainAnalyticsEvents(email: string): Promise<DrainedAnalyt
 }
 
 /**
+ * Polls the E2E endpoint that counts documents with a `learningGoalEmbedding`. Used
+ * after `updateLearningGoal` to wait for the scheduled embed action to complete before
+ * asserting analytics — the mutation returns instantly with an empty embedding column
+ * and the action populates it asynchronously.
+ */
+export async function waitForGoalEmbedding(
+  email: string,
+  opts: { minCount?: number; timeoutMs?: number; intervalMs?: number } = {},
+): Promise<number> {
+  const minCount = opts.minCount ?? 1;
+  const timeoutMs = opts.timeoutMs ?? 15_000;
+  const intervalMs = opts.intervalMs ?? 250;
+  const deadline = Date.now() + timeoutMs;
+  let lastCount = 0;
+  while (Date.now() < deadline) {
+    const { ok, status, body } = await convexE2ERequest("/api/e2e-goal-embedding-count", email);
+    if (!ok) throw new Error(`E2E goal embedding count failed: ${status} ${body}`);
+    lastCount = (JSON.parse(body).count ?? 0) as number;
+    if (lastCount >= minCount) return lastCount;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error(
+    `Timed out waiting for ${minCount} document(s) with a learning-goal embedding; ` +
+      `last count was ${lastCount}.`,
+  );
+}
+
+/**
  * Polls the analytics drain until the predicate matches or the timeout elapses.
  * Events accumulate across drain cycles so the caller sees the full set once the
  * predicate succeeds.
