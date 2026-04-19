@@ -1,6 +1,6 @@
 ---
 name: backend-domain-architecture
-description: Scrollect backend architecture design gate for packages/backend architectural decisions. Use when deciding where backend logic belongs, extracting pure domain logic from Convex, designing provider ports or service contexts, refactoring oversized domain modules, resolving duplicated orchestration, or reviewing DDD/SOLID/DRY/YAGNI tradeoffs. Also trigger on explicit architecture review/critique requests for backend work. Do not use for routine Convex edits that only need backend-development; use both skills when the architectural decision touches Convex functions, pipeline stages, schema-facing work, or provider wiring.
+description: Scrollect backend architecture design gate for packages/backend architectural decisions. Use when deciding where backend logic belongs, extracting pure domain logic from Convex, creating or changing public backend APIs, designing provider ports or service contexts, refactoring oversized domain modules, resolving duplicated orchestration, or reviewing DDD/SOLID/DRY/YAGNI tradeoffs. Also trigger on explicit architecture review/critique requests for backend work. Do not use for routine Convex edits that only need backend-development; use both skills when the architectural decision touches Convex functions, pipeline stages, schema-facing work, provider wiring, or service contracts.
 ---
 
 # Backend Domain Architecture
@@ -20,10 +20,11 @@ Before proposing architecture or editing backend files:
 2. Identify the domain words the code should use: documents, pipeline, feed, tags, entitlements,
    auth, billing, highlights, connections, or another explicit Scrollect concept.
 3. Decide which companion skills apply.
-4. Decide whether the task is an implementation change, a refactor, or a review/critique.
-5. If the user asks for review, critique, or validation, read
+4. Decide whether the task creates or changes a public backend API contract.
+5. Decide whether the task is an implementation change, a refactor, or a review/critique.
+6. If the user asks for review, critique, or validation, read
    `references/architecture-review-rubric.md` before writing findings.
-6. If the task needs concrete Scrollect examples, read `references/scrollect-pattern-examples.md`.
+7. If the task needs concrete Scrollect examples, read `references/scrollect-pattern-examples.md`.
 
 ## Companion Skills
 
@@ -42,6 +43,9 @@ Use this skill with other skills when their rules materially apply:
   backfills, or zero-downtime data shape.
 - `ai-sdk`: when the boundary involves LLM calls, structured output, tool calling, embeddings, model
   selection, or provider behavior.
+- `.agents/agents/backend-public-api-reviewer.md`: spawn this reviewer whenever the change creates
+  or changes a public backend API contract. Public means callable outside the defining module or
+  layer, not necessarily internet-public.
 
 Do not invoke every related skill by habit. Use the smallest set that catches the real risk.
 
@@ -141,6 +145,35 @@ When adding or reshaping a provider port, service context, or domain use-case in
 For large interface decisions, use subagents to generate genuinely different options. For small
 ports, do the comparison inline and keep moving.
 
+## Public API Review Gate
+
+Before implementing a new or changed public backend API, spawn a dedicated public API reviewer
+subagent from `.agents/agents/backend-public-api-reviewer.md` and incorporate the feedback before
+finalizing the API shape.
+
+Public backend API means any contract that another module, layer, or caller depends on:
+
+- exported Convex queries, mutations, actions, HTTP actions, and internal functions
+- new or changed `args` or `returns` validators for backend functions
+- provider ports, service contexts, concrete service factories, and service methods
+- exported pure use-case functions from `src/` that are called outside their local module
+- shared DTOs, plan/result types, error shapes, and capability interfaces
+
+Do not trigger this gate for private helpers that are used only inside one file, test-only factories,
+or mechanical implementation changes that keep an existing contract stable.
+
+Give the reviewer enough context to judge the API, not just the diff:
+
+- the intended current caller and any near-term caller already in scope
+- the proposed function or interface signature
+- whether the API is Convex edge, pure domain logic, provider port, service context, or adapter
+- expected authorization, idempotency, pagination, retry, and error behavior
+- what tests will lock the contract down
+
+Treat the reviewer as a design checkpoint, not a veto machine. If you reject feedback, state why the
+current contract is still easier to use correctly, harder to misuse, and aligned with Scrollect's
+backend boundaries.
+
 ## Domain Modeling Rules
 
 ### Ubiquitous Language
@@ -235,6 +268,8 @@ Answer these before changing backend architecture:
 - Is this Convex edge behavior, pure domain logic, provider implementation, or provider wiring?
 - Does any new `src/` code import Convex runtime APIs or generated Convex modules? If yes, redesign.
 - Is there an existing port or service context to reuse?
+- Does this create or change a public backend API? If yes, what should the
+  `backend-public-api-reviewer` inspect before the contract is finalized?
 - Are retries, recovery, scheduler boundaries, and state transitions still owned by Convex code?
 - Is external I/O completed before status transitions that imply durable completion?
 - Is this abstraction serving a current caller and testable need?
@@ -248,12 +283,14 @@ When implementing or refactoring:
 2. If behavior changes and a focused test is practical, use `tdd`: write or update the smallest
    failing test first, then make it pass.
 3. Move only the boundary that the task requires. Avoid opportunistic domain reshuffles.
-4. Keep exported Convex function names stable unless the API change is intentional.
-5. Prefer extracting pure logic before introducing a service context. Add the context only when the
+4. If creating or changing a public backend API, run the Public API Review Gate before committing to
+   the final signature.
+5. Keep exported Convex function names stable unless the API change is intentional.
+6. Prefer extracting pure logic before introducing a service context. Add the context only when the
    use case needs external capabilities or clearer tests.
-6. Keep persistence, scheduling, retries, and recovery at the Convex edge.
-7. Run focused tests for pure logic and the repo checks appropriate to the changed files.
-8. If Convex schema or functions changed, follow `backend-development` and deploy with
+7. Keep persistence, scheduling, retries, and recovery at the Convex edge.
+8. Run focused tests for pure logic and the repo checks appropriate to the changed files.
+9. If Convex schema or functions changed, follow `backend-development` and deploy with
    `cd packages/backend && npx convex dev --once`.
 
 ## Review Flow
@@ -287,6 +324,8 @@ Use this checklist during review:
 - No speculative schema, index, provider, export, or generic framework was added.
 - Existing `backend-development` rules still hold for auth, validators, wide events, indexed
   queries, bounded user-facing reads, batch operations, and pipeline safety.
+- New or changed public API contracts were reviewed by `backend-public-api-reviewer`, or the review
+  was intentionally skipped because the contract remained private or unchanged.
 - Tests match the risk: pure logic gets unit tests; Convex behavior gets targeted integration or
   E2E coverage only when it is stable and maintainable.
 

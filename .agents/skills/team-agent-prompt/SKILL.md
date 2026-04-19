@@ -115,16 +115,17 @@ Agent definitions live in `.agents/agents/`. **Read each agent's file** for thei
 
 Available agents:
 
-| Agent file                                 | Role                     | Edits code? | When to include                                                     |
-| ------------------------------------------ | ------------------------ | ----------- | ------------------------------------------------------------------- |
-| `.agents/agents/architect.md`              | System design, ADRs      | Yes         | Schema changes, new modules, data flow design, integration patterns |
-| `.agents/agents/project-manager.md`        | Backlog, issues, specs   | No          | Feature scoping, acceptance criteria, prioritization                |
-| `.agents/agents/frontend-developer.md`     | Frontend implementation  | Yes         | UI components, pages, scroll behavior, form handling                |
-| `.agents/agents/backend-developer.md`      | Backend implementation   | Yes         | Convex functions, schema, pipeline, auth, AI/embeddings             |
-| `.agents/agents/qa.md`                     | Test strategy, E2E tests | Yes         | Always — every feature needs tests                                  |
-| `.agents/agents/architect-reviewer.md`     | Architectural review     | No          | Cross-cutting concerns, scalability, design pattern review          |
-| `.agents/agents/code-reviewer-frontend.md` | Frontend code review     | No          | React/TanStack pattern review                                       |
-| `.agents/agents/code-reviewer-backend.md`  | Backend code review      | No          | Convex pattern review                                               |
+| Agent file                                      | Role                     | Edits code? | When to include                                                     |
+| ----------------------------------------------- | ------------------------ | ----------- | ------------------------------------------------------------------- |
+| `.agents/agents/architect.md`                   | System design, ADRs      | Yes         | Schema changes, new modules, data flow design, integration patterns |
+| `.agents/agents/project-manager.md`             | Backlog, issues, specs   | No          | Feature scoping, acceptance criteria, prioritization                |
+| `.agents/agents/frontend-developer.md`          | Frontend implementation  | Yes         | UI components, pages, scroll behavior, form handling                |
+| `.agents/agents/backend-developer.md`           | Backend implementation   | Yes         | Convex functions, schema, pipeline, auth, AI/embeddings             |
+| `.agents/agents/qa.md`                          | Test strategy, E2E tests | Yes         | Always — every feature needs tests                                  |
+| `.agents/agents/architect-reviewer.md`          | Architectural review     | No          | Cross-cutting concerns, scalability, design pattern review          |
+| `.agents/agents/backend-public-api-reviewer.md` | Backend API review       | No          | New/changed Convex methods, service methods, provider ports         |
+| `.agents/agents/code-reviewer-frontend.md`      | Frontend code review     | No          | React/TanStack pattern review                                       |
+| `.agents/agents/code-reviewer-backend.md`       | Backend code review      | No          | Convex pattern review                                               |
 
 **Require plan approval** for the Architect role — if the design is wrong, everything downstream is wasted work.
 
