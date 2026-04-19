@@ -5,8 +5,8 @@ import {
 } from "../../feed/logic/mocks";
 import { ZERO_USAGE } from "../../../src/providers/llm/models";
 import type {
-  CardDraftLlm,
-  CardDraftValidator,
+  PostDraftLlm,
+  PostDraftValidator,
   ConnectionDiscoveryLlm,
   ConnectionDiscoveryServiceContext,
   DraftPostType,
@@ -17,7 +17,7 @@ import type {
   ThematicLlm,
 } from "../../../src/providers/types";
 
-export function createMockCardDraftLlm(overrides?: Partial<CardDraftLlm>): CardDraftLlm {
+export function createMockPostDraftLlm(overrides?: Partial<PostDraftLlm>): PostDraftLlm {
   return {
     generateDraft: async (opts: {
       postType: DraftPostType;
@@ -37,9 +37,9 @@ export function createMockCardDraftLlm(overrides?: Partial<CardDraftLlm>): CardD
   };
 }
 
-export function createMockCardDraftValidator(
-  overrides?: Partial<CardDraftValidator>,
-): CardDraftValidator {
+export function createMockPostDraftValidator(
+  overrides?: Partial<PostDraftValidator>,
+): PostDraftValidator {
   return {
     validateDraft: async () => ({
       isValid: true,
@@ -79,8 +79,8 @@ export function createMockDraftGenerationServices(
   overrides?: Partial<DraftGenerationServiceContext>,
 ): DraftGenerationServiceContext {
   return {
-    llm: createMockCardDraftLlm(),
-    validator: createMockCardDraftValidator(),
+    llm: createMockPostDraftLlm(),
+    validator: createMockPostDraftValidator(),
     ...overrides,
   };
 }
@@ -111,7 +111,7 @@ export function createMockThematicDraftGenerationServices(
 ): ThematicDraftGenerationServiceContext {
   return {
     thematicLlm: createMockThematicLlm(),
-    draftLlm: createMockCardDraftLlm(),
+    draftLlm: createMockPostDraftLlm(),
     embedder: createMockEmbedder(),
     vectorStore: createMockVectorStore(),
     ...overrides,

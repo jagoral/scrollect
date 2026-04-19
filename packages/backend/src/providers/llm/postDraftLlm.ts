@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { CardDraftLlm, DraftPostType } from "../types";
+import type { PostDraftLlm, DraftPostType } from "../types";
 import { type TokenUsage, generate } from "./models";
 import { isSpeechSource } from "../../indexing/logic/contentTypes";
 import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
@@ -187,7 +187,7 @@ ${
   }
 }
 
-export class AiSdkCardDraftLlm implements CardDraftLlm {
+export class AiSdkPostDraftLlm implements PostDraftLlm {
   async generateDraft(opts: {
     postType: DraftPostType;
     sectionSummary: string;

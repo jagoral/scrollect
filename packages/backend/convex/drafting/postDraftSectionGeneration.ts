@@ -11,8 +11,8 @@ import type { DraftPostType, TokenUsage } from "../../src/providers/types";
 import { captureAiUsage } from "../../src/providers/analytics/posthog";
 
 import { computeContentHash } from "../../src/platform/contentHash";
-import { generateDraftsForSection } from "../../src/drafting/logic/cardDraftGeneration";
-import { checkCardDraftGenerationCompletion } from "./cardDraftCompletion";
+import { generateDraftsForSection } from "../../src/drafting/logic/postDraftGeneration";
+import { checkPostDraftGenerationCompletion } from "./postDraftCompletion";
 import { createDraftGenerationServiceContext } from "./services";
 
 const MAX_DRAFT_RETRIES = 3;
@@ -64,7 +64,7 @@ export const generateDraftsForSectionBatch = internalAction({
         evt.set("learningGoalPending", true);
         await ctx.scheduler.runAfter(
           LEARNING_GOAL_CHECK_DELAY_MS,
-          internal.drafting.cardDraftSectionGeneration.generateDraftsForSectionBatch,
+          internal.drafting.postDraftSectionGeneration.generateDraftsForSectionBatch,
           {
             jobId,
             documentId,
@@ -155,7 +155,7 @@ export const generateDraftsForSectionBatch = internalAction({
         id: jobId,
         failed: false,
       });
-      await checkCardDraftGenerationCompletion({
+      await checkPostDraftGenerationCompletion({
         ctx,
         job,
         documentId,
@@ -171,7 +171,7 @@ export const generateDraftsForSectionBatch = internalAction({
         const delayMs = Math.pow(2, retryCount) * 1000;
         await ctx.scheduler.runAfter(
           delayMs,
-          internal.drafting.cardDraftSectionGeneration.generateDraftsForSectionBatch,
+          internal.drafting.postDraftSectionGeneration.generateDraftsForSectionBatch,
           {
             jobId,
             documentId,
@@ -190,7 +190,7 @@ export const generateDraftsForSectionBatch = internalAction({
         id: jobId,
         failed: true,
       });
-      await checkCardDraftGenerationCompletion({
+      await checkPostDraftGenerationCompletion({
         ctx,
         job,
         documentId,

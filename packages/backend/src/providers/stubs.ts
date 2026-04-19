@@ -1,7 +1,7 @@
 import { ZERO_USAGE, type TokenUsage } from "./llm/models";
 import type {
-  CardDraftLlm,
-  CardDraftValidator,
+  PostDraftLlm,
+  PostDraftValidator,
   ConnectionDiscoveryLlm,
   ContentExtractor,
   DocumentMetadataLlm,
@@ -189,7 +189,7 @@ const STUB_DRAFTS: Record<
   }),
 };
 
-export class StubCardDraftLlm implements CardDraftLlm {
+export class StubPostDraftLlm implements PostDraftLlm {
   async generateDraft(opts: {
     postType: DraftPostType;
     sectionSummary: string;
@@ -299,7 +299,7 @@ export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
   }
 }
 
-export class StubCardDraftValidator implements CardDraftValidator {
+export class StubPostDraftValidator implements PostDraftValidator {
   async validateDraft(opts: {
     postType: DraftPostType;
     content: string;

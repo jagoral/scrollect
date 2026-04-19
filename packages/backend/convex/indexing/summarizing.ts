@@ -54,7 +54,7 @@ export const summarizeDocument = internalAction({
         });
         await ctx.scheduler.runAfter(
           0,
-          internal.drafting.cardDraftGeneration.generateDraftsForDocument,
+          internal.drafting.postDraftGeneration.generateDraftsForDocument,
           { documentId },
         );
         return;
@@ -91,7 +91,7 @@ export const summarizeDocument = internalAction({
         });
         await ctx.scheduler.runAfter(
           0,
-          internal.drafting.cardDraftGeneration.generateDraftsForDocument,
+          internal.drafting.postDraftGeneration.generateDraftsForDocument,
           { documentId },
         );
         return;
@@ -146,7 +146,7 @@ export const summarizeDocument = internalAction({
 
       await ctx.scheduler.runAfter(
         0,
-        internal.drafting.cardDraftGeneration.generateDraftsForDocument,
+        internal.drafting.postDraftGeneration.generateDraftsForDocument,
         { documentId },
       );
     } catch (error) {

@@ -9,7 +9,7 @@ import type {
   ThematicDraftInput,
 } from "../../../src/drafting/logic/thematicDraftGeneration";
 import {
-  createMockCardDraftLlm,
+  createMockPostDraftLlm,
   createMockThematicDraftGenerationServices,
   createMockThematicLlm,
   createMockEmbedder,
@@ -207,7 +207,7 @@ describe("generateThematicDrafts", () => {
     const vectorStore = createMockVectorStore({
       search: async (): Promise<VectorSearchResult[]> => makeSearchResults(),
     });
-    const draftLlm = createMockCardDraftLlm({
+    const draftLlm = createMockPostDraftLlm({
       generateDraft: vi.fn().mockResolvedValue({
         card: {
           content: "Identical thematic content for all types",
@@ -257,7 +257,7 @@ describe("generateThematicDrafts", () => {
     const vectorStore = createMockVectorStore({
       search: async (): Promise<VectorSearchResult[]> => makeSearchResults(),
     });
-    const draftLlm = createMockCardDraftLlm({
+    const draftLlm = createMockPostDraftLlm({
       generateDraft: vi
         .fn()
         .mockImplementation(
@@ -336,7 +336,7 @@ describe("generateThematicDrafts", () => {
     const vectorStore = createMockVectorStore({
       search: async (): Promise<VectorSearchResult[]> => makeSearchResults(),
     });
-    const draftLlm = createMockCardDraftLlm({
+    const draftLlm = createMockPostDraftLlm({
       generateDraft: vi
         .fn()
         .mockImplementation(
@@ -396,7 +396,7 @@ describe("generateThematicDrafts", () => {
         costUsd: { input: 0, output: 0, total: 0 },
       },
     });
-    const draftLlm = createMockCardDraftLlm({ generateDraft });
+    const draftLlm = createMockPostDraftLlm({ generateDraft });
     const services = createMockThematicDraftGenerationServices({ vectorStore, draftLlm });
 
     await generateThematicDrafts({

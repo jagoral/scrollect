@@ -4,7 +4,7 @@ import type {
   ThematicDraftGenerationServiceContext,
   TypeData,
 } from "../../providers/types";
-import { castTypeData, computeQualityScore } from "./cardDraftGeneration";
+import { castTypeData, computeQualityScore } from "./postDraftGeneration";
 
 const THEMATIC_CARD_TYPES: DraftPostType[] = ["insight", "summary"];
 const MIN_QUALITY_SCORE = 0.3;

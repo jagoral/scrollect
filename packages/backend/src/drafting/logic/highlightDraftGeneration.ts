@@ -8,7 +8,7 @@ import {
   castTypeData,
   computeQualityScore,
   selectRepresentativeChunks,
-} from "./cardDraftGeneration";
+} from "./postDraftGeneration";
 
 const MIN_HIGHLIGHT_MATCH_LENGTH = 20;
 const MIN_QUALITY_SCORE = 0.3;

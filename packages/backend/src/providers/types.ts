@@ -206,7 +206,7 @@ export type TypeData =
       connectionType?: "cross_document" | "within_document";
     };
 
-export interface CardDraftLlm {
+export interface PostDraftLlm {
   generateDraft(opts: {
     postType: DraftPostType;
     sectionSummary: string;
@@ -236,7 +236,7 @@ export type ValidationResult = {
   usage: TokenUsage;
 };
 
-export interface CardDraftValidator {
+export interface PostDraftValidator {
   validateDraft(opts: {
     postType: DraftPostType;
     content: string;
@@ -327,14 +327,14 @@ export type DocumentMetadataServiceContext = {
 };
 
 export type DraftGenerationServiceContext = {
-  llm: CardDraftLlm;
-  validator?: CardDraftValidator;
+  llm: PostDraftLlm;
+  validator?: PostDraftValidator;
   ranker?: SectionDraftRankerLlm;
 };
 
 export type ThematicDraftGenerationServiceContext = {
   thematicLlm: ThematicLlm;
-  draftLlm: CardDraftLlm;
+  draftLlm: PostDraftLlm;
   embedder: EmbeddingProvider;
   vectorStore: VectorStore;
 };

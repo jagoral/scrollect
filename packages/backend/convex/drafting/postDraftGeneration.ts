@@ -16,7 +16,7 @@ import {
   getNextGenerationBatch,
 } from "../../src/drafting/logic/draftGenerationPreparation";
 import { rankSectionsForPlanning } from "../../src/drafting/logic/draftSectionRanking";
-import { captureDraftSetupFailure, captureNoDraftsPlanned } from "./cardDraftAnalytics";
+import { captureDraftSetupFailure, captureNoDraftsPlanned } from "./postDraftAnalytics";
 import { createDraftGenerationServiceContext } from "./services";
 
 const LEARNING_GOAL_CHECK_DELAY_MS = 5000;
@@ -40,7 +40,7 @@ export const generateDraftsForDocument = internalAction({
         evt.set("learningGoalPending", true);
         await ctx.scheduler.runAfter(
           LEARNING_GOAL_CHECK_DELAY_MS,
-          internal.drafting.cardDraftGeneration.generateDraftsForDocument,
+          internal.drafting.postDraftGeneration.generateDraftsForDocument,
           { documentId, mode },
         );
         return;
@@ -153,7 +153,7 @@ export const generateDraftsForDocument = internalAction({
       for (const plannedSection of plan.sections) {
         await ctx.scheduler.runAfter(
           0,
-          internal.drafting.cardDraftSectionGeneration.generateDraftsForSectionBatch,
+          internal.drafting.postDraftSectionGeneration.generateDraftsForSectionBatch,
           {
             jobId,
             documentId,

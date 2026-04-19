@@ -5,15 +5,15 @@ import {
   generateDraftsForSection,
   selectSectionChunks,
   selectRepresentativeChunks,
-} from "../../../src/drafting/logic/cardDraftGeneration";
+} from "../../../src/drafting/logic/postDraftGeneration";
 import type {
   ChunkData,
   GenerateDraftsInput,
   SectionInput,
-} from "../../../src/drafting/logic/cardDraftGeneration";
+} from "../../../src/drafting/logic/postDraftGeneration";
 import {
-  createMockCardDraftLlm,
-  createMockCardDraftValidator,
+  createMockPostDraftLlm,
+  createMockPostDraftValidator,
   createMockDraftGenerationServices,
 } from "./mocks";
 
@@ -226,7 +226,7 @@ describe("generateDraftsForSection", () => {
         costUsd: { input: 0, output: 0, total: 0 },
       },
     });
-    const llm = createMockCardDraftLlm({ generateDraft });
+    const llm = createMockPostDraftLlm({ generateDraft });
     const services = createMockDraftGenerationServices({ llm });
 
     await generateDraftsForSection({
@@ -255,7 +255,7 @@ describe("generateDraftsForSection", () => {
   });
 
   it("skips quote drafts when the LLM returns no quote worth surfacing", async () => {
-    const llm = createMockCardDraftLlm({
+    const llm = createMockPostDraftLlm({
       generateDraft: vi.fn().mockResolvedValue({
         card: null,
         usage: {
@@ -291,7 +291,7 @@ describe("generateDraftsForSection", () => {
   });
 
   it("deduplicates drafts with same content hash", async () => {
-    const llm = createMockCardDraftLlm({
+    const llm = createMockPostDraftLlm({
       generateDraft: vi.fn().mockResolvedValue({
         card: {
           content: "Identical content for all types",
@@ -333,7 +333,7 @@ describe("generateDraftsForSection", () => {
   });
 
   it("discards drafts below minimum quality score", async () => {
-    const llm = createMockCardDraftLlm({
+    const llm = createMockPostDraftLlm({
       generateDraft: vi.fn().mockResolvedValue({
         card: {
           content: "",
@@ -364,7 +364,7 @@ describe("generateDraftsForSection", () => {
       totalTokens: 150,
       costUsd: { input: 0, output: 0, total: 0 },
     };
-    const llm = createMockCardDraftLlm({
+    const llm = createMockPostDraftLlm({
       generateDraft: vi
         .fn()
         .mockImplementation(
@@ -407,7 +407,7 @@ describe("generateDraftsForSection", () => {
   });
 
   it("continues generating other types when one LLM call fails", async () => {
-    const llm = createMockCardDraftLlm({
+    const llm = createMockPostDraftLlm({
       generateDraft: vi
         .fn()
         .mockImplementation(
@@ -457,7 +457,7 @@ describe("generateDraftsForSection", () => {
         costUsd: { input: 0, output: 0, total: 0 },
       },
     });
-    const llm = createMockCardDraftLlm({ generateDraft });
+    const llm = createMockPostDraftLlm({ generateDraft });
     const services = createMockDraftGenerationServices({ llm });
 
     await generateDraftsForSection({
@@ -481,7 +481,7 @@ describe("generateDraftsForSection", () => {
         costUsd: { input: 0, output: 0, total: 0 },
       },
     });
-    const llm = createMockCardDraftLlm({ generateDraft });
+    const llm = createMockPostDraftLlm({ generateDraft });
     const services = createMockDraftGenerationServices({ llm });
 
     await generateDraftsForSection({
@@ -516,7 +516,7 @@ describe("generateDraftsForSection", () => {
 
 describe("generateDraftsForSection with validator", () => {
   it("rejects drafts that fail validation", async () => {
-    const validator = createMockCardDraftValidator({
+    const validator = createMockPostDraftValidator({
       validateDraft: vi.fn().mockImplementation(async (opts: { postType: string }) => ({
         isValid: opts.postType !== "quote",
         rejectionReason: opts.postType === "quote" ? "Not a real quote" : undefined,
@@ -544,7 +544,7 @@ describe("generateDraftsForSection with validator", () => {
   });
 
   it("rejects all drafts when validator marks everything invalid", async () => {
-    const validator = createMockCardDraftValidator({
+    const validator = createMockPostDraftValidator({
       validateDraft: vi.fn().mockResolvedValue({
         isValid: false,
         rejectionReason: "Worthless content",
@@ -582,7 +582,7 @@ describe("generateDraftsForSection with validator", () => {
   });
 
   it("fails open when validator throws and tracks errored count", async () => {
-    const validator = createMockCardDraftValidator({
+    const validator = createMockPostDraftValidator({
       validateDraft: vi.fn().mockRejectedValue(new Error("LLM timeout")),
     });
     const services = createMockDraftGenerationServices({ validator });
@@ -604,7 +604,7 @@ describe("generateDraftsForSection with validator", () => {
       totalTokens: 30,
       costUsd: { input: 0, output: 0, total: 0 },
     };
-    const validator = createMockCardDraftValidator({
+    const validator = createMockPostDraftValidator({
       validateDraft: vi.fn().mockResolvedValue({
         isValid: true,
         usage: validatorUsage,

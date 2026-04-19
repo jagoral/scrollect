@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { CardDraftValidator, DraftPostType, ValidationResult } from "../types";
+import type { PostDraftValidator, DraftPostType, ValidationResult } from "../types";
 import { generate } from "./models";
 
 const validationSchema = z.object({
@@ -86,7 +86,7 @@ QUIZ card criteria - the question must test recall of a specific fact from the s
   }
 }
 
-export class AiSdkCardDraftValidator implements CardDraftValidator {
+export class AiSdkPostDraftValidator implements PostDraftValidator {
   async validateDraft(opts: {
     postType: DraftPostType;
     content: string;

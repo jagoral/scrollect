@@ -78,7 +78,7 @@ export const resumeProcessing = internalAction({
           });
           await ctx.scheduler.runAfter(
             0,
-            internal.drafting.cardDraftGeneration.generateDraftsForDocument,
+            internal.drafting.postDraftGeneration.generateDraftsForDocument,
             { documentId },
           );
           break;

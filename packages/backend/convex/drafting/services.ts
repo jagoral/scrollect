@@ -1,14 +1,14 @@
 "use node";
 
-import { AiSdkCardDraftLlm } from "../../src/providers/llm/cardDraftLlm";
-import { AiSdkCardDraftValidator } from "../../src/providers/llm/cardDraftValidator";
+import { AiSdkPostDraftLlm } from "../../src/providers/llm/postDraftLlm";
+import { AiSdkPostDraftValidator } from "../../src/providers/llm/postDraftValidator";
 import { AiSdkConnectionDiscoveryLlm } from "../../src/providers/llm/connectionDiscoveryLlm";
 import { AiSdkHighlightDraftLlm } from "../../src/providers/llm/highlightDraftLlm";
 import { AiSdkSectionDraftRankerLlm } from "../../src/providers/llm/sectionDraftRankerLlm";
 import { AiSdkThematicLlm } from "../../src/providers/llm/thematicLlm";
 import {
-  StubCardDraftLlm,
-  StubCardDraftValidator,
+  StubPostDraftLlm,
+  StubPostDraftValidator,
   StubConnectionDiscoveryLlm,
   StubHighlightDraftLlm,
   StubSectionDraftRankerLlm,
@@ -29,14 +29,14 @@ import {
 export function createDraftGenerationServiceContext(): DraftGenerationServiceContext {
   if (process.env.USE_STUB_EXTRACTORS === "true") {
     return {
-      llm: new StubCardDraftLlm(),
-      validator: new StubCardDraftValidator(),
+      llm: new StubPostDraftLlm(),
+      validator: new StubPostDraftValidator(),
       ranker: new StubSectionDraftRankerLlm(),
     };
   }
   return {
-    llm: new AiSdkCardDraftLlm(),
-    validator: new AiSdkCardDraftValidator(),
+    llm: new AiSdkPostDraftLlm(),
+    validator: new AiSdkPostDraftValidator(),
     ranker: new AiSdkSectionDraftRankerLlm(),
   };
 }
@@ -45,14 +45,14 @@ export function createThematicDraftGenerationServiceContext(): ThematicDraftGene
   if (process.env.USE_STUB_EXTRACTORS === "true") {
     return {
       thematicLlm: new StubThematicLlm(),
-      draftLlm: new StubCardDraftLlm(),
+      draftLlm: new StubPostDraftLlm(),
       embedder: createEmbeddingProvider(),
       vectorStore: createVectorStore(),
     };
   }
   return {
     thematicLlm: new AiSdkThematicLlm(),
-    draftLlm: new AiSdkCardDraftLlm(),
+    draftLlm: new AiSdkPostDraftLlm(),
     embedder: createEmbeddingProvider(),
     vectorStore: createVectorStore(),
   };

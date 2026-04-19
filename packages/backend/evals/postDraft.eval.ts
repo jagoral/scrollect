@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkCardDraftLlm } from "../src/providers/llm/cardDraftLlm";
+import { AiSdkPostDraftLlm } from "../src/providers/llm/postDraftLlm";
 import type { DraftPostType } from "../convex/lib/validators";
 import {
   ARTICLE_EN_ARCHITECTURE,
@@ -30,7 +30,7 @@ type SectionInput = {
   fileType?: string;
 };
 
-type CardDraftOutput = {
+type PostDraftOutput = {
   postType: DraftPostType;
   content: string;
   typeData: Record<string, unknown>;
@@ -39,7 +39,7 @@ type CardDraftOutput = {
   fileType?: string;
 };
 
-const llm = new AiSdkCardDraftLlm();
+const llm = new AiSdkPostDraftLlm();
 
 function buildSectionInputs(): SectionInput[] {
   return [
@@ -102,7 +102,7 @@ evalite("Section Draft Smoke", {
         sourceChunks: input.chunks.map((c) => c.content),
         expectedLanguage: input.expectedLanguage,
         fileType: input.fileType,
-      } satisfies CardDraftOutput;
+      } satisfies PostDraftOutput;
     }
 
     return {
@@ -112,7 +112,7 @@ evalite("Section Draft Smoke", {
       sourceChunks: input.chunks.map((c) => c.content),
       expectedLanguage: input.expectedLanguage,
       fileType: input.fileType,
-    } satisfies CardDraftOutput;
+    } satisfies PostDraftOutput;
   },
   scorers: [
     structuralValidity,

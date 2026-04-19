@@ -12,7 +12,7 @@ export default defineConfig({
   cache: true,
   scoreThreshold: 80,
   forceRerunTriggers: [
-    "src/providers/cardDraftLlm.ts",
+    "src/providers/postDraftLlm.ts",
     "src/providers/sectionDraftRankerLlm.ts",
     "src/pipeline/logic/draftGenerationPlan.ts",
     "src/providers/highlightDraftLlm.ts",

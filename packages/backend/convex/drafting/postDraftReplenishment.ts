@@ -24,7 +24,7 @@ export const regenerateDrafts = internalAction({
       for (const doc of documents) {
         await ctx.scheduler.runAfter(
           0,
-          internal.drafting.cardDraftGeneration.generateDraftsForDocument,
+          internal.drafting.postDraftGeneration.generateDraftsForDocument,
           { documentId: doc._id, mode: "replenishment" },
         );
       }

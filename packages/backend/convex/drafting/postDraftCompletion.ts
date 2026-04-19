@@ -6,12 +6,12 @@ import type { ActionCtx } from "../_generated/server";
 import type { WideEvent } from "../../src/platform/logging";
 import { captureEvent } from "../../src/providers/analytics/posthog";
 
-import { captureDraftGenerationAnalytics, type DraftGenerationMode } from "./cardDraftAnalytics";
+import { captureDraftGenerationAnalytics, type DraftGenerationMode } from "./postDraftAnalytics";
 import { transitionToReady } from "../indexing/readyTransition";
 
 const MIN_SECTIONS_FOR_THEMATIC = 3;
 
-export async function checkCardDraftGenerationCompletion(opts: {
+export async function checkPostDraftGenerationCompletion(opts: {
   ctx: ActionCtx;
   job: { totalBatches: number; completedBatches: number; failedBatches: number };
   documentId: Id<"documents">;
