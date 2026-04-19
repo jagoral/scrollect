@@ -13,6 +13,18 @@ import {
 const MIN_HIGHLIGHT_MATCH_LENGTH = 20;
 const MIN_QUALITY_SCORE = 0.3;
 
+/**
+ * Highlight drafts bypass the LLM validator (they already carry a user-intent signal —
+ * the user literally highlighted the passage — so running the validator would double
+ * cost for marginal quality gain). To keep these drafts comparable with validated
+ * section drafts at serving time, we populate `semanticQualityScore` with a capped
+ * heuristic: the structural `qualityScore` ceilinged at 0.85. This prevents a
+ * highlight draft from automatically outranking a top-tier validated section draft
+ * while still placing highlights in the competitive band (ADR-018 §1, architect
+ * review I1).
+ */
+const HIGHLIGHT_SEMANTIC_CEILING = 0.85;
+
 export type HighlightData = {
   _id: string;
   text: string;
@@ -57,6 +69,7 @@ export type HighlightDraftRecord = {
   sourceChunkIds: string[];
   contentHash: string;
   qualityScore: number;
+  semanticQualityScore: number;
   generationBatch: number;
   strategy: "highlight";
 };
@@ -238,6 +251,7 @@ async function generateDraftsForSectionGroup(opts: {
       sourceChunkIds,
       contentHash,
       qualityScore,
+      semanticQualityScore: Math.min(qualityScore, HIGHLIGHT_SEMANTIC_CEILING),
       generationBatch: input.generationBatch,
       strategy: "highlight",
     });

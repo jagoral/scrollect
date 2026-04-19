@@ -153,6 +153,26 @@ export async function goToFirstDocument(page: Page) {
   });
 }
 
+export type DrainedAnalyticsEvent = {
+  event: string;
+  properties: Record<string, unknown>;
+  createdAt: number;
+};
+
+/**
+ * Drains the E2E analytics buffer for a given user. Events are consumed on
+ * read, so a drain before and after a user action yields only the events
+ * emitted during that action. Backed by the `e2eAnalyticsEvents` Convex table
+ * (see ADR-018 Task 6 + `/api/e2e-analytics-drain` HTTP route).
+ */
+export async function drainAnalyticsEvents(email: string): Promise<DrainedAnalyticsEvent[]> {
+  const { ok, status, body } = await convexE2ERequest("/api/e2e-analytics-drain", email);
+  if (!ok) {
+    throw new Error(`E2E analytics drain failed: ${status} ${body}`);
+  }
+  return (JSON.parse(body).events ?? []) as DrainedAnalyticsEvent[];
+}
+
 export async function fetchConnectionDrafts(email: string) {
   const { ok, status, body } = await convexE2ERequest("/api/e2e-connection-drafts", email);
   if (!ok) {

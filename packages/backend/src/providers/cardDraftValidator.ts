@@ -11,14 +11,37 @@ const validationSchema = z.object({
     .string()
     .optional()
     .describe("Brief reason for rejection, only required when isValid is false"),
+  semanticQualityScore: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe(
+      "Learning value on a 0-1 scale. 1.0 teaches a concrete concept, mechanism, tradeoff, example, failure mode, or decision rule. 0.0 is front matter, platitudes, or generic filler. See rubric in the system prompt.",
+    ),
 });
+
+const SEMANTIC_RUBRIC = `You must ALSO return a semanticQualityScore in [0, 1] that measures the card's LEARNING VALUE, independent of structural validity.
+
+SCORING RUBRIC (language-agnostic - apply to cards in any language):
+- 0.85-1.00: Teaches a concrete concept, mechanism, tradeoff, failure mode, decision rule, or specific example. Self-contained. Memorable. Aligned with the source document.
+- 0.60-0.85: Substantive but either generic, partially developed, or a simple recall fact. Useful but not a standout card.
+- 0.30-0.60: Weak learning value. Vague, repeats obvious points, restates a section heading, or is a simple true/false with low insight.
+- 0.00-0.30: Front matter, dedication, acknowledgements, legal text, part-divider, chapter-setup boilerplate, generic platitudes, or trivial/filler content.
+
+IMPORTANT QUOTE ANCHOR: A quote card that is verbatim and well-formed but does NOT teach a concept, decision principle, mechanism, or memorable insight scores AT MOST 0.6. Do not let structural validity inflate learning value. Quote cards should only exceed 0.6 when the quoted passage itself conveys a substantive teachable idea.
+
+IMPORTANT FRONT MATTER ANCHOR: Cards sourced from prefaces, dedications, part dividers, about-the-author pages, generic introductions that only announce what a chapter will cover, or other non-content artifacts score below 0.3. This applies regardless of the language of the source.
+
+Return semanticQualityScore as your independent judgement. Do not pin it to isValid - a structurally valid but vague card should still score below 0.6.`;
 
 function buildValidationPrompt(cardType: DraftCardType): string {
   const base = `You are a content quality gate for a personal learning feed app.
 Your job is to determine whether a generated learning card has genuine substance or is worthless filler.
 
 Respond with isValid: true only if the card passes ALL criteria for its type.
-Respond with isValid: false and a brief reason if the card fails any criterion.`;
+Respond with isValid: false and a brief reason if the card fails any criterion.
+
+${SEMANTIC_RUBRIC}`;
 
   switch (cardType) {
     case "quote":
@@ -97,7 +120,15 @@ Type data: ${typeDataStr}`,
     return {
       isValid: output.isValid,
       rejectionReason: output.reason,
+      semanticQualityScore: clamp01(output.semanticQualityScore),
       usage,
     };
   }
+}
+
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
 }

@@ -160,6 +160,7 @@ export const generateDraftsForDocument = internalAction({
             sectionSummaryId: plannedSection.sectionSummaryId as Id<"sectionSummaries">,
             cardTypes: plannedSection.cardTypes,
             generationBatch: plannedSection.generationBatch,
+            sectionQualitySignal: plannedSection.qualitySignal,
             mode,
             retryCount: 0,
           },

@@ -28,6 +28,8 @@ function AuthenticatedLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isFeedRoute = pathname === "/app/feed" || pathname === "/app/saved";
   const isLibraryList = pathname === "/app/library" || pathname === "/app/library/";
+  const detailGridClassName =
+    "grid min-w-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
 
   return (
     <SidebarProvider open={true}>
@@ -42,13 +44,13 @@ function AuthenticatedLayout() {
           <UserMenu />
         </div>
       </header>
-      <div className="flex w-full pt-14">
+      <div className="flex w-full min-w-0 pt-14">
         <AppSidebar />
-        <SidebarInset>
+        <SidebarInset className="min-w-0 overflow-x-hidden">
           {isFeedRoute ? (
             <DetailPanelProvider>
-              <div className="flex flex-1">
-                <main className="w-full max-w-2xl shrink-0">
+              <div className={detailGridClassName}>
+                <main className="min-w-0 border-r border-border">
                   <Outlet />
                 </main>
                 <DetailPanel />
@@ -56,8 +58,8 @@ function AuthenticatedLayout() {
             </DetailPanelProvider>
           ) : isLibraryList ? (
             <LibraryDetailProvider>
-              <div className="flex flex-1 overflow-hidden">
-                <main className="w-full max-w-2xl shrink-0 border-r border-border">
+              <div className={detailGridClassName}>
+                <main className="min-w-0 border-r border-border">
                   <Outlet />
                 </main>
                 <LibraryDetailPanel />

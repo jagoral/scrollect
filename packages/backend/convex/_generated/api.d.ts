@@ -20,6 +20,7 @@ import type * as documentActions from "../documentActions.js";
 import type * as documents from "../documents.js";
 import type * as entitlementGrants from "../entitlementGrants.js";
 import type * as entitlements from "../entitlements.js";
+import type * as feed_learningGoal from "../feed/learningGoal.js";
 import type * as feed_queries from "../feed/queries.js";
 import type * as feed_serving from "../feed/serving.js";
 import type * as feed_servingAnalytics from "../feed/servingAnalytics.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   entitlementGrants: typeof entitlementGrants;
   entitlements: typeof entitlements;
+  "feed/learningGoal": typeof feed_learningGoal;
   "feed/queries": typeof feed_queries;
   "feed/serving": typeof feed_serving;
   "feed/servingAnalytics": typeof feed_servingAnalytics;

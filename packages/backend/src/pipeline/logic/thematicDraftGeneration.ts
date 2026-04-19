@@ -10,6 +10,15 @@ const THEMATIC_CARD_TYPES: DraftCardType[] = ["insight", "summary"];
 const MIN_QUALITY_SCORE = 0.3;
 const THEME_CHUNKS_TOP_K = 3;
 
+/**
+ * Thematic drafts are algorithmically generated from embedding clusters — no LLM
+ * validator pass and no user-intent signal — so we apply a stricter semantic ceiling
+ * than highlight drafts (ADR-018 §1, architect review I1). 0.7 keeps thematic drafts
+ * below validated top-tier section drafts (which can score 0.85+) while still above
+ * the front-matter band (< 0.3).
+ */
+const THEMATIC_SEMANTIC_CEILING = 0.7;
+
 export type ThemeDiscoveryInput = {
   sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
   documentTitle: string;
@@ -52,6 +61,7 @@ export type ThematicDraftRecord = {
   sourceChunkIds: string[];
   contentHash: string;
   qualityScore: number;
+  semanticQualityScore: number;
   generationBatch: number;
   strategy: "thematic";
 };
@@ -224,6 +234,7 @@ async function generateDraftsForTheme(opts: {
       sourceChunkIds,
       contentHash,
       qualityScore,
+      semanticQualityScore: Math.min(qualityScore, THEMATIC_SEMANTIC_CEILING),
       generationBatch: 1,
       strategy: "thematic",
     });
