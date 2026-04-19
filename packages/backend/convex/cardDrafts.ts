@@ -82,3 +82,34 @@ export const listByDocumentStatus = internalQuery({
       .collect();
   },
 });
+
+export const listByDocument = internalQuery({
+  args: { documentId: v.id("documents") },
+  returns: v.array(
+    v.object({
+      _id: v.id("cardDrafts"),
+      _creationTime: v.number(),
+      documentId: v.id("documents"),
+      sectionSummaryId: v.optional(v.id("sectionSummaries")),
+      userId: v.string(),
+      cardType: postType,
+      content: v.string(),
+      typeData,
+      sourceChunkIds: v.array(v.id("chunks")),
+      contentHash: v.string(),
+      qualityScore: v.number(),
+      status: cardDraftStatus,
+      servedCount: v.optional(v.number()),
+      generationBatch: v.number(),
+      strategy: cardDraftStrategy,
+      rejectionReason: v.optional(v.string()),
+      createdAt: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("cardDrafts")
+      .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
+      .collect();
+  },
+});

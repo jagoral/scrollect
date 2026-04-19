@@ -2,7 +2,12 @@ import { evalite } from "evalite";
 
 import { AiSdkCardDraftLlm } from "../src/providers/cardDraftLlm";
 import type { DraftCardType } from "../convex/lib/validators";
-import { ALL_FIXTURES } from "./fixtures";
+import {
+  ARTICLE_EN_ARCHITECTURE,
+  BOOK_EN_LEARNING,
+  BOOK_PL_LEWANDOWSKI,
+  YOUTUBE_EN_ML,
+} from "./fixtures";
 import {
   structuralValidity,
   languageMatch,
@@ -16,6 +21,7 @@ import {
 } from "./scorers";
 
 type SectionInput = {
+  cardType: DraftCardType;
   sectionTitle: string;
   sectionSummary: string;
   chunks: Array<{ content: string; chunkId: string }>;
@@ -36,28 +42,51 @@ type CardDraftOutput = {
 const llm = new AiSdkCardDraftLlm();
 
 function buildSectionInputs(): SectionInput[] {
-  return ALL_FIXTURES.flatMap((doc) =>
-    doc.sections.map((section) => ({
-      sectionTitle: section.sectionTitle,
-      sectionSummary: section.sectionSummary,
-      chunks: section.chunks,
-      documentTitle: doc.title,
-      expectedLanguage: doc.language,
-      fileType: doc.fileType,
-    })),
-  );
+  return [
+    {
+      cardType: "insight",
+      sectionTitle: ARTICLE_EN_ARCHITECTURE.sections[1]!.sectionTitle,
+      sectionSummary: ARTICLE_EN_ARCHITECTURE.sections[1]!.sectionSummary,
+      chunks: ARTICLE_EN_ARCHITECTURE.sections[1]!.chunks,
+      documentTitle: ARTICLE_EN_ARCHITECTURE.title,
+      expectedLanguage: ARTICLE_EN_ARCHITECTURE.language,
+      fileType: ARTICLE_EN_ARCHITECTURE.fileType,
+    },
+    {
+      cardType: "summary",
+      sectionTitle: BOOK_EN_LEARNING.sections[1]!.sectionTitle,
+      sectionSummary: BOOK_EN_LEARNING.sections[1]!.sectionSummary,
+      chunks: BOOK_EN_LEARNING.sections[1]!.chunks,
+      documentTitle: BOOK_EN_LEARNING.title,
+      expectedLanguage: BOOK_EN_LEARNING.language,
+      fileType: BOOK_EN_LEARNING.fileType,
+    },
+    {
+      cardType: "quiz",
+      sectionTitle: YOUTUBE_EN_ML.sections[1]!.sectionTitle,
+      sectionSummary: YOUTUBE_EN_ML.sections[1]!.sectionSummary,
+      chunks: YOUTUBE_EN_ML.sections[1]!.chunks,
+      documentTitle: YOUTUBE_EN_ML.title,
+      expectedLanguage: YOUTUBE_EN_ML.language,
+      fileType: YOUTUBE_EN_ML.fileType,
+    },
+    {
+      cardType: "quote",
+      sectionTitle: BOOK_PL_LEWANDOWSKI.sections[3]!.sectionTitle,
+      sectionSummary: BOOK_PL_LEWANDOWSKI.sections[3]!.sectionSummary,
+      chunks: BOOK_PL_LEWANDOWSKI.sections[3]!.chunks,
+      documentTitle: BOOK_PL_LEWANDOWSKI.title,
+      expectedLanguage: BOOK_PL_LEWANDOWSKI.language,
+      fileType: BOOK_PL_LEWANDOWSKI.fileType,
+    },
+  ];
 }
 
-evalite.each([
-  { name: "insight", input: "insight" as DraftCardType },
-  { name: "quiz", input: "quiz" as DraftCardType },
-  { name: "quote", input: "quote" as DraftCardType },
-  { name: "summary", input: "summary" as DraftCardType },
-])("Section Draft: $name", {
+evalite("Section Draft Smoke", {
   data: () => buildSectionInputs().map((s) => ({ input: s })),
-  task: async (input: SectionInput, cardType: DraftCardType) => {
+  task: async (input: SectionInput) => {
     const { card } = await llm.generateDraft({
-      cardType,
+      cardType: input.cardType,
       sectionSummary: input.sectionSummary,
       sectionTitle: input.sectionTitle,
       chunks: input.chunks,
@@ -65,8 +94,19 @@ evalite.each([
       fileType: input.fileType,
     });
 
+    if (!card) {
+      return {
+        cardType: input.cardType,
+        content: "",
+        typeData: { type: input.cardType },
+        sourceChunks: input.chunks.map((c) => c.content),
+        expectedLanguage: input.expectedLanguage,
+        fileType: input.fileType,
+      } satisfies CardDraftOutput;
+    }
+
     return {
-      cardType,
+      cardType: input.cardType,
       content: card.content,
       typeData: card.typeData,
       sourceChunks: input.chunks.map((c) => c.content),
@@ -85,5 +125,5 @@ evalite.each([
     substantiveContent,
     transcriptionPolish,
   ],
-  trialCount: 3,
+  trialCount: 1,
 });

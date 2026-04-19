@@ -8,10 +8,10 @@ import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtil
 const insightSchema = z.object({
   content: z
     .string()
-    .min(50)
-    .max(1200)
+    .min(350)
+    .max(1600)
     .describe(
-      "3-6 sentences with specific facts, surprising details, and concrete examples. Use **bold** for key terms. Provide enough context so the card is self-contained and useful without reading the source.",
+      "5-8 sentences with specific facts, surprising details, and concrete examples. Use **bold** for key terms. Provide enough context so the card is self-contained and useful without reading the source.",
     ),
 });
 
@@ -36,6 +36,7 @@ const quizSchema = z.object({
 });
 
 const quoteSchema = z.object({
+  hasQuote: z.literal(true),
   content: z
     .string()
     .min(20)
@@ -53,12 +54,23 @@ const quoteSchema = z.object({
     ),
 });
 
+const noQuoteSchema = z.object({
+  hasQuote: z.literal(false),
+  reason: z
+    .string()
+    .min(10)
+    .max(280)
+    .describe("Briefly explain why this section does not contain a quote worth surfacing"),
+});
+
+const quoteDecisionSchema = z.discriminatedUnion("hasQuote", [quoteSchema, noQuoteSchema]);
+
 const summarySchema = z.object({
   content: z
     .string()
-    .min(20)
-    .max(1200)
-    .describe("Overview of the section with key context (2-4 sentences)"),
+    .min(350)
+    .max(1600)
+    .describe("Overview of the section with key context (5-8 sentences)"),
   bulletPoints: z
     .array(z.string().min(1))
     .min(2)
@@ -71,7 +83,7 @@ const summarySchema = z.object({
 const SCHEMAS: Record<DraftCardType, z.ZodSchema> = {
   insight: insightSchema,
   quiz: quizSchema,
-  quote: quoteSchema,
+  quote: quoteDecisionSchema,
   summary: summarySchema,
 };
 
@@ -114,7 +126,7 @@ Your job is to create a single focused learning card from a section of a documen
 <task>Create an INSIGHT card - a specific fact, surprising detail, or concrete example from the source.</task>
 
 <format>
-- 3-6 sentences (aim for 400-800 characters). The card should be self-contained and useful on its own
+- 5-8 sentences (aim for 550-1100 characters). The card should be self-contained and useful on its own
 - Use **bold** for key terms (names, technical terms, numbers)
 - Include at least one direct phrase from the source text
 - The first sentence must contain a specific fact, not a general introduction
@@ -143,6 +155,7 @@ ${
   isSpeechSource(fileType)
     ? `<format>
 - Search the source chunks for the most impactful, memorable, or thought-provoking passage
+- If there is no passage that is specific, memorable, and useful on its own, return hasQuote=false instead of forcing a quote
 - The source is a speech transcription that may contain fillers (e.g. "um", "uh", "like", "you know"), stutters, false starts, and word repetitions
 - Lightly clean the passage: remove fillers, stutters, false starts, and word repetitions while preserving the speaker's original meaning, voice, and phrasing
 - Do NOT paraphrase or rewrite - only remove speech artifacts. The cleaned quote should read as if the speaker had spoken fluently
@@ -152,6 +165,7 @@ ${
 </format>`
     : `<format>
 - Search the source chunks for the most impactful, memorable, or thought-provoking passage
+- If there is no passage that is specific, memorable, and useful on its own, return hasQuote=false instead of forcing a quote
 - Copy the passage exactly as it appears in the source, character by character - do not paraphrase, rephrase, or clean up the text
 - The quotedText must be a verbatim substring of one of the source chunks
 - The attribution field is REQUIRED: always include the speaker's or writer's full proper name (e.g. "Ada Lovelace", not "a mathematician" or "the author")
@@ -168,7 +182,7 @@ ${
 <format>
 - 2-5 bullet points, each containing at least one proper noun, number, or technical term from the source
 - Each bullet must reference a distinct, concrete detail - not a rewording of another bullet
-- In the content field, provide a 3-5 sentence overview (aim for 400-800 characters) that names the specific topic, key players, and why it matters (not "this section covers key ideas")
+- In the content field, provide a 5-8 sentence overview (aim for 550-1100 characters) that names the specific topic, key players, and why it matters (not "this section covers key ideas")
 </format>`;
   }
 }
@@ -184,7 +198,7 @@ export class AiSdkCardDraftLlm implements CardDraftLlm {
     fileType?: string;
     learningGoal?: string;
   }): Promise<{
-    card: { content: string; typeData: Record<string, unknown> };
+    card: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
   }> {
     const chunkText = opts.chunks.map((c, i) => `Chunk ${i}:\n${c.content}`).join("\n\n---\n\n");
@@ -212,6 +226,13 @@ ${chunkText}`;
     });
 
     const result = output ?? { content: "" };
+    if (
+      opts.cardType === "quote" &&
+      (result as z.infer<typeof quoteDecisionSchema>).hasQuote === false
+    ) {
+      return { card: null, usage };
+    }
+
     const content = (result as Record<string, unknown>).content as string;
     const typeData: Record<string, unknown> = { type: opts.cardType };
 

@@ -8,6 +8,7 @@ import type {
   DraftCardType,
   ExtractResult,
   HighlightDraftLlm,
+  SectionDraftRankerLlm,
   ThematicLlm,
   ValidationResult,
 } from "./types";
@@ -204,6 +205,37 @@ export class StubCardDraftLlm implements CardDraftLlm {
   }> {
     return {
       card: STUB_DRAFTS[opts.cardType](opts.sectionTitle),
+      usage: ZERO_USAGE,
+    };
+  }
+}
+
+export class StubSectionDraftRankerLlm implements SectionDraftRankerLlm {
+  async rankSections(opts: {
+    documentTitle: string;
+    language?: string;
+    learningGoal?: string;
+    sections: Array<{
+      sectionSummaryId: string;
+      sectionTitle: string;
+      summary: string;
+      chunkCount: number;
+      existingDraftCount?: number;
+    }>;
+  }): Promise<{
+    rankings: Array<{
+      sectionSummaryId: string;
+      qualitySignal: number;
+      quoteCandidate: boolean;
+    }>;
+    usage: TokenUsage;
+  }> {
+    return {
+      rankings: opts.sections.map((section, index) => ({
+        sectionSummaryId: section.sectionSummaryId,
+        qualitySignal: section.summary.length < 40 ? 0.25 : Math.max(0.45, 0.9 - index * 0.01),
+        quoteCandidate: section.summary.includes('"') || section.summary.includes("\u201e"),
+      })),
       usage: ZERO_USAGE,
     };
   }

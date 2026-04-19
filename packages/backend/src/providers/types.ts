@@ -213,7 +213,7 @@ export interface CardDraftLlm {
     fileType?: string;
     learningGoal?: string;
   }): Promise<{
-    card: { content: string; typeData: Record<string, unknown> };
+    card: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
   }>;
 }
@@ -232,6 +232,28 @@ export interface CardDraftValidator {
     sectionTitle: string;
     documentTitle: string;
   }): Promise<ValidationResult>;
+}
+
+export interface SectionDraftRankerLlm {
+  rankSections(opts: {
+    documentTitle: string;
+    language?: string;
+    learningGoal?: string;
+    sections: Array<{
+      sectionSummaryId: string;
+      sectionTitle: string;
+      summary: string;
+      chunkCount: number;
+      existingDraftCount?: number;
+    }>;
+  }): Promise<{
+    rankings: Array<{
+      sectionSummaryId: string;
+      qualitySignal: number;
+      quoteCandidate: boolean;
+    }>;
+    usage: TokenUsage;
+  }>;
 }
 
 export interface ThematicLlm {
@@ -295,6 +317,7 @@ export type DocumentMetadataServiceContext = {
 export type DraftGenerationServiceContext = {
   llm: CardDraftLlm;
   validator?: CardDraftValidator;
+  ranker?: SectionDraftRankerLlm;
 };
 
 export type ThematicDraftGenerationServiceContext = {

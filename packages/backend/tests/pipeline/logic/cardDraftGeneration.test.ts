@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   computeQualityScore,
   generateDraftsForSection,
+  selectSectionChunks,
   selectRepresentativeChunks,
 } from "../../../src/pipeline/logic/cardDraftGeneration";
 import type {
@@ -108,6 +109,19 @@ describe("selectRepresentativeChunks", () => {
   });
 });
 
+describe("selectSectionChunks", () => {
+  it("returns the full section range for deeper generation", () => {
+    const chunks = Array.from({ length: 6 }, (_, i) => makeChunk({ _id: `c${i}`, chunkIndex: i }));
+    const result = selectSectionChunks({
+      allChunks: chunks,
+      chunkStartIndex: 1,
+      chunkEndIndex: 4,
+    });
+
+    expect(result.map((chunk) => chunk._id)).toEqual(["c1", "c2", "c3", "c4"]);
+  });
+});
+
 describe("computeQualityScore", () => {
   it("returns 1.0 for a well-formed insight with good length", () => {
     const score = computeQualityScore({
@@ -126,7 +140,7 @@ describe("computeQualityScore", () => {
       typeData: { type: "insight" },
       sourceChunkCount: 1,
     });
-    expect(score).toBeCloseTo(0.4 * 1.0 + 0.3 * 0.0 + 0.3 * 0.5);
+    expect(score).toBeCloseTo(0.4 + 0.3 * 0.5);
   });
 
   it("gives full length score for cards in the 400-800 char range", () => {
@@ -156,7 +170,7 @@ describe("computeQualityScore", () => {
       typeData: { type: "quiz" },
       sourceChunkCount: 2,
     });
-    expect(score).toBeCloseTo(0.4 * 0.0 + 0.3 * 1.0 + 0.3 * 1.0);
+    expect(score).toBeCloseTo(0.3 + 0.3);
   });
 
   it("gives quote type full coverage score regardless of chunk count", () => {
@@ -185,6 +199,82 @@ describe("generateDraftsForSection", () => {
     expect(types).toContain("quote");
     expect(types).toContain("summary");
     expect(result.metrics.draftsGenerated).toBe(4);
+  });
+
+  it("generates only the planned card types", async () => {
+    const services = createMockDraftGenerationServices();
+    const result = await generateDraftsForSection({
+      input: makeInput({ cardTypes: ["insight", "summary"], generationBatch: 3 }),
+      services,
+    });
+
+    expect(result.drafts.map((draft) => draft.cardType)).toEqual(["insight", "summary"]);
+    expect(result.drafts.every((draft) => draft.generationBatch === 3)).toBe(true);
+    expect(result.metrics.cardTypesAttempted).toBe(2);
+  });
+
+  it("passes full section chunks to the LLM when configured for deeper context", async () => {
+    const generateDraft = vi.fn().mockResolvedValue({
+      card: {
+        content: "Draft insight for testing: a useful learning card.",
+        typeData: { type: "insight" },
+      },
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: { input: 0, output: 0, total: 0 },
+      },
+    });
+    const llm = createMockCardDraftLlm({ generateDraft });
+    const services = createMockDraftGenerationServices({ llm });
+
+    await generateDraftsForSection({
+      input: makeInput({
+        cardTypes: ["insight"],
+        contextDepth: "full",
+        allChunks: Array.from({ length: 5 }, (_, i) =>
+          makeChunk({ _id: `chunk-${i}`, chunkIndex: i }),
+        ),
+        section: makeSection({ chunkStartIndex: 0, chunkEndIndex: 4 }),
+      }),
+      services,
+    });
+
+    expect(generateDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chunks: expect.arrayContaining([
+          expect.objectContaining({ chunkId: "chunk-0" }),
+          expect.objectContaining({ chunkId: "chunk-1" }),
+          expect.objectContaining({ chunkId: "chunk-2" }),
+          expect.objectContaining({ chunkId: "chunk-3" }),
+          expect.objectContaining({ chunkId: "chunk-4" }),
+        ]),
+      }),
+    );
+  });
+
+  it("skips quote drafts when the LLM returns no quote worth surfacing", async () => {
+    const llm = createMockCardDraftLlm({
+      generateDraft: vi.fn().mockResolvedValue({
+        card: null,
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          costUsd: { input: 0, output: 0, total: 0 },
+        },
+      }),
+    });
+    const services = createMockDraftGenerationServices({ llm });
+
+    const result = await generateDraftsForSection({
+      input: makeInput({ cardTypes: ["quote"] }),
+      services,
+    });
+
+    expect(result.drafts).toHaveLength(0);
+    expect(result.metrics.draftsSkippedNoQuote).toBe(1);
   });
 
   it("returns empty drafts when no chunks match section range", async () => {
