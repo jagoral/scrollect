@@ -1,5 +1,5 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
-import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/src/platform/fileSizeLimits";
 import { useMutation } from "convex/react";
 import { Link } from "@tanstack/react-router";
 import { FileText, Loader2 } from "lucide-react";

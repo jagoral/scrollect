@@ -12,13 +12,13 @@ import type {
   ThematicDraftGenerationServiceContext,
   VectorDeletionServices,
 } from "../../src/providers/types";
-import { AiSdkCardDraftLlm } from "../../src/providers/cardDraftLlm";
-import { AiSdkCardDraftValidator } from "../../src/providers/cardDraftValidator";
-import { AiSdkConnectionDiscoveryLlm } from "../../src/providers/connectionDiscoveryLlm";
-import { AiSdkDocumentMetadataLlm } from "../../src/providers/documentMetadataLlm";
-import { AiSdkHighlightDraftLlm } from "../../src/providers/highlightDraftLlm";
-import { AiSdkSectionDraftRankerLlm } from "../../src/providers/sectionDraftRankerLlm";
-import { AiSdkSummarizingLlm } from "../../src/providers/summarizingLlm";
+import { AiSdkCardDraftLlm } from "../../src/providers/llm/cardDraftLlm";
+import { AiSdkCardDraftValidator } from "../../src/providers/llm/cardDraftValidator";
+import { AiSdkConnectionDiscoveryLlm } from "../../src/providers/llm/connectionDiscoveryLlm";
+import { AiSdkDocumentMetadataLlm } from "../../src/providers/llm/documentMetadataLlm";
+import { AiSdkHighlightDraftLlm } from "../../src/providers/llm/highlightDraftLlm";
+import { AiSdkSectionDraftRankerLlm } from "../../src/providers/llm/sectionDraftRankerLlm";
+import { AiSdkSummarizingLlm } from "../../src/providers/llm/summarizingLlm";
 import {
   StubCardDraftLlm,
   StubCardDraftValidator,
@@ -28,8 +28,8 @@ import {
   StubSectionDraftRankerLlm,
   StubThematicLlm,
 } from "../../src/providers/stubs";
-import { AiSdkTaggingLlm } from "../../src/providers/taggingLlm";
-import { AiSdkThematicLlm } from "../../src/providers/thematicLlm";
+import { AiSdkTaggingLlm } from "../../src/providers/llm/taggingLlm";
+import { AiSdkThematicLlm } from "../../src/providers/llm/thematicLlm";
 
 import {
   createArticleExtractor,

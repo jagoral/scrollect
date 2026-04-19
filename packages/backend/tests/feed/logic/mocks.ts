@@ -1,4 +1,4 @@
-import { ZERO_USAGE } from "../../../src/providers/ai";
+import { ZERO_USAGE } from "../../../src/providers/llm/models";
 import type {
   AnalyticsService,
   CardGenerationService,

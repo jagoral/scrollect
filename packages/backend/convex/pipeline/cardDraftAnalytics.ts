@@ -3,8 +3,8 @@
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../../src/providers/analytics";
+import { WideEvent } from "../../src/platform/logging";
+import { captureEvent } from "../../src/providers/analytics/posthog";
 
 export type DraftGenerationMode = "initial" | "replenishment";
 

@@ -3,8 +3,8 @@
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import type { WideEvent } from "../lib/logging";
-import { captureEvent } from "../../src/providers/analytics";
+import type { WideEvent } from "../../src/platform/logging";
+import { captureEvent } from "../../src/providers/analytics/posthog";
 
 import { captureDraftGenerationAnalytics, type DraftGenerationMode } from "./cardDraftAnalytics";
 import { transitionToReady } from "./helpers";

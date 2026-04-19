@@ -3,7 +3,7 @@ import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
-import { E2E_EMAIL_PATTERN, isE2EEnabled } from "./lib/e2e";
+import { E2E_EMAIL_PATTERN, isE2EEnabled } from "../src/platform/e2e";
 import { markerWebhookHandler } from "./pipeline/markerWebhook";
 import { polar } from "./polar";
 

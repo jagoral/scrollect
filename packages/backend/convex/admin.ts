@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation } from "./_generated/server";
 import { insertEarlyAdopterGrantIfMissing } from "./entitlementGrants";
-import { WideEvent } from "./lib/logging";
+import { WideEvent } from "../src/platform/logging";
 
 /**
  * Admin-only internal mutations. These are `internalMutation`s, so the only

@@ -2,7 +2,7 @@ import { createScorer } from "evalite";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import { getAI } from "../../src/providers/ai";
+import { getAI } from "../../src/providers/llm/models";
 import type { DraftCardType } from "../../convex/lib/validators";
 
 const ratingSchema = z.object({

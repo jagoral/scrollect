@@ -6,12 +6,12 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../../src/providers/analytics";
-import { shouldInferDocumentTitle } from "../../src/pipeline/logic/documentMetadata";
+import { WideEvent } from "../../src/platform/logging";
+import { captureEvent } from "../../src/providers/analytics/posthog";
+import { shouldInferDocumentTitle } from "../../src/indexing/logic/documentMetadata";
 
 import { storeMarkdownBlob } from "./helpers";
-import type { MarkerClient } from "../../src/providers/marker";
+import type { MarkerClient } from "../../src/providers/extractors/marker";
 
 const MAX_PARSING_DURATION_MS = 600_000; // 10 minutes
 

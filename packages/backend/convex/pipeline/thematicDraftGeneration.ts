@@ -5,15 +5,15 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
-import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
-import { addUsage, type TokenUsage } from "../../src/providers/ai";
+import { WideEvent } from "../../src/platform/logging";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics/posthog";
+import { addUsage, type TokenUsage } from "../../src/providers/llm/models";
 
 import { computeContentHash, transitionToReady } from "./helpers";
 import {
   discoverThemes,
   generateThematicDrafts,
-} from "../../src/pipeline/logic/thematicDraftGeneration";
+} from "../../src/drafting/logic/thematicDraftGeneration";
 import { createThematicDraftGenerationServiceContext } from "./services";
 
 const LEARNING_GOAL_CHECK_DELAY_MS = 5000;

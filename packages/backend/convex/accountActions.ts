@@ -7,7 +7,7 @@ import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { action } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
-import { WideEvent } from "./lib/logging";
+import { WideEvent } from "../src/platform/logging";
 import type { VectorDeletionServices } from "../src/providers/types";
 import { executeDocumentDeletionCascade, markDocumentDeletionFailed } from "./documents/deletion";
 

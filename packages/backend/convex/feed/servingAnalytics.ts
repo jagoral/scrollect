@@ -5,8 +5,8 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
-import { isE2EEnabled } from "../lib/e2e";
-import { captureEvent } from "../../src/providers/analytics";
+import { isE2EEnabled } from "../../src/platform/e2e";
+import { captureEvent } from "../../src/providers/analytics/posthog";
 
 async function emit(
   ctx: ActionCtx,

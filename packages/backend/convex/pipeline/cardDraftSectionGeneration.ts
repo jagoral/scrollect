@@ -5,13 +5,13 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
+import { WideEvent } from "../../src/platform/logging";
 import { draftCardType } from "../lib/validators";
 import type { DraftCardType, TokenUsage } from "../../src/providers/types";
-import { captureAiUsage } from "../../src/providers/analytics";
+import { captureAiUsage } from "../../src/providers/analytics/posthog";
 
 import { computeContentHash } from "./helpers";
-import { generateDraftsForSection } from "../../src/pipeline/logic/cardDraftGeneration";
+import { generateDraftsForSection } from "../../src/drafting/logic/cardDraftGeneration";
 import { checkCardDraftGenerationCompletion } from "./cardDraftCompletion";
 import { createDraftGenerationServiceContext } from "./services";
 

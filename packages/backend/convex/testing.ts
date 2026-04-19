@@ -6,7 +6,7 @@ import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation } from "./_generated/server";
 import { insertEarlyAdopterGrantIfMissing } from "./entitlementGrants";
-import { E2E_EMAIL_PATTERN } from "./lib/e2e";
+import { E2E_EMAIL_PATTERN } from "../src/platform/e2e";
 import { requireAuth } from "./lib/functions";
 import type { PostType, TypeData } from "./lib/validators";
 import { normalizeTagName } from "./tags";

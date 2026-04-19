@@ -3,7 +3,7 @@
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import { deleteDocumentVectors } from "../../src/logic/documentDeletion";
+import { deleteDocumentVectors } from "../../src/content/documentDeletion";
 import type { VectorDeletionServices } from "../../src/providers/types";
 import { createVectorDeletionServices } from "../pipeline/services";
 

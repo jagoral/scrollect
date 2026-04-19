@@ -1,6 +1,6 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/src/platform/fileSizeLimits";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { CheckCircle2, CloudUpload, FileUp, Loader2, XCircle } from "lucide-react";

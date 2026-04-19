@@ -1,5 +1,5 @@
-import type { ModelAlias, TokenUsage } from "./ai";
-export type { ModelAlias, TokenUsage } from "./ai";
+import type { ModelAlias, TokenUsage } from "./llm/models";
+export type { ModelAlias, TokenUsage } from "./llm/models";
 
 export interface CardGenerationService {
   generateCards(opts: { systemPrompt: string; userPrompt: string; cardCount: number }): Promise<{
@@ -168,8 +168,12 @@ export interface TaggingLlm {
 }
 
 export interface DocumentMetadataLlm {
+  /**
+   * Infers a document title from its opening context. Returns the raw LLM output;
+   * callers are responsible for applying domain sanitization (`cleanDocumentTitle`).
+   */
   inferTitle(opts: {
-    firstChunk: string;
+    titleContext: string;
     currentTitle: string;
     fileType: string;
     language?: string;

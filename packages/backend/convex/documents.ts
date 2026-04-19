@@ -7,9 +7,9 @@ import { paginationOptsValidator } from "convex/server";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { enforceDocumentLimit, resolveTier } from "./entitlements";
 import type { Tier } from "./entitlements";
-import { formatFileSize, getFileSizeLimit } from "./lib/fileSizeLimits";
+import { formatFileSize, getFileSizeLimit } from "../src/platform/fileSizeLimits";
 import { requireAuth, optionalAuth } from "./lib/functions";
-import { WideEvent } from "./lib/logging";
+import { WideEvent } from "../src/platform/logging";
 import { rateLimiter, tieredLimiterName } from "./lib/rateLimitConfig";
 import { documentStatus, failedAtStage, fileType, urlFileType } from "./lib/validators";
 

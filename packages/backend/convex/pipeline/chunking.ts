@@ -6,13 +6,17 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
-import { chunkMarkdown } from "../../src/pipeline/chunking";
-import { WideEvent } from "../lib/logging";
-import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
+import { chunkMarkdown } from "../../src/indexing/chunking";
+import {
+  cleanDocumentTitle,
+  firstChunkTitleContext,
+} from "../../src/indexing/logic/documentMetadata";
+import { WideEvent } from "../../src/platform/logging";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics/posthog";
 
 import { fanOutEmbedding } from "./embedding";
 import { CHUNK_STORE_BATCH_SIZE, fetchMarkdownBlob } from "./helpers";
-import { detectLanguage } from "../../src/pipeline/languageDetection";
+import { detectLanguage } from "../../src/indexing/languageDetection";
 import { createDocumentMetadataServiceContext } from "./services";
 
 export const chunkAndStore = internalAction({
@@ -139,16 +143,17 @@ async function inferDocumentTitleFromFirstChunk(opts: {
   try {
     const services = createDocumentMetadataServiceContext();
     const result = await services.llm.inferTitle({
-      firstChunk: opts.firstChunk,
+      titleContext: firstChunkTitleContext(opts.firstChunk),
       currentTitle: opts.currentTitle,
       fileType: opts.fileType,
       language: opts.language,
     });
 
-    if (result.title && result.title !== opts.currentTitle) {
+    const cleanedTitle = cleanDocumentTitle(result.title);
+    if (cleanedTitle && cleanedTitle !== opts.currentTitle) {
       await opts.ctx.runMutation(internal.documents.updateMetadata, {
         id: opts.documentId,
-        title: result.title,
+        title: cleanedTitle,
       });
       opts.evt.set("inferredTitle", true);
     } else {

@@ -1,6 +1,6 @@
 import { createScorer } from "evalite";
 
-import { isSpeechSource } from "../../src/providers/contentTypes";
+import { isSpeechSource } from "../../src/indexing/logic/contentTypes";
 
 const SPEECH_FILLER_PATTERN = /\b(um|uh|uh huh|uhh|umm|hmm|er|erm)\b/gi;
 

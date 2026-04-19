@@ -1,4 +1,7 @@
-import { FILE_SIZE_LIMITS_PRO, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import {
+  FILE_SIZE_LIMITS_PRO,
+  formatFileSize,
+} from "@scrollect/backend/src/platform/fileSizeLimits";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef } from "react";

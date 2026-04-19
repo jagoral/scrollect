@@ -6,7 +6,7 @@ import type { GenericMutationCtx } from "convex/server";
 import type { DataModel, Doc } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
 import { requireAuth } from "../lib/functions";
-import { WideEvent } from "../lib/logging";
+import { WideEvent } from "../../src/platform/logging";
 import { UNGROUPED_SENTINEL } from "../../src/feed/logic/constants";
 import { DEFAULT_SCORING_CONFIG, scoreDrafts } from "../../src/feed/logic/scoring";
 import type { DislikeSignal, ReactionSummary, ScoredDraft } from "../../src/feed/logic/scoring";

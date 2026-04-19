@@ -5,17 +5,17 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
-import { captureAiUsage } from "../../src/providers/analytics";
+import { WideEvent } from "../../src/platform/logging";
+import { captureAiUsage } from "../../src/providers/analytics/posthog";
 
 import { transitionToReady } from "./helpers";
-import { planDraftGeneration } from "../../src/pipeline/logic/draftGenerationPlan";
+import { planDraftGeneration } from "../../src/drafting/logic/draftGenerationPlan";
 import {
   buildDraftPlanningSections,
   countDraftsBySection,
   getNextGenerationBatch,
-} from "../../src/pipeline/logic/draftGenerationPreparation";
-import { rankSectionsForPlanning } from "../../src/pipeline/logic/draftSectionRanking";
+} from "../../src/drafting/logic/draftGenerationPreparation";
+import { rankSectionsForPlanning } from "../../src/drafting/logic/draftSectionRanking";
 import { captureDraftSetupFailure, captureNoDraftsPlanned } from "./cardDraftAnalytics";
 import { createDraftGenerationServiceContext } from "./services";
 

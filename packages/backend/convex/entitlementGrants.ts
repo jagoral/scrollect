@@ -1,7 +1,7 @@
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 
-import { WideEvent } from "./lib/logging";
+import { WideEvent } from "../src/platform/logging";
 
 /**
  * Frozen cutoff: users whose auth `createdAt` is earlier than this timestamp

@@ -7,12 +7,12 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
-import { normalizeUsage } from "../../src/providers/ai";
-import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
+import { WideEvent } from "../../src/platform/logging";
+import { normalizeUsage } from "../../src/providers/llm/models";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics/posthog";
 
 import { convexIdToUuid } from "./helpers";
-import { summarizeDocumentLogic } from "../../src/pipeline/logic/summarizing";
+import { summarizeDocumentLogic } from "../../src/indexing/logic/summarizing";
 import { createSummarizingServiceContext } from "./services";
 
 export async function resumeSummarizing(ctx: ActionCtx, documentId: Id<"documents">) {

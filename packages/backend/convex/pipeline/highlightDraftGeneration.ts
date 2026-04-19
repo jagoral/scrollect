@@ -5,12 +5,12 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
+import { WideEvent } from "../../src/platform/logging";
 import type { TokenUsage } from "../../src/providers/types";
-import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics/posthog";
 
 import { computeContentHash } from "./helpers";
-import { generateHighlightDrafts } from "../../src/pipeline/logic/highlightDraftGeneration";
+import { generateHighlightDrafts } from "../../src/drafting/logic/highlightDraftGeneration";
 import { createHighlightDraftGenerationServiceContext } from "./services";
 
 const BATCH_SIZE = 10;

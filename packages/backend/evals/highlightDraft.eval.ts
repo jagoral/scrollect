@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkHighlightDraftLlm } from "../src/providers/highlightDraftLlm";
+import { AiSdkHighlightDraftLlm } from "../src/providers/llm/highlightDraftLlm";
 import { ALL_FIXTURES } from "./fixtures";
 import {
   structuralValidity,

@@ -6,13 +6,13 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../../src/providers/analytics";
+import { WideEvent } from "../../src/platform/logging";
+import { captureEvent } from "../../src/providers/analytics/posthog";
 import { storeMarkdownBlob, createMarkerClient } from "./helpers";
 import {
   cleanDocumentTitle,
   shouldInferDocumentTitle,
-} from "../../src/pipeline/logic/documentMetadata";
+} from "../../src/indexing/logic/documentMetadata";
 
 interface RunPodWebhookPayload {
   id: string;

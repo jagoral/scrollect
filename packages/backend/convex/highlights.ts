@@ -4,7 +4,7 @@ import { sortBy } from "es-toolkit";
 import { internal } from "./_generated/api";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
-import { WideEvent } from "./lib/logging";
+import { WideEvent } from "../src/platform/logging";
 import { highlightSource } from "./lib/validators";
 
 const parsedHighlight = v.object({

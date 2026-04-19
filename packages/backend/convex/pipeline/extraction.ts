@@ -3,11 +3,11 @@
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../../src/providers/analytics";
+import { WideEvent } from "../../src/platform/logging";
+import { captureEvent } from "../../src/providers/analytics/posthog";
 
 import { storeMarkdownBlob } from "./helpers";
-import { extractContentLogic } from "../../src/pipeline/logic/extraction";
+import { extractContentLogic } from "../../src/indexing/logic/extraction";
 import { createExtractionServiceContext } from "./services";
 
 interface ExtractionArgs {

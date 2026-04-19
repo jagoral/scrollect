@@ -5,14 +5,14 @@ import { createHash } from "crypto";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
-import type { WideEvent } from "../lib/logging";
-import { captureEvent } from "../../src/providers/analytics";
-import { getAI } from "../../src/providers/ai";
-import { RunPodMarkerClient, StubMarkerClient } from "../../src/providers/marker";
-import type { MarkerClient } from "../../src/providers/marker";
-import { MarkdownNewArticleExtractor } from "../../src/providers/markdownNew";
-import { AiSdkEmbeddings } from "../../src/providers/embeddings";
-import { QdrantSummaryStore, QdrantVectorStore } from "../../src/providers/qdrant";
+import type { WideEvent } from "../../src/platform/logging";
+import { captureEvent } from "../../src/providers/analytics/posthog";
+import { getAI } from "../../src/providers/llm/models";
+import { RunPodMarkerClient, StubMarkerClient } from "../../src/providers/extractors/marker";
+import type { MarkerClient } from "../../src/providers/extractors/marker";
+import { MarkdownNewArticleExtractor } from "../../src/providers/extractors/markdown";
+import { AiSdkEmbeddings } from "../../src/providers/embeddings/voyage";
+import { QdrantSummaryStore, QdrantVectorStore } from "../../src/providers/vectorStore/qdrant";
 import { StubArticleExtractor, StubYouTubeExtractor } from "../../src/providers/stubs";
 import type {
   ContentExtractor,
@@ -20,7 +20,7 @@ import type {
   SummaryVectorStore,
   VectorStore,
 } from "../../src/providers/types";
-import { DecodoYouTubeExtractor } from "../../src/providers/youtube";
+import { DecodoYouTubeExtractor } from "../../src/providers/extractors/youtube";
 
 export const CHUNK_STORE_BATCH_SIZE = 50;
 export const EMBED_BATCH_SIZE = 100;

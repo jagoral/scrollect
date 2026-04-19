@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkCardDraftLlm } from "../src/providers/cardDraftLlm";
+import { AiSdkCardDraftLlm } from "../src/providers/llm/cardDraftLlm";
 import type { DraftCardType } from "../convex/lib/validators";
 import {
   ARTICLE_EN_ARCHITECTURE,

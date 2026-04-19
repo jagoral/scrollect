@@ -4,8 +4,8 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
-import { captureEvent } from "../../src/providers/analytics";
+import { WideEvent } from "../../src/platform/logging";
+import { captureEvent } from "../../src/providers/analytics/posthog";
 
 import { extractArticleImpl, extractYouTubeImpl } from "./extraction";
 import { createMarkerClient } from "./helpers";

@@ -6,12 +6,12 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
-import { WideEvent } from "../lib/logging";
-import { normalizeUsage } from "../../src/providers/ai";
-import { captureAiUsage, captureEvent } from "../../src/providers/analytics";
+import { WideEvent } from "../../src/platform/logging";
+import { normalizeUsage } from "../../src/providers/llm/models";
+import { captureAiUsage, captureEvent } from "../../src/providers/analytics/posthog";
 
 import { convexIdToUuid, EMBED_BATCH_SIZE, MAX_EMBED_RETRIES } from "./helpers";
-import { embedBatchLogic } from "../../src/pipeline/logic/embedding";
+import { embedBatchLogic } from "../../src/indexing/logic/embedding";
 import { createEmbeddingServiceContext } from "./services";
 
 export async function fanOutEmbedding(

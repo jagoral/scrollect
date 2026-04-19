@@ -7,7 +7,7 @@ import { internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import { action, internalAction } from "./_generated/server";
 import { requireAuth } from "./lib/functions";
-import { WideEvent } from "./lib/logging";
+import { WideEvent } from "../src/platform/logging";
 import { createEmbeddingProvider } from "./pipeline/helpers";
 import { executeDocumentDeletionCascade, markDocumentDeletionFailed } from "./documents/deletion";
 

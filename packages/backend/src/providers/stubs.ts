@@ -1,4 +1,4 @@
-import { ZERO_USAGE, type TokenUsage } from "./ai";
+import { ZERO_USAGE, type TokenUsage } from "./llm/models";
 import type {
   CardDraftLlm,
   CardDraftValidator,
@@ -138,12 +138,12 @@ export class StubYouTubeExtractor implements ContentExtractor {
 
 export class StubDocumentMetadataLlm implements DocumentMetadataLlm {
   async inferTitle(opts: {
-    firstChunk: string;
+    titleContext: string;
     currentTitle: string;
     fileType: string;
     language?: string;
   }): Promise<{ title?: string; usage: TokenUsage }> {
-    const heading = opts.firstChunk.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    const heading = opts.titleContext.match(/^#\s+(.+)$/m)?.[1]?.trim();
     return {
       title: heading || "Stub Document Title",
       usage: ZERO_USAGE,

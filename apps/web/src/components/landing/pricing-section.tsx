@@ -2,7 +2,7 @@ import {
   FILE_SIZE_LIMITS_FREE,
   FILE_SIZE_LIMITS_PRO,
   formatFileSize,
-} from "@scrollect/backend/convex/lib/fileSizeLimits";
+} from "@scrollect/backend/src/platform/fileSizeLimits";
 import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { usePostHog } from "posthog-js/react";

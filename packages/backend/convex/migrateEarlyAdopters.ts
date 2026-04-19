@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import { EARLY_ADOPTER_CUTOFF, insertEarlyAdopterGrantIfMissing } from "./entitlementGrants";
-import { WideEvent } from "./lib/logging";
+import { WideEvent } from "../src/platform/logging";
 
 /**
  * One-shot migration: grants Early Adopter status to every user whose

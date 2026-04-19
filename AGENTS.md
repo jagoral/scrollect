@@ -38,11 +38,118 @@ Software engineers and active learners who consume a lot of content but struggle
 
 ## Backend structure (`packages/backend`)
 
-- **`convex/`** - Only Convex functions (queries, mutations, actions), schema, config, and Convex-specific helpers (`lib/`). Nothing else
-- **`src/`** - Pure TypeScript business logic and external service providers. Zero Convex imports. Uses dependency injection
-- **`tests/`** - All test and mock files
+- **`convex/`** - Only files that define Convex functions (queries, mutations, actions, HTTP), the schema, and component config. Convex-specific helpers that depend on the Convex runtime (validators from `convex/values`, auth helpers, rate-limiter component wrappers) live in `convex/lib/`.
+- **`src/`** - Pure TypeScript business logic, domain helpers, and external service providers. Zero Convex runtime imports. Uses dependency injection through typed service contexts.
+- **`tests/`** - All test and mock files. Layout mirrors `src/`.
 - **`evals/`** - LLM evaluation benchmarks
-- New pure logic goes in `src/`, not `convex/`. If a file doesn't export a Convex function or depend on Convex runtime, it belongs in `src/`
+- New pure logic goes in `src/`, not `convex/`. If a file doesn't export a Convex function and doesn't depend on the Convex runtime, it belongs in `src/`.
+
+## Ubiquitous language (backend)
+
+Backend code must read in Scrollect language. Use these terms in module names, function names, and wide-event operations. Concepts that map to a `convex` table keep the table name in parentheses.
+
+**Core entities**
+
+- **Document** (`documents`) — a saved source (PDF, EPUB, Markdown, article, YouTube, text). Owned by a user.
+- **Chunk** (`chunks`) — a small slice of a Document, addressable and embeddable.
+- **Section** — a coherent run of Chunks identified by `sectionTitle`. Persisted as a **Section Summary** (`sectionSummaries`).
+- **Document Summary** — a Document-level summary persisted on `documents.summary`.
+- **Highlight** (`highlights`) — a user-imported annotation anchored to a Document.
+- **Tag** (`tags`) — a label attached to a Document. **Tag Source** is `ai` or `manual`.
+- **Post Kind** — shared value type (`insight`, `quiz`, `quote`, `summary`, `connection`). Both `postDrafts.postType` and `posts.postType` refer to it.
+- **Post Draft** (`postDrafts`) — a generated candidate in the user's draft pool. Has a **Post Kind**, a **Strategy**, a **Generation Batch**, a **Content Hash** (dedup key), a **Served Count**, a **Quality Score triple**, and a status (`pending` → `served` / `used` / `rejected`). This is the internal Drafting artifact.
+- **Post** (`posts`) — the user-facing materialization of a Post Draft when served into a Feed. References its originating Post Draft (`posts.postDraftId`) and carries a **Primary Source** reference (`primarySourceDocumentId`, `primarySourceDocumentTitle`, `sectionTitle`, page range) back to the Document/Section it was drawn from. This is where **Reaction State** and **Bookmark** attachment live.
+
+(There is no standalone "Card" entity. A Post Draft and its Post are two projections of the same content — Draft is the generation/scoring view, Post is the delivered view with reactions and source attribution. "Card" remains a UI-only word in the frontend.)
+
+- **Reaction State** — the current reaction on a Post (`posts.reaction`).
+- **Reaction Event** (`reactionFeedback`) — append-only record of reaction changes with an optional `dislikeReason`; what analytics and learning-signal code consumes.
+- **Bookmark** (`bookmarks`, `bookmarkLists`) — user curation of Posts into named Lists.
+- **Connection Pair** (`connectionPairs`) — a pair of related Sections discovered by Drafting. Not Content: it is an intermediate Drafting artifact.
+- **Processing Job** (`processingJobs`) — per-Document bookkeeping of pipeline batch progress and retries.
+- **Marker Job** — an external Marker parsing job tracked via `documents.runpodJobId` and the Marker webhook.
+- **Learning Goal** — a user-specified goal per Document that biases Feed scoring; has its own embedding (`documents.learningGoal`, `documents.learningGoalEmbedding`).
+- **Learning Goal Onboarding** — the onboarding sub-state for Learning Goal (`learningGoalOnboardingStatus`: `pending` / `set` / `skipped`).
+- **User Profile** (`userProfiles`) — per-user onboarding flags.
+- **Entitlement Tier** — access tier (`pro` explicit, free implicit) resolved from Polar subscription plus Grants.
+- **Entitlement Grant** (`entitlementGrants`) — admin-issued entitlement (e.g. `early_adopter`).
+- **E2E Analytics Event** (`e2eAnalyticsEvents`) — buffered PostHog event for Playwright-driven assertions.
+
+**Processing vocabulary**
+
+- **Processing Stage** — a Document's current stage (`documents.status`: `uploaded` → `parsing` → `chunking` → `embedding` → `summarizing` → `generating_cards` → `ready`, plus `deleting` and `error`).
+- **Failed Stage** (`documents.failedAt`) — which stage failed when status is `error`.
+- **Generation Batch** (`cardDrafts.generationBatch`) — identifier of a single Drafting run; used for replenishment accounting.
+- **Content Hash** (`cardDrafts.contentHash`) — deduplication key for generated drafts.
+- **Quality Score triple**:
+  - **Structural Quality Score** (`cardDrafts.qualityScore`) — structural validator score.
+  - **Semantic Quality Score** (`cardDrafts.semanticQualityScore`) — learning-value score from semantic validator.
+  - **Section Quality Signal** (`cardDrafts.sectionQualitySignal`) — Section Draft Ranker output.
+- **Served Count** (`postDrafts.servedCount`) — number of times a Post Draft has been served; input to Feed saturation penalty.
+- **Primary Source** — a Post's provenance link (Document + Section + page range) back to Content.
+
+**Activities**
+
+- **Ingest a Document** — upload, URL-based, or text-based creation; schedules the Indexing pipeline.
+- **Index a Document** — `extract → parse → chunk → embed → summarize → tag`. Produces the Content artifacts (Chunks, Section Summaries, Tags, Document Summary) that Drafting reads.
+- **Generate Post Drafts (Drafting)** — turn Content into Post Drafts via a **Strategy**:
+  - **Section Strategy** — quality-first ranking of Sections, one or more drafts per Section.
+  - **Thematic Strategy** — LLM-discovered themes spanning Sections.
+  - **Highlight Strategy** — drafts anchored to imported Highlights.
+  - **Connection Strategy** — drafts from Connection Pairs produced by **Connection Discovery**.
+- **Serve the Feed** — score Post Drafts, create Posts, capture serving analytics, schedule Replenishment.
+- **Replenish Drafts** — schedule additional Drafting when the Post Draft pool runs low.
+- **Delete a Document (Cascade)** — remove Chunks, Section Summaries, Post Drafts, Posts, Bookmarks, Highlights, Connection Pairs, and vectors in order.
+- **Authenticate (Auth Session)** — resolve the current user via Better-Auth.
+- **Manage Profile** — read/write onboarding flags on `userProfiles`.
+- **Delete Account** — cascade-delete every user-owned artifact and the Better-Auth user.
+- **Resolve Tier** — combine Polar subscription state with Grants to yield an Entitlement Tier.
+- **Grant Entitlement** — admin-issued Grant (e.g. early adopter).
+- **Handle Polar Webhook** — ingest Polar subscription lifecycle events.
+
+**Technical vocabulary**
+
+- **Provider Port** — a capability interface in `src/providers/types.ts` (e.g. `CardDraftLlm`, `EmbeddingProvider`, `VectorStore`, `SummaryVectorStore`, `ContentExtractor`, `AnalyticsService`).
+- **Provider Adapter** — a concrete implementation of a Provider Port (Voyage, Qdrant, Marker, Decodo/YouTube, PostHog).
+- **Use Case Context** — a typed bundle of Provider Ports injected into a pure use case (e.g. `SummarizingServiceContext`, `DraftGenerationServiceContext`, `FeedServiceContext`, `VectorDeletionServices`). One bundle per use case, not one bundle per domain.
+- **Convex edge** — the thin layer that owns auth, validator-checked args, `ctx.db` reads/writes, scheduling, `WideEvent`, and cascade mutation boundaries.
+- **Wide Event** — structured log line emitted per user-facing operation or pipeline stage.
+
+**Bounded contexts**
+
+Core (deepest modeling):
+
+- **Indexing** — turns Documents into Content (Chunks, Section Summaries, Tags, Document Summary, embeddings). Owns the Processing Stage machine and Processing Jobs. Delegates PDF/EPUB parsing to the Marker Job flow.
+- **Drafting** — turns Content into Post Drafts. Owns the four Strategies, Connection Discovery, Completion, Replenishment, the Post Draft artifact, Connection Pairs, and Generation Batches.
+- **Feed** — ranks Post Drafts into Posts, captures Reaction State and Reaction Events, emits serving analytics, triggers Drafting Replenishment.
+
+Supporting:
+
+- **Content** — Document lifecycle plus the stored artifacts users and other contexts read (Chunks, Section Summaries, Highlights, Tags, Bookmarks). Owns cascade-deletion orchestration and user-facing document queries. (Matches `ContentExtractor` / `ContentFetcher` / `contentHash` already used in code. The frontend still calls its navigation surface "library".)
+- **Access** — split into three sub-flows:
+  - **Auth Session** — the current-user query and Better-Auth integration surface.
+  - **Profile & Onboarding** — User Profile flags and Learning Goal Onboarding state.
+  - **Account Deletion** — cascade delete of user-owned data plus Better-Auth user.
+  - plus **Entitlements** (Tier resolution), **Entitlement Grants**, and **Admin** grant issuance.
+- **Billing** — Polar subscription, checkout, customer portal, Polar webhook handling.
+
+Generic / ops:
+
+- **Providers** — external-system adapters grouped by capability (`llm/`, `embeddings/`, `vectorStore/`, `extractors/`, `analytics/`).
+- **Platform** — logging (`WideEvent`), pure configuration (file size limits), Convex-runtime helpers (validators, auth helpers, rate-limit config).
+- **HTTP Edge** — Convex HTTP router: Better-Auth routes, Polar webhook, Marker webhook, E2E endpoints.
+- **Migrations** — one-shot backfills and schema migrations.
+- **E2E Support** — Playwright-driven seed/reset/drain helpers and the E2E analytics buffer.
+- **Health** — health check endpoints.
+
+Context map (who depends on whom):
+
+- Indexing reads Content Documents, writes Content Chunks / Section Summaries / Tags / Document Summary, creates embeddings via Providers.
+- Drafting reads Content (Documents, Section Summaries, Highlights) and writes Post Drafts and Connection Pairs.
+- Feed reads Drafting (Post Drafts) and Content (Documents, Section Summaries), writes Posts and Reaction State/Reaction Event, schedules Drafting Replenishment.
+- Content cascade-deletion invokes Drafting/Indexing vector cleanup through `VectorDeletionServices` ports, and removes Drafting and Feed artifacts in order (vectors → chunks/section summaries → card drafts → posts → bookmarks → highlights → connection pairs → document).
+- Access gates every user-facing Content and Feed mutation.
+- Billing drives Entitlements through the Polar webhook.
 
 ## Convex backend
 

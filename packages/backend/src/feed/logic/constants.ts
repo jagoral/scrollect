@@ -1,4 +1,4 @@
-export const UNGROUPED_SENTINEL = "(ungrouped)";
+export { UNGROUPED_SENTINEL } from "../../indexing/logic/sections";
 
 export const MAX_CONSECUTIVE_SAME_TYPE = 3;
 
