@@ -56,6 +56,12 @@ export type SectionDbRecord = {
   summary: string;
   isSubstantiveContent?: boolean;
   embeddingId: string;
+  /**
+   * Section-summary embedding, copied from the Qdrant point so mutations can compute
+   * learning-goal cosine similarity without an external HTTP round-trip. Optional to
+   * preserve backward compatibility with pre-ADR-018 rows.
+   */
+  embedding?: number[];
   chunkStartIndex: number;
   chunkEndIndex: number;
 };
@@ -96,6 +102,7 @@ export function buildSummaryVectorPoints(input: SummaryPointsInput): {
       summary: section.summary,
       isSubstantiveContent: section.isSubstantiveContent,
       embeddingId,
+      embedding: vectors[i + 1]!,
       chunkStartIndex: section.chunkStartIndex,
       chunkEndIndex: section.chunkEndIndex,
     });

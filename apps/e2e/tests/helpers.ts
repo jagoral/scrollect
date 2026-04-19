@@ -153,6 +153,85 @@ export async function goToFirstDocument(page: Page) {
   });
 }
 
+export type DrainedAnalyticsEvent = {
+  event: string;
+  properties: Record<string, unknown>;
+  createdAt: number;
+};
+
+/**
+ * Drains the E2E analytics buffer for a given user. Events are consumed on
+ * read, so a drain before and after a user action yields only the events
+ * emitted during that action. Backed by the `e2eAnalyticsEvents` Convex table
+ * (see ADR-018 Task 6 + `/api/e2e-analytics-drain` HTTP route).
+ */
+export async function drainAnalyticsEvents(email: string): Promise<DrainedAnalyticsEvent[]> {
+  const { ok, status, body } = await convexE2ERequest("/api/e2e-analytics-drain", email);
+  if (!ok) {
+    throw new Error(`E2E analytics drain failed: ${status} ${body}`);
+  }
+  return (JSON.parse(body).events ?? []) as DrainedAnalyticsEvent[];
+}
+
+/**
+ * Polls the E2E endpoint that counts documents with a `learningGoalEmbedding`. Used
+ * after `updateLearningGoal` to wait for the scheduled embed action to complete before
+ * asserting analytics — the mutation returns instantly with an empty embedding column
+ * and the action populates it asynchronously.
+ */
+export async function waitForGoalEmbedding(
+  email: string,
+  opts: { minCount?: number; timeoutMs?: number; intervalMs?: number } = {},
+): Promise<number> {
+  const minCount = opts.minCount ?? 1;
+  const timeoutMs = opts.timeoutMs ?? 15_000;
+  const intervalMs = opts.intervalMs ?? 250;
+  const deadline = Date.now() + timeoutMs;
+  let lastCount = 0;
+  while (Date.now() < deadline) {
+    const { ok, status, body } = await convexE2ERequest("/api/e2e-goal-embedding-count", email);
+    if (!ok) throw new Error(`E2E goal embedding count failed: ${status} ${body}`);
+    lastCount = (JSON.parse(body).count ?? 0) as number;
+    if (lastCount >= minCount) return lastCount;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error(
+    `Timed out waiting for ${minCount} document(s) with a learning-goal embedding; ` +
+      `last count was ${lastCount}.`,
+  );
+}
+
+/**
+ * Polls the analytics drain until the predicate matches or the timeout elapses.
+ * Events accumulate across drain cycles so the caller sees the full set once the
+ * predicate succeeds.
+ *
+ * `captureServingAnalytics` is scheduled via `ctx.scheduler.runAfter(0, ...)` — it
+ * runs AFTER the serve mutation returns, so a single drain immediately after the
+ * serve button re-enables can miss the events. Polling closes that race.
+ */
+export async function waitForAnalyticsEvents(
+  email: string,
+  opts: {
+    predicate: (events: DrainedAnalyticsEvent[]) => boolean;
+    timeoutMs?: number;
+    intervalMs?: number;
+  },
+): Promise<DrainedAnalyticsEvent[]> {
+  const timeoutMs = opts.timeoutMs ?? 15_000;
+  const intervalMs = opts.intervalMs ?? 250;
+  const deadline = Date.now() + timeoutMs;
+  const accumulated: DrainedAnalyticsEvent[] = [];
+
+  while (Date.now() < deadline) {
+    const batch = await drainAnalyticsEvents(email);
+    accumulated.push(...batch);
+    if (opts.predicate(accumulated)) return accumulated;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return accumulated;
+}
+
 export async function fetchConnectionDrafts(email: string) {
   const { ok, status, body } = await convexE2ERequest("/api/e2e-connection-drafts", email);
   if (!ok) {

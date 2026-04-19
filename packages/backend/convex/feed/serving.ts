@@ -10,6 +10,17 @@ import { WideEvent } from "../lib/logging";
 import { UNGROUPED_SENTINEL } from "../../src/feed/logic/constants";
 import { DEFAULT_SCORING_CONFIG, scoreDrafts } from "../../src/feed/logic/scoring";
 import type { DislikeSignal, ReactionSummary, ScoredDraft } from "../../src/feed/logic/scoring";
+import {
+  computeBookDepthReach,
+  computeCardTypeMix,
+  computeQualityDistribution,
+  firstSessionDocuments,
+  summarizeGoalRelevance,
+} from "../../src/feed/logic/servingAnalyticsMetrics";
+import { fetchSectionEmbeddings, getEffectiveLearningGoalEmbedding } from "./learningGoal";
+
+/** Top-K factor over batchSize for goal-aware re-scoring. ADR-018 §3. */
+const GOAL_CANDIDATE_FACTOR = 3;
 
 type MutationCtx = GenericMutationCtx<DataModel>;
 
@@ -62,17 +73,41 @@ export const serveFeed = mutation({
         draftsPerDocument.set(d.documentId, (draftsPerDocument.get(d.documentId) ?? 0) + 1);
       }
 
-      const scoringInput: ScoredDraft[] = draftsToScore.map((d) => ({
-        id: d._id,
-        documentId: d.documentId,
-        sectionSummaryId: d.sectionSummaryId as string | undefined,
-        cardType: d.cardType,
-        strategy: d.strategy,
-        qualityScore: d.qualityScore,
-        servedCount: d.servedCount ?? 0,
-        totalDraftsForDocument: draftsPerDocument.get(d.documentId) ?? 1,
-        documentCreatedAt: docMap.get(d.documentId)?.createdAt ?? d.createdAt,
-      }));
+      // Pre-fetch chunk counts per document so book-position diversity (ADR-018 §5) can
+      // normalize chunkStartIndex into [0, 1]. Documents reuse the cached docMap.
+      const sectionIdsToHydrate = [
+        ...new Set(
+          draftsToScore
+            .map((d) => d.sectionSummaryId)
+            .filter((id): id is Id<"sectionSummaries"> => id !== undefined),
+        ),
+      ];
+      const sectionRows = await Promise.all(sectionIdsToHydrate.map((id) => ctx.db.get(id)));
+      const sectionRowMap = new Map(
+        sectionIdsToHydrate.map((id, i) => [id as string, sectionRows[i]]),
+      );
+
+      const scoringInput: ScoredDraft[] = draftsToScore.map((d) => {
+        const section = d.sectionSummaryId
+          ? sectionRowMap.get(d.sectionSummaryId as string)
+          : undefined;
+        const doc = docMap.get(d.documentId);
+        return {
+          id: d._id,
+          documentId: d.documentId,
+          sectionSummaryId: d.sectionSummaryId as string | undefined,
+          cardType: d.cardType,
+          strategy: d.strategy,
+          qualityScore: d.qualityScore,
+          semanticQualityScore: d.semanticQualityScore,
+          sectionQualitySignal: d.sectionQualitySignal,
+          servedCount: d.servedCount ?? 0,
+          totalDraftsForDocument: draftsPerDocument.get(d.documentId) ?? 1,
+          documentCreatedAt: doc?.createdAt ?? d.createdAt,
+          chunkStartIndex: section?.chunkStartIndex,
+          documentChunkCount: doc?.chunkCount,
+        };
+      });
 
       const { summary: reactionSummary, feedbackRows } = await buildReactionSummary(
         ctx,
@@ -80,18 +115,67 @@ export const serveFeed = mutation({
         draftsToScore,
       );
 
+      // Per ADR-018 §3: resolve per-document goal embeddings through the future-ready
+      // resolver seam. The scorer looks up each draft's own document embedding, so a
+      // pool spanning multiple documents ranks each draft against its own goal.
+      const goalResolutions = await Promise.all(
+        uniqueDocIds.map(async (id) => ({
+          id,
+          embedding: await getEffectiveLearningGoalEmbedding(ctx, id),
+        })),
+      );
+      const goalEmbeddingByDocument = new Map<string, number[]>();
+      for (const { id, embedding } of goalResolutions) {
+        if (embedding !== undefined) goalEmbeddingByDocument.set(id, embedding);
+      }
+
+      // Two-pass scoring: first pass without goal vectors picks top-K candidates whose
+      // section vectors we then fetch; second pass re-scores with the partial map. Drafts
+      // outside the top-K keep `goalRelevance = 1.0` (their section vec is absent from
+      // the map). Bounds Convex db reads to `batchSize * 3` rows.
+      let sectionEmbeddings: Map<string, number[]> | undefined;
+      let sectionEmbeddingCoverage = 1;
+      let candidateSectionIds: string[] = [];
+      if (goalEmbeddingByDocument.size > 0) {
+        const candidatePass = scoreDrafts({
+          drafts: scoringInput,
+          config,
+          now: Date.now(),
+          reactionSummary,
+        });
+        const candidateLimit = config.batchSize * GOAL_CANDIDATE_FACTOR;
+        candidateSectionIds = [
+          ...new Set(
+            candidatePass
+              .slice(0, candidateLimit)
+              .map((d) => d.sectionSummaryId)
+              .filter((id): id is string => id !== undefined),
+          ),
+        ];
+        const fetched = await fetchSectionEmbeddings(
+          ctx,
+          candidateSectionIds as Id<"sectionSummaries">[],
+        );
+        sectionEmbeddings = fetched.embeddings;
+        sectionEmbeddingCoverage = fetched.coverage;
+      }
+
       const ranked = scoreDrafts({
         drafts: scoringInput,
         config,
         now: Date.now(),
         reactionSummary,
+        goalEmbeddingByDocument,
+        sectionEmbeddings,
       });
       const topDrafts = ranked.slice(0, config.batchSize);
 
       const draftMap = new Map(draftsToScore.map((d) => [d._id as string, d]));
 
-      // Issue #5: Batch attribution lookups instead of per-draft sequential reads
-      const attributions = await batchResolveAttributions(ctx, topDrafts, draftMap);
+      // Issue #5: Batch attribution lookups instead of per-draft sequential reads.
+      // Section rows were already hoisted above for book-position diversity, so reuse
+      // them rather than re-fetching the same documents.
+      const attributions = await batchResolveAttributions(ctx, topDrafts, draftMap, sectionRowMap);
 
       const postIds: Id<"posts">[] = [];
 
@@ -145,6 +229,9 @@ export const serveFeed = mutation({
         isDepleted,
         remainingPending,
         replenishmentTriggered,
+        goalEmbeddingPresent: goalEmbeddingByDocument.size > 0,
+        goalEmbeddingDocumentCount: goalEmbeddingByDocument.size,
+        sectionEmbeddingCoverage,
         ...reactionStats,
       });
 
@@ -156,6 +243,48 @@ export const serveFeed = mutation({
         documentCount: draftCounts.length,
       };
 
+      // ADR-018 §7 analytics. Compute against the pre-patch snapshot so prior-served
+      // counts reflect cumulative serves BEFORE this batch. Pure helpers live in
+      // src/feed/logic/servingAnalyticsMetrics.ts so they are covered by unit tests.
+      const priorServedByDocument = new Map<string, number>();
+      for (const d of draftsToScore) {
+        priorServedByDocument.set(
+          d.documentId,
+          (priorServedByDocument.get(d.documentId) ?? 0) + (d.servedCount ?? 0),
+        );
+      }
+      const documentInputs = [...draftsPerDocument.keys()].map((documentId) => ({
+        documentId,
+        documentCreatedAt: docMap.get(documentId as Id<"documents">)?.createdAt ?? 0,
+        priorServedCount: priorServedByDocument.get(documentId) ?? 0,
+      }));
+      const firstSessionBatches = firstSessionDocuments({
+        topDrafts,
+        documentInputs,
+        now: Date.now(),
+      });
+      const bookDepthReaches = firstSessionBatches
+        .map(computeBookDepthReach)
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+      const cardTypeMixes = firstSessionBatches.map(computeCardTypeMix);
+      const qualityDistribution = computeQualityDistribution(topDrafts);
+      const goalRelevance = summarizeGoalRelevance({
+        goalEmbeddingByDocument,
+        topDrafts,
+        sectionEmbeddings,
+        candidateSectionIds,
+        goalRelevanceAlpha: config.goalRelevanceAlpha,
+        goalRelevanceFloor: config.goalRelevanceFloor,
+      });
+      // Override the architect-I3 coverage with the pool-wide coverage already measured
+      // by `fetchSectionEmbeddings`. `summarizeGoalRelevance.sectionEmbeddingCoveragePercent`
+      // would otherwise only reflect the set of IDs we passed in, which matches the same
+      // value today - but using the authoritative `sectionEmbeddingCoverage` keeps the
+      // analytics aligned with the scorer's view of degraded-vector state.
+      const goalRelevancePayload = goalRelevance.applied
+        ? { ...goalRelevance, sectionEmbeddingCoveragePercent: sectionEmbeddingCoverage }
+        : goalRelevance;
+
       await ctx.scheduler.runAfter(0, internal.feed.servingAnalytics.captureServingAnalytics, {
         userId,
         cardCount: postIds.length,
@@ -165,6 +294,10 @@ export const serveFeed = mutation({
         replenishmentTriggered,
         draftsPerDocumentStats,
         reactionStats,
+        bookDepthReaches,
+        cardTypeMixes,
+        qualityDistribution: qualityDistribution ?? undefined,
+        goalRelevance: goalRelevancePayload,
       });
 
       return { posts: postIds };
@@ -317,6 +450,7 @@ async function batchResolveAttributions(
   ctx: MutationCtx,
   topDrafts: ScoredDraftRef[],
   draftMap: Map<string, Doc<"cardDrafts">>,
+  prebuiltSectionMap?: Map<string, Doc<"sectionSummaries"> | null>,
 ): Promise<Map<string, Attribution>> {
   const noAttribution: Attribution = {
     sectionTitle: undefined,
@@ -332,8 +466,17 @@ async function batchResolveAttributions(
     ),
   ];
 
-  const sections = await Promise.all(uniqueSectionIds.map((id) => ctx.db.get(id)));
-  const sectionMap = new Map(uniqueSectionIds.map((id, i) => [id, sections[i]]));
+  let sectionMap: Map<string, Doc<"sectionSummaries"> | null>;
+  if (prebuiltSectionMap) {
+    sectionMap = new Map();
+    for (const id of uniqueSectionIds) {
+      sectionMap.set(id as string, prebuiltSectionMap.get(id as string) ?? null);
+    }
+  } else {
+    const sections = await Promise.all(uniqueSectionIds.map((id) => ctx.db.get(id)));
+    sectionMap = new Map(uniqueSectionIds.map((id, i) => [id as string, sections[i]]));
+  }
+  const sections = [...sectionMap.values()];
 
   type ChunkKey = { documentId: Id<"documents">; chunkIndex: number };
   const chunkKeysToFetch: ChunkKey[] = [];

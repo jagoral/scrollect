@@ -300,14 +300,36 @@ export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
 }
 
 export class StubCardDraftValidator implements CardDraftValidator {
-  async validateDraft(_opts: {
+  async validateDraft(opts: {
     cardType: DraftCardType;
     content: string;
     typeData: Record<string, unknown>;
     sectionTitle: string;
     documentTitle: string;
   }): Promise<ValidationResult> {
-    return { isValid: true, usage: ZERO_USAGE };
+    // Deterministic synthetic score that varies by card type and content length so that
+    // stub-backed tests can still exercise a non-saturated distribution. Quotes are
+    // capped below 0.7 per the ADR quote anchor; others have real spread.
+    const score = syntheticSemanticQualityScore(opts);
+    return { isValid: true, semanticQualityScore: score, usage: ZERO_USAGE };
+  }
+}
+
+function syntheticSemanticQualityScore(opts: { cardType: DraftCardType; content: string }): number {
+  // Band widths tuned so that across a realistic 4-type generation mix the distribution
+  // clears ADR-018 §1: std >= 0.15 and >= 20% of drafts below 0.7 — robust even on
+  // short fixture content. Quote anchor stays hard: verbatim-but-uneducational tops
+  // out below 0.6.
+  const lengthFactor = Math.min(1, opts.content.length / 400);
+  switch (opts.cardType) {
+    case "quote":
+      return 0.15 + 0.4 * lengthFactor;
+    case "summary":
+      return 0.45 + 0.4 * lengthFactor;
+    case "quiz":
+      return 0.4 + 0.45 * lengthFactor;
+    case "insight":
+      return 0.7 + 0.25 * lengthFactor;
   }
 }
 

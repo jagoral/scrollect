@@ -61,10 +61,10 @@ export function SourceDetailsContent({
   const pageRange = formatPageRange(details.pageStart, details.pageEnd);
 
   return (
-    <div className="flex flex-col gap-4 py-2">
-      <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-4 py-2">
+      <div className="flex min-w-0 flex-col gap-2">
         <FileTypeBadge fileType={details.fileType} />
-        <p className="text-base font-medium leading-snug text-foreground">
+        <p className="break-words text-base font-medium leading-snug text-foreground">
           {details.documentTitle}
         </p>
       </div>
@@ -74,7 +74,7 @@ export function SourceDetailsContent({
           {details.sectionTitle && details.sectionTitle !== "(ungrouped)" && (
             <div className="flex items-start gap-2 text-sm text-foreground/80">
               <MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-              <span>{details.sectionTitle}</span>
+              <span className="min-w-0 break-words">{details.sectionTitle}</span>
             </div>
           )}
           {pageRange && <p className="pl-[22px] text-sm text-muted-foreground">{pageRange}</p>}

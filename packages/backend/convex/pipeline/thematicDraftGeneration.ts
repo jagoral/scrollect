@@ -120,6 +120,7 @@ export const generateThematicDraftsForDocument = internalAction({
               sourceChunkIds: d.sourceChunkIds as Id<"chunks">[],
               contentHash: d.contentHash,
               qualityScore: d.qualityScore,
+              semanticQualityScore: d.semanticQualityScore,
               generationBatch: d.generationBatch,
               strategy: d.strategy,
             })),

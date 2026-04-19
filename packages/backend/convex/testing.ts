@@ -112,6 +112,14 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
     await ctx.db.delete(grant._id);
   }
 
+  const analyticsEvents = await ctx.db
+    .query("e2eAnalyticsEvents")
+    .withIndex("by_userId_createdAt", (q) => q.eq("userId", userId))
+    .collect();
+  for (const event of analyticsEvents) {
+    await ctx.db.delete(event._id);
+  }
+
   return {
     deleted: {
       bookmarks: bookmarks.length,
@@ -178,6 +186,95 @@ async function resetUserData(ctx: MutationCtx, userId: string) {
 export const cleanupByUserId = internalMutation({
   args: { userId: v.string() },
   handler: async (ctx, args) => cleanupUserData(ctx, args.userId),
+});
+
+/**
+ * E2E-only: counts the user's documents that have a `learningGoalEmbedding` populated.
+ * `updateLearningGoal` schedules `embedLearningGoal` via `runAfter(0, ...)`, so tests
+ * must poll this to confirm the embedding is ready before asserting goal-relevance
+ * analytics.
+ */
+export const countDocumentsWithGoalEmbeddingByUserId = internalQuery({
+  args: { userId: v.string() },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const docs = await ctx.db
+      .query("documents")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    return docs.filter((d) => d.learningGoalEmbedding !== undefined).length;
+  },
+});
+
+const E2E_ANALYTICS_BUFFER_LIMIT = 1000;
+
+/**
+ * E2E-only: buffer a PostHog event into `e2eAnalyticsEvents` so Playwright can assert
+ * that the 4 serving-analytics events fire with the expected property shapes. Callers
+ * must gate this on `isE2EEnabled()` — the mutation itself does not re-check the env,
+ * so a stray caller in production would insert rows, but the route surfaces are all
+ * env-gated.
+ *
+ * Size-bounded: if the per-user buffer exceeds `E2E_ANALYTICS_BUFFER_LIMIT`, the
+ * oldest row is dropped. Keeps long test runs from ballooning the table.
+ */
+export const recordE2EAnalyticsEvent = internalMutation({
+  args: {
+    userId: v.string(),
+    event: v.string(),
+    properties: v.any(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("e2eAnalyticsEvents", {
+      userId: args.userId,
+      event: args.event,
+      properties: args.properties,
+      createdAt: Date.now(),
+    });
+
+    const existing = await ctx.db
+      .query("e2eAnalyticsEvents")
+      .withIndex("by_userId_createdAt", (q) => q.eq("userId", args.userId))
+      .collect();
+    if (existing.length > E2E_ANALYTICS_BUFFER_LIMIT) {
+      const overflow = existing.length - E2E_ANALYTICS_BUFFER_LIMIT;
+      for (let i = 0; i < overflow; i++) {
+        await ctx.db.delete(existing[i]!._id);
+      }
+    }
+    return null;
+  },
+});
+
+/**
+ * Drain and return all buffered analytics events for a user, deleting them so
+ * subsequent drain calls only see new events.
+ */
+export const drainE2EAnalyticsByUserId = internalMutation({
+  args: { userId: v.string() },
+  returns: v.array(
+    v.object({
+      event: v.string(),
+      properties: v.any(),
+      createdAt: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("e2eAnalyticsEvents")
+      .withIndex("by_userId_createdAt", (q) => q.eq("userId", args.userId))
+      .collect();
+    const result = rows.map((r) => ({
+      event: r.event,
+      properties: r.properties,
+      createdAt: r.createdAt,
+    }));
+    for (const row of rows) {
+      await ctx.db.delete(row._id);
+    }
+    return result;
+  },
 });
 
 // Seeds an active Pro subscription directly into the Polar component's tables.

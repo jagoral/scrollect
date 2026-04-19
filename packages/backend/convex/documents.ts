@@ -257,6 +257,12 @@ export const updateLearningGoal = mutation({
       await ctx.db.patch(args.id, {
         learningGoal: trimmed,
         learningGoalOnboardingStatus: "set",
+        // Clear stale embedding now; the scheduled action will repopulate.
+        learningGoalEmbedding: undefined,
+      });
+      await ctx.scheduler.runAfter(0, internal.documentActions.embedLearningGoal, {
+        documentId: args.id,
+        learningGoal: trimmed,
       });
       return null;
     } catch (error) {
@@ -269,60 +275,63 @@ export const updateLearningGoal = mutation({
 });
 
 export const clearLearningGoal = mutation({
-  args: {
-    id: v.id("documents"),
-  },
+  args: { id: v.id("documents") },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const evt = new WideEvent("documents.clearLearningGoal");
-    evt.set("documentId", args.id);
-    try {
-      const user = await requireAuth(ctx);
-      evt.set("userId", user._id);
-      const doc = await ctx.db.get(args.id);
-      if (!doc || doc.userId !== user._id) {
-        throw new Error("Document not found");
-      }
-      await ctx.db.patch(args.id, {
-        learningGoal: undefined,
-        learningGoalOnboardingStatus: "skipped",
-      });
-      return null;
-    } catch (error) {
-      evt.setError(error);
-      throw error;
-    } finally {
-      evt.emit();
-    }
+    await clearDocumentLearningGoal(ctx, args.id, "documents.clearLearningGoal");
+    return null;
   },
 });
 
 export const skipLearningGoalOnboarding = mutation({
+  args: { id: v.id("documents") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await clearDocumentLearningGoal(ctx, args.id, "documents.skipLearningGoalOnboarding");
+    return null;
+  },
+});
+
+async function clearDocumentLearningGoal(
+  ctx: MutationCtx,
+  documentId: Id<"documents">,
+  eventName: string,
+) {
+  const evt = new WideEvent(eventName);
+  evt.set("documentId", documentId);
+  try {
+    const user = await requireAuth(ctx);
+    evt.set("userId", user._id);
+    const doc = await ctx.db.get(documentId);
+    if (!doc || doc.userId !== user._id) {
+      throw new Error("Document not found");
+    }
+    await ctx.db.patch(documentId, {
+      learningGoal: undefined,
+      learningGoalOnboardingStatus: "skipped",
+      learningGoalEmbedding: undefined,
+    });
+  } catch (error) {
+    evt.setError(error);
+    throw error;
+  } finally {
+    evt.emit();
+  }
+}
+
+export const setLearningGoalEmbedding = internalMutation({
   args: {
     id: v.id("documents"),
+    embedding: v.array(v.float64()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const evt = new WideEvent("documents.skipLearningGoalOnboarding");
-    evt.set("documentId", args.id);
-    try {
-      const user = await requireAuth(ctx);
-      evt.set("userId", user._id);
-      const doc = await ctx.db.get(args.id);
-      if (!doc || doc.userId !== user._id) {
-        throw new Error("Document not found");
-      }
-      await ctx.db.patch(args.id, {
-        learningGoal: undefined,
-        learningGoalOnboardingStatus: "skipped",
-      });
-      return null;
-    } catch (error) {
-      evt.setError(error);
-      throw error;
-    } finally {
-      evt.emit();
-    }
+    // Guard against races where the goal was cleared between scheduling and execution.
+    const doc = await ctx.db.get(args.id);
+    if (!doc) return null;
+    if (!doc.learningGoal || doc.learningGoal.trim().length === 0) return null;
+    await ctx.db.patch(args.id, { learningGoalEmbedding: args.embedding });
+    return null;
   },
 });
 

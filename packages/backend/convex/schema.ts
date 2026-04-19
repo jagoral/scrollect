@@ -39,6 +39,11 @@ export default defineSchema({
     tagSources: v.optional(v.array(tagSource)),
     learningGoal: v.optional(v.string()),
     learningGoalOnboardingStatus: v.optional(learningGoalOnboardingStatus),
+    // Embedding of `learningGoal`. Colocated with the text so the serving scorer can
+    // match the goal a user actually wrote against that document, even when they edit
+    // or clear the goal on another document. Future per-topic scoping (ADR-018 §3)
+    // will resolve through the same read seam without schema changes.
+    learningGoalEmbedding: v.optional(v.array(v.float64())),
     thumbnailUrl: v.optional(v.string()),
     userId: v.string(),
     createdAt: v.number(),
@@ -54,6 +59,17 @@ export default defineSchema({
     onboardingCompleted: v.boolean(),
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
+
+  // E2E-only: buffered PostHog events so Playwright tests can assert the 4 serving
+  // analytics events fire with the expected property shapes. Writes gated on
+  // `ENABLE_E2E_ROUTES` at the call site; rows are drained + deleted via
+  // `/api/e2e-analytics-drain` and cascade-cleaned with other test data.
+  e2eAnalyticsEvents: defineTable({
+    userId: v.string(),
+    event: v.string(),
+    properties: v.any(),
+    createdAt: v.number(),
+  }).index("by_userId_createdAt", ["userId", "createdAt"]),
 
   posts: defineTable({
     content: v.string(),
@@ -142,6 +158,11 @@ export default defineSchema({
     summary: v.string(),
     isSubstantiveContent: v.optional(v.boolean()),
     embeddingId: v.string(),
+    // Dense embedding of the section summary, persisted in addition to the Qdrant vector
+    // so the `serveFeed` mutation can compute learning-goal cosine similarity without an
+    // external HTTP call (Convex mutations cannot reach Qdrant). The Qdrant copy remains
+    // the source of truth for cross-document search; this column is a read-side denormalization.
+    embedding: v.optional(v.array(v.float64())),
     chunkStartIndex: v.number(),
     chunkEndIndex: v.number(),
     createdAt: v.number(),
@@ -182,6 +203,8 @@ export default defineSchema({
     sourceChunkIds: v.array(v.id("chunks")),
     contentHash: v.string(),
     qualityScore: v.number(),
+    semanticQualityScore: v.optional(v.number()),
+    sectionQualitySignal: v.optional(v.number()),
     status: cardDraftStatus,
     servedCount: v.optional(v.number()),
     generationBatch: v.number(),

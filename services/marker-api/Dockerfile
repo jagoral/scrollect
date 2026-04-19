@@ -3,7 +3,10 @@ FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 python3-pip python3-venv && \
+    apt-get install -y --no-install-recommends \
+        python3 python3-pip python3-venv \
+        libglib2.0-0 libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b \
+        libcairo2 libgdk-pixbuf-2.0-0 libffi8 shared-mime-info fonts-liberation && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir --break-system-packages \
