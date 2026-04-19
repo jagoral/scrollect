@@ -26,6 +26,7 @@ You analyze changed files and dispatch review to the appropriate agent(s).
 3. **Spawn reviewer agent(s):**
    - Frontend changes → spawn `code-reviewer-frontend` agent
    - Backend changes → spawn `code-reviewer-backend` agent
+   - Changes in public Convex function, internal function, provider port, service context, service method → spawn `backend-public-api-reviewer` agent
    - Cross-cutting changes → spawn both + `architect-reviewer` agent
    - Spawn agents in parallel when multiple reviewers are needed
 
