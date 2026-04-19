@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { SectionDraftRankerLlm } from "../types";
-import { type TokenUsage, generate } from "./models";
+import { type TokenUsage, ZERO_USAGE, generate } from "./models";
 import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
 
 const rankingSchema = z.object({
@@ -75,5 +75,36 @@ ${sectionList}`,
     });
 
     return { rankings: output?.rankings ?? [], usage };
+  }
+}
+
+export class StubSectionDraftRankerLlm implements SectionDraftRankerLlm {
+  async rankSections(opts: {
+    documentTitle: string;
+    language?: string;
+    learningGoal?: string;
+    sections: Array<{
+      sectionSummaryId: string;
+      sectionTitle: string;
+      summary: string;
+      chunkCount: number;
+      existingDraftCount?: number;
+    }>;
+  }): Promise<{
+    rankings: Array<{
+      sectionSummaryId: string;
+      qualitySignal: number;
+      quoteCandidate: boolean;
+    }>;
+    usage: TokenUsage;
+  }> {
+    return {
+      rankings: opts.sections.map((section, index) => ({
+        sectionSummaryId: section.sectionSummaryId,
+        qualitySignal: section.summary.length < 40 ? 0.25 : Math.max(0.45, 0.9 - index * 0.01),
+        quoteCandidate: section.summary.includes('"') || section.summary.includes("\u201e"),
+      })),
+      usage: ZERO_USAGE,
+    };
   }
 }

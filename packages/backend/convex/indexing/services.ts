@@ -1,9 +1,11 @@
 "use node";
 
-import { AiSdkDocumentMetadataLlm } from "../../src/providers/llm/documentMetadataLlm";
+import {
+  AiSdkDocumentMetadataLlm,
+  StubDocumentMetadataLlm,
+} from "../../src/providers/llm/documentMetadataLlm";
 import { AiSdkSummarizingLlm } from "../../src/providers/llm/summarizingLlm";
 import { AiSdkTaggingLlm } from "../../src/providers/llm/taggingLlm";
-import { StubDocumentMetadataLlm } from "../../src/providers/stubs";
 import type {
   DocumentMetadataServiceContext,
   EmbeddingServiceContext,

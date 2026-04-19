@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { DocumentMetadataLlm } from "../types";
-import { type TokenUsage, generate } from "./models";
+import { type TokenUsage, ZERO_USAGE, generate } from "./models";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const titleSchema = z.object({
@@ -45,6 +45,21 @@ ${opts.titleContext}`,
     return {
       title: output?.title ?? undefined,
       usage,
+    };
+  }
+}
+
+export class StubDocumentMetadataLlm implements DocumentMetadataLlm {
+  async inferTitle(opts: {
+    titleContext: string;
+    currentTitle: string;
+    fileType: string;
+    language?: string;
+  }): Promise<{ title?: string; usage: TokenUsage }> {
+    const heading = opts.titleContext.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    return {
+      title: heading || "Stub Document Title",
+      usage: ZERO_USAGE,
     };
   }
 }

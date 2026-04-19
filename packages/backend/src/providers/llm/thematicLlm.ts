@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { ThematicLlm } from "../types";
-import { type TokenUsage, generate } from "./models";
+import { type TokenUsage, ZERO_USAGE, generate } from "./models";
 import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
 
 const themeSchema = z.object({
@@ -63,6 +63,29 @@ export class AiSdkThematicLlm implements ThematicLlm {
     return {
       themes: output?.themes ?? [],
       usage,
+    };
+  }
+}
+
+export class StubThematicLlm implements ThematicLlm {
+  async discoverThemes(opts: {
+    sectionSummaries: Array<{ sectionTitle: string; summary: string }>;
+    documentTitle: string;
+    language?: string;
+    learningGoal?: string;
+  }): Promise<{
+    themes: Array<{ title: string; description: string; relevantSections: string[] }>;
+    usage: TokenUsage;
+  }> {
+    return {
+      themes: [
+        {
+          title: "Stub Cross-Cutting Theme",
+          description: "A stub theme that connects multiple sections for testing.",
+          relevantSections: opts.sectionSummaries.slice(0, 2).map((s) => s.sectionTitle),
+        },
+      ],
+      usage: ZERO_USAGE,
     };
   }
 }

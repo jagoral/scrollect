@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { StubPostDraftValidator } from "../../src/providers/stubs";
+import { StubPostDraftValidator } from "../../src/providers/llm/postDraftValidator";
 import type { DraftPostType } from "../../src/providers/types";
 
 const SHORT_CONTENT = "A short fixture passage.";

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { ConnectionDiscoveryLlm } from "../types";
-import { type TokenUsage, generate } from "./models";
+import { type TokenUsage, ZERO_USAGE, generate } from "./models";
 import { buildLanguageInstruction } from "./promptUtils";
 
 const connectionDraftSchema = z.object({
@@ -123,6 +123,41 @@ ${chunksB}`;
         },
       },
       usage,
+    };
+  }
+}
+
+export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
+  async generateConnectionDraft(opts: {
+    sectionA: {
+      title: string;
+      summary: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+    };
+    sectionB: {
+      title: string;
+      summary: string;
+      chunks: Array<{ content: string; chunkId: string }>;
+    };
+    documentATitle: string;
+    documentBTitle: string;
+    language?: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> } | null;
+    usage: TokenUsage;
+  }> {
+    return {
+      card: {
+        content: `Connection between "${opts.sectionA.title}" and "${opts.sectionB.title}": these sections share a conceptual link.`,
+        typeData: {
+          type: "connection",
+          sourceATitleHint: opts.documentATitle,
+          sourceBTitleHint: opts.documentBTitle,
+          sourceAKeyIdea: `Key idea from ${opts.sectionA.title}`,
+          sourceBKeyIdea: `Key idea from ${opts.sectionB.title}`,
+        },
+      },
+      usage: ZERO_USAGE,
     };
   }
 }

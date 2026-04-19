@@ -1,10 +1,9 @@
 import { AiSdkEmbeddings } from "./embeddings/voyage";
-import { MarkdownNewArticleExtractor } from "./extractors/markdown";
+import { MarkdownNewArticleExtractor, StubArticleExtractor } from "./extractors/markdown";
 import { RunPodMarkerClient, StubMarkerClient } from "./extractors/marker";
 import type { MarkerClient } from "./extractors/marker";
-import { DecodoYouTubeExtractor } from "./extractors/youtube";
+import { DecodoYouTubeExtractor, StubYouTubeExtractor } from "./extractors/youtube";
 import { getAI } from "./llm/models";
-import { StubArticleExtractor, StubYouTubeExtractor } from "./stubs";
 import type { ContentExtractor, EmbeddingProvider, SummaryVectorStore, VectorStore } from "./types";
 import { QdrantSummaryStore, QdrantVectorStore } from "./vectorStore/qdrant";
 

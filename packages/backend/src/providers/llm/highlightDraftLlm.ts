@@ -336,3 +336,31 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
     return { cards, usage: totalUsage };
   }
 }
+
+export class StubHighlightDraftLlm implements HighlightDraftLlm {
+  async generateDraftsFromHighlights(opts: {
+    highlights: Array<{ highlightId: string; highlightText: string }>;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+    language?: string;
+    learningGoal?: string;
+  }): Promise<{
+    cards: Array<{
+      highlightId: string;
+      content: string;
+      postType: DraftPostType;
+      typeData: Record<string, unknown>;
+    }>;
+    usage: TokenUsage;
+  }> {
+    const cards = opts.highlights.map((h) => ({
+      highlightId: h.highlightId,
+      content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}...`,
+      postType: "insight" as DraftPostType,
+      typeData: { type: "insight" },
+    }));
+    return { cards, usage: ZERO_USAGE };
+  }
+}

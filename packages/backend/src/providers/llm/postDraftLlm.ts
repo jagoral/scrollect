@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { PostDraftLlm, DraftPostType } from "../types";
-import { type TokenUsage, generate } from "./models";
+import { type TokenUsage, ZERO_USAGE, generate } from "./models";
 import { isSpeechSource } from "../../indexing/logic/contentTypes";
 import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
 
@@ -264,6 +264,65 @@ ${chunkText}`;
     return {
       card: { content, typeData },
       usage,
+    };
+  }
+}
+
+const STUB_DRAFTS: Record<
+  DraftPostType,
+  (sectionTitle: string) => { content: string; typeData: Record<string, unknown> }
+> = {
+  insight: (sectionTitle) => ({
+    content: `Key insight from "${sectionTitle}": this section reveals an important concept about the topic.`,
+    typeData: { type: "insight" },
+  }),
+  quiz: (sectionTitle) => ({
+    content: `Quiz about "${sectionTitle}"`,
+    typeData: {
+      type: "quiz",
+      variant: "multiple_choice",
+      question: `What is the main concept discussed in "${sectionTitle}"?`,
+      options: ["Option A", "Option B", "Option C", "Option D"],
+      correctIndex: 0,
+      explanation: `The correct answer relates to the key idea from "${sectionTitle}".`,
+    },
+  }),
+  quote: (sectionTitle) => ({
+    content: `Notable passage from "${sectionTitle}".`,
+    typeData: {
+      type: "quote",
+      quotedText: `This is a representative quote from the "${sectionTitle}" section.`,
+    },
+  }),
+  summary: (sectionTitle) => ({
+    content: `Summary of key points from "${sectionTitle}".`,
+    typeData: {
+      type: "summary",
+      bulletPoints: [
+        `First key takeaway from "${sectionTitle}"`,
+        `Second key takeaway from "${sectionTitle}"`,
+      ],
+    },
+  }),
+};
+
+export class StubPostDraftLlm implements PostDraftLlm {
+  async generateDraft(opts: {
+    postType: DraftPostType;
+    sectionSummary: string;
+    sectionTitle: string;
+    chunks: Array<{ content: string; chunkId: string }>;
+    documentTitle: string;
+    language?: string;
+    fileType?: string;
+    learningGoal?: string;
+  }): Promise<{
+    card: { content: string; typeData: Record<string, unknown> };
+    usage: TokenUsage;
+  }> {
+    return {
+      card: STUB_DRAFTS[opts.postType](opts.sectionTitle),
+      usage: ZERO_USAGE,
     };
   }
 }

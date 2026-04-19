@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { PostDraftValidator, DraftPostType, ValidationResult } from "../types";
-import { generate } from "./models";
+import { ZERO_USAGE, generate } from "./models";
 
 const validationSchema = z.object({
   isValid: z
@@ -131,4 +131,34 @@ function clamp01(value: number): number {
   if (value < 0) return 0;
   if (value > 1) return 1;
   return value;
+}
+
+export class StubPostDraftValidator implements PostDraftValidator {
+  async validateDraft(opts: {
+    postType: DraftPostType;
+    content: string;
+    typeData: Record<string, unknown>;
+    sectionTitle: string;
+    documentTitle: string;
+  }): Promise<ValidationResult> {
+    const score = syntheticSemanticQualityScore(opts);
+    return { isValid: true, semanticQualityScore: score, usage: ZERO_USAGE };
+  }
+}
+
+function syntheticSemanticQualityScore(opts: { postType: DraftPostType; content: string }): number {
+  // ADR-018 §1: distribution must deliver std >= 0.15 and >= 20% of drafts below 0.7
+  // across a realistic 4-type generation mix. Quote anchor stays hard: verbatim-but-
+  // uneducational tops out below 0.6.
+  const lengthFactor = Math.min(1, opts.content.length / 400);
+  switch (opts.postType) {
+    case "quote":
+      return 0.15 + 0.4 * lengthFactor;
+    case "summary":
+      return 0.45 + 0.4 * lengthFactor;
+    case "quiz":
+      return 0.4 + 0.45 * lengthFactor;
+    case "insight":
+      return 0.7 + 0.25 * lengthFactor;
+  }
 }
