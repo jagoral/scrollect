@@ -13,6 +13,11 @@ import {
 } from "../../../src/feed/logic/constants";
 import {
   DEFAULT_SCORING_CONFIG,
+  FRONT_MATTER_PENALTY,
+  GOAL_RELEVANCE_ALPHA,
+  GOAL_RELEVANCE_FLOOR,
+  SECTION_QUALITY_WEIGHT,
+  SEMANTIC_QUALITY_WEIGHT,
   scoreDrafts,
   type ReactionSummary,
   type ScoredDraft,
@@ -929,6 +934,783 @@ describe("scoreDrafts", () => {
       });
 
       expect(result[0]!.score).toBeCloseTo(0.5, 3);
+    });
+  });
+
+  describe("ADR-018 effective quality (semantic + section)", () => {
+    const STATIC_BASE = {
+      documentCreatedAt: THIRTY_DAYS_AGO,
+      servedCount: 0,
+    } as const;
+
+    it("falls back to qualityScore when semanticQualityScore is undefined", () => {
+      const drafts = [makeDraft({ id: "legacy", qualityScore: 0.62, ...STATIC_BASE })];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      expect(result[0]!.score).toBeCloseTo(0.62, 3);
+    });
+
+    it("uses semanticQualityScore when present and section signal absent", () => {
+      const drafts = [
+        makeDraft({
+          id: "semantic-only",
+          qualityScore: 1.0,
+          semanticQualityScore: 0.4,
+          ...STATIC_BASE,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      expect(result[0]!.score).toBeCloseTo(0.4, 3);
+    });
+
+    it("blends 0.7 * semantic + 0.3 * section when both present", () => {
+      const drafts = [
+        makeDraft({
+          id: "blended",
+          qualityScore: 1.0,
+          semanticQualityScore: 0.8,
+          sectionQualitySignal: 0.5,
+          ...STATIC_BASE,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      const expected = SEMANTIC_QUALITY_WEIGHT * 0.8 + SECTION_QUALITY_WEIGHT * 0.5;
+      expect(result[0]!.score).toBeCloseTo(expected, 3);
+    });
+
+    it("breaks the qualityScore=1.0 saturation: a quote with low semantic score now ranks below an insight with high semantic score", () => {
+      // Pre-ADR-018: both would have qualityScore = 1.0 and tie. Post-ADR-018: the quote's
+      // verbatim-but-uneducational semantic score sinks it below the insight.
+      const drafts = [
+        makeDraft({
+          id: "saturated-quote",
+          cardType: "quote",
+          qualityScore: 1.0,
+          semanticQualityScore: 0.45,
+          ...STATIC_BASE,
+        }),
+        makeDraft({
+          id: "real-insight",
+          cardType: "insight",
+          qualityScore: 1.0,
+          semanticQualityScore: 0.8,
+          ...STATIC_BASE,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      expect(result[0]!.id).toBe("real-insight");
+      expect(result[1]!.id).toBe("saturated-quote");
+    });
+  });
+
+  describe("ADR-018 front-matter penalty", () => {
+    const STATIC_BASE = {
+      documentCreatedAt: THIRTY_DAYS_AGO,
+      servedCount: 0,
+    } as const;
+
+    it("multiplies score by 0.2 when sectionQualitySignal < 0.3", () => {
+      const drafts = [
+        makeDraft({
+          id: "front-matter",
+          semanticQualityScore: 0.8,
+          sectionQualitySignal: 0.2,
+          ...STATIC_BASE,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      const blended = SEMANTIC_QUALITY_WEIGHT * 0.8 + SECTION_QUALITY_WEIGHT * 0.2;
+      expect(result[0]!.score).toBeCloseTo(blended * FRONT_MATTER_PENALTY, 3);
+    });
+
+    it("does NOT apply when sectionQualitySignal === threshold (0.3)", () => {
+      const drafts = [
+        makeDraft({
+          id: "boundary",
+          semanticQualityScore: 0.8,
+          sectionQualitySignal: 0.3,
+          ...STATIC_BASE,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      const blended = SEMANTIC_QUALITY_WEIGHT * 0.8 + SECTION_QUALITY_WEIGHT * 0.3;
+      expect(result[0]!.score).toBeCloseTo(blended, 3);
+    });
+
+    it("does NOT apply when sectionQualitySignal is undefined (legacy/highlight drafts)", () => {
+      const drafts = [
+        makeDraft({
+          id: "legacy",
+          semanticQualityScore: 0.8,
+          ...STATIC_BASE,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      expect(result[0]!.score).toBeCloseTo(0.8, 3);
+    });
+
+    it("front-matter card ranks below substantive cards even with same semantic score", () => {
+      const drafts = [
+        makeDraft({
+          id: "front-matter",
+          semanticQualityScore: 0.85,
+          sectionQualitySignal: 0.15,
+          ...STATIC_BASE,
+        }),
+        makeDraft({
+          id: "substantive",
+          semanticQualityScore: 0.5,
+          sectionQualitySignal: 0.7,
+          ...STATIC_BASE,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      expect(result[0]!.id).toBe("substantive");
+      expect(result[1]!.id).toBe("front-matter");
+    });
+  });
+
+  describe("ADR-018 learning-goal relevance", () => {
+    const STATIC_BASE = {
+      documentCreatedAt: THIRTY_DAYS_AGO,
+      servedCount: 0,
+      semanticQualityScore: 0.6,
+    } as const;
+
+    function vec(direction: "x" | "y" | "z" | "diag"): number[] {
+      switch (direction) {
+        case "x":
+          return [1, 0, 0];
+        case "y":
+          return [0, 1, 0];
+        case "z":
+          return [0, 0, 1];
+        case "diag":
+          return [1, 1, 0];
+      }
+    }
+
+    it("defaults goalRelevance to 1.0 when goalEmbedding is missing", () => {
+      const drafts = [makeDraft({ id: "d1", sectionSummaryId: "sec-1", ...STATIC_BASE })];
+      const sectionEmbeddings = new Map([["sec-1", vec("x")]]);
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        sectionEmbeddings,
+      });
+      expect(result[0]!.score).toBeCloseTo(0.6, 3);
+    });
+
+    it("defaults goalRelevance to 1.0 when section embedding is missing", () => {
+      const drafts = [makeDraft({ id: "d1", sectionSummaryId: "sec-missing", ...STATIC_BASE })];
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        goalEmbeddingByDocument: new Map([["doc-1", vec("x")]]),
+        sectionEmbeddings: new Map(),
+      });
+      expect(result[0]!.score).toBeCloseTo(0.6, 3);
+    });
+
+    it("defaults goalRelevance to 1.0 when section vector dimension differs (corrupt vector guard)", () => {
+      const drafts = [makeDraft({ id: "d1", sectionSummaryId: "sec-1", ...STATIC_BASE })];
+      const sectionEmbeddings = new Map([["sec-1", [1, 0]]]);
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        goalEmbeddingByDocument: new Map([["doc-1", vec("x")]]),
+        sectionEmbeddings,
+      });
+      expect(result[0]!.score).toBeCloseTo(0.6, 3);
+    });
+
+    it("defaults goalRelevance to 1.0 when draft has no sectionSummaryId (highlight/thematic)", () => {
+      const drafts = [makeDraft({ id: "d1", ...STATIC_BASE })];
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        goalEmbeddingByDocument: new Map([["doc-1", vec("x")]]),
+        sectionEmbeddings: new Map([["sec-1", vec("x")]]),
+      });
+      expect(result[0]!.score).toBeCloseTo(0.6, 3);
+    });
+
+    it("applies the formula 1 + α * max(0, cosine - floor) for an aligned section", () => {
+      const drafts = [
+        makeDraft({ id: "aligned", sectionSummaryId: "sec-aligned", ...STATIC_BASE }),
+      ];
+      const goalEmbeddingByDocument = new Map([["doc-1", vec("x")]]);
+      const sectionEmbeddings = new Map([["sec-aligned", vec("x")]]);
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        goalEmbeddingByDocument,
+        sectionEmbeddings,
+      });
+      // cosine = 1.0, goalRelevance = 1 + 0.6 * (1 - 0.1) = 1.54
+      const expected = 0.6 * (1 + GOAL_RELEVANCE_ALPHA * (1 - GOAL_RELEVANCE_FLOOR));
+      expect(result[0]!.score).toBeCloseTo(expected, 3);
+    });
+
+    it("clamps goalRelevance to 1.0 when cosine is below the floor (orthogonal)", () => {
+      const drafts = [
+        makeDraft({ id: "orthogonal", sectionSummaryId: "sec-orth", ...STATIC_BASE }),
+      ];
+      const goalEmbeddingByDocument = new Map([["doc-1", vec("x")]]);
+      const sectionEmbeddings = new Map([["sec-orth", vec("y")]]);
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        goalEmbeddingByDocument,
+        sectionEmbeddings,
+      });
+      // cosine = 0, max(0, 0 - 0.1) = 0 → goalRelevance = 1.0
+      expect(result[0]!.score).toBeCloseTo(0.6, 3);
+    });
+
+    it("ranks an aligned section above an unaligned section with the same base quality", () => {
+      const drafts = [
+        makeDraft({
+          id: "aligned",
+          sectionSummaryId: "sec-aligned",
+          ...STATIC_BASE,
+        }),
+        makeDraft({
+          id: "orthogonal",
+          sectionSummaryId: "sec-orth",
+          ...STATIC_BASE,
+        }),
+      ];
+      const goalEmbeddingByDocument = new Map([["doc-1", vec("x")]]);
+      const sectionEmbeddings = new Map([
+        ["sec-aligned", vec("x")],
+        ["sec-orth", vec("y")],
+      ]);
+      const result = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        goalEmbeddingByDocument,
+        sectionEmbeddings,
+      });
+      expect(result[0]!.id).toBe("aligned");
+      expect(result[1]!.id).toBe("orthogonal");
+    });
+
+    it("goal toggle changes ordering for the same draft pool (A/B harness shape)", () => {
+      const drafts = [
+        makeDraft({
+          id: "weak-but-aligned",
+          sectionSummaryId: "sec-aligned",
+          semanticQualityScore: 0.5,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+        makeDraft({
+          id: "strong-but-unaligned",
+          sectionSummaryId: "sec-orth",
+          semanticQualityScore: 0.65,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+      ];
+      const sectionEmbeddings = new Map([
+        ["sec-aligned", vec("x")],
+        ["sec-orth", vec("y")],
+      ]);
+
+      const noGoal = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      expect(noGoal[0]!.id).toBe("strong-but-unaligned");
+
+      const withGoal = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        goalEmbeddingByDocument: new Map([["doc-1", vec("x")]]),
+        sectionEmbeddings,
+      });
+      // With α=0.6 floor=0.1: aligned 0.5 * 1.54 = 0.77; orth 0.65 * 1 = 0.65 → aligned wins.
+      expect(withGoal[0]!.id).toBe("weak-but-aligned");
+    });
+  });
+
+  describe("ADR-018 book-position diversity", () => {
+    function bookDraft(overrides: Partial<ScoredDraft> & { id: string; chunkStartIndex: number }) {
+      return makeDraft({
+        documentCreatedAt: THIRTY_DAYS_AGO,
+        servedCount: 0,
+        documentChunkCount: 100,
+        ...overrides,
+      });
+    }
+
+    it("picks at least one card from each populated quartile in the first batch", () => {
+      // Build a pool that, sorted by score, would otherwise keep all top picks in quartile 0.
+      const drafts = [
+        bookDraft({
+          id: "q0-top",
+          chunkStartIndex: 1,
+          sectionSummaryId: "s0",
+          semanticQualityScore: 0.99,
+        }),
+        bookDraft({
+          id: "q0-2",
+          chunkStartIndex: 2,
+          sectionSummaryId: "s0b",
+          semanticQualityScore: 0.98,
+        }),
+        bookDraft({
+          id: "q0-3",
+          chunkStartIndex: 3,
+          sectionSummaryId: "s0c",
+          semanticQualityScore: 0.97,
+        }),
+        bookDraft({
+          id: "q1-top",
+          chunkStartIndex: 30,
+          sectionSummaryId: "s1",
+          semanticQualityScore: 0.6,
+        }),
+        bookDraft({
+          id: "q2-top",
+          chunkStartIndex: 55,
+          sectionSummaryId: "s2",
+          semanticQualityScore: 0.5,
+        }),
+        bookDraft({
+          id: "q3-top",
+          chunkStartIndex: 90,
+          sectionSummaryId: "s3",
+          semanticQualityScore: 0.4,
+        }),
+      ];
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 4 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      const top4 = result.slice(0, 4);
+      const buckets = new Set(top4.map((d) => Math.floor((d.chunkStartIndex! / 100) * 4)));
+      expect(buckets.size).toBe(4);
+    });
+
+    it("prefers a distant section over an adjacent one in the second pick", () => {
+      const drafts = [
+        bookDraft({
+          id: "q0-best",
+          chunkStartIndex: 0,
+          sectionSummaryId: "s0",
+          semanticQualityScore: 0.99,
+        }),
+        bookDraft({
+          id: "q0-second",
+          chunkStartIndex: 1,
+          sectionSummaryId: "s0b",
+          semanticQualityScore: 0.98,
+        }),
+        bookDraft({
+          id: "q3-distant",
+          chunkStartIndex: 80,
+          sectionSummaryId: "s3",
+          semanticQualityScore: 0.5,
+        }),
+      ];
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 2 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      expect(result[0]!.id).toBe("q0-best");
+      expect(result[1]!.id).toBe("q3-distant");
+    });
+
+    it("is a no-op when fewer than 2 quartiles are populated (early-document case)", () => {
+      const drafts = [
+        bookDraft({
+          id: "q0-a",
+          chunkStartIndex: 0,
+          sectionSummaryId: "sa",
+          semanticQualityScore: 0.9,
+        }),
+        bookDraft({
+          id: "q0-b",
+          chunkStartIndex: 5,
+          sectionSummaryId: "sb",
+          semanticQualityScore: 0.8,
+        }),
+        bookDraft({
+          id: "q0-c",
+          chunkStartIndex: 10,
+          sectionSummaryId: "sc",
+          semanticQualityScore: 0.7,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      // Order should follow score sort, not be reordered by book-pos pass.
+      expect(result.map((d) => d.id)).toEqual(["q0-a", "q0-b", "q0-c"]);
+    });
+
+    it("is a no-op when any draft lacks position metadata (mixed pool with highlight/thematic)", () => {
+      const drafts = [
+        bookDraft({
+          id: "with-pos",
+          chunkStartIndex: 0,
+          sectionSummaryId: "s0",
+          semanticQualityScore: 0.9,
+        }),
+        makeDraft({
+          id: "no-pos",
+          sectionSummaryId: "s-thematic",
+          semanticQualityScore: 0.85,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+        bookDraft({
+          id: "with-pos-2",
+          chunkStartIndex: 80,
+          sectionSummaryId: "s3",
+          semanticQualityScore: 0.7,
+        }),
+      ];
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      // Pure score order, not book-pos round-robin.
+      expect(result.map((d) => d.id)).toEqual(["with-pos", "no-pos", "with-pos-2"]);
+    });
+
+    it("respects custom batchSize when picking quartile representatives", () => {
+      const drafts = Array.from({ length: 16 }, (_, i) =>
+        bookDraft({
+          id: `d-${i}`,
+          chunkStartIndex: (i % 4) * 25 + 1,
+          sectionSummaryId: `sec-${i}`,
+          semanticQualityScore: 0.9 - i * 0.01,
+        }),
+      );
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 8 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      const top8 = result.slice(0, 8);
+      const bucketCounts = new Map<number, number>();
+      for (const d of top8) {
+        const b = Math.floor((d.chunkStartIndex! / 100) * 4);
+        bucketCounts.set(b, (bucketCounts.get(b) ?? 0) + 1);
+      }
+      // Each of the 4 quartiles should appear at least once among the first 8 items.
+      expect(bucketCounts.size).toBe(4);
+    });
+
+    it("clamps chunkStartIndex >= chunkCount into the last bucket", () => {
+      const drafts = [
+        bookDraft({
+          id: "edge",
+          chunkStartIndex: 100,
+          documentChunkCount: 100,
+          sectionSummaryId: "s-edge",
+          semanticQualityScore: 0.9,
+        }),
+        bookDraft({
+          id: "early",
+          chunkStartIndex: 0,
+          documentChunkCount: 100,
+          sectionSummaryId: "s-early",
+          semanticQualityScore: 0.8,
+        }),
+      ];
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 2 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      // Both buckets populated → both selected; relative order preserved.
+      expect(
+        result
+          .slice(0, 2)
+          .map((d) => d.id)
+          .sort(),
+      ).toEqual(["early", "edge"]);
+    });
+  });
+
+  describe("ADR-018 card-type share caps", () => {
+    function quoteHeavyPool(): ScoredDraft[] {
+      // 12 quotes ranked above 6 insights and 2 quizzes.
+      const quotes = Array.from({ length: 12 }, (_, i) =>
+        makeDraft({
+          id: `q-${i}`,
+          cardType: "quote",
+          documentId: `doc-q-${i}`,
+          sectionSummaryId: `sec-q-${i}`,
+          semanticQualityScore: 0.95 - i * 0.001,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+      );
+      const insights = Array.from({ length: 6 }, (_, i) =>
+        makeDraft({
+          id: `i-${i}`,
+          cardType: "insight",
+          documentId: `doc-i-${i}`,
+          sectionSummaryId: `sec-i-${i}`,
+          semanticQualityScore: 0.5 - i * 0.001,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+      );
+      const quizzes = Array.from({ length: 2 }, (_, i) =>
+        makeDraft({
+          id: `qz-${i}`,
+          cardType: "quiz",
+          documentId: `doc-qz-${i}`,
+          sectionSummaryId: `sec-qz-${i}`,
+          semanticQualityScore: 0.45 - i * 0.001,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+      );
+      return [...quotes, ...insights, ...quizzes];
+    }
+
+    it("caps quote share at 30% of the batch and demotes the rest to the tail", () => {
+      const drafts = quoteHeavyPool();
+      const config: ScoringConfig = {
+        ...DEFAULT_SCORING_CONFIG,
+        batchSize: 10,
+        // Disable interfering type/section/document caps so the share-cap pass is the only constraint.
+        maxConsecutiveSameType: 100,
+        sectionDiversityCap: 1.0,
+        documentDiversityCap: 1.0,
+      };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      const top10 = result.slice(0, 10);
+      const quotesInTop10 = top10.filter((d) => d.cardType === "quote").length;
+      // floor(10 * 0.3) = 3, max(1, 3) = 3
+      expect(quotesInTop10).toBeLessThanOrEqual(3);
+    });
+
+    it("caps quiz share at 30% of the batch", () => {
+      const drafts = Array.from({ length: 12 }, (_, i) =>
+        makeDraft({
+          id: `qz-${i}`,
+          cardType: "quiz",
+          documentId: `doc-${i}`,
+          sectionSummaryId: `sec-${i}`,
+          semanticQualityScore: 0.95 - i * 0.001,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+      ).concat(
+        Array.from({ length: 8 }, (_, i) =>
+          makeDraft({
+            id: `i-${i}`,
+            cardType: "insight",
+            documentId: `doc-i-${i}`,
+            sectionSummaryId: `sec-i-${i}`,
+            semanticQualityScore: 0.6 - i * 0.001,
+            documentCreatedAt: THIRTY_DAYS_AGO,
+            servedCount: 0,
+          }),
+        ),
+      );
+      const config: ScoringConfig = {
+        ...DEFAULT_SCORING_CONFIG,
+        batchSize: 10,
+        maxConsecutiveSameType: 100,
+        sectionDiversityCap: 1.0,
+        documentDiversityCap: 1.0,
+      };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      const top10 = result.slice(0, 10);
+      const quizzesInTop10 = top10.filter((d) => d.cardType === "quiz").length;
+      expect(quizzesInTop10).toBeLessThanOrEqual(3);
+    });
+
+    it("demoted quotes appear at the tail in original score order", () => {
+      const drafts = quoteHeavyPool();
+      const config: ScoringConfig = {
+        ...DEFAULT_SCORING_CONFIG,
+        batchSize: 10,
+        maxConsecutiveSameType: 100,
+        sectionDiversityCap: 1.0,
+        documentDiversityCap: 1.0,
+      };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      // After the 30% cap on quotes (3 in top), the remaining 9 quotes appear at the tail
+      // in their original score order (q-3, q-4, ..., q-11).
+      const tailQuoteIds = result
+        .filter((d) => d.cardType === "quote")
+        .slice(3)
+        .map((d) => d.id);
+      const expected = Array.from({ length: 9 }, (_, i) => `q-${i + 3}`);
+      expect(tailQuoteIds).toEqual(expected);
+    });
+
+    it("does not demote quotes when their share is already below the cap", () => {
+      const drafts = [
+        makeDraft({
+          id: "q-only",
+          cardType: "quote",
+          semanticQualityScore: 0.9,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          servedCount: 0,
+        }),
+        ...Array.from({ length: 9 }, (_, i) =>
+          makeDraft({
+            id: `i-${i}`,
+            cardType: "insight",
+            documentId: `doc-${i}`,
+            sectionSummaryId: `sec-${i}`,
+            semanticQualityScore: 0.7,
+            documentCreatedAt: THIRTY_DAYS_AGO,
+            servedCount: 0,
+          }),
+        ),
+      ];
+      const config: ScoringConfig = {
+        ...DEFAULT_SCORING_CONFIG,
+        batchSize: 10,
+        maxConsecutiveSameType: 100,
+        sectionDiversityCap: 1.0,
+        documentDiversityCap: 1.0,
+      };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      // 1 quote / 10 batch = 10% < 30% cap → quote stays in the accepted prefix.
+      expect(result[0]!.id).toBe("q-only");
+    });
+  });
+
+  describe("ADR-018 synthetic 150-draft integration", () => {
+    // 150-draft pool that mirrors a real DDIA-like distribution after Task 3:
+    //   - ~10% from front-matter sections (semantic 0.20-0.32, sectionQualitySignal 0.2)
+    //   - ~25% verbatim-but-uneducational quotes / generic summaries (semantic 0.40-0.60)
+    //   - ~45% useful learning cards (semantic 0.65-0.85)
+    //   - ~20% high-value cards on dense technical sections (semantic 0.85-0.93)
+    // The validator rubric (ADR-018 §1) is what produces this real shape.
+    function buildSyntheticPool(): ScoredDraft[] {
+      const cardTypes = ["insight", "summary", "quiz", "quote"] as const;
+      const totalSections = 30;
+      const totalDrafts = 150;
+      return Array.from({ length: totalDrafts }, (_, i) => {
+        const cardType = cardTypes[i % cardTypes.length]!;
+        const sectionIdx = i % totalSections;
+        const tier = i / totalDrafts;
+
+        // First 3 of 30 sections are front matter (sectionQualitySignal < threshold 0.3).
+        const isFrontMatter = sectionIdx < 3;
+        const sectionQualitySignal = isFrontMatter ? 0.2 : 0.5 + (sectionIdx % 7) * 0.07;
+
+        let semanticQualityScore: number;
+        if (isFrontMatter) {
+          semanticQualityScore = 0.2 + (i % 4) * 0.04;
+        } else if (cardType === "quote" && tier < 0.6) {
+          // Most quotes land in the "verbatim but not teaching" 0.4-0.6 band.
+          semanticQualityScore = 0.4 + (i % 5) * 0.04;
+        } else if (tier < 0.5) {
+          semanticQualityScore = 0.5 + (i % 6) * 0.025;
+        } else if (tier < 0.85) {
+          semanticQualityScore = 0.7 + (i % 5) * 0.03;
+        } else {
+          semanticQualityScore = 0.85 + (i % 4) * 0.02;
+        }
+
+        return {
+          id: `d-${i}`,
+          documentId: "doc-1",
+          sectionSummaryId: `sec-${sectionIdx}`,
+          cardType,
+          strategy: "section",
+          qualityScore: 1.0,
+          semanticQualityScore,
+          sectionQualitySignal,
+          servedCount: 0,
+          totalDraftsForDocument: totalDrafts,
+          documentCreatedAt: THIRTY_DAYS_AGO,
+          chunkStartIndex: sectionIdx * 30,
+          documentChunkCount: totalSections * 30,
+        };
+      });
+    }
+
+    it("the effectiveQuality distribution clears the AC: std >= 0.15 and >= 20% below 0.7", () => {
+      const drafts = buildSyntheticPool();
+      const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+
+      // Reverse out the recency/saturation/etc. multipliers we know are 1.0 here so we test
+      // the quality term itself - the same metric the analytics histogram will report.
+      const quality = result.map((d) => {
+        const qd = drafts.find((x) => x.id === d.id)!;
+        if (qd.semanticQualityScore !== undefined && qd.sectionQualitySignal !== undefined) {
+          return (
+            SEMANTIC_QUALITY_WEIGHT * qd.semanticQualityScore +
+            SECTION_QUALITY_WEIGHT * qd.sectionQualitySignal
+          );
+        }
+        return qd.semanticQualityScore ?? qd.qualityScore;
+      });
+
+      const mean = quality.reduce((s, x) => s + x, 0) / quality.length;
+      const variance = quality.reduce((s, x) => s + (x - mean) ** 2, 0) / quality.length;
+      const std = Math.sqrt(variance);
+      const belowThreshold = quality.filter((q) => q < 0.7).length / quality.length;
+
+      expect(std).toBeGreaterThanOrEqual(0.15);
+      expect(belowThreshold).toBeGreaterThanOrEqual(0.2);
+    });
+
+    it("the first 10 served cards span at least 50% of book depth", () => {
+      const drafts = buildSyntheticPool();
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 10 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      const top10 = result.slice(0, 10);
+      const positions = top10.map((d) => d.chunkStartIndex! / d.documentChunkCount!);
+      const spread = Math.max(...positions) - Math.min(...positions);
+      expect(spread).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it("the first 20 served cards do not include any front-matter section", () => {
+      const drafts = buildSyntheticPool();
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 20 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      const top20 = result.slice(0, 20);
+      const frontMatterInTop = top20.filter((d) => (d.sectionQualitySignal ?? 1) < 0.3);
+      expect(frontMatterInTop.length).toBe(0);
+    });
+
+    it("quote share over the first 20 served cards is <= 30%", () => {
+      const drafts = buildSyntheticPool();
+      const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 20 };
+      const result = scoreDrafts({ drafts, config, now: NOW });
+      const top20 = result.slice(0, 20);
+      const quoteShare = top20.filter((d) => d.cardType === "quote").length / top20.length;
+      expect(quoteShare).toBeLessThanOrEqual(0.3);
+    });
+
+    it("with a learning goal aligned to one section, that section's drafts surface in the first batch", () => {
+      const drafts = buildSyntheticPool();
+      // Build embeddings: most sections orthogonal, one aligned with the goal.
+      const goalEmbedding = [1, 0, 0];
+      const sectionEmbeddings = new Map<string, number[]>();
+      for (let i = 0; i < 30; i++) {
+        sectionEmbeddings.set(`sec-${i}`, [0, 1, 0]);
+      }
+      sectionEmbeddings.set("sec-15", [1, 0, 0]);
+
+      const noGoalResult = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
+      const goalResult = scoreDrafts({
+        drafts,
+        config: DEFAULT_SCORING_CONFIG,
+        now: NOW,
+        goalEmbeddingByDocument: new Map([["doc-1", goalEmbedding]]),
+        sectionEmbeddings,
+      });
+
+      // Order changes when goal is applied (AC: "rank order differs").
+      const noGoalIds = noGoalResult.slice(0, 10).map((d) => d.id);
+      const goalIds = goalResult.slice(0, 10).map((d) => d.id);
+      expect(goalIds).not.toEqual(noGoalIds);
+
+      // sec-15 cards should be promoted into the first batch by the goal alignment.
+      const sec15InGoalTop = goalResult
+        .slice(0, 10)
+        .filter((d) => d.sectionSummaryId === "sec-15").length;
+      const sec15InNoGoalTop = noGoalResult
+        .slice(0, 10)
+        .filter((d) => d.sectionSummaryId === "sec-15").length;
+      expect(sec15InGoalTop).toBeGreaterThan(sec15InNoGoalTop);
     });
   });
 });

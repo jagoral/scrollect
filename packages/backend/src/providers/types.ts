@@ -221,6 +221,14 @@ export interface CardDraftLlm {
 export type ValidationResult = {
   isValid: boolean;
   rejectionReason?: string;
+  /**
+   * Semantic learning-value score in [0, 1]. Measures whether the card teaches a concrete
+   * concept, mechanism, tradeoff, example, failure mode, or decision rule — independent of
+   * structural validity. Optional: undefined when the validator cannot score (legacy path,
+   * error, or stub). The serving scorer falls back to the structural `qualityScore` when
+   * this is absent.
+   */
+  semanticQualityScore?: number;
   usage: TokenUsage;
 };
 

@@ -109,6 +109,27 @@ test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
     await expect(firstCard.locator('[data-testid="expand-button"]')).toHaveCount(0);
   });
 
+  test("opening desktop details does not create horizontal page overflow", async ({ page }) => {
+    await page.setViewportSize({ width: 1536, height: 864 });
+    await page.goto("/app/feed?noAutoGenerate");
+    await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
+
+    await page
+      .locator('[data-testid="post-card"]')
+      .first()
+      .locator('[data-testid="source-badge"]')
+      .click();
+    await expect(page.locator('[data-testid="feed-detail-panel"]')).toBeVisible();
+
+    const horizontalOverflow = await page.evaluate(() => {
+      const root = document.documentElement;
+      const body = document.body;
+      return Math.max(root.scrollWidth, body.scrollWidth) - root.clientWidth;
+    });
+
+    expect(horizontalOverflow).toBeLessThanOrEqual(1);
+  });
+
   test("empty state shows when no posts exist", async ({ page }) => {
     // Navigate to a feed state that has no posts by using noAutoGenerate
     // The seeded account has posts, so this test verifies the empty state UI exists

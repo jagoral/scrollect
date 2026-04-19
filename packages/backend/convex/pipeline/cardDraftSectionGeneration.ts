@@ -25,16 +25,35 @@ export const generateDraftsForSectionBatch = internalAction({
     sectionSummaryId: v.id("sectionSummaries"),
     cardTypes: v.array(draftCardType),
     generationBatch: v.number(),
+    sectionQualitySignal: v.optional(v.number()),
     mode: v.union(v.literal("initial"), v.literal("replenishment")),
     retryCount: v.number(),
   },
   returns: v.null(),
   handler: async (
     ctx,
-    { jobId, documentId, sectionSummaryId, cardTypes, generationBatch, mode, retryCount },
+    {
+      jobId,
+      documentId,
+      sectionSummaryId,
+      cardTypes,
+      generationBatch,
+      sectionQualitySignal,
+      mode,
+      retryCount,
+    },
   ) => {
     const evt = new WideEvent("pipeline.generateDraftsForSectionBatch");
-    evt.set({ jobId, documentId, sectionSummaryId, cardTypes, generationBatch, mode, retryCount });
+    evt.set({
+      jobId,
+      documentId,
+      sectionSummaryId,
+      cardTypes,
+      generationBatch,
+      sectionQualitySignal,
+      mode,
+      retryCount,
+    });
     let tokenUsage: TokenUsage | undefined;
     let userId: string | undefined;
     try {
@@ -52,6 +71,7 @@ export const generateDraftsForSectionBatch = internalAction({
             sectionSummaryId,
             cardTypes,
             generationBatch,
+            sectionQualitySignal,
             mode,
             retryCount,
           },
@@ -97,6 +117,7 @@ export const generateDraftsForSectionBatch = internalAction({
             chunkStartIndex: section.chunkStartIndex,
             chunkEndIndex: section.chunkEndIndex,
           },
+          sectionQualitySignal,
           allChunks: chunkData,
           cardTypes: cardTypes as DraftCardType[],
           generationBatch,
@@ -122,6 +143,8 @@ export const generateDraftsForSectionBatch = internalAction({
             sourceChunkIds: draft.sourceChunkIds as Id<"chunks">[],
             contentHash: draft.contentHash,
             qualityScore: draft.qualityScore,
+            semanticQualityScore: draft.semanticQualityScore,
+            sectionQualitySignal: draft.sectionQualitySignal,
             generationBatch: draft.generationBatch,
             strategy: draft.strategy,
           })),
@@ -155,6 +178,7 @@ export const generateDraftsForSectionBatch = internalAction({
             sectionSummaryId,
             cardTypes,
             generationBatch,
+            sectionQualitySignal,
             mode,
             retryCount: retryCount + 1,
           },

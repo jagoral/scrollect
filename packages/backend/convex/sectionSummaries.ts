@@ -12,6 +12,7 @@ export const createBatch = internalMutation({
         summary: v.string(),
         isSubstantiveContent: v.optional(v.boolean()),
         embeddingId: v.string(),
+        embedding: v.optional(v.array(v.float64())),
         chunkStartIndex: v.number(),
         chunkEndIndex: v.number(),
       }),
@@ -27,6 +28,7 @@ export const createBatch = internalMutation({
         summary: s.summary,
         isSubstantiveContent: s.isSubstantiveContent,
         embeddingId: s.embeddingId,
+        embedding: s.embedding,
         chunkStartIndex: s.chunkStartIndex,
         chunkEndIndex: s.chunkEndIndex,
         createdAt: now,
@@ -66,6 +68,26 @@ export const listByDocuments = internalQuery({
       ),
     );
     return results.flat();
+  },
+});
+
+/**
+ * Single-row write primitive for refreshing `sectionSummaries.embedding`. Exists so a
+ * future migration (e.g. embedding model change) can pair this with a Qdrant read and
+ * patch rows in bulk without touching the summarization pipeline. No scheduler wired
+ * today — this is insurance, not a feature.
+ */
+export const backfillEmbedding = internalMutation({
+  args: {
+    id: v.id("sectionSummaries"),
+    embedding: v.array(v.float64()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.id);
+    if (!row) return null;
+    await ctx.db.patch(args.id, { embedding: args.embedding });
+    return null;
   },
 });
 

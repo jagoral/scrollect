@@ -27,6 +27,13 @@ export type GenerateDraftsInput = {
   fileType?: string;
   learningGoal?: string;
   section: SectionInput;
+  /**
+   * Section-level quality signal from the #215 ranker, copied onto each draft so the
+   * serving scorer can read it without joining to `sectionSummaries`. Missing for
+   * highlight/thematic generation or when the ranker didn't score this section - the
+   * serving scorer falls back to `qualityScore` in that case.
+   */
+  sectionQualitySignal?: number;
   allChunks: ChunkData[];
   cardTypes?: DraftCardType[];
   generationBatch?: number;
@@ -45,6 +52,10 @@ export type DraftRecord = {
   sourceChunkIds: string[];
   contentHash: string;
   qualityScore: number;
+  /** Semantic learning-value score from the validator LLM. Optional - falls back at serve time. */
+  semanticQualityScore?: number;
+  /** Section-level quality signal from the #215 ranker, copied for serve-time use. Optional. */
+  sectionQualitySignal?: number;
   generationBatch: number;
   strategy: "section";
 };
@@ -324,6 +335,7 @@ export async function generateDraftsForSection(opts: {
       sourceChunkIds: sourceChunks.map((c) => c._id),
       contentHash,
       qualityScore,
+      sectionQualitySignal: input.sectionQualitySignal,
       generationBatch: input.generationBatch ?? 1,
       strategy: "section",
     });
@@ -346,6 +358,7 @@ export async function generateDraftsForSection(opts: {
       const vResult = validationResults[i]!;
       if (vResult.status === "rejected") {
         metrics.draftsValidatorErrored++;
+        // Fail open: keep the draft without a semantic score. Serving falls back to qualityScore.
         drafts.push(candidates[i]!);
         metrics.draftsGenerated++;
         continue;
@@ -361,7 +374,10 @@ export async function generateDraftsForSection(opts: {
         continue;
       }
 
-      drafts.push(candidates[i]!);
+      drafts.push({
+        ...candidates[i]!,
+        semanticQualityScore: vResult.value.semanticQualityScore,
+      });
       metrics.draftsGenerated++;
     }
   } else {

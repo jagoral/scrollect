@@ -66,7 +66,10 @@ export function DetailPanel() {
   }
 
   return (
-    <aside className="-ml-px hidden min-w-0 flex-1 border-l border-border lg:block">
+    <aside
+      data-testid="feed-detail-panel"
+      className="-ml-px hidden min-w-0 overflow-hidden border-l border-border lg:block"
+    >
       <div className="sticky top-14 h-[calc(100svh-3.5rem)] overflow-y-auto">
         <div key={selectedPost._id} className="animate-in fade-in slide-in-from-top-2 duration-200">
           <DetailPanelContent post={selectedPost} onClose={closeDetail} />
@@ -78,7 +81,7 @@ export function DetailPanel() {
 
 function DetailPanelContent({ post, onClose }: { post: PostCardData; onClose: () => void }) {
   return (
-    <div className="flex flex-col gap-4 px-6 py-5">
+    <div className="flex min-w-0 flex-col gap-4 px-6 py-5">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground uppercase">{post.postType}</span>
         <Button variant="ghost" size="icon" onClick={onClose}>
@@ -86,7 +89,7 @@ function DetailPanelContent({ post, onClose }: { post: PostCardData; onClose: ()
           <span className="sr-only">Close</span>
         </Button>
       </div>
-      <div className="[&_article]:border-0 -mx-6 [&_article]:border-l-0 [&_article]:bg-transparent [&_article]:hover:bg-transparent">
+      <div className="-mx-6 min-w-0 [&_article]:border-0 [&_article]:border-l-0 [&_article]:bg-transparent [&_article]:hover:bg-transparent">
         <PostCard post={post} />
       </div>
       <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
