@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/app/saved")({
 
 function SavedPage() {
   const { results, status, loadMore } = usePaginatedQuery(
-    api.bookmarks.listSaved,
+    api.content.bookmarks.listSaved,
     {},
     { initialNumItems: 10 },
   );

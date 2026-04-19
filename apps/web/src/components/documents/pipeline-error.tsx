@@ -23,7 +23,7 @@ interface PipelineErrorProps {
 }
 
 export function PipelineError({ documentId, errorMessage, failedAt }: PipelineErrorProps) {
-  const retryProcessing = useMutation(api.documents.retry);
+  const retryProcessing = useMutation(api.content.documents.retry);
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {

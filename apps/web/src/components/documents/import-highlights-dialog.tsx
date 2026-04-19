@@ -34,7 +34,7 @@ export function ImportHighlightsDialog({ documentId }: ImportHighlightsDialogPro
     title: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const importHighlights = useMutation(api.highlights.importHighlights);
+  const importHighlights = useMutation(api.content.highlights.importHighlights);
   const posthog = usePostHog();
 
   const resetState = () => {

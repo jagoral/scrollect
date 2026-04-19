@@ -2,10 +2,10 @@ import { httpRouter } from "convex/server";
 
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
-import { authComponent, createAuth } from "./auth";
+import { authComponent, createAuth } from "./access/auth";
 import { E2E_EMAIL_PATTERN, isE2EEnabled } from "../src/platform/e2e";
-import { markerWebhookHandler } from "./pipeline/markerWebhook";
-import { polar } from "./polar";
+import { markerWebhookHandler } from "./indexing/markerWebhook";
+import { polar } from "./billing/polar";
 
 const http = httpRouter();
 
@@ -40,7 +40,7 @@ http.route({
     if (!isE2EEnabled()) return e2eNotFound();
     try {
       const email = await parseEmail(request);
-      const result = await ctx.runAction(internal.testingActions.seedE2EDataByEmail, { email });
+      const result = await ctx.runAction(internal.ops.testingActions.seedE2EDataByEmail, { email });
       return Response.json(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Seed failed";
@@ -56,11 +56,11 @@ http.route({
     if (!isE2EEnabled()) return e2eNotFound();
     try {
       const email = await parseEmail(request);
-      const user = await ctx.runQuery(internal.testing.findUserByEmail, { email });
+      const user = await ctx.runQuery(internal.ops.testing.findUserByEmail, { email });
       if (!user) {
         throw new Error(`User not found for email: ${email}`);
       }
-      const result = await ctx.runMutation(internal.testing.cleanupByUserId, {
+      const result = await ctx.runMutation(internal.ops.testing.cleanupByUserId, {
         userId: user._id as string,
       });
       return Response.json(result);
@@ -78,11 +78,11 @@ http.route({
     if (!isE2EEnabled()) return e2eNotFound();
     try {
       const email = await parseEmail(request);
-      const user = await ctx.runQuery(internal.testing.findUserByEmail, { email });
+      const user = await ctx.runQuery(internal.ops.testing.findUserByEmail, { email });
       if (!user) {
         throw new Error(`User not found for email: ${email}`);
       }
-      const result = await ctx.runMutation(internal.testing.resetByUserId, {
+      const result = await ctx.runMutation(internal.ops.testing.resetByUserId, {
         userId: user._id as string,
       });
       return Response.json(result);
@@ -100,7 +100,7 @@ http.route({
     if (!isE2EEnabled()) return e2eNotFound();
     try {
       const email = await parseEmail(request);
-      await ctx.runMutation(internal.testing.seedProSubscriptionByEmail, { email });
+      await ctx.runMutation(internal.ops.testing.seedProSubscriptionByEmail, { email });
       return Response.json({ ok: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Seed Pro failed";
@@ -116,7 +116,7 @@ http.route({
     if (!isE2EEnabled()) return e2eNotFound();
     try {
       const email = await parseEmail(request);
-      await ctx.runMutation(internal.testing.seedEarlyAdopterGrantByEmail, { email });
+      await ctx.runMutation(internal.ops.testing.seedEarlyAdopterGrantByEmail, { email });
       return Response.json({ ok: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Seed grant failed";
@@ -132,11 +132,11 @@ http.route({
     if (!isE2EEnabled()) return e2eNotFound();
     try {
       const email = await parseEmail(request);
-      const user = await ctx.runQuery(internal.testing.findUserByEmail, { email });
+      const user = await ctx.runQuery(internal.ops.testing.findUserByEmail, { email });
       if (!user) {
         throw new Error(`User not found for email: ${email}`);
       }
-      const drafts = await ctx.runQuery(internal.testing.listConnectionDraftsByUserId, {
+      const drafts = await ctx.runQuery(internal.ops.testing.listConnectionDraftsByUserId, {
         userId: user._id as string,
       });
       return Response.json({ drafts });
@@ -154,11 +154,11 @@ http.route({
     if (!isE2EEnabled()) return e2eNotFound();
     try {
       const email = await parseEmail(request);
-      const user = await ctx.runQuery(internal.testing.findUserByEmail, { email });
+      const user = await ctx.runQuery(internal.ops.testing.findUserByEmail, { email });
       if (!user) {
         throw new Error(`User not found for email: ${email}`);
       }
-      const events = await ctx.runMutation(internal.testing.drainE2EAnalyticsByUserId, {
+      const events = await ctx.runMutation(internal.ops.testing.drainE2EAnalyticsByUserId, {
         userId: user._id as string,
       });
       return Response.json({ events });
@@ -176,13 +176,16 @@ http.route({
     if (!isE2EEnabled()) return e2eNotFound();
     try {
       const email = await parseEmail(request);
-      const user = await ctx.runQuery(internal.testing.findUserByEmail, { email });
+      const user = await ctx.runQuery(internal.ops.testing.findUserByEmail, { email });
       if (!user) {
         throw new Error(`User not found for email: ${email}`);
       }
-      const count = await ctx.runQuery(internal.testing.countDocumentsWithGoalEmbeddingByUserId, {
-        userId: user._id as string,
-      });
+      const count = await ctx.runQuery(
+        internal.ops.testing.countDocumentsWithGoalEmbeddingByUserId,
+        {
+          userId: user._id as string,
+        },
+      );
       return Response.json({ count });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Count failed";

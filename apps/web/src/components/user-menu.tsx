@@ -21,7 +21,7 @@ import { Button } from "./ui/button";
 export default function UserMenu() {
   const navigate = useNavigate();
   const posthog = usePostHog();
-  const { data: user } = useQuery(convexQuery(api.auth.getCurrentUser, {}));
+  const { data: user } = useQuery(convexQuery(api.access.auth.getCurrentUser, {}));
 
   return (
     <DropdownMenu>

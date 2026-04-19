@@ -1,7 +1,7 @@
 import type { GenericCtx } from "@convex-dev/better-auth";
 
 import type { DataModel } from "../_generated/dataModel";
-import { authComponent } from "../auth";
+import { authComponent } from "../access/auth";
 
 type AuthUser = NonNullable<Awaited<ReturnType<typeof authComponent.safeGetAuthUser>>>;
 

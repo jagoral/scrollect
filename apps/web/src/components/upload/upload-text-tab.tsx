@@ -31,8 +31,8 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
   const { usage } = useBilling();
   const fileSizeLimits = getFileSizeLimits(usage?.tier ?? "free");
 
-  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
-  const createFromText = useMutation(api.documents.createFromText);
+  const generateUploadUrl = useMutation(api.content.documents.generateUploadUrl);
+  const createFromText = useMutation(api.content.documents.createFromText);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {

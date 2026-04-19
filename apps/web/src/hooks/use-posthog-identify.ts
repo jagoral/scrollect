@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 
 export function usePostHogIdentify() {
   const posthog = usePostHog();
-  const { data: user } = useQuery(convexQuery(api.auth.getCurrentUser, {}));
+  const { data: user } = useQuery(convexQuery(api.access.auth.getCurrentUser, {}));
   const identifiedRef = useRef<string | null>(null);
 
   useEffect(() => {

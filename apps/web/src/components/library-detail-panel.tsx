@@ -128,8 +128,8 @@ function DocumentDetailContent({
   documentId: Id<"documents">;
   onClose: () => void;
 }) {
-  const { data: document } = useQuery(convexQuery(api.documents.get, { id: documentId }));
-  const deleteDocument = useAction(api.documentActions.deleteDocument);
+  const { data: document } = useQuery(convexQuery(api.content.documents.get, { id: documentId }));
+  const deleteDocument = useAction(api.content.documentActions.deleteDocument);
   const posthog = usePostHog();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

@@ -103,7 +103,7 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
 
   const tags = post.tags ?? [];
 
-  const toggleBookmark = useMutation(api.bookmarks.toggle).withOptimisticUpdate(
+  const toggleBookmark = useMutation(api.content.bookmarks.toggle).withOptimisticUpdate(
     (localStore, args) => {
       updatePostInPaginatedPages(localStore, args.postId, (p) => ({
         isBookmarked: !p.isBookmarked,

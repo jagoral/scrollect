@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { deleteAccountDocuments } from "../../convex/accountActions";
+import { deleteAccountDocuments } from "../../convex/access/accountActions";
 import type { Id } from "../../convex/_generated/dataModel";
 import { createMockSummaryStore, createMockVectorStore } from "./mocks";
 

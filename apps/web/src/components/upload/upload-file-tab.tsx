@@ -46,8 +46,8 @@ export function UploadFileTab({ onDocumentCreated }: UploadFileTabProps) {
   const { usage } = useBilling();
   const fileSizeLimits = getFileSizeLimits(usage?.tier ?? "free");
 
-  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
-  const createDocument = useMutation(api.documents.create);
+  const generateUploadUrl = useMutation(api.content.documents.generateUploadUrl);
+  const createDocument = useMutation(api.content.documents.create);
 
   const uploadFile = useCallback(
     async (file: File) => {

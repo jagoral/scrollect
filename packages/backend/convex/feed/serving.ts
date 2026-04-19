@@ -564,7 +564,7 @@ async function maybeScheduleReplenishment(ctx: MutationCtx, userId: string): Pro
     return false;
   }
 
-  await ctx.scheduler.runAfter(0, internal.pipeline.cardDraftReplenishment.regenerateDrafts, {
+  await ctx.scheduler.runAfter(0, internal.drafting.cardDraftReplenishment.regenerateDrafts, {
     userId,
   });
   return true;

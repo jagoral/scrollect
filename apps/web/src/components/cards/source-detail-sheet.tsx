@@ -39,7 +39,7 @@ export function SourceDetailsContent({
 }) {
   const posthog = usePostHog();
   const { data: details, isPending } = useQuery(
-    convexQuery(api.posts.getSourceDetails, { postId }),
+    convexQuery(api.feed.posts.getSourceDetails, { postId }),
   );
 
   if (isPending) {

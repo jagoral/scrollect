@@ -33,9 +33,9 @@ export function LearningGoalSection({
   const [submitting, setSubmitting] = useState<"save" | "skip" | null>(null);
   const lastSavedValue = useRef(initialGoal ?? "");
   const isFocused = useRef(false);
-  const updateLearningGoal = useMutation(api.documents.updateLearningGoal);
-  const clearLearningGoal = useMutation(api.documents.clearLearningGoal);
-  const skipLearningGoal = useMutation(api.documents.skipLearningGoalOnboarding);
+  const updateLearningGoal = useMutation(api.content.documents.updateLearningGoal);
+  const clearLearningGoal = useMutation(api.content.documents.clearLearningGoal);
+  const skipLearningGoal = useMutation(api.content.documents.skipLearningGoalOnboarding);
   const posthog = usePostHog();
   const isOnboardingPending = onboardingStatus === "pending";
   const hasAppliedGoal = value.trim().length > 0;

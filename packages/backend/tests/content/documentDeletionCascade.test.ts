@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { Id } from "../../convex/_generated/dataModel";
-import { executeDocumentDeletionCascade } from "../../convex/documents/deletion";
+import { executeDocumentDeletionCascade } from "../../convex/content/deletion";
 import { createMockSummaryStore, createMockVectorStore } from "./mocks";
 
 describe("executeDocumentDeletionCascade", () => {

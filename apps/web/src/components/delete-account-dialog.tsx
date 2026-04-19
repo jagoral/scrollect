@@ -25,7 +25,7 @@ const CONFIRMATION_TEXT = "DELETE";
 
 export function DeleteAccountDialog() {
   const posthog = usePostHog();
-  const deleteAccount = useAction(api.accountActions.deleteAccount);
+  const deleteAccount = useAction(api.access.accountActions.deleteAccount);
   const [open, setOpen] = useState(false);
   const [confirmationInput, setConfirmationInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);

@@ -16,7 +16,7 @@ async function emit(
 ) {
   await captureEvent({ distinctId: userId, event, properties });
   if (isE2EEnabled()) {
-    await ctx.runMutation(internal.testing.recordE2EAnalyticsEvent, {
+    await ctx.runMutation(internal.ops.testing.recordE2EAnalyticsEvent, {
       userId,
       event,
       properties,

@@ -48,10 +48,10 @@ export const Route = createFileRoute("/_authenticated/app/library/$documentId")(
 function DocumentDetailPage() {
   const { documentId } = Route.useParams();
   const { data: document } = useQuery(
-    convexQuery(api.documents.get, { id: documentId as Id<"documents"> }),
+    convexQuery(api.content.documents.get, { id: documentId as Id<"documents"> }),
   );
   const navigate = useNavigate();
-  const deleteDocument = useAction(api.documentActions.deleteDocument);
+  const deleteDocument = useAction(api.content.documentActions.deleteDocument);
   const posthog = usePostHog();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

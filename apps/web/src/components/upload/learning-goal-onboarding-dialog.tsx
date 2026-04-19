@@ -47,8 +47,8 @@ export function LearningGoalOnboardingDialog({
   const [goal, setGoal] = useState("");
   const [selectedPresets, setSelectedPresets] = useState<Preset[]>([]);
   const [submitting, setSubmitting] = useState<"save" | "skip" | null>(null);
-  const updateLearningGoal = useMutation(api.documents.updateLearningGoal);
-  const skipLearningGoal = useMutation(api.documents.skipLearningGoalOnboarding);
+  const updateLearningGoal = useMutation(api.content.documents.updateLearningGoal);
+  const skipLearningGoal = useMutation(api.content.documents.skipLearningGoalOnboarding);
   const posthog = usePostHog();
 
   const reset = useCallback(() => {

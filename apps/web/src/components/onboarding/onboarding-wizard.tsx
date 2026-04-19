@@ -37,8 +37,8 @@ const steps: ReadonlyArray<{ key: OnboardingStage; label: string }> = [
 ];
 
 export function OnboardingWizard({ documents }: { documents: OnboardingDocument[] }) {
-  const { data: profile } = useQuery(convexQuery(api.entitlements.getUserProfile, {}));
-  const markCompleted = useMutation(api.entitlements.markOnboardingCompleted);
+  const { data: profile } = useQuery(convexQuery(api.access.entitlements.getUserProfile, {}));
+  const markCompleted = useMutation(api.access.entitlements.markOnboardingCompleted);
 
   const firstPostQuery = usePaginatedQuery(api.feed.queries.list, {}, { initialNumItems: 1 });
   const hasFirstPost = firstPostQuery.results.length > 0;

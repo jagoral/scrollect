@@ -15,38 +15,42 @@ interface DocumentTagSectionProps {
 }
 
 export function DocumentTagSection({ documentId }: DocumentTagSectionProps) {
-  const { data: documentTags } = useQuery(convexQuery(api.tags.getDocumentTags, { documentId }));
-  const { data: allUserTags } = useQuery(convexQuery(api.tags.listUserTags, {}));
+  const { data: documentTags } = useQuery(
+    convexQuery(api.content.tags.getDocumentTags, { documentId }),
+  );
+  const { data: allUserTags } = useQuery(convexQuery(api.content.tags.listUserTags, {}));
 
-  const addTag = useMutation(api.tags.addTagToDocument).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.tags.getDocumentTags, {
-      documentId: args.documentId,
-    });
-    if (current === undefined) return;
-    const alreadyExists = current.some((t) => t.name.toLowerCase() === args.name.toLowerCase());
-    if (alreadyExists) return;
-    localStore.setQuery(api.tags.getDocumentTags, { documentId: args.documentId }, [
-      ...current,
-      {
-        _id: `optimistic_${Date.now()}` as Id<"tags">,
-        _creationTime: Date.now(),
-        name: args.name,
-        normalizedName: args.name.toLowerCase(),
-        userId: "",
-        createdAt: Date.now(),
-        source: "manual" as const,
-      },
-    ]);
-  });
-
-  const removeTag = useMutation(api.tags.removeTagFromDocument).withOptimisticUpdate(
+  const addTag = useMutation(api.content.tags.addTagToDocument).withOptimisticUpdate(
     (localStore, args) => {
-      const current = localStore.getQuery(api.tags.getDocumentTags, {
+      const current = localStore.getQuery(api.content.tags.getDocumentTags, {
+        documentId: args.documentId,
+      });
+      if (current === undefined) return;
+      const alreadyExists = current.some((t) => t.name.toLowerCase() === args.name.toLowerCase());
+      if (alreadyExists) return;
+      localStore.setQuery(api.content.tags.getDocumentTags, { documentId: args.documentId }, [
+        ...current,
+        {
+          _id: `optimistic_${Date.now()}` as Id<"tags">,
+          _creationTime: Date.now(),
+          name: args.name,
+          normalizedName: args.name.toLowerCase(),
+          userId: "",
+          createdAt: Date.now(),
+          source: "manual" as const,
+        },
+      ]);
+    },
+  );
+
+  const removeTag = useMutation(api.content.tags.removeTagFromDocument).withOptimisticUpdate(
+    (localStore, args) => {
+      const current = localStore.getQuery(api.content.tags.getDocumentTags, {
         documentId: args.documentId,
       });
       if (current === undefined) return;
       localStore.setQuery(
-        api.tags.getDocumentTags,
+        api.content.tags.getDocumentTags,
         { documentId: args.documentId },
         current.filter((t) => t._id !== args.tagId && t.name !== args.tagName),
       );

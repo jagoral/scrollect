@@ -37,8 +37,10 @@ interface HighlightsSectionProps {
 }
 
 export function HighlightsSection({ documentId }: HighlightsSectionProps) {
-  const { data: highlights } = useQuery(convexQuery(api.highlights.listByDocument, { documentId }));
-  const deleteByDocument = useMutation(api.highlights.deleteByDocument);
+  const { data: highlights } = useQuery(
+    convexQuery(api.content.highlights.listByDocument, { documentId }),
+  );
+  const deleteByDocument = useMutation(api.content.highlights.deleteByDocument);
   const posthog = usePostHog();
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

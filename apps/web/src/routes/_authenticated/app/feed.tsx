@@ -107,7 +107,7 @@ function FeedPage() {
 
   const { data: tagsBatch } = useQuery(
     convexQuery(
-      api.tags.getDocumentTagsBatch,
+      api.content.tags.getDocumentTagsBatch,
       results.length > 0 ? { documentIds: uniqueDocumentIds } : "skip",
     ),
   );

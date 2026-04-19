@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/app/settings")({
 });
 
 function SettingsPage() {
-  const { data: user } = useQuery(convexQuery(api.auth.getCurrentUser, {}));
+  const { data: user } = useQuery(convexQuery(api.access.auth.getCurrentUser, {}));
 
   return (
     <div className="px-4 py-6 md:px-6">

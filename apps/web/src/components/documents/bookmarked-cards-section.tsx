@@ -16,7 +16,7 @@ interface BookmarkedCardsSectionProps {
 
 export function BookmarkedCardsSection({ documentId }: BookmarkedCardsSectionProps) {
   const { data: bookmarkedPosts } = useQuery(
-    convexQuery(api.bookmarks.listBookmarkedByDocument, { documentId }),
+    convexQuery(api.content.bookmarks.listBookmarkedByDocument, { documentId }),
   );
   const posthog = usePostHog();
   const [isOpen, setIsOpen] = useState(false);
