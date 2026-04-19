@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
-import { SEEDED_USER, drainAnalyticsEvents, reseedAccount } from "./helpers";
+import {
+  SEEDED_USER,
+  drainAnalyticsEvents,
+  reseedAccount,
+  waitForAnalyticsEvents,
+} from "./helpers";
 import type { DrainedAnalyticsEvent } from "./helpers";
 
 /**
@@ -66,7 +71,11 @@ test.describe("Feed: best cards first (issue #216)", { tag: "@seeded" }, () => {
     const finalCount = await cards.count();
     expect(finalCount).toBeGreaterThanOrEqual(initialCount);
 
-    const events = await drainAnalyticsEvents(SEEDED_USER.email);
+    const events = await waitForAnalyticsEvents(SEEDED_USER.email, {
+      predicate: (all) =>
+        all.some((e) => e.event === "feed.serving_quality_score_distribution") &&
+        all.some((e) => e.event === "feed.learning_goal_relevance_applied"),
+    });
     expect(events, "serve should emit at least feed.cards_served").not.toHaveLength(0);
 
     const qualityEvent = findEvent(events, "feed.serving_quality_score_distribution");
@@ -94,7 +103,9 @@ test.describe("Feed: best cards first (issue #216)", { tag: "@seeded" }, () => {
     const count = await cards.count();
     expect(count).toBeGreaterThan(0);
 
-    const events = await drainAnalyticsEvents(SEEDED_USER.email);
+    const events = await waitForAnalyticsEvents(SEEDED_USER.email, {
+      predicate: (all) => all.some((e) => e.event === "feed.learning_goal_relevance_applied"),
+    });
     const goalEvent = findEvent(events, "feed.learning_goal_relevance_applied");
     expect(
       goalEvent,
@@ -175,6 +186,15 @@ async function setLearningGoal(page: Page, goal: string) {
 
   const textarea = page.locator('[data-testid="learning-goal-textarea"]');
   await expect(textarea).toBeVisible({ timeout: 15_000 });
+  const currentValue = ((await textarea.inputValue()) ?? "").trim();
+  const nextValue = goal.trim();
+
+  // The form's `persistGoal` short-circuits when the trimmed value matches the
+  // last saved value, so no toast fires when the target state already matches.
+  // Seeded documents start with no goal, so asserting "Learning goal cleared"
+  // on an already-empty textarea would hang indefinitely.
+  if (currentValue === nextValue) return;
+
   await textarea.fill(goal);
   await textarea.blur();
 

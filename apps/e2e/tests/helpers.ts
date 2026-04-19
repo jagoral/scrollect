@@ -173,6 +173,37 @@ export async function drainAnalyticsEvents(email: string): Promise<DrainedAnalyt
   return (JSON.parse(body).events ?? []) as DrainedAnalyticsEvent[];
 }
 
+/**
+ * Polls the analytics drain until the predicate matches or the timeout elapses.
+ * Events accumulate across drain cycles so the caller sees the full set once the
+ * predicate succeeds.
+ *
+ * `captureServingAnalytics` is scheduled via `ctx.scheduler.runAfter(0, ...)` — it
+ * runs AFTER the serve mutation returns, so a single drain immediately after the
+ * serve button re-enables can miss the events. Polling closes that race.
+ */
+export async function waitForAnalyticsEvents(
+  email: string,
+  opts: {
+    predicate: (events: DrainedAnalyticsEvent[]) => boolean;
+    timeoutMs?: number;
+    intervalMs?: number;
+  },
+): Promise<DrainedAnalyticsEvent[]> {
+  const timeoutMs = opts.timeoutMs ?? 15_000;
+  const intervalMs = opts.intervalMs ?? 250;
+  const deadline = Date.now() + timeoutMs;
+  const accumulated: DrainedAnalyticsEvent[] = [];
+
+  while (Date.now() < deadline) {
+    const batch = await drainAnalyticsEvents(email);
+    accumulated.push(...batch);
+    if (opts.predicate(accumulated)) return accumulated;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return accumulated;
+}
+
 export async function fetchConnectionDrafts(email: string) {
   const { ok, status, body } = await convexE2ERequest("/api/e2e-connection-drafts", email);
   if (!ok) {
