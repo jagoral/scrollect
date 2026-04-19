@@ -74,7 +74,7 @@ export function LibraryDetailPanel() {
     if (isMobile) return null;
 
     return (
-      <aside className="-ml-px hidden min-w-0 flex-1 border-l border-border lg:block">
+      <aside className="-ml-px hidden min-w-0 overflow-hidden border-l border-border lg:block">
         <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] flex-col items-center justify-center px-6 text-center">
           <div className="flex size-12 items-center justify-center border border-border">
             <MousePointerClick className="size-5 text-muted-foreground" />
@@ -108,7 +108,7 @@ export function LibraryDetailPanel() {
   }
 
   return (
-    <aside className="-ml-px hidden min-w-0 flex-1 border-l border-border lg:block">
+    <aside className="-ml-px hidden min-w-0 overflow-hidden border-l border-border lg:block">
       <div className="sticky top-14 h-[calc(100svh-3.5rem)] overflow-y-auto">
         <div
           key={selectedDocumentId}
@@ -172,7 +172,7 @@ function DocumentDetailContent({
   }
 
   return (
-    <div className="px-6 py-5">
+    <div className="min-w-0 px-6 py-5">
       <div className="flex items-start justify-between gap-3">
         <h2 className="flex min-w-0 items-start gap-2.5 text-lg font-bold tracking-tight">
           <span className="mt-0.5 shrink-0 text-muted-foreground">
@@ -199,10 +199,10 @@ function DocumentDetailContent({
             href={document.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
-            <Globe className="size-3" />
-            {new URL(document.sourceUrl).hostname}
+            <Globe className="size-3 shrink-0" />
+            <span className="min-w-0 break-all">{new URL(document.sourceUrl).hostname}</span>
           </a>
         )}
         <span className="text-xs text-muted-foreground">

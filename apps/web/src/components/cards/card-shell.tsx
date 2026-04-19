@@ -198,7 +198,7 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
         data-card-type={post.postType}
         data-quiz-variant={quizVariant}
         className={cn(
-          "group/card relative border-l-2 border-t border-border first:border-t-0 bg-card text-card-foreground transition-colors border-r",
+          "group/card relative min-w-0 border-l-2 border-t border-border first:border-t-0 bg-card text-card-foreground transition-colors border-r",
           cardAccentColor[post.postType],
           detailPanel && "cursor-pointer hover:bg-accent/30",
         )}
