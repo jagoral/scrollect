@@ -154,7 +154,7 @@ describe("generateThematicDrafts", () => {
     });
 
     expect(result.drafts.length).toBe(2);
-    const types = result.drafts.map((d) => d.cardType);
+    const types = result.drafts.map((d) => d.postType);
     expect(types).toContain("insight");
     expect(types).toContain("summary");
   });
@@ -261,11 +261,11 @@ describe("generateThematicDrafts", () => {
       generateDraft: vi
         .fn()
         .mockImplementation(
-          async (opts: { cardType: string; sectionTitle: string; learningGoal?: string }) => {
-            if (opts.cardType === "insight") throw new Error("LLM failure");
+          async (opts: { postType: string; sectionTitle: string; learningGoal?: string }) => {
+            if (opts.postType === "insight") throw new Error("LLM failure");
             return {
               card: {
-                content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful thematic card content here.`,
+                content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful thematic card content here.`,
                 typeData: { type: "summary", bulletPoints: ["Point 1", "Point 2"] },
               },
               usage: {
@@ -340,11 +340,11 @@ describe("generateThematicDrafts", () => {
       generateDraft: vi
         .fn()
         .mockImplementation(
-          async (opts: { cardType: string; sectionTitle: string; learningGoal?: string }) => ({
+          async (opts: { postType: string; sectionTitle: string; learningGoal?: string }) => ({
             card: {
-              content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful thematic card content.`,
+              content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful thematic card content.`,
               typeData:
-                opts.cardType === "summary"
+                opts.postType === "summary"
                   ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
                   : { type: "insight" },
             },

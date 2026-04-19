@@ -33,7 +33,7 @@ function makeDraft(overrides: Partial<ScoredDraft> = {}): ScoredDraft {
   return {
     id: `draft-${Math.random().toString(36).slice(2, 8)}`,
     documentId: "doc-1",
-    cardType: "insight",
+    postType: "insight",
     strategy: "section",
     qualityScore: 0.8,
     servedCount: 0,
@@ -167,11 +167,11 @@ describe("scoreDrafts", () => {
   describe("type diversity reorder", () => {
     it("prevents more than 3 consecutive same-type cards", () => {
       const drafts = [
-        makeDraft({ id: "i1", cardType: "insight", qualityScore: 0.9 }),
-        makeDraft({ id: "i2", cardType: "insight", qualityScore: 0.88 }),
-        makeDraft({ id: "i3", cardType: "insight", qualityScore: 0.87 }),
-        makeDraft({ id: "i4", cardType: "insight", qualityScore: 0.86 }),
-        makeDraft({ id: "q1", cardType: "quiz", qualityScore: 0.5 }),
+        makeDraft({ id: "i1", postType: "insight", qualityScore: 0.9 }),
+        makeDraft({ id: "i2", postType: "insight", qualityScore: 0.88 }),
+        makeDraft({ id: "i3", postType: "insight", qualityScore: 0.87 }),
+        makeDraft({ id: "i4", postType: "insight", qualityScore: 0.86 }),
+        makeDraft({ id: "q1", postType: "quiz", qualityScore: 0.5 }),
       ];
 
       const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
@@ -179,7 +179,7 @@ describe("scoreDrafts", () => {
       let maxConsecutive = 1;
       let current = 1;
       for (let i = 1; i < result.length; i++) {
-        if (result[i]!.cardType === result[i - 1]!.cardType) {
+        if (result[i]!.postType === result[i - 1]!.postType) {
           current++;
           maxConsecutive = Math.max(maxConsecutive, current);
         } else {
@@ -191,28 +191,28 @@ describe("scoreDrafts", () => {
 
     it("accepts violations when all drafts are the same type", () => {
       const drafts = Array.from({ length: 6 }, (_, i) =>
-        makeDraft({ id: `i-${i}`, cardType: "insight", qualityScore: 0.9 - i * 0.01 }),
+        makeDraft({ id: `i-${i}`, postType: "insight", qualityScore: 0.9 - i * 0.01 }),
       );
 
       const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
 
       expect(result).toHaveLength(6);
-      expect(result.every((d) => d.cardType === "insight")).toBe(true);
+      expect(result.every((d) => d.postType === "insight")).toBe(true);
     });
 
     it("swaps in the first different-type card when limit exceeded", () => {
       const drafts = [
-        makeDraft({ id: "i1", cardType: "insight", qualityScore: 0.99 }),
-        makeDraft({ id: "i2", cardType: "insight", qualityScore: 0.98 }),
-        makeDraft({ id: "i3", cardType: "insight", qualityScore: 0.97 }),
-        makeDraft({ id: "q1", cardType: "quiz", qualityScore: 0.2 }),
-        makeDraft({ id: "i4", cardType: "insight", qualityScore: 0.96 }),
+        makeDraft({ id: "i1", postType: "insight", qualityScore: 0.99 }),
+        makeDraft({ id: "i2", postType: "insight", qualityScore: 0.98 }),
+        makeDraft({ id: "i3", postType: "insight", qualityScore: 0.97 }),
+        makeDraft({ id: "q1", postType: "quiz", qualityScore: 0.2 }),
+        makeDraft({ id: "i4", postType: "insight", qualityScore: 0.96 }),
       ];
 
       const result = scoreDrafts({ drafts, config: DEFAULT_SCORING_CONFIG, now: NOW });
 
       // After 3 insights, the quiz should be swapped in before the 4th insight
-      expect(result[3]!.cardType).toBe("quiz");
+      expect(result[3]!.postType).toBe("quiz");
     });
   });
 
@@ -454,16 +454,16 @@ describe("scoreDrafts", () => {
     it("uses custom maxConsecutiveSameType", () => {
       const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, maxConsecutiveSameType: 1 };
       const drafts = [
-        makeDraft({ id: "i1", cardType: "insight", qualityScore: 0.9 }),
-        makeDraft({ id: "i2", cardType: "insight", qualityScore: 0.89 }),
-        makeDraft({ id: "q1", cardType: "quiz", qualityScore: 0.5 }),
+        makeDraft({ id: "i1", postType: "insight", qualityScore: 0.9 }),
+        makeDraft({ id: "i2", postType: "insight", qualityScore: 0.89 }),
+        makeDraft({ id: "q1", postType: "quiz", qualityScore: 0.5 }),
       ];
 
       const result = scoreDrafts({ drafts, config, now: NOW });
 
       // With max 1 consecutive, after 1 insight we must swap in quiz
-      expect(result[0]!.cardType).toBe("insight");
-      expect(result[1]!.cardType).toBe("quiz");
+      expect(result[0]!.postType).toBe("insight");
+      expect(result[1]!.postType).toBe("quiz");
     });
 
     it("uses custom document diversity cap", () => {
@@ -728,8 +728,8 @@ describe("scoreDrafts", () => {
 
     it("applies wrong_type penalty (0.5x) to drafts of disliked card type", () => {
       const drafts = [
-        makeDraft({ id: "bad-type", cardType: "quiz", ...BASE_DRAFT }),
-        makeDraft({ id: "ok-type", cardType: "insight", ...BASE_DRAFT }),
+        makeDraft({ id: "bad-type", postType: "quiz", ...BASE_DRAFT }),
+        makeDraft({ id: "ok-type", postType: "insight", ...BASE_DRAFT }),
       ];
 
       const summary = emptyReactionSummary();
@@ -796,8 +796,8 @@ describe("scoreDrafts", () => {
 
     it("applies like card type boost (1.15x)", () => {
       const drafts = [
-        makeDraft({ id: "liked-type", cardType: "quiz", ...BASE_DRAFT }),
-        makeDraft({ id: "neutral-type", cardType: "insight", ...BASE_DRAFT }),
+        makeDraft({ id: "liked-type", postType: "quiz", ...BASE_DRAFT }),
+        makeDraft({ id: "neutral-type", postType: "insight", ...BASE_DRAFT }),
       ];
 
       const summary = emptyReactionSummary();
@@ -822,7 +822,7 @@ describe("scoreDrafts", () => {
         makeDraft({
           id: "double-penalized",
           sectionSummaryId: "sec-bad",
-          cardType: "quiz",
+          postType: "quiz",
           ...BASE_DRAFT,
         }),
       ];
@@ -847,7 +847,7 @@ describe("scoreDrafts", () => {
         makeDraft({
           id: "double-boosted",
           sectionSummaryId: "sec-fav",
-          cardType: "quiz",
+          postType: "quiz",
           ...BASE_DRAFT,
         }),
       ];
@@ -983,14 +983,14 @@ describe("scoreDrafts", () => {
       const drafts = [
         makeDraft({
           id: "saturated-quote",
-          cardType: "quote",
+          postType: "quote",
           qualityScore: 1.0,
           semanticQualityScore: 0.45,
           ...STATIC_BASE,
         }),
         makeDraft({
           id: "real-insight",
-          cardType: "insight",
+          postType: "insight",
           qualityScore: 1.0,
           semanticQualityScore: 0.8,
           ...STATIC_BASE,
@@ -1432,7 +1432,7 @@ describe("scoreDrafts", () => {
       const quotes = Array.from({ length: 12 }, (_, i) =>
         makeDraft({
           id: `q-${i}`,
-          cardType: "quote",
+          postType: "quote",
           documentId: `doc-q-${i}`,
           sectionSummaryId: `sec-q-${i}`,
           semanticQualityScore: 0.95 - i * 0.001,
@@ -1443,7 +1443,7 @@ describe("scoreDrafts", () => {
       const insights = Array.from({ length: 6 }, (_, i) =>
         makeDraft({
           id: `i-${i}`,
-          cardType: "insight",
+          postType: "insight",
           documentId: `doc-i-${i}`,
           sectionSummaryId: `sec-i-${i}`,
           semanticQualityScore: 0.5 - i * 0.001,
@@ -1454,7 +1454,7 @@ describe("scoreDrafts", () => {
       const quizzes = Array.from({ length: 2 }, (_, i) =>
         makeDraft({
           id: `qz-${i}`,
-          cardType: "quiz",
+          postType: "quiz",
           documentId: `doc-qz-${i}`,
           sectionSummaryId: `sec-qz-${i}`,
           semanticQualityScore: 0.45 - i * 0.001,
@@ -1477,7 +1477,7 @@ describe("scoreDrafts", () => {
       };
       const result = scoreDrafts({ drafts, config, now: NOW });
       const top10 = result.slice(0, 10);
-      const quotesInTop10 = top10.filter((d) => d.cardType === "quote").length;
+      const quotesInTop10 = top10.filter((d) => d.postType === "quote").length;
       // floor(10 * 0.3) = 3, max(1, 3) = 3
       expect(quotesInTop10).toBeLessThanOrEqual(3);
     });
@@ -1486,7 +1486,7 @@ describe("scoreDrafts", () => {
       const drafts = Array.from({ length: 12 }, (_, i) =>
         makeDraft({
           id: `qz-${i}`,
-          cardType: "quiz",
+          postType: "quiz",
           documentId: `doc-${i}`,
           sectionSummaryId: `sec-${i}`,
           semanticQualityScore: 0.95 - i * 0.001,
@@ -1497,7 +1497,7 @@ describe("scoreDrafts", () => {
         Array.from({ length: 8 }, (_, i) =>
           makeDraft({
             id: `i-${i}`,
-            cardType: "insight",
+            postType: "insight",
             documentId: `doc-i-${i}`,
             sectionSummaryId: `sec-i-${i}`,
             semanticQualityScore: 0.6 - i * 0.001,
@@ -1515,7 +1515,7 @@ describe("scoreDrafts", () => {
       };
       const result = scoreDrafts({ drafts, config, now: NOW });
       const top10 = result.slice(0, 10);
-      const quizzesInTop10 = top10.filter((d) => d.cardType === "quiz").length;
+      const quizzesInTop10 = top10.filter((d) => d.postType === "quiz").length;
       expect(quizzesInTop10).toBeLessThanOrEqual(3);
     });
 
@@ -1532,7 +1532,7 @@ describe("scoreDrafts", () => {
       // After the 30% cap on quotes (3 in top), the remaining 9 quotes appear at the tail
       // in their original score order (q-3, q-4, ..., q-11).
       const tailQuoteIds = result
-        .filter((d) => d.cardType === "quote")
+        .filter((d) => d.postType === "quote")
         .slice(3)
         .map((d) => d.id);
       const expected = Array.from({ length: 9 }, (_, i) => `q-${i + 3}`);
@@ -1543,7 +1543,7 @@ describe("scoreDrafts", () => {
       const drafts = [
         makeDraft({
           id: "q-only",
-          cardType: "quote",
+          postType: "quote",
           semanticQualityScore: 0.9,
           documentCreatedAt: THIRTY_DAYS_AGO,
           servedCount: 0,
@@ -1551,7 +1551,7 @@ describe("scoreDrafts", () => {
         ...Array.from({ length: 9 }, (_, i) =>
           makeDraft({
             id: `i-${i}`,
-            cardType: "insight",
+            postType: "insight",
             documentId: `doc-${i}`,
             sectionSummaryId: `sec-${i}`,
             semanticQualityScore: 0.7,
@@ -1585,7 +1585,7 @@ describe("scoreDrafts", () => {
       const totalSections = 30;
       const totalDrafts = 150;
       return Array.from({ length: totalDrafts }, (_, i) => {
-        const cardType = cardTypes[i % cardTypes.length]!;
+        const postType = cardTypes[i % cardTypes.length]!;
         const sectionIdx = i % totalSections;
         const tier = i / totalDrafts;
 
@@ -1596,7 +1596,7 @@ describe("scoreDrafts", () => {
         let semanticQualityScore: number;
         if (isFrontMatter) {
           semanticQualityScore = 0.2 + (i % 4) * 0.04;
-        } else if (cardType === "quote" && tier < 0.6) {
+        } else if (postType === "quote" && tier < 0.6) {
           // Most quotes land in the "verbatim but not teaching" 0.4-0.6 band.
           semanticQualityScore = 0.4 + (i % 5) * 0.04;
         } else if (tier < 0.5) {
@@ -1611,7 +1611,7 @@ describe("scoreDrafts", () => {
           id: `d-${i}`,
           documentId: "doc-1",
           sectionSummaryId: `sec-${sectionIdx}`,
-          cardType,
+          postType,
           strategy: "section",
           qualityScore: 1.0,
           semanticQualityScore,
@@ -1675,7 +1675,7 @@ describe("scoreDrafts", () => {
       const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 20 };
       const result = scoreDrafts({ drafts, config, now: NOW });
       const top20 = result.slice(0, 20);
-      const quoteShare = top20.filter((d) => d.cardType === "quote").length / top20.length;
+      const quoteShare = top20.filter((d) => d.postType === "quote").length / top20.length;
       expect(quoteShare).toBeLessThanOrEqual(0.3);
     });
 

@@ -326,8 +326,8 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function sectionToDrafts(section: Section): FixtureDraft[] {
-  return section.draftMix.map((cardType, i) => ({
-    draftId: `${section.sectionId}-${cardType}-${i}`,
+  return section.draftMix.map((postType, i) => ({
+    draftId: `${section.sectionId}-${postType}-${i}`,
     documentId: DOCUMENT_ID,
     sectionId: section.sectionId,
     sectionTitle: section.sectionTitle,
@@ -338,10 +338,10 @@ function sectionToDrafts(section: Section): FixtureDraft[] {
     // Quotes inherit section semantic but collapse toward 0.5 when from weak sections -
     // this reproduces "valid quote shape, weak learning value".
     semanticQualityScore:
-      cardType === "quote"
+      postType === "quote"
         ? clamp(section.semanticQualityScore * 0.75 + 0.1, 0.1, 0.95)
         : section.semanticQualityScore,
-    cardType,
+    postType,
     strategy: "initial",
     language: section.language,
     contentPreview: section.contentPreview,

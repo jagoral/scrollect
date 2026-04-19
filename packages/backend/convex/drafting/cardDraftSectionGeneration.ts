@@ -6,8 +6,8 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { WideEvent } from "../../src/platform/logging";
-import { draftCardType } from "../lib/validators";
-import type { DraftCardType, TokenUsage } from "../../src/providers/types";
+import { draftPostType } from "../lib/validators";
+import type { DraftPostType, TokenUsage } from "../../src/providers/types";
 import { captureAiUsage } from "../../src/providers/analytics/posthog";
 
 import { computeContentHash } from "../../src/platform/contentHash";
@@ -23,7 +23,7 @@ export const generateDraftsForSectionBatch = internalAction({
     jobId: v.id("processingJobs"),
     documentId: v.id("documents"),
     sectionSummaryId: v.id("sectionSummaries"),
-    cardTypes: v.array(draftCardType),
+    cardTypes: v.array(draftPostType),
     generationBatch: v.number(),
     sectionQualitySignal: v.optional(v.number()),
     mode: v.union(v.literal("initial"), v.literal("replenishment")),
@@ -96,7 +96,7 @@ export const generateDraftsForSectionBatch = internalAction({
         chunkIndex: c.chunkIndex,
       }));
 
-      const existingDrafts = await ctx.runQuery(internal.drafting.cardDrafts.listByDocument, {
+      const existingDrafts = await ctx.runQuery(internal.drafting.postDrafts.listByDocument, {
         documentId,
       });
       const existingHashes = new Set(existingDrafts.map((draft) => draft.contentHash));
@@ -119,7 +119,7 @@ export const generateDraftsForSectionBatch = internalAction({
           },
           sectionQualitySignal,
           allChunks: chunkData,
-          cardTypes: cardTypes as DraftCardType[],
+          cardTypes: cardTypes as DraftPostType[],
           generationBatch,
           contextDepth: "full",
           existingHashes,
@@ -132,12 +132,12 @@ export const generateDraftsForSectionBatch = internalAction({
       evt.set(result.metrics);
 
       if (result.drafts.length > 0) {
-        await ctx.runMutation(internal.drafting.cardDrafts.createBatch, {
+        await ctx.runMutation(internal.drafting.postDrafts.createBatch, {
           userId: doc.userId,
           drafts: result.drafts.map((draft) => ({
             documentId: draft.documentId as Id<"documents">,
             sectionSummaryId: draft.sectionSummaryId as Id<"sectionSummaries">,
-            cardType: draft.cardType,
+            postType: draft.postType,
             content: draft.content,
             typeData: draft.typeData,
             sourceChunkIds: draft.sourceChunkIds as Id<"chunks">[],

@@ -2,8 +2,8 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 import {
-  cardDraftStatus,
-  cardDraftStrategy,
+  postDraftStatus,
+  postDraftStrategy,
   connectionPairStatus,
   connectionType,
   dislikeReason,
@@ -78,7 +78,7 @@ export default defineSchema({
     primarySourceDocumentId: v.id("documents"),
     primarySourceDocumentTitle: v.string(),
     // v2 fields (optional for backward compat with existing dev data)
-    cardDraftId: v.optional(v.id("cardDrafts")),
+    postDraftId: v.optional(v.id("postDrafts")),
     sectionTitle: v.optional(v.string()),
     pageStart: v.optional(v.number()),
     pageEnd: v.optional(v.number()),
@@ -101,13 +101,13 @@ export default defineSchema({
   reactionFeedback: defineTable({
     userId: v.string(),
     postId: v.id("posts"),
-    cardDraftId: v.id("cardDrafts"),
+    postDraftId: v.id("postDrafts"),
     reaction: reactionType,
     dislikeReason: v.optional(dislikeReason),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_cardDraftId", ["userId", "cardDraftId"]),
+    .index("by_userId_postDraftId", ["userId", "postDraftId"]),
 
   bookmarkLists: defineTable({
     userId: v.string(),
@@ -193,11 +193,11 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_normalizedName", ["userId", "normalizedName"]),
 
-  cardDrafts: defineTable({
+  postDrafts: defineTable({
     documentId: v.id("documents"),
     sectionSummaryId: v.optional(v.id("sectionSummaries")),
     userId: v.string(),
-    cardType: postType,
+    postType: postType,
     content: v.string(),
     typeData,
     sourceChunkIds: v.array(v.id("chunks")),
@@ -205,10 +205,10 @@ export default defineSchema({
     qualityScore: v.number(),
     semanticQualityScore: v.optional(v.number()),
     sectionQualitySignal: v.optional(v.number()),
-    status: cardDraftStatus,
+    status: postDraftStatus,
     servedCount: v.optional(v.number()),
     generationBatch: v.number(),
-    strategy: cardDraftStrategy,
+    strategy: postDraftStrategy,
     rejectionReason: v.optional(v.string()),
     createdAt: v.number(),
   })
@@ -216,7 +216,7 @@ export default defineSchema({
     .index("by_userId_status", ["userId", "status"])
     .index("by_documentId_status", ["documentId", "status"])
     .index("by_userId_contentHash", ["userId", "contentHash"])
-    .index("by_userId_status_cardType", ["userId", "status", "cardType"]),
+    .index("by_userId_status_postType", ["userId", "status", "postType"]),
 
   entitlementGrants: defineTable({
     userId: v.string(),

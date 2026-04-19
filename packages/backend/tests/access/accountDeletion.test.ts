@@ -43,7 +43,7 @@ describe("deleteAccountDocuments", () => {
         deletedChunks: 6,
         deletedSectionSummaries: 7,
         deletedProcessingJobs: 8,
-        deletedCardDrafts: 9,
+        deletedPostDrafts: 9,
         deletedReactionFeedback: 10,
       })
       .mockResolvedValueOnce({ deletedOrphanedTags: 11 });

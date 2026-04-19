@@ -12,7 +12,7 @@ import { DEFAULT_SCORING_CONFIG, scoreDrafts } from "../../src/feed/logic/scorin
 import type { DislikeSignal, ReactionSummary, ScoredDraft } from "../../src/feed/logic/scoring";
 import {
   computeBookDepthReach,
-  computeCardTypeMix,
+  computePostTypeMix,
   computeQualityDistribution,
   firstSessionDocuments,
   summarizeGoalRelevance,
@@ -45,12 +45,12 @@ export const serveFeed = mutation({
     try {
       // Bounded queries - ADR-016 recommends revisiting at 10k drafts per user
       const pendingDrafts = await ctx.db
-        .query("cardDrafts")
+        .query("postDrafts")
         .withIndex("by_userId_status", (q) => q.eq("userId", userId).eq("status", "pending"))
         .take(2000);
 
       const servedDrafts = await ctx.db
-        .query("cardDrafts")
+        .query("postDrafts")
         .withIndex("by_userId_status", (q) => q.eq("userId", userId).eq("status", "served"))
         .take(2000);
 
@@ -96,7 +96,7 @@ export const serveFeed = mutation({
           id: d._id,
           documentId: d.documentId,
           sectionSummaryId: d.sectionSummaryId as string | undefined,
-          cardType: d.cardType,
+          postType: d.postType,
           strategy: d.strategy,
           qualityScore: d.qualityScore,
           semanticQualityScore: d.semanticQualityScore,
@@ -187,11 +187,11 @@ export const serveFeed = mutation({
 
         const postId = await ctx.db.insert("posts", {
           content: draft.content,
-          postType: draft.cardType,
+          postType: draft.postType,
           typeData: draft.typeData,
           primarySourceDocumentId: draft.documentId,
           primarySourceDocumentTitle: doc?.title ?? "Unknown",
-          cardDraftId: draft._id,
+          postDraftId: draft._id,
           sectionTitle: attribution.sectionTitle,
           pageStart: attribution.pageStart,
           pageEnd: attribution.pageEnd,
@@ -266,7 +266,7 @@ export const serveFeed = mutation({
       const bookDepthReaches = firstSessionBatches
         .map(computeBookDepthReach)
         .filter((r): r is NonNullable<typeof r> => r !== null);
-      const cardTypeMixes = firstSessionBatches.map(computeCardTypeMix);
+      const postTypeMixes = firstSessionBatches.map(computePostTypeMix);
       const qualityDistribution = computeQualityDistribution(topDrafts);
       const goalRelevance = summarizeGoalRelevance({
         goalEmbeddingByDocument,
@@ -295,7 +295,7 @@ export const serveFeed = mutation({
         draftsPerDocumentStats,
         reactionStats,
         bookDepthReaches,
-        cardTypeMixes,
+        postTypeMixes,
         qualityDistribution: qualityDistribution ?? undefined,
         goalRelevance: goalRelevancePayload,
       });
@@ -322,7 +322,7 @@ type ReactionStats = {
 async function buildReactionSummary(
   ctx: MutationCtx,
   userId: string,
-  draftsToScore: Doc<"cardDrafts">[],
+  draftsToScore: Doc<"postDrafts">[],
 ): Promise<{ summary: ReactionSummary; feedbackRows: Doc<"reactionFeedback">[] }> {
   // Cap at 500 most recent rows to bound memory. Recent signals matter more
   // for scoring, so we order desc and drop the oldest if the user exceeds 500.
@@ -344,8 +344,8 @@ async function buildReactionSummary(
   const missingDraftIds = [
     ...new Set(
       feedbackRows
-        .filter((fb) => !draftLookup.has(fb.cardDraftId as string))
-        .map((fb) => fb.cardDraftId),
+        .filter((fb) => !draftLookup.has(fb.postDraftId as string))
+        .map((fb) => fb.postDraftId),
     ),
   ];
   const resolvedDrafts = await Promise.all(missingDraftIds.map((id) => ctx.db.get(id)));
@@ -353,7 +353,7 @@ async function buildReactionSummary(
 
   for (const fb of feedbackRows) {
     const draft =
-      draftLookup.get(fb.cardDraftId as string) ?? resolvedMap.get(fb.cardDraftId as string);
+      draftLookup.get(fb.postDraftId as string) ?? resolvedMap.get(fb.postDraftId as string);
     if (!draft) continue;
     applyFeedbackSignals(draft, fb, {
       dislikedSections,
@@ -377,7 +377,7 @@ async function buildReactionSummary(
 }
 
 function applyFeedbackSignals(
-  draft: Doc<"cardDrafts">,
+  draft: Doc<"postDrafts">,
   fb: Doc<"reactionFeedback">,
   summary: ReactionSummary,
 ): void {
@@ -385,17 +385,17 @@ function applyFeedbackSignals(
 
   if (fb.reaction === "like") {
     if (sectionId) summary.likedSections.add(sectionId);
-    summary.likedCardTypes.add(draft.cardType);
+    summary.likedCardTypes.add(draft.postType);
     return;
   }
 
   if (fb.dislikeReason === "low_quality") {
-    summary.rejectedDraftIds.add(fb.cardDraftId as string);
+    summary.rejectedDraftIds.add(fb.postDraftId as string);
     return;
   }
 
   if (fb.dislikeReason === "wrong_type") {
-    summary.dislikedCardTypes.add(draft.cardType);
+    summary.dislikedCardTypes.add(draft.postType);
   }
 
   if (
@@ -449,7 +449,7 @@ type ScoredDraftRef = { id: string };
 async function batchResolveAttributions(
   ctx: MutationCtx,
   topDrafts: ScoredDraftRef[],
-  draftMap: Map<string, Doc<"cardDrafts">>,
+  draftMap: Map<string, Doc<"postDrafts">>,
   prebuiltSectionMap?: Map<string, Doc<"sectionSummaries"> | null>,
 ): Promise<Map<string, Attribution>> {
   const noAttribution: Attribution = {
@@ -555,7 +555,7 @@ async function batchResolveAttributions(
 
 async function maybeScheduleReplenishment(ctx: MutationCtx, userId: string): Promise<boolean> {
   const recentPending = await ctx.db
-    .query("cardDrafts")
+    .query("postDrafts")
     .withIndex("by_userId_status", (q) => q.eq("userId", userId).eq("status", "pending"))
     .order("desc")
     .first();

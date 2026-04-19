@@ -6,9 +6,9 @@ export const structuralValidity = createScorer<any, any, any>({
   description: "Validates card structure using castTypeData and computeStructuralScore",
   scorer: ({ output }) => {
     try {
-      castTypeData(output.cardType, output.typeData);
+      castTypeData(output.postType, output.typeData);
       return computeStructuralScore({
-        cardType: output.cardType,
+        postType: output.postType,
         typeData: output.typeData,
       });
     } catch {

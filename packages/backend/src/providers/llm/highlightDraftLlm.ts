@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { DraftCardType, HighlightDraftLlm } from "../types";
+import type { DraftPostType, HighlightDraftLlm } from "../types";
 import { ZERO_USAGE, type TokenUsage, addUsage, generate } from "./models";
 import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
 
@@ -8,7 +8,7 @@ const classificationSchema = z.object({
   classifications: z.array(
     z.object({
       highlightId: z.string().describe("The highlight ID from the input"),
-      cardType: z
+      postType: z
         .enum(["insight", "quiz", "quote", "summary"])
         .describe("The best-fit card type for this highlight"),
     }),
@@ -80,7 +80,7 @@ const summarySchema = z.object({
     ),
 });
 
-const TYPE_SCHEMAS: Record<DraftCardType, z.ZodSchema> = {
+const TYPE_SCHEMAS: Record<DraftPostType, z.ZodSchema> = {
   insight: insightSchema,
   quiz: quizSchema,
   quote: quoteSchema,
@@ -132,11 +132,11 @@ ${highlightList}
 Classify each highlight into exactly one card type.`;
 }
 
-function buildGenerationSystem(opts: { cardType: DraftCardType; language?: string }): string {
-  const { cardType, language } = opts;
+function buildGenerationSystem(opts: { postType: DraftPostType; language?: string }): string {
+  const { postType, language } = opts;
   const base = `You are an AI learning assistant for Scrollect. ${buildLanguageInstruction(language)}`;
 
-  switch (cardType) {
+  switch (postType) {
     case "quote":
       return `${base}
 
@@ -242,7 +242,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
     cards: Array<{
       highlightId: string;
       content: string;
-      cardType: DraftCardType;
+      postType: DraftPostType;
       typeData: Record<string, unknown>;
     }>;
     usage: TokenUsage;
@@ -265,17 +265,17 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
 
     const classifications = classificationOutput?.classifications ?? [];
     const classMap = new Map(
-      classifications.map((c) => [c.highlightId, c.cardType as DraftCardType]),
+      classifications.map((c) => [c.highlightId, c.postType as DraftPostType]),
     );
 
     const generationPromises = opts.highlights.map(async (highlight) => {
-      const cardType = classMap.get(highlight.highlightId) ?? "insight";
-      const schema = TYPE_SCHEMAS[cardType];
+      const postType = classMap.get(highlight.highlightId) ?? "insight";
+      const schema = TYPE_SCHEMAS[postType];
 
       const { output, usage } = await generate({
         model: "generate",
         schema,
-        system: buildGenerationSystem({ cardType, language: opts.language }),
+        system: buildGenerationSystem({ postType, language: opts.language }),
         prompt: buildGenerationPrompt({
           highlightText: highlight.highlightText,
           sectionSummary: opts.sectionSummary,
@@ -288,9 +288,9 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
 
       const result = output ?? { content: "" };
       const content = (result as Record<string, unknown>).content as string;
-      const typeData: Record<string, unknown> = { type: cardType };
+      const typeData: Record<string, unknown> = { type: postType };
 
-      switch (cardType) {
+      switch (postType) {
         case "quiz": {
           const q = result as z.infer<typeof quizSchema>;
           typeData.variant = q.variant ?? "multiple_choice";
@@ -319,7 +319,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
         card: {
           highlightId: highlight.highlightId,
           content,
-          cardType,
+          postType,
           typeData,
         },
         usage,

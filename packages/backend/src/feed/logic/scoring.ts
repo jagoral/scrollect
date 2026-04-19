@@ -66,7 +66,7 @@ export type ScoredDraft = {
   id: string;
   documentId: string;
   sectionSummaryId?: string;
-  cardType: string;
+  postType: string;
   strategy: string;
   qualityScore: number;
   /** Per ADR-018: semantic learning value from the validator LLM. Optional fallback to qualityScore. */
@@ -252,11 +252,11 @@ function computeReactionMultiplier(
     }
   }
 
-  if (summary.dislikedCardTypes.has(draft.cardType)) {
+  if (summary.dislikedCardTypes.has(draft.postType)) {
     multiplier *= config.reactionWrongTypeMultiplier;
   }
 
-  if (summary.likedCardTypes.has(draft.cardType)) {
+  if (summary.likedCardTypes.has(draft.postType)) {
     multiplier *= config.reactionLikeCardTypeMultiplier;
   }
 
@@ -336,15 +336,15 @@ function bookPositionBucketIndex(draft: ScoredDraft, bucketCount: number): numbe
  */
 function applyCardTypeShareCap(
   sorted: ScoredDraftWithScore[],
-  cardType: string,
+  postType: string,
   share: number,
   config: ScoringConfig,
 ): ScoredDraftWithScore[] {
   if (share >= 1) return sorted;
   if (share <= 0) {
     // Treat 0 as "demote all of this type." Still include them at the tail to preserve order.
-    const matching = sorted.filter((d) => d.cardType === cardType);
-    const others = sorted.filter((d) => d.cardType !== cardType);
+    const matching = sorted.filter((d) => d.postType === postType);
+    const others = sorted.filter((d) => d.postType !== postType);
     return [...others, ...matching];
   }
   const effectiveSize = Math.min(sorted.length, config.batchSize);
@@ -353,7 +353,7 @@ function applyCardTypeShareCap(
   const demoted: ScoredDraftWithScore[] = [];
   let acceptedOfType = 0;
   for (const draft of sorted) {
-    if (draft.cardType === cardType) {
+    if (draft.postType === postType) {
       if (acceptedOfType < cap) {
         accepted.push(draft);
         acceptedOfType++;
@@ -382,8 +382,8 @@ function applyTypeDiversity(
       continue;
     }
 
-    const lastType = result[result.length - 1]!.cardType;
-    const swapIndex = remaining.findIndex((d) => d.cardType !== lastType);
+    const lastType = result[result.length - 1]!.postType;
+    const swapIndex = remaining.findIndex((d) => d.postType !== lastType);
 
     if (swapIndex === -1) {
       result.push(remaining.shift()!);
@@ -397,10 +397,10 @@ function applyTypeDiversity(
 
 function countTrailingType(items: ScoredDraftWithScore[]): number {
   if (items.length === 0) return 0;
-  const lastType = items[items.length - 1]!.cardType;
+  const lastType = items[items.length - 1]!.postType;
   let count = 0;
   for (let i = items.length - 1; i >= 0; i--) {
-    if (items[i]!.cardType !== lastType) break;
+    if (items[i]!.postType !== lastType) break;
     count++;
   }
   return count;

@@ -17,7 +17,7 @@ export const transcriptionPolish = createScorer<any, any, any>({
   description:
     "Checks that YouTube/speech-source quote cards have speech artifacts removed while non-speech sources are unaffected",
   scorer: async ({ output }) => {
-    if (output.cardType !== "quote") {
+    if (output.postType !== "quote") {
       return { score: 1, metadata: { rationale: "Not a quote card, skipping" } };
     }
 

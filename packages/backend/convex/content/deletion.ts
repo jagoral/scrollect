@@ -36,7 +36,7 @@ export type DocumentDeletionCascadeResult = {
     chunks: number;
     sectionSummaries: number;
     processingJobs: number;
-    cardDrafts: number;
+    postDrafts: number;
     reactionFeedback: number;
     orphanedTags: number;
   };
@@ -131,7 +131,7 @@ export async function executeDocumentDeletionCascade({
       chunks: chunkResult.deletedChunks,
       sectionSummaries: chunkResult.deletedSectionSummaries,
       processingJobs: chunkResult.deletedProcessingJobs,
-      cardDrafts: chunkResult.deletedCardDrafts,
+      postDrafts: chunkResult.deletedPostDrafts,
       reactionFeedback: chunkResult.deletedReactionFeedback,
       orphanedTags: docResult.deletedOrphanedTags,
     },

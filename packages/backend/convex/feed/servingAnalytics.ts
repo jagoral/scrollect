@@ -33,7 +33,7 @@ const bookDepthReachValidator = v.object({
   populatedQuartiles: v.number(),
 });
 
-const cardTypeMixValidator = v.object({
+const postTypeMixValidator = v.object({
   documentId: v.string(),
   cardCount: v.number(),
   // Flat record (card type -> count). PostHog ingests this shape cleanly and the key set
@@ -87,7 +87,7 @@ export const captureServingAnalytics = internalAction({
     // ADR-018 §7: per-first-session-document metrics. Batch-indexed by documentId so PostHog
     // can aggregate across documents without deep nesting.
     bookDepthReaches: v.optional(v.array(bookDepthReachValidator)),
-    cardTypeMixes: v.optional(v.array(cardTypeMixValidator)),
+    postTypeMixes: v.optional(v.array(postTypeMixValidator)),
     qualityDistribution: v.optional(qualityDistributionValidator),
     goalRelevance: v.optional(goalRelevanceValidator),
   },
@@ -135,8 +135,8 @@ export const captureServingAnalytics = internalAction({
       }
     }
 
-    if (args.cardTypeMixes && args.cardTypeMixes.length > 0) {
-      for (const mix of args.cardTypeMixes) {
+    if (args.postTypeMixes && args.postTypeMixes.length > 0) {
+      for (const mix of args.postTypeMixes) {
         await emit(ctx, args.userId, "feed.first_session_card_type_mix", {
           document_id: mix.documentId,
           card_count: mix.cardCount,

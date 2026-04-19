@@ -67,7 +67,7 @@ export const generateDraftsForDocument = internalAction({
         return;
       }
 
-      const existingDrafts = await ctx.runQuery(internal.drafting.cardDrafts.listByDocument, {
+      const existingDrafts = await ctx.runQuery(internal.drafting.postDrafts.listByDocument, {
         documentId,
       });
       const services = createDraftGenerationServiceContext();

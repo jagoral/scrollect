@@ -8,7 +8,7 @@ import {
   contentSpecificity,
   typeSpecificQuality,
 } from "./scorers";
-import type { DraftCardType } from "../convex/lib/validators";
+import type { DraftPostType } from "../convex/lib/validators";
 
 type HighlightDraftInput = {
   highlightId: string;
@@ -21,7 +21,7 @@ type HighlightDraftInput = {
 };
 
 type HighlightDraftOutput = {
-  cardType: DraftCardType;
+  postType: DraftPostType;
   content: string;
   typeData: Record<string, unknown>;
   sourceChunks: string[];
@@ -66,7 +66,7 @@ evalite("Highlight Draft", {
       costUsd: { input: 0, output: 0, total: 0 },
     };
     const emptyResult = {
-      cardType: "insight" as DraftCardType,
+      postType: "insight" as DraftPostType,
       content: "",
       typeData: { type: "insight" },
       sourceChunks: input.chunks.map((c) => c.content),
@@ -91,7 +91,7 @@ evalite("Highlight Draft", {
       if (!card) return emptyResult;
 
       return {
-        cardType: card.cardType,
+        postType: card.postType,
         content: card.content,
         typeData: card.typeData,
         sourceChunks: input.chunks.map((c) => c.content),

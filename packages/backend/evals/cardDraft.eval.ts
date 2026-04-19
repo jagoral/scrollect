@@ -1,7 +1,7 @@
 import { evalite } from "evalite";
 
 import { AiSdkCardDraftLlm } from "../src/providers/llm/cardDraftLlm";
-import type { DraftCardType } from "../convex/lib/validators";
+import type { DraftPostType } from "../convex/lib/validators";
 import {
   ARTICLE_EN_ARCHITECTURE,
   BOOK_EN_LEARNING,
@@ -21,7 +21,7 @@ import {
 } from "./scorers";
 
 type SectionInput = {
-  cardType: DraftCardType;
+  postType: DraftPostType;
   sectionTitle: string;
   sectionSummary: string;
   chunks: Array<{ content: string; chunkId: string }>;
@@ -31,7 +31,7 @@ type SectionInput = {
 };
 
 type CardDraftOutput = {
-  cardType: DraftCardType;
+  postType: DraftPostType;
   content: string;
   typeData: Record<string, unknown>;
   sourceChunks: string[];
@@ -44,7 +44,7 @@ const llm = new AiSdkCardDraftLlm();
 function buildSectionInputs(): SectionInput[] {
   return [
     {
-      cardType: "insight",
+      postType: "insight",
       sectionTitle: ARTICLE_EN_ARCHITECTURE.sections[1]!.sectionTitle,
       sectionSummary: ARTICLE_EN_ARCHITECTURE.sections[1]!.sectionSummary,
       chunks: ARTICLE_EN_ARCHITECTURE.sections[1]!.chunks,
@@ -53,7 +53,7 @@ function buildSectionInputs(): SectionInput[] {
       fileType: ARTICLE_EN_ARCHITECTURE.fileType,
     },
     {
-      cardType: "summary",
+      postType: "summary",
       sectionTitle: BOOK_EN_LEARNING.sections[1]!.sectionTitle,
       sectionSummary: BOOK_EN_LEARNING.sections[1]!.sectionSummary,
       chunks: BOOK_EN_LEARNING.sections[1]!.chunks,
@@ -62,7 +62,7 @@ function buildSectionInputs(): SectionInput[] {
       fileType: BOOK_EN_LEARNING.fileType,
     },
     {
-      cardType: "quiz",
+      postType: "quiz",
       sectionTitle: YOUTUBE_EN_ML.sections[1]!.sectionTitle,
       sectionSummary: YOUTUBE_EN_ML.sections[1]!.sectionSummary,
       chunks: YOUTUBE_EN_ML.sections[1]!.chunks,
@@ -71,7 +71,7 @@ function buildSectionInputs(): SectionInput[] {
       fileType: YOUTUBE_EN_ML.fileType,
     },
     {
-      cardType: "quote",
+      postType: "quote",
       sectionTitle: BOOK_PL_LEWANDOWSKI.sections[3]!.sectionTitle,
       sectionSummary: BOOK_PL_LEWANDOWSKI.sections[3]!.sectionSummary,
       chunks: BOOK_PL_LEWANDOWSKI.sections[3]!.chunks,
@@ -86,7 +86,7 @@ evalite("Section Draft Smoke", {
   data: () => buildSectionInputs().map((s) => ({ input: s })),
   task: async (input: SectionInput) => {
     const { card } = await llm.generateDraft({
-      cardType: input.cardType,
+      postType: input.postType,
       sectionSummary: input.sectionSummary,
       sectionTitle: input.sectionTitle,
       chunks: input.chunks,
@@ -96,9 +96,9 @@ evalite("Section Draft Smoke", {
 
     if (!card) {
       return {
-        cardType: input.cardType,
+        postType: input.postType,
         content: "",
-        typeData: { type: input.cardType },
+        typeData: { type: input.postType },
         sourceChunks: input.chunks.map((c) => c.content),
         expectedLanguage: input.expectedLanguage,
         fileType: input.fileType,
@@ -106,7 +106,7 @@ evalite("Section Draft Smoke", {
     }
 
     return {
-      cardType: input.cardType,
+      postType: input.postType,
       content: card.content,
       typeData: card.typeData,
       sourceChunks: input.chunks.map((c) => c.content),

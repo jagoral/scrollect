@@ -123,7 +123,7 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
     },
   );
 
-  const isLegacyPost = !post.cardDraftId;
+  const isLegacyPost = !post.postDraftId;
 
   const handleLikeClick = useCallback(() => {
     const nextReaction = post.reaction === "like" ? "none" : "like";
@@ -155,7 +155,7 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
         card_type: post.postType,
         dislike_reason: reason,
         source_document_id: post.primarySourceDocumentId,
-        card_draft_id: post.cardDraftId ?? null,
+        post_draft_id: post.postDraftId ?? null,
       });
       posthog.capture("card.hidden_by_dislike", {
         card_type: post.postType,
@@ -175,7 +175,7 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
     [
       post.postType,
       post.primarySourceDocumentId,
-      post.cardDraftId,
+      post.postDraftId,
       post._id,
       posthog,
       setReaction,

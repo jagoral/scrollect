@@ -30,10 +30,10 @@ import type * as drafting_cardDraftCompletion from "../drafting/cardDraftComplet
 import type * as drafting_cardDraftGeneration from "../drafting/cardDraftGeneration.js";
 import type * as drafting_cardDraftReplenishment from "../drafting/cardDraftReplenishment.js";
 import type * as drafting_cardDraftSectionGeneration from "../drafting/cardDraftSectionGeneration.js";
-import type * as drafting_cardDrafts from "../drafting/cardDrafts.js";
 import type * as drafting_connectionDiscovery from "../drafting/connectionDiscovery.js";
 import type * as drafting_connectionPairs from "../drafting/connectionPairs.js";
 import type * as drafting_highlightDraftGeneration from "../drafting/highlightDraftGeneration.js";
+import type * as drafting_postDrafts from "../drafting/postDrafts.js";
 import type * as drafting_services from "../drafting/services.js";
 import type * as drafting_thematicDraftGeneration from "../drafting/thematicDraftGeneration.js";
 import type * as feed_learningGoal from "../feed/learningGoal.js";
@@ -95,10 +95,10 @@ declare const fullApi: ApiFromModules<{
   "drafting/cardDraftGeneration": typeof drafting_cardDraftGeneration;
   "drafting/cardDraftReplenishment": typeof drafting_cardDraftReplenishment;
   "drafting/cardDraftSectionGeneration": typeof drafting_cardDraftSectionGeneration;
-  "drafting/cardDrafts": typeof drafting_cardDrafts;
   "drafting/connectionDiscovery": typeof drafting_connectionDiscovery;
   "drafting/connectionPairs": typeof drafting_connectionPairs;
   "drafting/highlightDraftGeneration": typeof drafting_highlightDraftGeneration;
+  "drafting/postDrafts": typeof drafting_postDrafts;
   "drafting/services": typeof drafting_services;
   "drafting/thematicDraftGeneration": typeof drafting_thematicDraftGeneration;
   "feed/learningGoal": typeof feed_learningGoal;

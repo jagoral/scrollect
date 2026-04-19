@@ -200,7 +200,7 @@ describe("discoverConnections", () => {
 
     for (const draft of result.drafts) {
       expect(draft.strategy).toBe("connection");
-      expect(draft.cardType).toBe("connection");
+      expect(draft.postType).toBe("connection");
       expect(draft.typeData.type).toBe("connection");
       expect(draft.typeData.sourceATitleHint).toBeTruthy();
       expect(draft.typeData.sourceBTitleHint).toBeTruthy();

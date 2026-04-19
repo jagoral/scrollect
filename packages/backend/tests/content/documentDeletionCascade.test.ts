@@ -16,7 +16,7 @@ describe("executeDocumentDeletionCascade", () => {
         deletedChunks: 6,
         deletedSectionSummaries: 7,
         deletedProcessingJobs: 8,
-        deletedCardDrafts: 9,
+        deletedPostDrafts: 9,
         deletedReactionFeedback: 10,
       })
       .mockResolvedValueOnce({ deletedOrphanedTags: 11 });
@@ -61,7 +61,7 @@ describe("executeDocumentDeletionCascade", () => {
         chunks: 6,
         sectionSummaries: 7,
         processingJobs: 8,
-        cardDrafts: 9,
+        postDrafts: 9,
         reactionFeedback: 10,
         orphanedTags: 11,
       },
@@ -80,7 +80,7 @@ describe("executeDocumentDeletionCascade", () => {
         deletedChunks: 0,
         deletedSectionSummaries: 0,
         deletedProcessingJobs: 0,
-        deletedCardDrafts: 0,
+        deletedPostDrafts: 0,
         deletedReactionFeedback: 0,
         deletedOrphanedTags: 0,
       };

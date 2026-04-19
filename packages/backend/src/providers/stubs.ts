@@ -5,7 +5,7 @@ import type {
   ConnectionDiscoveryLlm,
   ContentExtractor,
   DocumentMetadataLlm,
-  DraftCardType,
+  DraftPostType,
   ExtractResult,
   HighlightDraftLlm,
   SectionDraftRankerLlm,
@@ -152,7 +152,7 @@ export class StubDocumentMetadataLlm implements DocumentMetadataLlm {
 }
 
 const STUB_DRAFTS: Record<
-  DraftCardType,
+  DraftPostType,
   (sectionTitle: string) => { content: string; typeData: Record<string, unknown> }
 > = {
   insight: (sectionTitle) => ({
@@ -191,7 +191,7 @@ const STUB_DRAFTS: Record<
 
 export class StubCardDraftLlm implements CardDraftLlm {
   async generateDraft(opts: {
-    cardType: DraftCardType;
+    postType: DraftPostType;
     sectionSummary: string;
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
@@ -204,7 +204,7 @@ export class StubCardDraftLlm implements CardDraftLlm {
     usage: TokenUsage;
   }> {
     return {
-      card: STUB_DRAFTS[opts.cardType](opts.sectionTitle),
+      card: STUB_DRAFTS[opts.postType](opts.sectionTitle),
       usage: ZERO_USAGE,
     };
   }
@@ -301,7 +301,7 @@ export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
 
 export class StubCardDraftValidator implements CardDraftValidator {
   async validateDraft(opts: {
-    cardType: DraftCardType;
+    postType: DraftPostType;
     content: string;
     typeData: Record<string, unknown>;
     sectionTitle: string;
@@ -315,13 +315,13 @@ export class StubCardDraftValidator implements CardDraftValidator {
   }
 }
 
-function syntheticSemanticQualityScore(opts: { cardType: DraftCardType; content: string }): number {
+function syntheticSemanticQualityScore(opts: { postType: DraftPostType; content: string }): number {
   // Band widths tuned so that across a realistic 4-type generation mix the distribution
   // clears ADR-018 §1: std >= 0.15 and >= 20% of drafts below 0.7 — robust even on
   // short fixture content. Quote anchor stays hard: verbatim-but-uneducational tops
   // out below 0.6.
   const lengthFactor = Math.min(1, opts.content.length / 400);
-  switch (opts.cardType) {
+  switch (opts.postType) {
     case "quote":
       return 0.15 + 0.4 * lengthFactor;
     case "summary":
@@ -346,7 +346,7 @@ export class StubHighlightDraftLlm implements HighlightDraftLlm {
     cards: Array<{
       highlightId: string;
       content: string;
-      cardType: DraftCardType;
+      postType: DraftPostType;
       typeData: Record<string, unknown>;
     }>;
     usage: TokenUsage;
@@ -354,7 +354,7 @@ export class StubHighlightDraftLlm implements HighlightDraftLlm {
     const cards = opts.highlights.map((h) => ({
       highlightId: h.highlightId,
       content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}...`,
-      cardType: "insight" as DraftCardType,
+      postType: "insight" as DraftPostType,
       typeData: { type: "insight" },
     }));
     return { cards, usage: ZERO_USAGE };

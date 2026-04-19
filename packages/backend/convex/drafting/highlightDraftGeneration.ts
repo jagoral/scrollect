@@ -89,7 +89,7 @@ export const generateHighlightDraftsForDocument = internalAction({
         documentId,
       });
 
-      const existingDrafts = await ctx.runQuery(internal.drafting.cardDrafts.listByDocumentStatus, {
+      const existingDrafts = await ctx.runQuery(internal.drafting.postDrafts.listByDocumentStatus, {
         documentId,
         status: "pending",
       });
@@ -135,12 +135,12 @@ export const generateHighlightDraftsForDocument = internalAction({
           id: documentId,
         });
         if (docCheck && docCheck.status !== "deleting") {
-          await ctx.runMutation(internal.drafting.cardDrafts.createBatch, {
+          await ctx.runMutation(internal.drafting.postDrafts.createBatch, {
             userId,
             drafts: result.drafts.map((d) => ({
               documentId: d.documentId as Id<"documents">,
               sectionSummaryId: d.sectionSummaryId as Id<"sectionSummaries"> | undefined,
-              cardType: d.cardType,
+              postType: d.postType,
               content: d.content,
               typeData: d.typeData,
               sourceChunkIds: d.sourceChunkIds as Id<"chunks">[],

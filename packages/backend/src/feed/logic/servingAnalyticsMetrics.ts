@@ -52,7 +52,7 @@ export type BookDepthReach = {
   populatedQuartiles: number;
 };
 
-export type CardTypeMix = {
+export type PostTypeMix = {
   documentId: string;
   cardCount: number;
   /**
@@ -149,10 +149,10 @@ export function computeBookDepthReach(batch: FirstSessionDocumentBatch): BookDep
   };
 }
 
-export function computeCardTypeMix(batch: FirstSessionDocumentBatch): CardTypeMix {
+export function computePostTypeMix(batch: FirstSessionDocumentBatch): PostTypeMix {
   const mix: Record<string, number> = {};
   for (const draft of batch.topDrafts) {
-    mix[draft.cardType] = (mix[draft.cardType] ?? 0) + 1;
+    mix[draft.postType] = (mix[draft.postType] ?? 0) + 1;
   }
   return {
     documentId: batch.documentId,

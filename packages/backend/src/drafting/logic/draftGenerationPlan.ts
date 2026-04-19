@@ -1,4 +1,4 @@
-import type { DraftCardType } from "../../providers/types";
+import type { DraftPostType } from "../../providers/types";
 
 export const INITIAL_DRAFT_POOL_LIMIT = 150;
 export const REPLENISHMENT_DRAFT_POOL_LIMIT = 60;
@@ -35,7 +35,7 @@ export type DraftPlanningSection = {
 
 export type PlannedSectionDrafts = {
   sectionSummaryId: string;
-  cardTypes: DraftCardType[];
+  cardTypes: DraftPostType[];
   generationBatch: number;
   qualitySignal: number;
   quoteCandidate: boolean;
@@ -89,10 +89,10 @@ const CARD_TYPES_BY_DRAFT_COUNT = {
     quote: ["insight", "summary", "quiz", "quote"],
   },
 } satisfies {
-  one: DraftCardType[];
-  two: Record<"default" | "quote", DraftCardType[]>;
-  three: Record<"default" | "quote", DraftCardType[]>;
-  four: Record<"default" | "quote", DraftCardType[]>;
+  one: DraftPostType[];
+  two: Record<"default" | "quote", DraftPostType[]>;
+  three: Record<"default" | "quote", DraftPostType[]>;
+  four: Record<"default" | "quote", DraftPostType[]>;
 };
 
 export function planDraftGeneration(opts: {
@@ -250,7 +250,7 @@ function assignCardTypes(opts: {
   });
 }
 
-function selectCardTypes(opts: { draftCount: number; includeQuote: boolean }): DraftCardType[] {
+function selectCardTypes(opts: { draftCount: number; includeQuote: boolean }): DraftPostType[] {
   if (opts.draftCount <= 0) return [];
   if (opts.draftCount === 1) return [...CARD_TYPES_BY_DRAFT_COUNT.one];
 

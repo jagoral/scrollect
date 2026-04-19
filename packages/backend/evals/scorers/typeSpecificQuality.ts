@@ -3,15 +3,15 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import { getAI } from "../../src/providers/llm/models";
-import type { DraftCardType } from "../../convex/lib/validators";
+import type { DraftPostType } from "../../convex/lib/validators";
 
 const ratingSchema = z.object({
   score: z.number().min(0).max(1).describe("Quality score from 0 (poor) to 1 (excellent)"),
   rationale: z.string().describe("Brief explanation"),
 });
 
-function buildTypePrompt(cardType: DraftCardType): string {
-  switch (cardType) {
+function buildTypePrompt(postType: DraftPostType): string {
+  switch (postType) {
     case "insight":
       return `Evaluate this INSIGHT card:
 - Does it contain a specific fact or surprising detail (not a vague summary)?
@@ -57,7 +57,7 @@ export const typeSpecificQuality = createScorer<any, any, any>({
       model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
       system: `You are a learning card quality evaluator. Be strict and specific in your assessment.`,
-      prompt: `${buildTypePrompt(output.cardType)}
+      prompt: `${buildTypePrompt(output.postType)}
 
 Card content: "${output.content}"
 Type data: ${typeDataStr}
@@ -71,7 +71,7 @@ ${sourceContext}${highlightSection}`,
 
     return {
       score: rating.score,
-      metadata: { rationale: rating.rationale, cardType: output.cardType },
+      metadata: { rationale: rating.rationale, postType: output.postType },
     };
   },
 });

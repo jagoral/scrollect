@@ -81,7 +81,7 @@ export const generateThematicDraftsForDocument = internalAction({
       });
       const chunkContentMap = new Map(allChunks.map((c) => [c._id as string, c.content]));
 
-      const existingDrafts = await ctx.runQuery(internal.drafting.cardDrafts.listByDocumentStatus, {
+      const existingDrafts = await ctx.runQuery(internal.drafting.postDrafts.listByDocumentStatus, {
         documentId,
         status: "pending",
       });
@@ -112,12 +112,12 @@ export const generateThematicDraftsForDocument = internalAction({
           id: documentId,
         });
         if (docCheck && docCheck.status !== "deleting") {
-          await ctx.runMutation(internal.drafting.cardDrafts.createBatch, {
+          await ctx.runMutation(internal.drafting.postDrafts.createBatch, {
             userId,
             drafts: result.drafts.map((d) => ({
               documentId: d.documentId as Id<"documents">,
               sectionSummaryId: d.sectionSummaryId,
-              cardType: d.cardType,
+              postType: d.postType,
               content: d.content,
               typeData: d.typeData,
               sourceChunkIds: d.sourceChunkIds as Id<"chunks">[],

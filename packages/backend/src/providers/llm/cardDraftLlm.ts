@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { CardDraftLlm, DraftCardType } from "../types";
+import type { CardDraftLlm, DraftPostType } from "../types";
 import { type TokenUsage, generate } from "./models";
 import { isSpeechSource } from "../../indexing/logic/contentTypes";
 import { buildLanguageInstruction, buildLearningGoalContext } from "./promptUtils";
@@ -80,7 +80,7 @@ const summarySchema = z.object({
     ),
 });
 
-const SCHEMAS: Record<DraftCardType, z.ZodSchema> = {
+const SCHEMAS: Record<DraftPostType, z.ZodSchema> = {
   insight: insightSchema,
   quiz: quizSchema,
   quote: quoteDecisionSchema,
@@ -88,11 +88,11 @@ const SCHEMAS: Record<DraftCardType, z.ZodSchema> = {
 };
 
 function buildSystemPrompt(opts: {
-  cardType: DraftCardType;
+  postType: DraftPostType;
   language?: string;
   fileType?: string;
 }): string {
-  const { cardType, language, fileType } = opts;
+  const { postType, language, fileType } = opts;
   const base = `You are an AI learning assistant for Scrollect, a personal learning feed app.
 Your job is to create a single focused learning card from a section of a document.
 
@@ -119,7 +119,7 @@ Your job is to create a single focused learning card from a section of a documen
 - "A prominent figure" or "one individual" instead of their actual name
 </avoid>`;
 
-  switch (cardType) {
+  switch (postType) {
     case "insight":
       return `${base}
 
@@ -189,7 +189,7 @@ ${
 
 export class AiSdkCardDraftLlm implements CardDraftLlm {
   async generateDraft(opts: {
-    cardType: DraftCardType;
+    postType: DraftPostType;
     sectionSummary: string;
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
@@ -212,12 +212,12 @@ Section summary: ${opts.sectionSummary}
 Source chunks:
 ${chunkText}`;
 
-    const schema = SCHEMAS[opts.cardType];
+    const schema = SCHEMAS[opts.postType];
     const { output, usage } = await generate({
       model: "generate",
       schema,
       system: buildSystemPrompt({
-        cardType: opts.cardType,
+        postType: opts.postType,
         language: opts.language,
         fileType: opts.fileType,
       }),
@@ -227,16 +227,16 @@ ${chunkText}`;
 
     const result = output ?? { content: "" };
     if (
-      opts.cardType === "quote" &&
+      opts.postType === "quote" &&
       (result as z.infer<typeof quoteDecisionSchema>).hasQuote === false
     ) {
       return { card: null, usage };
     }
 
     const content = (result as Record<string, unknown>).content as string;
-    const typeData: Record<string, unknown> = { type: opts.cardType };
+    const typeData: Record<string, unknown> = { type: opts.postType };
 
-    switch (opts.cardType) {
+    switch (opts.postType) {
       case "insight":
         break;
       case "quiz": {

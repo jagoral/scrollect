@@ -18,7 +18,7 @@ export const quoteContextCompleteness = createScorer<any, any, any>({
   description:
     "LLM-as-judge: checks that quote cards include speaker attribution with proper name and context about who/what the quote refers to",
   scorer: async ({ output }) => {
-    if (output.cardType !== "quote") {
+    if (output.postType !== "quote") {
       return {
         score: 1,
         metadata: { rationale: "Not a quote card, skipping" },

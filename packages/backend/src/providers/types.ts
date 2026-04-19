@@ -181,7 +181,7 @@ export interface DocumentMetadataLlm {
 }
 
 /** Card types eligible for draft generation (excludes "connection"). Standalone mirror of the Convex validator type. */
-export type DraftCardType = "insight" | "quiz" | "quote" | "summary";
+export type DraftPostType = "insight" | "quiz" | "quote" | "summary";
 
 /** Discriminated union describing per-card-type metadata. Standalone mirror of the Convex validator type. */
 export type TypeData =
@@ -208,7 +208,7 @@ export type TypeData =
 
 export interface CardDraftLlm {
   generateDraft(opts: {
-    cardType: DraftCardType;
+    postType: DraftPostType;
     sectionSummary: string;
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
@@ -238,7 +238,7 @@ export type ValidationResult = {
 
 export interface CardDraftValidator {
   validateDraft(opts: {
-    cardType: DraftCardType;
+    postType: DraftPostType;
     content: string;
     typeData: Record<string, unknown>;
     sectionTitle: string;
@@ -358,7 +358,7 @@ export interface HighlightDraftLlm {
     cards: Array<{
       highlightId: string;
       content: string;
-      cardType: DraftCardType;
+      postType: DraftPostType;
       typeData: Record<string, unknown>;
     }>;
     usage: TokenUsage;

@@ -125,7 +125,7 @@ describe("selectSectionChunks", () => {
 describe("computeQualityScore", () => {
   it("returns 1.0 for a well-formed insight with good length", () => {
     const score = computeQualityScore({
-      cardType: "insight",
+      postType: "insight",
       content: "A".repeat(200),
       typeData: { type: "insight" },
       sourceChunkCount: 2,
@@ -135,7 +135,7 @@ describe("computeQualityScore", () => {
 
   it("returns 0.0 for content below 50 chars with single chunk", () => {
     const score = computeQualityScore({
-      cardType: "insight",
+      postType: "insight",
       content: "Short",
       typeData: { type: "insight" },
       sourceChunkCount: 1,
@@ -145,7 +145,7 @@ describe("computeQualityScore", () => {
 
   it("gives full length score for cards in the 400-800 char range", () => {
     const score = computeQualityScore({
-      cardType: "insight",
+      postType: "insight",
       content: "A".repeat(600),
       typeData: { type: "insight" },
       sourceChunkCount: 2,
@@ -155,7 +155,7 @@ describe("computeQualityScore", () => {
 
   it("gives full length score for cards up to 1200 chars", () => {
     const score = computeQualityScore({
-      cardType: "insight",
+      postType: "insight",
       content: "A".repeat(1200),
       typeData: { type: "insight" },
       sourceChunkCount: 2,
@@ -165,7 +165,7 @@ describe("computeQualityScore", () => {
 
   it("returns 0.0 for structurally invalid quiz", () => {
     const score = computeQualityScore({
-      cardType: "quiz",
+      postType: "quiz",
       content: "A".repeat(200),
       typeData: { type: "quiz" },
       sourceChunkCount: 2,
@@ -175,7 +175,7 @@ describe("computeQualityScore", () => {
 
   it("gives quote type full coverage score regardless of chunk count", () => {
     const score = computeQualityScore({
-      cardType: "quote",
+      postType: "quote",
       content: "A".repeat(200),
       typeData: { type: "quote", quotedText: "some quote" },
       sourceChunkCount: 1,
@@ -193,7 +193,7 @@ describe("generateDraftsForSection", () => {
     });
 
     expect(result.drafts).toHaveLength(4);
-    const types = result.drafts.map((d) => d.cardType);
+    const types = result.drafts.map((d) => d.postType);
     expect(types).toContain("insight");
     expect(types).toContain("quiz");
     expect(types).toContain("quote");
@@ -208,7 +208,7 @@ describe("generateDraftsForSection", () => {
       services,
     });
 
-    expect(result.drafts.map((draft) => draft.cardType)).toEqual(["insight", "summary"]);
+    expect(result.drafts.map((draft) => draft.postType)).toEqual(["insight", "summary"]);
     expect(result.drafts.every((draft) => draft.generationBatch === 3)).toBe(true);
     expect(result.metrics.cardTypesAttempted).toBe(2);
   });
@@ -368,11 +368,11 @@ describe("generateDraftsForSection", () => {
       generateDraft: vi
         .fn()
         .mockImplementation(
-          async (opts: { cardType: string; sectionTitle: string; learningGoal?: string }) => ({
+          async (opts: { postType: string; sectionTitle: string; learningGoal?: string }) => ({
             card: {
-              content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful learning card content here.`,
+              content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful learning card content here.`,
               typeData:
-                opts.cardType === "quiz"
+                opts.postType === "quiz"
                   ? {
                       type: "quiz",
                       variant: "multiple_choice",
@@ -381,9 +381,9 @@ describe("generateDraftsForSection", () => {
                       correctIndex: 0,
                       explanation: "Because A.",
                     }
-                  : opts.cardType === "quote"
+                  : opts.postType === "quote"
                     ? { type: "quote", quotedText: "A notable passage." }
-                    : opts.cardType === "summary"
+                    : opts.postType === "summary"
                       ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
                       : { type: "insight" },
             },
@@ -411,17 +411,17 @@ describe("generateDraftsForSection", () => {
       generateDraft: vi
         .fn()
         .mockImplementation(
-          async (opts: { cardType: string; sectionTitle: string; learningGoal?: string }) => {
-            if (opts.cardType === "quiz") throw new Error("LLM failure");
+          async (opts: { postType: string; sectionTitle: string; learningGoal?: string }) => {
+            if (opts.postType === "quiz") throw new Error("LLM failure");
             return {
               card: {
-                content: `Draft ${opts.cardType} for "${opts.sectionTitle}": useful card content here.`,
+                content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful card content here.`,
                 typeData:
-                  opts.cardType === "quote"
+                  opts.postType === "quote"
                     ? { type: "quote", quotedText: "A quote." }
-                    : opts.cardType === "summary"
+                    : opts.postType === "summary"
                       ? { type: "summary", bulletPoints: ["Point 1", "Point 2"] }
-                      : { type: opts.cardType },
+                      : { type: opts.postType },
               },
               usage: {
                 inputTokens: 0,
@@ -517,9 +517,9 @@ describe("generateDraftsForSection", () => {
 describe("generateDraftsForSection with validator", () => {
   it("rejects drafts that fail validation", async () => {
     const validator = createMockCardDraftValidator({
-      validateDraft: vi.fn().mockImplementation(async (opts: { cardType: string }) => ({
-        isValid: opts.cardType !== "quote",
-        rejectionReason: opts.cardType === "quote" ? "Not a real quote" : undefined,
+      validateDraft: vi.fn().mockImplementation(async (opts: { postType: string }) => ({
+        isValid: opts.postType !== "quote",
+        rejectionReason: opts.postType === "quote" ? "Not a real quote" : undefined,
         usage: {
           inputTokens: 10,
           outputTokens: 5,
@@ -536,10 +536,10 @@ describe("generateDraftsForSection with validator", () => {
     });
 
     expect(result.drafts).toHaveLength(3);
-    expect(result.drafts.map((d) => d.cardType)).not.toContain("quote");
+    expect(result.drafts.map((d) => d.postType)).not.toContain("quote");
     expect(result.metrics.draftsRejectedValidation).toBe(1);
     expect(result.metrics.validationRejections).toHaveLength(1);
-    expect(result.metrics.validationRejections[0]!.cardType).toBe("quote");
+    expect(result.metrics.validationRejections[0]!.postType).toBe("quote");
     expect(result.metrics.validationRejections[0]!.reason).toBe("Not a real quote");
   });
 

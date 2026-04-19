@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { CardDraftValidator, DraftCardType, ValidationResult } from "../types";
+import type { CardDraftValidator, DraftPostType, ValidationResult } from "../types";
 import { generate } from "./models";
 
 const validationSchema = z.object({
@@ -34,7 +34,7 @@ IMPORTANT FRONT MATTER ANCHOR: Cards sourced from prefaces, dedications, part di
 
 Return semanticQualityScore as your independent judgement. Do not pin it to isValid - a structurally valid but vague card should still score below 0.6.`;
 
-function buildValidationPrompt(cardType: DraftCardType): string {
+function buildValidationPrompt(postType: DraftPostType): string {
   const base = `You are a content quality gate for a personal learning feed app.
 Your job is to determine whether a generated learning card has genuine substance or is worthless filler.
 
@@ -43,7 +43,7 @@ Respond with isValid: false and a brief reason if the card fails any criterion.
 
 ${SEMANTIC_RUBRIC}`;
 
-  switch (cardType) {
+  switch (postType) {
     case "quote":
       return `${base}
 
@@ -88,7 +88,7 @@ QUIZ card criteria - the question must test recall of a specific fact from the s
 
 export class AiSdkCardDraftValidator implements CardDraftValidator {
   async validateDraft(opts: {
-    cardType: DraftCardType;
+    postType: DraftPostType;
     content: string;
     typeData: Record<string, unknown>;
     sectionTitle: string;
@@ -99,10 +99,10 @@ export class AiSdkCardDraftValidator implements CardDraftValidator {
     const { output, usage } = await generate({
       model: "classify",
       schema: validationSchema,
-      system: buildValidationPrompt(opts.cardType),
+      system: buildValidationPrompt(opts.postType),
       prompt: `Document: "${opts.documentTitle}"
 Section: "${opts.sectionTitle}"
-Card type: ${opts.cardType}
+Card type: ${opts.postType}
 
 Card content: "${opts.content}"
 Type data: ${typeDataStr}`,

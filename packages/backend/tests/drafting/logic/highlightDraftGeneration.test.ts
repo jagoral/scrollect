@@ -227,7 +227,7 @@ describe("generateHighlightDrafts", () => {
         {
           highlightId: "h-0",
           content: 'Insight from highlight in "Introduction": useful content.',
-          cardType: "insight",
+          postType: "insight",
           typeData: { type: "insight" },
         },
       ],
@@ -290,13 +290,13 @@ describe("generateHighlightDrafts", () => {
           {
             highlightId: "h-0",
             content: "Identical content for dedup test",
-            cardType: "insight",
+            postType: "insight",
             typeData: { type: "insight" },
           },
           {
             highlightId: "h-1",
             content: "Identical content for dedup test",
-            cardType: "insight",
+            postType: "insight",
             typeData: { type: "insight" },
           },
         ],
@@ -367,7 +367,7 @@ describe("generateHighlightDrafts", () => {
         cards: opts.highlights.map((h: { highlightId: string; highlightText: string }) => ({
           highlightId: h.highlightId,
           content: `Insight from "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)} with enough content.`,
-          cardType: "insight",
+          postType: "insight",
           typeData: { type: "insight" },
         })),
         usage,
@@ -395,7 +395,7 @@ describe("generateHighlightDrafts", () => {
           cards: opts.highlights.map((h: { highlightId: string; highlightText: string }) => ({
             highlightId: h.highlightId,
             content: `Insight from "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)} with enough length.`,
-            cardType: "insight",
+            postType: "insight",
             typeData: { type: "insight" },
           })),
           usage: {
@@ -425,7 +425,7 @@ describe("generateHighlightDrafts", () => {
           {
             highlightId: "h-0",
             content: "",
-            cardType: "insight",
+            postType: "insight",
             typeData: { type: "insight" },
           },
         ],

@@ -87,7 +87,7 @@ export async function captureDraftGenerationAnalytics(opts: {
 
   const [sections, drafts] = await Promise.all([
     ctx.runQuery(internal.content.sectionSummaries.listByDocument, { documentId }),
-    ctx.runQuery(internal.drafting.cardDrafts.listByDocument, { documentId }),
+    ctx.runQuery(internal.drafting.postDrafts.listByDocument, { documentId }),
   ]);
   const contentSections = sections.filter((section) => section.isSubstantiveContent !== false);
   const batchDrafts = drafts.filter(
@@ -166,18 +166,18 @@ export async function captureDraftGenerationAnalytics(opts: {
 }
 
 function buildLengthDistribution(opts: {
-  drafts: Array<{ cardType: string; content: string }>;
+  drafts: Array<{ postType: string; content: string }>;
 }): Record<string, { count: number; min: number; max: number; avg: number }> {
   const lengthsByType = new Map<string, number[]>();
   for (const draft of opts.drafts) {
-    const lengths = lengthsByType.get(draft.cardType) ?? [];
+    const lengths = lengthsByType.get(draft.postType) ?? [];
     lengths.push(draft.content.length);
-    lengthsByType.set(draft.cardType, lengths);
+    lengthsByType.set(draft.postType, lengths);
   }
 
   return Object.fromEntries(
-    [...lengthsByType.entries()].map(([cardType, lengths]) => [
-      cardType,
+    [...lengthsByType.entries()].map(([postType, lengths]) => [
+      postType,
       {
         count: lengths.length,
         min: Math.min(...lengths),

@@ -1,7 +1,7 @@
 import { ZERO_USAGE, addUsage, type TokenUsage } from "../../providers/llm/models";
-import type { DraftCardType, DraftGenerationServiceContext, TypeData } from "../../providers/types";
+import type { DraftPostType, DraftGenerationServiceContext, TypeData } from "../../providers/types";
 
-export const DRAFT_CARD_TYPES: DraftCardType[] = ["insight", "quiz", "quote", "summary"];
+export const DRAFT_CARD_TYPES: DraftPostType[] = ["insight", "quiz", "quote", "summary"];
 const MIN_QUALITY_SCORE = 0.3;
 type ContextDepth = "representative" | "full";
 
@@ -35,7 +35,7 @@ export type GenerateDraftsInput = {
    */
   sectionQualitySignal?: number;
   allChunks: ChunkData[];
-  cardTypes?: DraftCardType[];
+  cardTypes?: DraftPostType[];
   generationBatch?: number;
   contextDepth?: ContextDepth;
   existingHashes: ReadonlySet<string>;
@@ -46,7 +46,7 @@ export type DraftRecord = {
   documentId: string;
   sectionSummaryId: string;
   userId: string;
-  cardType: DraftCardType;
+  postType: DraftPostType;
   content: string;
   typeData: TypeData;
   sourceChunkIds: string[];
@@ -61,7 +61,7 @@ export type DraftRecord = {
 };
 
 export type ValidationRejection = {
-  cardType: DraftCardType;
+  postType: DraftPostType;
   reason: string;
 };
 
@@ -127,26 +127,26 @@ const CHUNK_SELECTION_STRATEGIES = {
 >;
 
 export function computeQualityScore(opts: {
-  cardType: DraftCardType;
+  postType: DraftPostType;
   content: string;
   typeData: Record<string, unknown>;
   sourceChunkCount: number;
 }): number {
-  const { cardType, content, typeData, sourceChunkCount } = opts;
+  const { postType, content, typeData, sourceChunkCount } = opts;
 
-  const structuralScore = computeStructuralScore({ cardType, typeData });
+  const structuralScore = computeStructuralScore({ postType, typeData });
   const lengthScore = computeLengthScore(content);
-  const coverageScore = computeCoverageScore({ cardType, sourceChunkCount });
+  const coverageScore = computeCoverageScore({ postType, sourceChunkCount });
 
   return structuralScore * 0.4 + lengthScore * 0.3 + coverageScore * 0.3;
 }
 
 export function computeStructuralScore(opts: {
-  cardType: DraftCardType;
+  postType: DraftPostType;
   typeData: Record<string, unknown>;
 }): number {
-  const { cardType, typeData } = opts;
-  switch (cardType) {
+  const { postType, typeData } = opts;
+  switch (postType) {
     case "insight":
       return 1.0;
     case "quiz": {
@@ -176,8 +176,8 @@ function computeLengthScore(content: string): number {
   return 1.0;
 }
 
-function computeCoverageScore(opts: { cardType: DraftCardType; sourceChunkCount: number }): number {
-  if (opts.cardType === "quote") return 1.0;
+function computeCoverageScore(opts: { postType: DraftPostType; sourceChunkCount: number }): number {
+  if (opts.postType === "quote") return 1.0;
   return opts.sourceChunkCount >= 2 ? 1.0 : 0.5;
 }
 
@@ -198,8 +198,8 @@ function assertStringArray(value: unknown, field: string): string[] {
   return value.map((item, i) => assertString(item, `${field}[${i}]`));
 }
 
-export function castTypeData(cardType: DraftCardType, raw: Record<string, unknown>): TypeData {
-  switch (cardType) {
+export function castTypeData(postType: DraftPostType, raw: Record<string, unknown>): TypeData {
+  switch (postType) {
     case "insight":
       return { type: "insight" as const };
     case "quiz": {
@@ -272,10 +272,10 @@ export async function generateDraftsForSection(opts: {
   const seenHashes = new Set(existingHashes);
 
   const settled = await Promise.allSettled(
-    cardTypes.map((cardType) =>
+    cardTypes.map((postType) =>
       services.llm
         .generateDraft({
-          cardType,
+          postType,
           sectionSummary: section.summary,
           sectionTitle: section.sectionTitle,
           chunks: chunksForLlm,
@@ -284,7 +284,7 @@ export async function generateDraftsForSection(opts: {
           fileType: input.fileType,
           learningGoal: input.learningGoal,
         })
-        .then((result) => ({ cardType, ...result })),
+        .then((result) => ({ postType, ...result })),
     ),
   );
 
@@ -296,11 +296,11 @@ export async function generateDraftsForSection(opts: {
       continue;
     }
 
-    const { cardType, card, usage } = result.value;
+    const { postType, card, usage } = result.value;
     totalUsage = addUsage(totalUsage, usage);
 
     if (!card) {
-      if (cardType === "quote") metrics.draftsSkippedNoQuote++;
+      if (postType === "quote") metrics.draftsSkippedNoQuote++;
       continue;
     }
 
@@ -313,7 +313,7 @@ export async function generateDraftsForSection(opts: {
     }
 
     const qualityScore = computeQualityScore({
-      cardType,
+      postType,
       content: card.content,
       typeData: card.typeData,
       sourceChunkCount: sourceChunks.length,
@@ -329,9 +329,9 @@ export async function generateDraftsForSection(opts: {
       documentId,
       sectionSummaryId: section.sectionSummaryId,
       userId,
-      cardType,
+      postType,
       content: card.content,
-      typeData: castTypeData(cardType, card.typeData),
+      typeData: castTypeData(postType, card.typeData),
       sourceChunkIds: sourceChunks.map((c) => c._id),
       contentHash,
       qualityScore,
@@ -345,7 +345,7 @@ export async function generateDraftsForSection(opts: {
     const validationResults = await Promise.allSettled(
       candidates.map((candidate) =>
         services.validator!.validateDraft({
-          cardType: candidate.cardType,
+          postType: candidate.postType,
           content: candidate.content,
           typeData: candidate.typeData as Record<string, unknown>,
           sectionTitle: section.sectionTitle,
@@ -368,7 +368,7 @@ export async function generateDraftsForSection(opts: {
       if (!vResult.value.isValid) {
         metrics.draftsRejectedValidation++;
         metrics.validationRejections.push({
-          cardType: candidates[i]!.cardType,
+          postType: candidates[i]!.postType,
           reason: vResult.value.rejectionReason ?? "Unknown",
         });
         continue;

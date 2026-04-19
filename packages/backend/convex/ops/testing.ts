@@ -403,7 +403,7 @@ export const listConnectionDraftsByUserId = internalQuery({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
     const drafts = await ctx.db
-      .query("cardDrafts")
+      .query("postDrafts")
       .withIndex("by_userId_status", (q) => q.eq("userId", args.userId).eq("status", "pending"))
       .collect();
 
@@ -412,7 +412,7 @@ export const listConnectionDraftsByUserId = internalQuery({
     return connectionDrafts.map((d) => ({
       _id: d._id,
       documentId: d.documentId,
-      cardType: d.cardType,
+      postType: d.postType,
       strategy: d.strategy,
       sourceChunkIds: d.sourceChunkIds,
       typeData: d.typeData,
@@ -647,10 +647,10 @@ export const insertSeededData = internalMutation({
       const createdAt = now - (postDefs.length - postCount) * 1000;
       const contentHash = `seed-hash-${postCount}`;
 
-      const cardDraftId = await ctx.db.insert("cardDrafts", {
+      const postDraftId = await ctx.db.insert("postDrafts", {
         documentId: def.docId,
         userId,
-        cardType: def.postType,
+        postType: def.postType,
         content: def.content,
         typeData: def.typeData,
         sourceChunkIds: [def.chunkId],
@@ -669,7 +669,7 @@ export const insertSeededData = internalMutation({
         typeData: def.typeData,
         primarySourceDocumentId: def.docId,
         primarySourceDocumentTitle: def.docTitle,
-        cardDraftId,
+        postDraftId,
         fileType: def.fileType,
         userId,
         createdAt,

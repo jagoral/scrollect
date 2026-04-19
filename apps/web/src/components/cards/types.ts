@@ -59,7 +59,7 @@ export interface PostCardData {
   sectionTitle?: string | null;
   pageStart?: number | null;
   pageEnd?: number | null;
-  cardDraftId?: Id<"cardDrafts"> | null;
+  postDraftId?: Id<"postDrafts"> | null;
   createdAt: number;
   reaction?: "like" | "dislike" | null;
   isBookmarked?: boolean;

@@ -14,10 +14,10 @@ async function resolveTags(ctx: QueryCtx, tagIds: Id<"tags">[]) {
 
 async function resolveSectionSummary(
   ctx: QueryCtx,
-  cardDraftId?: Id<"cardDrafts">,
+  postDraftId?: Id<"postDrafts">,
 ): Promise<string | undefined> {
-  if (!cardDraftId) return undefined;
-  const draft = await ctx.db.get(cardDraftId);
+  if (!postDraftId) return undefined;
+  const draft = await ctx.db.get(postDraftId);
   if (!draft?.sectionSummaryId) return undefined;
   const section = await ctx.db.get(draft.sectionSummaryId);
   return section?.summary;
@@ -50,7 +50,7 @@ export const getSourceDetails = query({
 
     const [tags, sectionSummary] = await Promise.all([
       resolveTags(ctx, doc.tagIds ?? []),
-      resolveSectionSummary(ctx, post.cardDraftId),
+      resolveSectionSummary(ctx, post.postDraftId),
     ]);
 
     return {

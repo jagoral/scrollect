@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { StubCardDraftValidator } from "../../src/providers/stubs";
-import type { DraftCardType } from "../../src/providers/types";
+import type { DraftPostType } from "../../src/providers/types";
 
 const SHORT_CONTENT = "A short fixture passage.";
 const LONG_CONTENT = "A ".repeat(250);
@@ -17,18 +17,18 @@ const LONG_CONTENT = "A ".repeat(250);
 describe("StubCardDraftValidator distribution", () => {
   it("satisfies the ADR-018 std and below-0.7 share targets on a realistic mix", async () => {
     const validator = new StubCardDraftValidator();
-    const mix: Array<{ cardType: DraftCardType; count: number; content: string }> = [
-      { cardType: "quote", count: 20, content: SHORT_CONTENT },
-      { cardType: "summary", count: 25, content: LONG_CONTENT },
-      { cardType: "quiz", count: 25, content: LONG_CONTENT },
-      { cardType: "insight", count: 30, content: LONG_CONTENT },
+    const mix: Array<{ postType: DraftPostType; count: number; content: string }> = [
+      { postType: "quote", count: 20, content: SHORT_CONTENT },
+      { postType: "summary", count: 25, content: LONG_CONTENT },
+      { postType: "quiz", count: 25, content: LONG_CONTENT },
+      { postType: "insight", count: 30, content: LONG_CONTENT },
     ];
 
     const scores: number[] = [];
     for (const entry of mix) {
       for (let i = 0; i < entry.count; i++) {
         const result = await validator.validateDraft({
-          cardType: entry.cardType,
+          postType: entry.postType,
           content: entry.content,
           typeData: {},
           sectionTitle: "Test Section",
@@ -52,7 +52,7 @@ describe("StubCardDraftValidator distribution", () => {
   it("keeps verbatim-but-uneducational quote cards below 0.7 (ADR-018 quote anchor)", async () => {
     const validator = new StubCardDraftValidator();
     const result = await validator.validateDraft({
-      cardType: "quote",
+      postType: "quote",
       content: LONG_CONTENT,
       typeData: {},
       sectionTitle: "Any Section",

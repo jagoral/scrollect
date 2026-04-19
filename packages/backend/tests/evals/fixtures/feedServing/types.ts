@@ -33,7 +33,7 @@ export type FixtureDraft = {
   sectionQualitySignal: number;
   /** Legacy structural score. Saturates near 1.0 like DDIA production data. Used only as a fallback. */
   qualityScore: number;
-  cardType: FixtureCardType;
+  postType: FixtureCardType;
   strategy: "initial" | "highlight" | "replenishment";
   language: FixtureLanguage;
   /** Human-readable preview. Used by snapshot assertions in scorers. */

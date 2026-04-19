@@ -1,12 +1,12 @@
 import { ZERO_USAGE, addUsage, type TokenUsage } from "../../providers/llm/models";
 import type {
-  DraftCardType,
+  DraftPostType,
   ThematicDraftGenerationServiceContext,
   TypeData,
 } from "../../providers/types";
 import { castTypeData, computeQualityScore } from "./cardDraftGeneration";
 
-const THEMATIC_CARD_TYPES: DraftCardType[] = ["insight", "summary"];
+const THEMATIC_CARD_TYPES: DraftPostType[] = ["insight", "summary"];
 const MIN_QUALITY_SCORE = 0.3;
 const THEME_CHUNKS_TOP_K = 3;
 
@@ -55,7 +55,7 @@ export type ThematicDraftRecord = {
   documentId: string;
   sectionSummaryId: undefined;
   userId: string;
-  cardType: DraftCardType;
+  postType: DraftPostType;
   content: string;
   typeData: TypeData;
   sourceChunkIds: string[];
@@ -177,10 +177,10 @@ async function generateDraftsForTheme(opts: {
   let totalUsage = ZERO_USAGE;
 
   const settled = await Promise.allSettled(
-    THEMATIC_CARD_TYPES.map((cardType) =>
+    THEMATIC_CARD_TYPES.map((postType) =>
       services.draftLlm
         .generateDraft({
-          cardType,
+          postType,
           sectionSummary: themeSummary,
           sectionTitle: theme.title,
           chunks,
@@ -189,7 +189,7 @@ async function generateDraftsForTheme(opts: {
           fileType: input.fileType,
           learningGoal: input.learningGoal,
         })
-        .then((result) => ({ cardType, ...result })),
+        .then((result) => ({ postType, ...result })),
     ),
   );
 
@@ -199,7 +199,7 @@ async function generateDraftsForTheme(opts: {
       continue;
     }
 
-    const { cardType, card, usage } = result.value;
+    const { postType, card, usage } = result.value;
     totalUsage = addUsage(totalUsage, usage);
 
     if (!card) continue;
@@ -212,7 +212,7 @@ async function generateDraftsForTheme(opts: {
     }
 
     const qualityScore = computeQualityScore({
-      cardType,
+      postType,
       content: card.content,
       typeData: card.typeData,
       sourceChunkCount: sourceChunkIds.length,
@@ -228,9 +228,9 @@ async function generateDraftsForTheme(opts: {
       documentId: input.documentId,
       sectionSummaryId: undefined,
       userId: input.userId,
-      cardType,
+      postType,
       content: card.content,
-      typeData: castTypeData(cardType, card.typeData),
+      typeData: castTypeData(postType, card.typeData),
       sourceChunkIds,
       contentHash,
       qualityScore,

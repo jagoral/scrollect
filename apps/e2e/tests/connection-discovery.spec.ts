@@ -80,7 +80,7 @@ test.describe("Connection discovery pipeline", () => {
 
     for (const draft of drafts) {
       expect(draft.strategy).toBe("connection");
-      expect(draft.cardType).toBe("connection");
+      expect(draft.postType).toBe("connection");
       expect(draft.typeData.type).toBe("connection");
       expect(draft.sourceChunkIds.length).toBeGreaterThanOrEqual(2);
       expect(draft.content.length).toBeGreaterThan(0);

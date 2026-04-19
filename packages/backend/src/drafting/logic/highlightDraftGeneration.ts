@@ -1,6 +1,6 @@
 import { ZERO_USAGE, addUsage, type TokenUsage } from "../../providers/llm/models";
 import type {
-  DraftCardType,
+  DraftPostType,
   HighlightDraftGenerationServiceContext,
   TypeData,
 } from "../../providers/types";
@@ -63,7 +63,7 @@ export type HighlightDraftRecord = {
   documentId: string;
   sectionSummaryId: string | undefined;
   userId: string;
-  cardType: DraftCardType;
+  postType: DraftPostType;
   content: string;
   typeData: TypeData;
   sourceChunkIds: string[];
@@ -229,7 +229,7 @@ async function generateDraftsForSectionGroup(opts: {
     }
 
     const qualityScore = computeQualityScore({
-      cardType: card.cardType,
+      postType: card.postType,
       content: card.content,
       typeData: card.typeData,
       sourceChunkCount: representativeChunks.length,
@@ -245,9 +245,9 @@ async function generateDraftsForSectionGroup(opts: {
       documentId: input.documentId,
       sectionSummaryId: group.section._id,
       userId: input.userId,
-      cardType: card.cardType,
+      postType: card.postType,
       content: card.content,
-      typeData: castTypeData(card.cardType, card.typeData),
+      typeData: castTypeData(card.postType, card.typeData),
       sourceChunkIds,
       contentHash,
       qualityScore,

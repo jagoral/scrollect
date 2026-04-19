@@ -58,7 +58,7 @@ export type ConnectionDraftRecord = {
   documentId: string;
   sectionSummaryId: string;
   userId: string;
-  cardType: "connection";
+  postType: "connection";
   content: string;
   typeData: {
     type: "connection";
@@ -413,7 +413,7 @@ async function generateDraftsForCandidates(opts: {
       documentId: input.newDocument.documentId,
       sectionSummaryId: candidate.sectionSummaryIdA,
       userId: input.userId,
-      cardType: "connection",
+      postType: "connection",
       content: card.content,
       typeData: {
         ...card.typeData,

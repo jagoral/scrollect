@@ -18,7 +18,7 @@ function runScoring(fixture: FeedServingFixture) {
     id: d.draftId,
     documentId: d.documentId,
     sectionSummaryId: d.sectionId,
-    cardType: d.cardType,
+    postType: d.postType,
     strategy: d.strategy,
     qualityScore: d.qualityScore,
     semanticQualityScore: d.semanticQualityScore,
@@ -55,7 +55,7 @@ describe("DDIA feed-serving fixture", () => {
   it("includes front matter (sectionQualitySignal < 0.3), over-represented quotes, and a non-English section", () => {
     const pool = DDIA_FIXTURE_GOAL_SET.drafts;
     expect(pool.some((d) => d.sectionQualitySignal < FRONT_MATTER_THRESHOLD)).toBe(true);
-    const quoteShare = pool.filter((d) => d.cardType === "quote").length / pool.length;
+    const quoteShare = pool.filter((d) => d.postType === "quote").length / pool.length;
     expect(quoteShare).toBeGreaterThanOrEqual(0.3);
     expect(pool.some((d) => d.language !== "en")).toBe(true);
   });
@@ -125,7 +125,7 @@ describe("DDIA feed-serving fixture", () => {
     const frontMatterCount = top20.filter(
       (d) => d.sectionQualitySignal < FRONT_MATTER_THRESHOLD,
     ).length;
-    const quoteShare = top20.filter((d) => d.cardType === "quote").length / top20.length;
+    const quoteShare = top20.filter((d) => d.postType === "quote").length / top20.length;
     // At least one acceptance criterion is violated by the naive ranker.
     expect(frontMatterCount > 0 || spread < 0.5 || quoteShare > 0.3).toBe(true);
   });

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../_generated/server";
-import { cardDraftStatus, cardDraftStrategy, postType, typeData } from "../lib/validators";
+import { postDraftStatus, postDraftStrategy, postType, typeData } from "../lib/validators";
 
 export const createBatch = internalMutation({
   args: {
@@ -10,7 +10,7 @@ export const createBatch = internalMutation({
       v.object({
         documentId: v.id("documents"),
         sectionSummaryId: v.optional(v.id("sectionSummaries")),
-        cardType: postType,
+        postType: postType,
         content: v.string(),
         typeData,
         sourceChunkIds: v.array(v.id("chunks")),
@@ -19,24 +19,24 @@ export const createBatch = internalMutation({
         semanticQualityScore: v.optional(v.number()),
         sectionQualitySignal: v.optional(v.number()),
         generationBatch: v.number(),
-        strategy: cardDraftStrategy,
+        strategy: postDraftStrategy,
       }),
     ),
   },
-  returns: v.array(v.id("cardDrafts")),
+  returns: v.array(v.id("postDrafts")),
   handler: async (ctx, args) => {
     const now = Date.now();
     const ids = [];
     for (const draft of args.drafts) {
       const existing = await ctx.db
-        .query("cardDrafts")
+        .query("postDrafts")
         .withIndex("by_userId_contentHash", (q) =>
           q.eq("userId", args.userId).eq("contentHash", draft.contentHash),
         )
         .first();
       if (existing) continue;
 
-      const id = await ctx.db.insert("cardDrafts", {
+      const id = await ctx.db.insert("postDrafts", {
         ...draft,
         userId: args.userId,
         status: "pending" as const,
@@ -52,16 +52,16 @@ export const createBatch = internalMutation({
 export const listByDocumentStatus = internalQuery({
   args: {
     documentId: v.id("documents"),
-    status: cardDraftStatus,
+    status: postDraftStatus,
   },
   returns: v.array(
     v.object({
-      _id: v.id("cardDrafts"),
+      _id: v.id("postDrafts"),
       _creationTime: v.number(),
       documentId: v.id("documents"),
       sectionSummaryId: v.optional(v.id("sectionSummaries")),
       userId: v.string(),
-      cardType: postType,
+      postType: postType,
       content: v.string(),
       typeData,
       sourceChunkIds: v.array(v.id("chunks")),
@@ -69,17 +69,17 @@ export const listByDocumentStatus = internalQuery({
       qualityScore: v.number(),
       semanticQualityScore: v.optional(v.number()),
       sectionQualitySignal: v.optional(v.number()),
-      status: cardDraftStatus,
+      status: postDraftStatus,
       servedCount: v.optional(v.number()),
       generationBatch: v.number(),
-      strategy: cardDraftStrategy,
+      strategy: postDraftStrategy,
       rejectionReason: v.optional(v.string()),
       createdAt: v.number(),
     }),
   ),
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("cardDrafts")
+      .query("postDrafts")
       .withIndex("by_documentId_status", (q) =>
         q.eq("documentId", args.documentId).eq("status", args.status),
       )
@@ -91,12 +91,12 @@ export const listByDocument = internalQuery({
   args: { documentId: v.id("documents") },
   returns: v.array(
     v.object({
-      _id: v.id("cardDrafts"),
+      _id: v.id("postDrafts"),
       _creationTime: v.number(),
       documentId: v.id("documents"),
       sectionSummaryId: v.optional(v.id("sectionSummaries")),
       userId: v.string(),
-      cardType: postType,
+      postType: postType,
       content: v.string(),
       typeData,
       sourceChunkIds: v.array(v.id("chunks")),
@@ -104,17 +104,17 @@ export const listByDocument = internalQuery({
       qualityScore: v.number(),
       semanticQualityScore: v.optional(v.number()),
       sectionQualitySignal: v.optional(v.number()),
-      status: cardDraftStatus,
+      status: postDraftStatus,
       servedCount: v.optional(v.number()),
       generationBatch: v.number(),
-      strategy: cardDraftStrategy,
+      strategy: postDraftStrategy,
       rejectionReason: v.optional(v.string()),
       createdAt: v.number(),
     }),
   ),
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("cardDrafts")
+      .query("postDrafts")
       .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
       .collect();
   },

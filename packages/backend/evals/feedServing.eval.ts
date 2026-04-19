@@ -43,7 +43,7 @@ function runRanking(fixture: FeedServingFixture): FixtureDraft[] {
     id: d.draftId,
     documentId: d.documentId,
     sectionSummaryId: d.sectionId,
-    cardType: d.cardType,
+    postType: d.postType,
     strategy: d.strategy,
     qualityScore: d.qualityScore,
     semanticQualityScore: d.semanticQualityScore,
@@ -67,7 +67,7 @@ function runRanking(fixture: FeedServingFixture): FixtureDraft[] {
   });
 
   // Project back to the fixture-draft rows so scorers can assert on fixture-level fields
-  // (language, sectionTitle, cardType, bookPositionRatio, etc.) without duplicating them
+  // (language, sectionTitle, postType, bookPositionRatio, etc.) without duplicating them
   // on ScoredDraft.
   return ranked.map((r) => draftById.get(r.id)!).filter((d): d is FixtureDraft => !!d);
 }
@@ -106,11 +106,11 @@ const noFrontMatterInTop20 = createScorer<ServingEvalInput, ServingEvalOutput, u
 
 const quoteShareTop20 = createScorer<ServingEvalInput, ServingEvalOutput, unknown>({
   name: "Quote Share Top 20",
-  description: "`cardType === 'quote'` share is <= 30% of the first 20 served cards.",
+  description: "`postType === 'quote'` share is <= 30% of the first 20 served cards.",
   scorer: ({ output }) => {
     const topTwenty = output.ranked.slice(0, 20);
     if (topTwenty.length === 0) return { score: 0, metadata: { reason: "empty pool" } };
-    const quoteCount = topTwenty.filter((d) => d.cardType === "quote").length;
+    const quoteCount = topTwenty.filter((d) => d.postType === "quote").length;
     const quoteShare = quoteCount / topTwenty.length;
     return {
       score: quoteShare <= 0.3 ? 1 : 0,

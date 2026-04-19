@@ -10,7 +10,7 @@ import {
   FIRST_SESSION_WINDOW_MS,
   QUALITY_DISTRIBUTION_BUCKETS,
   computeBookDepthReach,
-  computeCardTypeMix,
+  computePostTypeMix,
   computeQualityDistribution,
   firstSessionDocuments,
   summarizeGoalRelevance,
@@ -24,7 +24,7 @@ function scored(overrides: Partial<ScoredDraftWithScore> & { id: string }): Scor
     id: overrides.id,
     documentId: overrides.documentId ?? "doc-1",
     sectionSummaryId: overrides.sectionSummaryId,
-    cardType: overrides.cardType ?? "insight",
+    postType: overrides.postType ?? "insight",
     strategy: overrides.strategy ?? "section",
     qualityScore: overrides.qualityScore ?? 0.8,
     semanticQualityScore: overrides.semanticQualityScore,
@@ -185,17 +185,17 @@ describe("computeBookDepthReach", () => {
   });
 });
 
-describe("computeCardTypeMix", () => {
+describe("computePostTypeMix", () => {
   it("returns a flat count record by card type", () => {
     const topDrafts = [
-      scored({ id: "1", cardType: "insight" }),
-      scored({ id: "2", cardType: "insight" }),
-      scored({ id: "3", cardType: "quote" }),
-      scored({ id: "4", cardType: "quiz" }),
-      scored({ id: "5", cardType: "quiz" }),
-      scored({ id: "6", cardType: "summary" }),
+      scored({ id: "1", postType: "insight" }),
+      scored({ id: "2", postType: "insight" }),
+      scored({ id: "3", postType: "quote" }),
+      scored({ id: "4", postType: "quiz" }),
+      scored({ id: "5", postType: "quiz" }),
+      scored({ id: "6", postType: "summary" }),
     ];
-    const result = computeCardTypeMix({
+    const result = computePostTypeMix({
       documentId: "doc-a",
       topDrafts,
       priorServedCount: 0,
@@ -206,7 +206,7 @@ describe("computeCardTypeMix", () => {
   });
 
   it("returns an empty mix for empty input", () => {
-    const result = computeCardTypeMix({
+    const result = computePostTypeMix({
       documentId: "doc-a",
       topDrafts: [],
       priorServedCount: 0,
@@ -223,7 +223,7 @@ describe("computeQualityDistribution", () => {
       id: overrides.id,
       documentId: "doc-1",
       sectionSummaryId: overrides.sectionSummaryId,
-      cardType: overrides.cardType ?? "insight",
+      postType: overrides.postType ?? "insight",
       strategy: "section",
       qualityScore: overrides.qualityScore ?? 1.0,
       semanticQualityScore: overrides.semanticQualityScore,

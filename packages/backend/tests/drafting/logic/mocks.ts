@@ -9,7 +9,7 @@ import type {
   CardDraftValidator,
   ConnectionDiscoveryLlm,
   ConnectionDiscoveryServiceContext,
-  DraftCardType,
+  DraftPostType,
   DraftGenerationServiceContext,
   HighlightDraftGenerationServiceContext,
   HighlightDraftLlm,
@@ -20,7 +20,7 @@ import type {
 export function createMockCardDraftLlm(overrides?: Partial<CardDraftLlm>): CardDraftLlm {
   return {
     generateDraft: async (opts: {
-      cardType: DraftCardType;
+      postType: DraftPostType;
       sectionSummary: string;
       sectionTitle: string;
       chunks: Array<{ content: string; chunkId: string }>;
@@ -28,8 +28,8 @@ export function createMockCardDraftLlm(overrides?: Partial<CardDraftLlm>): CardD
       learningGoal?: string;
     }) => ({
       card: {
-        content: `Draft ${opts.cardType} for "${opts.sectionTitle}": a useful learning card.`,
-        typeData: buildMockTypeData(opts.cardType),
+        content: `Draft ${opts.postType} for "${opts.sectionTitle}": a useful learning card.`,
+        typeData: buildMockTypeData(opts.postType),
       },
       usage: ZERO_USAGE,
     }),
@@ -49,8 +49,8 @@ export function createMockCardDraftValidator(
   };
 }
 
-function buildMockTypeData(cardType: DraftCardType): Record<string, unknown> {
-  switch (cardType) {
+function buildMockTypeData(postType: DraftPostType): Record<string, unknown> {
+  switch (postType) {
     case "insight":
       return { type: "insight" };
     case "quiz":
@@ -166,7 +166,7 @@ export function createMockHighlightDraftLlm(
       cards: opts.highlights.map((h) => ({
         highlightId: h.highlightId,
         content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}`,
-        cardType: "insight" as DraftCardType,
+        postType: "insight" as DraftPostType,
         typeData: { type: "insight" },
       })),
       usage: ZERO_USAGE,
