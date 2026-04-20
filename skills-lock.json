@@ -41,6 +41,11 @@
       "sourceType": "github",
       "computedHash": "c189703dd5d91f280b53d6bd903bf8313e935b1edab136bb7ffdb6c1512b95aa"
     },
+    "convex-migration-helper": {
+      "source": "get-convex/agent-skills",
+      "sourceType": "github",
+      "computedHash": "46d1ac354eefbed05e1367d828e893816c13302276080bfaf6bcd828281be486"
+    },
     "convex-migrations": {
       "source": "waynesutton/convexskills",
       "sourceType": "github",
