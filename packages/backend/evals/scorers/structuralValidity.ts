@@ -1,14 +1,14 @@
 import { createScorer } from "evalite";
 
-import { castTypeData, computeStructuralScore } from "../../src/pipeline/logic/cardDraftGeneration";
+import { castTypeData, computeStructuralScore } from "../../src/drafting/logic/postDraftGeneration";
 export const structuralValidity = createScorer<any, any, any>({
   name: "Structural Validity",
-  description: "Validates card structure using castTypeData and computeStructuralScore",
+  description: "Validates post structure using castTypeData and computeStructuralScore",
   scorer: ({ output }) => {
     try {
-      castTypeData(output.cardType, output.typeData);
+      castTypeData(output.postType, output.typeData);
       return computeStructuralScore({
-        cardType: output.cardType,
+        postType: output.postType,
         typeData: output.typeData,
       });
     } catch {

@@ -31,7 +31,7 @@ export const statusConfig = {
     dotClassName: "bg-violet-500 animate-pulse",
   },
   generating_cards: {
-    label: "Generating Cards",
+    label: "Generating Posts",
     className:
       "rounded-none border-violet-500/30 bg-transparent text-violet-600 dark:text-violet-400",
     dotClassName: "bg-violet-500 animate-pulse",

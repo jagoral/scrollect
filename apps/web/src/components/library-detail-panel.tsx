@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 import { fileTypeIcons, StatusBadge } from "@/components/document-status";
 import { Badge } from "@/components/ui/badge";
-import { BookmarkedCardsSection } from "@/components/documents/bookmarked-cards-section";
+import { BookmarkedPostsSection } from "@/components/documents/bookmarked-posts-section";
 import { HighlightsSection } from "@/components/documents/highlights-section";
 import { ImportHighlightsDialog } from "@/components/documents/import-highlights-dialog";
 import { LearningGoalSection } from "@/components/documents/learning-goal-section";
@@ -128,8 +128,8 @@ function DocumentDetailContent({
   documentId: Id<"documents">;
   onClose: () => void;
 }) {
-  const { data: document } = useQuery(convexQuery(api.documents.get, { id: documentId }));
-  const deleteDocument = useAction(api.documentActions.deleteDocument);
+  const { data: document } = useQuery(convexQuery(api.content.documents.get, { id: documentId }));
+  const deleteDocument = useAction(api.content.documentActions.deleteDocument);
   const posthog = usePostHog();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -234,7 +234,7 @@ function DocumentDetailContent({
               <AlertDialogTitle>Delete document</AlertDialogTitle>
               <AlertDialogDescription>
                 Delete &ldquo;{document.title}&rdquo;? This will remove the document and all
-                generated cards. This cannot be undone.
+                generated posts. This cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -265,7 +265,7 @@ function DocumentDetailContent({
             sourceType={document.fileType}
           />
           {document.status === "ready" && <HighlightsSection documentId={document._id} />}
-          {document.status === "ready" && <BookmarkedCardsSection documentId={document._id} />}
+          {document.status === "ready" && <BookmarkedPostsSection documentId={document._id} />}
         </>
       )}
 

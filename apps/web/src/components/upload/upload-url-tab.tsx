@@ -44,7 +44,7 @@ export function UploadUrlTab({ onDocumentCreated }: UploadUrlTabProps) {
   const posthog = usePostHog();
   const handleUploadError = useUploadErrorHandler();
 
-  const createFromUrl = useMutation(api.documents.createFromUrl);
+  const createFromUrl = useMutation(api.content.documents.createFromUrl);
 
   const detectedType = url.trim() ? detectUrlType(url.trim()) : null;
   const urlValid = url.trim() ? isValidUrl(url.trim()) : null;
@@ -68,7 +68,7 @@ export function UploadUrlTab({ onDocumentCreated }: UploadUrlTabProps) {
         });
         toast.success(
           <span>
-            Submitted! Processing continues in the background. Add a learning goal now so cards use
+            Submitted! Processing continues in the background. Add a learning goal now so posts use
             it.{" "}
             <Link to="/app/library" className="underline">
               View in library

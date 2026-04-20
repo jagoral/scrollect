@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkHighlightDraftLlm } from "../src/providers/highlightDraftLlm";
+import { AiSdkHighlightDraftLlm } from "../src/providers/llm/highlightDraftLlm";
 import { ALL_FIXTURES } from "./fixtures";
 import {
   structuralValidity,
@@ -8,7 +8,7 @@ import {
   contentSpecificity,
   typeSpecificQuality,
 } from "./scorers";
-import type { DraftCardType } from "../convex/lib/validators";
+import type { DraftPostType } from "../convex/lib/validators";
 
 type HighlightDraftInput = {
   highlightId: string;
@@ -21,7 +21,7 @@ type HighlightDraftInput = {
 };
 
 type HighlightDraftOutput = {
-  cardType: DraftCardType;
+  postType: DraftPostType;
   content: string;
   typeData: Record<string, unknown>;
   sourceChunks: string[];
@@ -66,7 +66,7 @@ evalite("Highlight Draft", {
       costUsd: { input: 0, output: 0, total: 0 },
     };
     const emptyResult = {
-      cardType: "insight" as DraftCardType,
+      postType: "insight" as DraftPostType,
       content: "",
       typeData: { type: "insight" },
       sourceChunks: input.chunks.map((c) => c.content),
@@ -78,7 +78,7 @@ evalite("Highlight Draft", {
 
     try {
       const start = performance.now();
-      const { cards, usage } = await llm.generateDraftsFromHighlights({
+      const { drafts, usage } = await llm.generateDraftsFromHighlights({
         highlights: [{ highlightId: input.highlightId, highlightText: input.highlightText }],
         sectionSummary: input.sectionSummary,
         sectionTitle: input.sectionTitle,
@@ -87,13 +87,13 @@ evalite("Highlight Draft", {
       });
       const durationMs = Math.round(performance.now() - start);
 
-      const card = cards[0];
-      if (!card) return emptyResult;
+      const draft = drafts[0];
+      if (!draft) return emptyResult;
 
       return {
-        cardType: card.cardType,
-        content: card.content,
-        typeData: card.typeData,
+        postType: draft.postType,
+        content: draft.content,
+        typeData: draft.typeData,
         sourceChunks: input.chunks.map((c) => c.content),
         highlightText: input.highlightText,
         expectedLanguage: input.expectedLanguage,

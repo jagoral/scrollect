@@ -43,7 +43,7 @@ export const Route = createRootRouteWithContext<{
       {
         name: "description",
         content:
-          "Transform your saved content into a scrollable feed of bite-sized learning cards.",
+          "Transform your saved content into a scrollable feed of bite-sized learning posts.",
       },
       {
         property: "og:image",
@@ -62,7 +62,7 @@ export const Route = createRootRouteWithContext<{
       {
         name: "twitter:description",
         content:
-          "Transform your saved content into a scrollable feed of bite-sized learning cards.",
+          "Transform your saved content into a scrollable feed of bite-sized learning posts.",
       },
       {
         name: "twitter:image",
@@ -126,7 +126,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             api_host: "/ingest",
             ui_host: env.VITE_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
             capture_exceptions: true,
-            capture_performance: { web_vitals: true },
             person_profiles: "identified_only",
             opt_out_capturing_by_default: true,
             persistence: "memory",

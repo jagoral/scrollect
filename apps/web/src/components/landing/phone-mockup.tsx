@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
 import {
-  PreviewConnectionCard,
-  PreviewInsightCard,
-  PreviewQuizCard,
-  PreviewQuoteCard,
-  PreviewSummaryCard,
-} from "./preview-cards";
+  PreviewConnectionPost,
+  PreviewInsightPost,
+  PreviewQuizPost,
+  PreviewQuotePost,
+  PreviewSummaryPost,
+} from "./preview-posts";
 
 function formatTime() {
   return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -106,11 +106,11 @@ export function PhoneMockup() {
               className="relative h-[370px] overflow-hidden md:overflow-y-auto md:overscroll-contain md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden md:h-[430px] lg:h-[490px]"
             >
               <div className="animate-phone-scroll-hint flex flex-col gap-3 px-3 pt-4 pb-16">
-                <PreviewInsightCard />
-                <PreviewQuoteCard />
-                <PreviewSummaryCard />
-                <PreviewQuizCard />
-                <PreviewConnectionCard />
+                <PreviewInsightPost />
+                <PreviewQuotePost />
+                <PreviewSummaryPost />
+                <PreviewQuizPost />
+                <PreviewConnectionPost />
               </div>
             </div>
 

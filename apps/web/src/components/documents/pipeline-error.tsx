@@ -13,7 +13,7 @@ const STAGE_LABELS: Record<string, string> = {
   chunking: "content chunking",
   embedding: "embedding generation",
   summarizing: "summarization",
-  generating_cards: "card generation",
+  generating_cards: "post generation",
 };
 
 interface PipelineErrorProps {
@@ -23,7 +23,7 @@ interface PipelineErrorProps {
 }
 
 export function PipelineError({ documentId, errorMessage, failedAt }: PipelineErrorProps) {
-  const retryProcessing = useMutation(api.documents.retry);
+  const retryProcessing = useMutation(api.content.documents.retry);
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {

@@ -2,7 +2,7 @@ import { createScorer } from "evalite";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import { getAI } from "../../src/providers/ai";
+import { getAI } from "../../src/providers/llm/models";
 
 const ratingSchema = z.object({
   score: z
@@ -16,12 +16,12 @@ const ratingSchema = z.object({
 export const quoteContextCompleteness = createScorer<any, any, any>({
   name: "Quote Context Completeness",
   description:
-    "LLM-as-judge: checks that quote cards include speaker attribution with proper name and context about who/what the quote refers to",
+    "LLM-as-judge: checks that quote posts include speaker attribution with proper name and context about who/what the quote refers to",
   scorer: async ({ output }) => {
-    if (output.cardType !== "quote") {
+    if (output.postType !== "quote") {
       return {
         score: 1,
-        metadata: { rationale: "Not a quote card, skipping" },
+        metadata: { rationale: "Not a quote post, skipping" },
       };
     }
 
@@ -39,9 +39,9 @@ export const quoteContextCompleteness = createScorer<any, any, any>({
     const { output: result } = await generateText({
       model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
-      system: `You are a quote attribution evaluator. Check whether a quote card has complete attribution and context.
+      system: `You are a quote attribution evaluator. Check whether a quote post has complete attribution and context.
 
-A fully attributed quote card must have:
+A fully attributed quote post must have:
 1. WHO said it - the speaker's proper name (not "the author" or "a coach"), provided in the attribution field
 2. Context in the content field explaining ABOUT WHOM or WHAT the quote is about
 3. WHEN/WHERE context if available in the source (not required if the source doesn't provide it)
@@ -51,10 +51,10 @@ Score 0: No attribution or only vague attribution (e.g. "the author", "a player"
 Score 0.3: Attribution is present but uses a title/role instead of a proper name, OR content lacks context about the subject of the quote.
 Score 0.7: Proper name attribution is present and content provides some context, but missing key details available in the source.
 Score 1: Full proper name attribution, content explains who/what the quote is about, and includes when/where if the source provides it.`,
-      prompt: `Evaluate this quote card's attribution completeness:
+      prompt: `Evaluate this quote post's attribution completeness:
 
 Attribution field: "${attribution ?? "(missing)"}"
-Card content: "${content}"
+Post content: "${content}"
 Quoted text: "${output.typeData?.quotedText ?? ""}"
 
 Source material:

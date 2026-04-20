@@ -1,16 +1,16 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { X } from "lucide-react";
 
-import { PostCard } from "@/components/post-card";
-import type { PostCardData } from "@/components/cards/types";
-import { SourceDetailsContent } from "@/components/cards/source-detail-sheet";
+import { Post } from "@/components/posts";
+import type { PostView } from "@/components/posts/types";
+import { SourceDetailsContent } from "@/components/posts/source-detail-sheet";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type DetailPanelContextValue = {
-  selectedPost: PostCardData | null;
-  openDetail: (post: PostCardData) => void;
+  selectedPost: PostView | null;
+  openDetail: (post: PostView) => void;
   closeDetail: () => void;
 };
 
@@ -21,9 +21,9 @@ export function useDetailPanel() {
 }
 
 export function DetailPanelProvider({ children }: { children: React.ReactNode }) {
-  const [selectedPost, setSelectedPost] = useState<PostCardData | null>(null);
+  const [selectedPost, setSelectedPost] = useState<PostView | null>(null);
 
-  const openDetail = useCallback((post: PostCardData) => {
+  const openDetail = useCallback((post: PostView) => {
     setSelectedPost(post);
   }, []);
 
@@ -55,8 +55,8 @@ export function DetailPanel() {
           className="max-h-[85dvh] overflow-y-auto rounded-t-2xl px-0 pb-[env(safe-area-inset-bottom)]"
         >
           <div className="mx-auto mb-1 mt-0 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/25" />
-          <SheetTitle className="sr-only">Card details</SheetTitle>
-          <SheetDescription className="sr-only">Expanded view of learning card.</SheetDescription>
+          <SheetTitle className="sr-only">Post details</SheetTitle>
+          <SheetDescription className="sr-only">Expanded view of learning post.</SheetDescription>
           <div key={selectedPost._id} className="animate-in fade-in duration-200">
             <DetailPanelContent post={selectedPost} onClose={closeDetail} />
           </div>
@@ -79,7 +79,7 @@ export function DetailPanel() {
   );
 }
 
-function DetailPanelContent({ post, onClose }: { post: PostCardData; onClose: () => void }) {
+function DetailPanelContent({ post, onClose }: { post: PostView; onClose: () => void }) {
   return (
     <div className="flex min-w-0 flex-col gap-4 px-6 py-5">
       <div className="flex items-center justify-between">
@@ -90,7 +90,7 @@ function DetailPanelContent({ post, onClose }: { post: PostCardData; onClose: ()
         </Button>
       </div>
       <div className="-mx-6 min-w-0 [&_article]:border-0 [&_article]:border-l-0 [&_article]:bg-transparent [&_article]:hover:bg-transparent">
-        <PostCard post={post} />
+        <Post post={post} />
       </div>
       <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
         Source

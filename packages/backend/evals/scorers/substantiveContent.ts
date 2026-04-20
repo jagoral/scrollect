@@ -2,8 +2,8 @@ import { createScorer } from "evalite";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import { getAI } from "../../src/providers/ai";
-import type { DraftCardType } from "../../src/providers/types";
+import { getAI } from "../../src/providers/llm/models";
+import type { DraftPostType } from "../../src/providers/types";
 
 const ratingSchema = z.object({
   score: z
@@ -14,8 +14,8 @@ const ratingSchema = z.object({
   rationale: z.string().describe("Brief explanation"),
 });
 
-function buildSubstancePrompt(cardType: DraftCardType): string {
-  switch (cardType) {
+function buildSubstancePrompt(postType: DraftPostType): string {
+  switch (postType) {
     case "quote":
       return `Is this quote an actual spoken or written passage from the source?
 Score 0: Video/article title, heading, table-of-contents entry, metadata, sponsor read, call-to-action, or generic greeting/sign-off.
@@ -45,7 +45,7 @@ Score 1: Tests recall of a concrete, verifiable detail that requires having read
 export const substantiveContent = createScorer<any, any, any>({
   name: "Substantive Content",
   description:
-    "LLM-as-judge: rejects semantically worthless cards that pass structural quality checks",
+    "LLM-as-judge: rejects semantically worthless posts that pass structural quality checks",
   scorer: async ({ output }) => {
     if (!output.content) {
       return {
@@ -61,10 +61,10 @@ export const substantiveContent = createScorer<any, any, any>({
       model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
       system: `You are a strict content quality gatekeeper for a personal learning feed.
-Cards must have genuine substance to pass. Evaluate whether the card provides real learning value or is worthless filler.`,
-      prompt: `${buildSubstancePrompt(output.cardType)}
+Posts must have genuine substance to pass. Evaluate whether the post provides real learning value or is worthless filler.`,
+      prompt: `${buildSubstancePrompt(output.postType)}
 
-Card content: "${output.content}"
+Post content: "${output.content}"
 Type data: ${typeDataStr}
 
 Source material:
@@ -75,7 +75,7 @@ ${sourceContext}`,
     const rating = result ?? { score: 0, rationale: "No output from LLM" };
     return {
       score: rating.score,
-      metadata: { rationale: rating.rationale, cardType: output.cardType },
+      metadata: { rationale: rating.rationale, postType: output.postType },
     };
   },
 });

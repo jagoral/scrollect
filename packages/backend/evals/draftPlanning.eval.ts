@@ -3,7 +3,7 @@ import { createScorer, evalite } from "evalite";
 import {
   planDraftGeneration,
   type DraftPlanningSection,
-} from "../src/pipeline/logic/draftGenerationPlan";
+} from "../src/drafting/logic/draftGenerationPlan";
 
 type PlanningInput = {
   mode: "initial" | "replenishment";

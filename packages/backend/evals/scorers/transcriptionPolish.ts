@@ -1,6 +1,6 @@
 import { createScorer } from "evalite";
 
-import { isSpeechSource } from "../../src/providers/contentTypes";
+import { isSpeechSource } from "../../src/indexing/logic/contentTypes";
 
 const SPEECH_FILLER_PATTERN = /\b(um|uh|uh huh|uhh|umm|hmm|er|erm)\b/gi;
 
@@ -15,10 +15,10 @@ function countSpeechArtifacts(text: string): number {
 export const transcriptionPolish = createScorer<any, any, any>({
   name: "Transcription Polish",
   description:
-    "Checks that YouTube/speech-source quote cards have speech artifacts removed while non-speech sources are unaffected",
+    "Checks that YouTube/speech-source quote posts have speech artifacts removed while non-speech sources are unaffected",
   scorer: async ({ output }) => {
-    if (output.cardType !== "quote") {
-      return { score: 1, metadata: { rationale: "Not a quote card, skipping" } };
+    if (output.postType !== "quote") {
+      return { score: 1, metadata: { rationale: "Not a quote post, skipping" } };
     }
 
     if (!isSpeechSource(output.fileType)) {

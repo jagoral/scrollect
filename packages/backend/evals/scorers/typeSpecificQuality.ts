@@ -2,25 +2,25 @@ import { createScorer } from "evalite";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import { getAI } from "../../src/providers/ai";
-import type { DraftCardType } from "../../convex/lib/validators";
+import { getAI } from "../../src/providers/llm/models";
+import type { DraftPostType } from "../../convex/lib/validators";
 
 const ratingSchema = z.object({
   score: z.number().min(0).max(1).describe("Quality score from 0 (poor) to 1 (excellent)"),
   rationale: z.string().describe("Brief explanation"),
 });
 
-function buildTypePrompt(cardType: DraftCardType): string {
-  switch (cardType) {
+function buildTypePrompt(postType: DraftPostType): string {
+  switch (postType) {
     case "insight":
-      return `Evaluate this INSIGHT card:
+      return `Evaluate this INSIGHT post:
 - Does it contain a specific fact or surprising detail (not a vague summary)?
 - Is the insight grounded in the source material?
 - Does it use bold formatting for key terms?
 Score 0 for generic "this section discusses..." content. Score 1 for a concrete, memorable fact.`;
 
     case "quiz":
-      return `Evaluate this QUIZ card:
+      return `Evaluate this QUIZ post:
 - Is the question about a concrete, verifiable fact from the source?
 - Are all options plausible and distinct (not obviously wrong)?
 - Is the correct answer unambiguous?
@@ -28,14 +28,14 @@ Score 0 for generic "this section discusses..." content. Score 1 for a concrete,
 Score 0 if the question is vague or options are trivially distinguishable. Score 1 for a well-crafted quiz.`;
 
     case "quote":
-      return `Evaluate this QUOTE card:
+      return `Evaluate this QUOTE post:
 - Is the quotedText a verbatim passage from EITHER the source chunks OR the highlighted passage? Check for exact substring match against both.
 - Is the context (content field) helpful, concise, and grounded in specific details (names, events, dates)?
 - Is the quote notable, memorable, or thought-provoking?
 Score 0 if the quote is fabricated or paraphrased. Score 1 for an exact, impactful quote with specific context.`;
 
     case "summary":
-      return `Evaluate this SUMMARY card:
+      return `Evaluate this SUMMARY post:
 - Are the bullet points concrete and specific (names, numbers, concepts)?
 - Does each bullet reference a distinct takeaway?
 - Is the overview concise and informative?
@@ -45,7 +45,7 @@ Score 0 for abstract bullet points like "the author discusses key concepts". Sco
 
 export const typeSpecificQuality = createScorer<any, any, any>({
   name: "Type-Specific Quality",
-  description: "LLM-as-judge: evaluates card quality based on its specific type requirements",
+  description: "LLM-as-judge: evaluates post quality based on its specific type requirements",
   scorer: async ({ output }) => {
     const sourceContext = output.sourceChunks.slice(0, 2).join("\n---\n");
     const typeDataStr = JSON.stringify(output.typeData, null, 2);
@@ -56,10 +56,10 @@ export const typeSpecificQuality = createScorer<any, any, any>({
     const { output: result } = await generateText({
       model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
-      system: `You are a learning card quality evaluator. Be strict and specific in your assessment.`,
-      prompt: `${buildTypePrompt(output.cardType)}
+      system: `You are a learning post quality evaluator. Be strict and specific in your assessment.`,
+      prompt: `${buildTypePrompt(output.postType)}
 
-Card content: "${output.content}"
+Post content: "${output.content}"
 Type data: ${typeDataStr}
 
 Source chunks:
@@ -71,7 +71,7 @@ ${sourceContext}${highlightSection}`,
 
     return {
       score: rating.score,
-      metadata: { rationale: rating.rationale, cardType: output.cardType },
+      metadata: { rationale: rating.rationale, postType: output.postType },
     };
   },
 });

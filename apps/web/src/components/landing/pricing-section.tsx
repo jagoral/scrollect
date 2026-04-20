@@ -2,7 +2,7 @@ import {
   FILE_SIZE_LIMITS_FREE,
   FILE_SIZE_LIMITS_PRO,
   formatFileSize,
-} from "@scrollect/backend/convex/lib/fileSizeLimits";
+} from "@scrollect/backend/src/platform/fileSizeLimits";
 import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
@@ -35,7 +35,7 @@ const tiers: ReadonlyArray<PricingTier> = [
       "3 documents total",
       `PDF up to ${formatFileSize(FILE_SIZE_LIMITS_FREE.pdf)}, EPUB up to ${formatFileSize(FILE_SIZE_LIMITS_FREE.epub)}`,
       "YouTube videos up to 30 minutes",
-      "All card types",
+      "All post types",
       "3 feed refreshes per hour",
     ],
     ctaLabel: "Get started",

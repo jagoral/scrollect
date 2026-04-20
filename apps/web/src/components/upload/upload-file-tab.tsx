@@ -1,6 +1,6 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/src/platform/fileSizeLimits";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { CheckCircle2, CloudUpload, FileUp, Loader2, XCircle } from "lucide-react";
@@ -46,8 +46,8 @@ export function UploadFileTab({ onDocumentCreated }: UploadFileTabProps) {
   const { usage } = useBilling();
   const fileSizeLimits = getFileSizeLimits(usage?.tier ?? "free");
 
-  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
-  const createDocument = useMutation(api.documents.create);
+  const generateUploadUrl = useMutation(api.content.documents.generateUploadUrl);
+  const createDocument = useMutation(api.content.documents.create);
 
   const uploadFile = useCallback(
     async (file: File) => {
@@ -106,7 +106,7 @@ export function UploadFileTab({ onDocumentCreated }: UploadFileTabProps) {
         toast.success(
           <span>
             <strong>{file.name}</strong> uploaded! Processing typically takes 3-5 minutes and
-            continues in the background. Add a learning goal now so cards use it.{" "}
+            continues in the background. Add a learning goal now so posts use it.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>

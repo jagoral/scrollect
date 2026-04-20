@@ -49,11 +49,11 @@ You build the Scrollect web app at `apps/web/src/`. You make UI/UX decisions whe
 ## Analytics
 
 - Use `usePostHog()` from `posthog-js/react` to capture user-facing events
-- Event names use dot-notation: `entity.action` (e.g., `content.uploaded`, `card.viewed`, `feed.generate_clicked`)
+- Event names use dot-notation: `entity.action` (e.g., `content.uploaded`, `post.viewed`, `feed.generate_clicked`)
 - Never capture PII (email, name, passwords) in event properties
 - Call `posthog.captureException(error)` in catch blocks for client-side error tracking
 - Add `posthog` to `useCallback` dependency arrays when used inside callbacks
-- For card/element visibility tracking, use the `useCardImpression` hook pattern from `hooks/use-card-impression.ts`
+- For post/element visibility tracking, use the `usePostImpression` hook pattern from `hooks/use-post-impression.ts`
 
 ## Scope
 

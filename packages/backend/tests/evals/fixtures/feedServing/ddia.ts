@@ -1,4 +1,4 @@
-import type { FeedServingFixture, FixtureCardType, FixtureDraft } from "./types";
+import type { FeedServingFixture, FixturePostType, FixtureDraft } from "./types";
 
 /**
  * DDIA-shaped synthetic fixture for issue #216 / ADR-018.
@@ -45,7 +45,7 @@ type Section = {
   /** Correlation with `DDIA_GOAL_EMBEDDING`, in [0, 1]. Drives section embedding. */
   goalCorrelation: number;
   /** Mix of drafts this section contributes to the pool. */
-  draftMix: FixtureCardType[];
+  draftMix: FixturePostType[];
   contentPreview: string;
 };
 
@@ -281,7 +281,7 @@ function buildChapterSections(): Section[] {
       const signalJitter = ((sectionCursor % 4) - 1.5) * 0.06;
       const correlationJitter = ((sectionCursor % 3) - 1) * 0.05;
       const isQuoteHeavy = shape.quoteHeavy === true && i % 2 === 0;
-      const mix: FixtureCardType[] = isQuoteHeavy
+      const mix: FixturePostType[] = isQuoteHeavy
         ? ["quote", "quote", "quote", "insight"]
         : i % 3 === 0
           ? ["insight", "summary", "quiz"]
@@ -326,8 +326,8 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function sectionToDrafts(section: Section): FixtureDraft[] {
-  return section.draftMix.map((cardType, i) => ({
-    draftId: `${section.sectionId}-${cardType}-${i}`,
+  return section.draftMix.map((postType, i) => ({
+    draftId: `${section.sectionId}-${postType}-${i}`,
     documentId: DOCUMENT_ID,
     sectionId: section.sectionId,
     sectionTitle: section.sectionTitle,
@@ -338,10 +338,10 @@ function sectionToDrafts(section: Section): FixtureDraft[] {
     // Quotes inherit section semantic but collapse toward 0.5 when from weak sections -
     // this reproduces "valid quote shape, weak learning value".
     semanticQualityScore:
-      cardType === "quote"
+      postType === "quote"
         ? clamp(section.semanticQualityScore * 0.75 + 0.1, 0.1, 0.95)
         : section.semanticQualityScore,
-    cardType,
+    postType,
     strategy: "initial",
     language: section.language,
     contentPreview: section.contentPreview,

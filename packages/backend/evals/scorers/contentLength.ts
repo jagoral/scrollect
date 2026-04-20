@@ -2,13 +2,13 @@ import { createScorer } from "evalite";
 
 // Stricter than the production quality scorer (computeLengthScore), which gives
 // full marks from 100+. These targets represent the ideal range we want the LLM
-// to hit - cards below 350 chars are "too short to be useful on their own".
+// to hit - posts below 350 chars are "too short to be useful on their own".
 const MIN_TARGET = 350;
 const MAX_TARGET = 1200;
 
 export const contentLength = createScorer<any, any, any>({
   name: "Content Length",
-  description: "Checks card content meets the target length range (350-1200 chars)",
+  description: "Checks post content meets the target length range (350-1200 chars)",
   scorer: ({ output }) => {
     if (!output.content) return { score: 0, metadata: { length: 0, reason: "No content" } };
 

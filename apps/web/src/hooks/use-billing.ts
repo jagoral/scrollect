@@ -6,9 +6,9 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 export function useBilling() {
-  const { data: usage } = useQuery(convexQuery(api.entitlements.getDocumentUsage, {}));
-  const startProCheckout = useAction(api.polar.startProCheckout);
-  const getCustomerPortalUrl = useAction(api.polar.getCustomerPortalUrl);
+  const { data: usage } = useQuery(convexQuery(api.access.entitlements.getDocumentUsage, {}));
+  const startProCheckout = useAction(api.billing.polar.startProCheckout);
+  const getCustomerPortalUrl = useAction(api.billing.polar.getCustomerPortalUrl);
 
   const [isPending, setIsPending] = useState(false);
 

@@ -8,7 +8,7 @@ const PROCESSING_STAGES = [
   { key: "chunking", label: "Splitting into chunks", hint: null },
   { key: "embedding", label: "Creating embeddings", hint: null },
   { key: "summarizing", label: "Summarizing content", hint: "1-2 min" },
-  { key: "generating_cards", label: "Generating learning cards", hint: "1-3 min" },
+  { key: "generating_cards", label: "Generating learning posts", hint: "1-3 min" },
 ] as const;
 
 export type ProcessingStage = (typeof PROCESSING_STAGES)[number]["key"];

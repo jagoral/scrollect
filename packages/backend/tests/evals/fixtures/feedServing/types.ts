@@ -9,7 +9,7 @@
  * Until then the reference ranker in `referenceRanker.ts` stands in.
  *
  * Naming follows ADR-018 field names exactly so the wire-up is mechanical:
- *  - `semanticQualityScore` - card-level semantic judgement (0-1).
+ *  - `semanticQualityScore` - post-level semantic judgement (0-1).
  *  - `sectionQualitySignal` - section-level ranker signal (0-1).
  *    A section is treated as front matter when `sectionQualitySignal < 0.3`.
  *  - `qualityScore` - legacy structural score, used as fallback.
@@ -17,7 +17,7 @@
 
 export type FixtureLanguage = "en" | "pl" | "de";
 
-export type FixtureCardType = "insight" | "summary" | "quote" | "quiz" | "connection";
+export type FixturePostType = "insight" | "summary" | "quote" | "quiz" | "connection";
 
 export type FixtureDraft = {
   draftId: string;
@@ -27,13 +27,13 @@ export type FixtureDraft = {
   /** Section's chunk offset. Used with `FeedServingFixture.documentChunkCount` to derive bookPosition. */
   chunkStartIndex: number;
   chunkEndIndex: number;
-  /** Card-level semantic learning value. 0-1. MUST have real distribution across the pool. */
+  /** Post-level semantic learning value. 0-1. MUST have real distribution across the pool. */
   semanticQualityScore: number;
   /** Section-level ranker signal (from #215). 0-1. < 0.3 marks front matter. */
   sectionQualitySignal: number;
   /** Legacy structural score. Saturates near 1.0 like DDIA production data. Used only as a fallback. */
   qualityScore: number;
-  cardType: FixtureCardType;
+  postType: FixturePostType;
   strategy: "initial" | "highlight" | "replenishment";
   language: FixtureLanguage;
   /** Human-readable preview. Used by snapshot assertions in scorers. */

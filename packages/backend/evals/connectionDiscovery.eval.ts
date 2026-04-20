@@ -1,6 +1,6 @@
 import { evalite } from "evalite";
 
-import { AiSdkConnectionDiscoveryLlm } from "../src/providers/connectionDiscoveryLlm";
+import { AiSdkConnectionDiscoveryLlm } from "../src/providers/llm/connectionDiscoveryLlm";
 import {
   BOOK_EN_LEARNING,
   ARTICLE_EN_ARCHITECTURE,
@@ -112,7 +112,7 @@ evalite("Connection Discovery", {
     };
 
     try {
-      const { card } = await llm.generateConnectionDraft({
+      const { draft } = await llm.generateConnectionDraft({
         sectionA: {
           title: input.sectionATitle,
           summary: input.sectionASummary,
@@ -127,11 +127,11 @@ evalite("Connection Discovery", {
         documentBTitle: input.documentBTitle,
       });
 
-      if (!card) return emptyResult;
+      if (!draft) return emptyResult;
 
       return {
-        content: card.content,
-        typeData: card.typeData,
+        content: draft.content,
+        typeData: draft.typeData,
         sourceChunks: allChunks,
         isGenuineConnection: true,
         expectedLanguage: input.expectedLanguage,
