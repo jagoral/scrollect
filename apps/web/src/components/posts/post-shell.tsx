@@ -257,7 +257,7 @@ export function PostShell({ post, children, quizVariant, onViewed }: PostShellPr
           <div className="mt-5 grid grid-cols-[1fr_auto] items-end gap-6 border-t border-border pt-3">
             <div className="flex min-w-0 items-center gap-2 text-[12px] leading-snug text-muted-foreground">
               <FileTypeIcon fileType={post.fileType} className="text-muted-foreground/70" />
-              <span className="min-w-0 truncate">
+              <span data-testid="source-badge" className="min-w-0 truncate">
                 <span className="border-b border-border font-logo text-[13.5px] font-medium text-foreground/85">
                   {post.primarySourceDocumentTitle ?? "Untitled"}
                 </span>

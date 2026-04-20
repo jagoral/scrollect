@@ -24,26 +24,32 @@ test.describe("Connection card rendering (seeded)", { tag: "@seeded" }, () => {
     await expect(connectionCard).toBeVisible({ timeout: 15000 });
   });
 
-  test("connection card shows provenance line with both source titles", async ({ page }) => {
+  test("connection card shows both source titles in the source A/B grid", async ({ page }) => {
     const card = page.locator(cardOfType("connection")).first();
     await expect(card).toBeVisible();
 
-    const provenance = card.locator('[data-testid="connection-provenance"]');
-    await expect(provenance).toBeVisible();
-    await expect(provenance).toContainText("Connecting:");
-    await expect(provenance).toContainText("E2E Seed Document");
-    await expect(provenance).toContainText("E2E Seed Document 2");
+    const sourceA = card.locator('[data-testid="connection-source-a"]');
+    const sourceB = card.locator('[data-testid="connection-source-b"]');
+    await expect(sourceA).toBeVisible();
+    await expect(sourceB).toBeVisible();
+
+    const sourceATitle = (await sourceA.textContent())?.trim() ?? "";
+    const sourceBTitle = (await sourceB.textContent())?.trim() ?? "";
+    const titles = new Set([sourceATitle, sourceBTitle]);
+    expect(titles.has("E2E Seed Document")).toBe(true);
+    expect(titles.has("E2E Seed Document 2")).toBe(true);
   });
 
-  test("connection card header badge shows cross-source label with icon", async ({ page }) => {
+  test("connection card shows source A/B labels with an arrow icon", async ({ page }) => {
     const card = page.locator(cardOfType("connection")).first();
     await expect(card).toBeVisible();
 
-    const header = card.locator('[data-testid="connection-header"]');
-    await expect(header).toBeVisible();
-    await expect(header).toContainText(/Cross-source|Cross-section/);
+    const content = card.locator('[data-testid="connection-content"]');
+    await expect(content).toContainText("Source A");
+    await expect(content).toContainText("Source B");
 
-    const icon = header.locator("svg");
+    // The ArrowLeftRight lucide icon is rendered between the two source blocks
+    const icon = content.locator("svg.lucide-arrow-left-right");
     await expect(icon).toBeVisible();
   });
 
@@ -67,25 +73,19 @@ test.describe("Connection card rendering (seeded)", { tag: "@seeded" }, () => {
     await expect(card.locator('[data-testid="save-button"]')).toBeVisible();
   });
 
-  test("connection card has visual distinction (violet accent, no standard source badge)", async ({
-    page,
-  }) => {
+  test("connection card has visual distinction via the source A/B grid", async ({ page }) => {
     const card = page.locator(cardOfType("connection")).first();
     await expect(card).toBeVisible();
 
     const insightCard = page.locator(cardOfType("insight")).first();
     await expect(insightCard).toBeVisible();
 
-    // Connection card uses connection-header + connection-provenance, not source-badge
-    const connectionHeader = card.locator('[data-testid="connection-header"]');
-    const connectionProvenance = card.locator('[data-testid="connection-provenance"]');
-    const insightBadge = insightCard.locator('[data-testid="source-badge"]');
-    await expect(connectionHeader).toBeVisible();
-    await expect(connectionProvenance).toBeVisible();
-    await expect(insightBadge).toBeVisible();
-
-    // Connection card should NOT have the standard source-badge
-    await expect(card.locator('[data-testid="source-badge"]')).not.toBeVisible();
+    // Connection cards render a dedicated source A/B grid alongside the standard
+    // source-badge footer. Insight cards render only the standard source-badge.
+    await expect(card.locator('[data-testid="connection-source-a"]')).toBeVisible();
+    await expect(card.locator('[data-testid="connection-source-b"]')).toBeVisible();
+    await expect(insightCard.locator('[data-testid="connection-source-a"]')).toHaveCount(0);
+    await expect(insightCard.locator('[data-testid="source-badge"]')).toBeVisible();
   });
 
   test("expand sheet is removed from connection cards", async ({ page }) => {

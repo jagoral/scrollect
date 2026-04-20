@@ -29,7 +29,9 @@ test.describe("Feed: document scope", { tag: "@seeded" }, () => {
     await expect(documentItem).toBeVisible({ timeout: 15_000 });
     await documentItem.click();
 
-    await page.getByRole("link", { name: /open feed for this document/i }).click();
+    const detailPanel = page.locator('[data-testid="library-detail-panel"]');
+    await expect(detailPanel).toBeVisible({ timeout: 15_000 });
+    await detailPanel.getByRole("link", { name: /open in feed/i }).click();
 
     await expect(page).toHaveURL(/\/app\/feed\?documentId=.+/, { timeout: 15_000 });
     await expect(page.locator('[data-testid="feed-scope-banner"]')).toContainText(
