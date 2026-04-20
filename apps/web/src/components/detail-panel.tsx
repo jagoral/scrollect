@@ -68,9 +68,9 @@ export function DetailPanel() {
   return (
     <aside
       data-testid="feed-detail-panel"
-      className="hidden min-h-[calc(100svh-3.5rem)] min-w-0 overflow-hidden bg-background lg:block"
+      className="hidden h-full min-h-0 min-w-0 overflow-hidden bg-background lg:block"
     >
-      <div className="sticky top-14 h-[calc(100svh-3.5rem)] overflow-y-auto">
+      <div className="h-full overflow-y-auto overscroll-contain">
         <div key={selectedPost._id} className="animate-in fade-in slide-in-from-top-2 duration-200">
           <DetailPanelContent post={selectedPost} onClose={closeDetail} />
         </div>

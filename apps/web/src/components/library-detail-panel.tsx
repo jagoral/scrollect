@@ -75,8 +75,8 @@ export function LibraryDetailPanel() {
     if (isMobile) return null;
 
     return (
-      <aside className="-ml-px hidden min-w-0 overflow-hidden border-l border-border lg:block">
-        <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] flex-col items-center justify-center px-6 text-center">
+      <aside className="-ml-px hidden h-full min-h-0 min-w-0 overflow-hidden border-l border-border lg:block">
+        <div className="flex h-full flex-col items-center justify-center px-6 text-center">
           <div className="flex size-12 items-center justify-center border border-border">
             <MousePointerClick className="size-5 text-muted-foreground" />
           </div>
@@ -109,8 +109,8 @@ export function LibraryDetailPanel() {
   }
 
   return (
-    <aside className="-ml-px hidden min-w-0 overflow-hidden border-l border-border lg:block">
-      <div className="sticky top-14 h-[calc(100svh-3.5rem)] overflow-y-auto">
+    <aside className="-ml-px hidden h-full min-h-0 min-w-0 overflow-hidden border-l border-border lg:block">
+      <div className="h-full overflow-y-auto overscroll-contain">
         <div
           key={selectedDocumentId}
           className="animate-in fade-in slide-in-from-top-2 duration-200"
