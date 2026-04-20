@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
+import { SEEDED_USER, reseedAccount, resetTestData, signInToSeededFeed } from "./helpers";
 
 const DISLIKE_REASONS = [
   { testId: "dislike-reason-not_interesting", label: "Not interesting to me" },
@@ -13,6 +13,7 @@ test.describe("Feed reaction feedback loop", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {
+    await reseedAccount();
     await signInToSeededFeed(page);
   });
 
