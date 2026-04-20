@@ -10,6 +10,7 @@ import { usePostHog } from "posthog-js/react";
 import { DocumentUsageMeter } from "@/components/billing/document-usage-meter";
 import { UpgradeDialog } from "@/components/billing/upgrade-dialog";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
+import { PageHeader } from "@/components/page-header";
 import { StatusBadge, fileTypeIcons } from "@/components/document-status";
 import {
   ProcessingProgressBar,
@@ -45,6 +46,19 @@ export const Route = createFileRoute("/_authenticated/app/library/")({
   },
   component: LibraryPage,
 });
+
+const KIND_LABELS: Record<string, string> = {
+  pdf: "PDF",
+  epub: "Book",
+  md: "Markdown",
+  txt: "Note",
+  html: "Article",
+  youtube: "Video",
+};
+
+function kindLabel(fileType: string): string {
+  return KIND_LABELS[fileType] ?? fileType.toUpperCase();
+}
 
 function LibraryPage() {
   const {
@@ -86,6 +100,11 @@ function LibraryPage() {
     });
   }, [documents, selectedTags, docTagMap]);
 
+  const readyCount = useMemo(
+    () => filteredDocuments.filter((d) => d.status === "ready").length,
+    [filteredDocuments],
+  );
+
   const handleToggleTag = useCallback(
     (tagName: string) => {
       posthog.capture("library.tag_filtered", {
@@ -114,50 +133,56 @@ function LibraryPage() {
   const onboardingActive = userProfile ? !userProfile.onboardingCompleted : false;
 
   return (
-    <div className="py-6">
-      <div className="mb-6 flex flex-col gap-4 px-4 md:px-6 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">My Library</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Your uploaded documents and their processing status.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <DocumentUsageMeter onUpgradeClick={() => setUpgradeOpen(true)} />
-          {hasDocuments && (
-            <Button size="sm" variant="outline" render={<Link to="/app/upload" />}>
-              <Upload className="size-4" />
-              Upload
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="pb-10">
+      <PageHeader
+        eyebrow="The Archive"
+        title="My Library"
+        description="Everything you've saved, indexed, and made ready to scroll."
+        actions={
+          <>
+            <DocumentUsageMeter onUpgradeClick={() => setUpgradeOpen(true)} />
+            {hasDocuments && (
+              <Button size="sm" variant="outline" render={<Link to="/app/upload" />}>
+                <Upload className="size-4" />
+                Upload document
+              </Button>
+            )}
+          </>
+        }
+      />
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} source="library_header" />
 
       <OnboardingWizard documents={documents} />
 
       {status === "LoadingFirstPage" ? (
-        <div className="border-y border-r border-border">
+        <div data-testid="library-loading-list">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="border-l-[2px] border-l-muted border-t border-border first:border-t-0 px-6 py-5"
-            >
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="mt-3 h-3 w-32" />
+            <div key={i} className="relative border-b border-border px-4 py-6 md:px-8">
+              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-muted" aria-hidden />
+              <div className="grid grid-cols-[2rem_1fr_5rem] gap-4 md:grid-cols-[2.5rem_1fr_6rem] md:gap-6">
+                <Skeleton className="h-3 w-5" />
+                <div className="min-w-0">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="mt-3 h-5 w-4/5" />
+                  <Skeleton className="mt-4 h-3 w-1/2" />
+                </div>
+                <Skeleton className="h-24 w-full md:h-28" />
+              </div>
             </div>
           ))}
         </div>
       ) : !hasDocuments ? (
         onboardingActive ? null : (
-          <div className="mt-8 flex flex-col items-center gap-4 text-center">
+          <div className="mt-16 flex flex-col items-center gap-5 px-6 text-center">
             <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
               <FileText className="size-8 text-primary/70" />
             </div>
             <div>
-              <p className="text-lg font-semibold">No documents yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Upload your first file to get started.
+              <p className="font-logo text-2xl font-semibold tracking-tight">
+                Your archive is empty
+              </p>
+              <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                Upload your first document to start building a personal learning library.
               </p>
             </div>
             <Button render={<Link to="/app/upload" />}>
@@ -169,121 +194,195 @@ function LibraryPage() {
       ) : (
         <>
           {tagOptions.length > 0 && (
-            <div className="mb-6 px-4 md:px-6">
+            <section className="border-b border-border px-4 pt-5 pb-4 md:px-8">
+              <div className="mb-3 flex items-center gap-3">
+                <span className="font-mono text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground">
+                  Filter
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
               <TagFilterBar
                 allTags={tagOptions}
                 selectedTags={selectedTags}
                 onToggle={handleToggleTag}
                 onClear={handleClearTags}
               />
-            </div>
+            </section>
           )}
+
+          <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 md:px-8">
+            <span className="font-mono text-[10.5px] tabular-nums uppercase tracking-[0.22em] text-muted-foreground">
+              <span className="text-foreground">
+                {String(filteredDocuments.length).padStart(2, "0")}
+              </span>
+              <span className="text-muted-foreground/60"> / </span>
+              {String(documents.length).padStart(2, "0")} Volumes
+            </span>
+            <span className="font-mono text-[10.5px] tabular-nums uppercase tracking-[0.22em] text-muted-foreground">
+              {readyCount} Ready
+            </span>
+          </div>
+
           <div className="animate-stagger-in">
-            <div className="border-y border-border">
-              {filteredDocuments.map((doc) => {
-                const docTags = docTagMap.get(doc._id) ?? [];
-                const statusColor =
-                  doc.status === "ready"
-                    ? "border-l-emerald-500"
-                    : doc.status === "error"
-                      ? "border-l-red-500"
-                      : "border-l-primary";
+            {filteredDocuments.map((doc, index) => {
+              const docTags = docTagMap.get(doc._id) ?? [];
+              const statusColor =
+                doc.status === "ready"
+                  ? "bg-emerald-500"
+                  : doc.status === "error"
+                    ? "bg-red-500"
+                    : "bg-primary";
 
-                const isSelected = libraryDetail?.selectedDocumentId === doc._id;
+              const isSelected = libraryDetail?.selectedDocumentId === doc._id;
 
-                return (
-                  <button
-                    type="button"
-                    key={doc._id}
-                    data-testid="document-item"
-                    onClick={() => {
-                      if (libraryDetail) {
-                        libraryDetail.openDetail(doc._id);
-                      } else {
-                        navigate({
-                          to: "/app/library/$documentId",
-                          params: { documentId: doc._id },
-                        });
-                      }
-                    }}
+              return (
+                <button
+                  type="button"
+                  key={doc._id}
+                  data-testid="document-item"
+                  onClick={() => {
+                    if (libraryDetail) {
+                      libraryDetail.openDetail(doc._id);
+                    } else {
+                      navigate({
+                        to: "/app/library/$documentId",
+                        params: { documentId: doc._id },
+                      });
+                    }
+                  }}
+                  className={cn(
+                    "group relative block w-full cursor-pointer border-b border-border bg-card text-left transition-all duration-200",
+                    "hover:bg-accent/30",
+                    isSelected && "bg-accent/40",
+                  )}
+                >
+                  <div
+                    aria-hidden
                     className={cn(
-                      "block w-full cursor-pointer border-l-[2px] border-t border-border first:border-t-0 bg-card text-left transition-colors hover:bg-accent/30",
-                      isSelected ? "bg-accent/30" : "",
+                      "absolute left-0 top-0 bottom-0 w-[2px] transition-all",
                       statusColor,
+                      "group-hover:w-[3px]",
+                      isSelected && "w-[3px]",
                     )}
-                  >
-                    <div className="grid grid-cols-[1fr_6rem] sm:grid-cols-[1fr_8rem]">
-                      <div className="min-w-0 px-6 py-4">
-                        <div className="flex items-start gap-2.5">
-                          <span className="mt-0.5 shrink-0">
-                            {fileTypeIcons[doc.fileType] ?? (
-                              <FileText className="size-4 text-muted-foreground" />
-                            )}
+                  />
+
+                  <div className="grid grid-cols-[2rem_1fr_5rem] gap-4 px-4 py-5 md:grid-cols-[2.5rem_1fr_6rem] md:gap-6 md:px-8 md:py-6">
+                    <div className="flex flex-col items-start pt-1">
+                      <span className="font-mono text-[10.5px] tabular-nums tracking-[0.18em] text-muted-foreground/50 group-hover:text-muted-foreground">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <StatusBadge status={doc.status} />
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="shrink-0 [&_svg]:size-3.5">
+                            {fileTypeIcons[doc.fileType] ?? <FileText className="size-3.5" />}
                           </span>
-                          <span className="line-clamp-2 text-sm font-semibold">{doc.title}</span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap items-center gap-3">
-                          <StatusBadge status={doc.status} />
-                          {isProcessingStatus(doc.status) && (
-                            <ProcessingProgressBar status={doc.status} />
-                          )}
-                          {doc.status === "ready" && (
-                            <span className="text-xs text-muted-foreground">
-                              {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
-                            </span>
-                          )}
+                          <span className="font-mono text-[10px] uppercase tracking-[0.22em]">
+                            {kindLabel(doc.fileType)}
+                          </span>
                           {doc.sourceUrl && (
                             <Globe
-                              className="size-3 text-muted-foreground"
+                              className="size-3 text-muted-foreground/70"
                               aria-label="Added from URL"
                             />
                           )}
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(doc.createdAt, { addSuffix: true })}
-                          </span>
                         </div>
-                        {docTags.length > 0 && (
-                          <div className="mt-2">
-                            <TagList tags={docTags} maxVisible={2} size="sm" />
-                          </div>
-                        )}
                       </div>
-                      <div className="relative border-l border-border bg-transparent">
-                        {doc.thumbnailUrl && (
-                          <img
-                            src={doc.thumbnailUrl}
-                            alt=""
-                            loading="lazy"
-                            className="absolute inset-0 size-full object-cover"
-                          />
+
+                      <h2 className="mt-2.5 font-logo text-lg font-semibold leading-[1.25] tracking-tight text-foreground [&]:line-clamp-2 md:text-[1.35rem]">
+                        {doc.title}
+                      </h2>
+
+                      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        {isProcessingStatus(doc.status) && (
+                          <>
+                            <ProcessingProgressBar status={doc.status} />
+                            <span aria-hidden className="text-muted-foreground/40">
+                              ·
+                            </span>
+                          </>
                         )}
+                        {doc.status === "ready" && (
+                          <>
+                            <span className="tabular-nums">
+                              {doc.chunkCount.toLocaleString()} chunk
+                              {doc.chunkCount !== 1 ? "s" : ""}
+                            </span>
+                            <span aria-hidden className="text-muted-foreground/40">
+                              ·
+                            </span>
+                          </>
+                        )}
+                        <span>added {formatDistanceToNow(doc.createdAt, { addSuffix: true })}</span>
                       </div>
+
+                      {docTags.length > 0 && (
+                        <div className="mt-3">
+                          <TagList tags={docTags} maxVisible={3} size="sm" />
+                        </div>
+                      )}
                     </div>
-                  </button>
-                );
-              })}
-              {filteredDocuments.length === 0 && selectedTags.size > 0 && (
-                <div className="py-8 text-center text-sm text-muted-foreground">
+
+                    <div className="relative h-20 w-full shrink-0 overflow-hidden border border-border bg-muted/40 md:h-28">
+                      {doc.thumbnailUrl ? (
+                        <img
+                          src={doc.thumbnailUrl}
+                          alt=""
+                          loading="lazy"
+                          className="absolute inset-0 size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                        />
+                      ) : (
+                        <div
+                          aria-hidden
+                          className="flex h-full items-center justify-center text-muted-foreground/30 [&_svg]:size-6"
+                        >
+                          {fileTypeIcons[doc.fileType] ?? <FileText className="size-6" />}
+                        </div>
+                      )}
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      />
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+            {filteredDocuments.length === 0 && selectedTags.size > 0 && (
+              <div className="px-6 py-12 text-center">
+                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60">
+                  No matches
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
                   {status === "Exhausted"
                     ? "No documents match the selected tags."
-                    : "No matches yet - loading more documents..."}
-                </div>
-              )}
-            </div>
+                    : "Loading more documents..."}
+                </p>
+              </div>
+            )}
           </div>
 
           <div ref={sentinelRef} className="h-1" />
 
           {status === "LoadingMore" && (
-            <div className="flex justify-center py-4 animate-in fade-in duration-300">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            <div className="flex justify-center py-6 animate-in fade-in duration-300">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
           )}
 
           {status === "Exhausted" && filteredDocuments.length > 0 && (
-            <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-              <div className="h-px w-16 bg-border" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]">End of library</p>
+            <div className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
+              <div className="flex items-center gap-3">
+                <div className="h-px w-10 bg-border" />
+                <span aria-hidden className="inline-block h-1 w-1 rounded-full bg-primary/60" />
+                <div className="h-px w-10 bg-border" />
+              </div>
+              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.28em]">
+                End of library
+              </p>
             </div>
           )}
         </>

@@ -1,8 +1,4 @@
-import { useState } from "react";
-
-import { cn } from "@/lib/utils";
-
-import { PostShell, SourceBadge } from "./post-shell";
+import { PostShell } from "./post-shell";
 import type { PostView, QuoteTypeData } from "./types";
 
 interface QuotePostProps {
@@ -11,35 +7,34 @@ interface QuotePostProps {
 
 export function QuotePost({ post }: QuotePostProps) {
   const { quotedText, attribution } = post.typeData;
-  const [expanded, setExpanded] = useState(false);
 
   return (
     <PostShell post={post}>
-      <SourceBadge post={post} />
       <div>
         <blockquote
           data-testid="quoted-text"
-          className="text-base leading-relaxed text-foreground/90"
+          className="relative pl-8 font-logo text-[25px] font-medium leading-[1.3] tracking-tight text-foreground"
         >
+          <span
+            aria-hidden
+            className="absolute -top-2 left-0 font-logo text-[72px] font-semibold leading-none text-amber-500/45"
+          >
+            &ldquo;
+          </span>
           {quotedText}
         </blockquote>
         {attribution && (
-          <p data-testid="quote-attribution" className="mt-2 text-sm text-muted-foreground/70">
+          <p
+            data-testid="quote-attribution"
+            className="mt-3 pl-8 font-mono text-[11px] uppercase tracking-[0.16em] text-amber-600/90 dark:text-amber-400/90"
+          >
             &mdash; {attribution}
           </p>
         )}
         {post.content && (
           <p
             data-testid="quote-context"
-            className={cn(
-              "mt-1.5 cursor-pointer text-xs not-italic text-muted-foreground/50",
-              !expanded && "line-clamp-2",
-              expanded && "text-sm",
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded((prev) => !prev);
-            }}
+            className="mt-3 border-l border-border pl-3 text-[13.5px] leading-[1.55] text-muted-foreground"
           >
             {post.content}
           </p>

@@ -1,6 +1,6 @@
 import Markdown from "react-markdown";
 
-import { PostShell, SourceBadge } from "./post-shell";
+import { PostShell } from "./post-shell";
 import type { PostView } from "./types";
 
 interface InsightPostProps {
@@ -10,10 +10,9 @@ interface InsightPostProps {
 export function InsightPost({ post }: InsightPostProps) {
   return (
     <PostShell post={post}>
-      <SourceBadge post={post} />
       <div
         data-testid="insight-content"
-        className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+        className="prose prose-sm prose-neutral max-w-none text-[15.5px] leading-[1.62] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 dark:prose-invert"
       >
         <Markdown>{post.content}</Markdown>
       </div>

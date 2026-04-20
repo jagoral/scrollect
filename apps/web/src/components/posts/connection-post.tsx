@@ -1,9 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { ArrowLeftRight, FileText } from "lucide-react";
-import Markdown from "react-markdown";
-
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeftRight } from "lucide-react";
 
 import { PostShell } from "./post-shell";
 import type { ConnectionTypeData, PostView } from "./types";
@@ -13,114 +8,58 @@ interface ConnectionPostProps {
 }
 
 export function ConnectionPost({ post }: ConnectionPostProps) {
-  const { sourceATitleHint, sourceBTitleHint, connectionType, sourceAKeyIdea, sourceBKeyIdea } =
-    post.typeData;
-
-  const isWithinDocument = connectionType === "within_document";
+  const { sourceATitleHint, sourceBTitleHint, sourceAKeyIdea, sourceBKeyIdea } = post.typeData;
 
   return (
     <PostShell post={post}>
-      <div className="mb-3 flex items-center gap-2" data-testid="connection-header">
-        <Badge
-          variant="outline"
-          className="gap-1.5 rounded-none border-violet-500/30 bg-transparent font-normal text-muted-foreground"
-        >
-          <ArrowLeftRight className="size-3 shrink-0 text-violet-500/60" />
-          {isWithinDocument ? "Cross-section" : "Cross-source"}
-        </Badge>
-      </div>
-
-      <ConnectionProvenance
-        sourceATitleHint={sourceATitleHint}
-        sourceBTitleHint={sourceBTitleHint}
-        primaryDocumentId={post.primarySourceDocumentId}
-        isWithinDocument={isWithinDocument}
-      />
-
-      {(sourceAKeyIdea || sourceBKeyIdea) && (
-        <div className="mb-3 flex flex-col gap-1.5">
-          {sourceAKeyIdea && (
-            <p
-              data-testid="connection-key-idea-a"
-              className="text-xs italic leading-relaxed text-muted-foreground"
+      <div data-testid="connection-content">
+        <div className="mb-4 grid grid-cols-[1fr_28px_1fr] items-stretch gap-3">
+          <div className="border border-border bg-violet-500/[0.03] px-3.5 py-3">
+            <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-violet-500">
+              Source A
+            </div>
+            <div
+              data-testid="connection-source-a"
+              className="truncate text-[12px] text-muted-foreground/90"
             >
-              {sourceAKeyIdea}
-            </p>
-          )}
-          {sourceBKeyIdea && (
-            <p
-              data-testid="connection-key-idea-b"
-              className="text-xs italic leading-relaxed text-muted-foreground"
+              {sourceATitleHint}
+            </div>
+            {sourceAKeyIdea && (
+              <p
+                data-testid="connection-key-idea-a"
+                className="mt-2 text-[13px] italic leading-[1.5] text-foreground/85"
+              >
+                &ldquo;{sourceAKeyIdea}&rdquo;
+              </p>
+            )}
+          </div>
+          <div className="flex items-center justify-center text-violet-500">
+            <ArrowLeftRight className="size-4" />
+          </div>
+          <div className="border border-border bg-violet-500/[0.03] px-3.5 py-3">
+            <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-violet-500">
+              Source B
+            </div>
+            <div
+              data-testid="connection-source-b"
+              className="truncate text-[12px] text-muted-foreground/90"
             >
-              {sourceBKeyIdea}
-            </p>
-          )}
+              {sourceBTitleHint}
+            </div>
+            {sourceBKeyIdea && (
+              <p
+                data-testid="connection-key-idea-b"
+                className="mt-2 text-[13px] italic leading-[1.5] text-foreground/85"
+              >
+                &ldquo;{sourceBKeyIdea}&rdquo;
+              </p>
+            )}
+          </div>
         </div>
-      )}
-
-      <div
-        data-testid="connection-content"
-        className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-      >
-        <Markdown>{post.content}</Markdown>
+        <p className="font-logo text-[18.5px] font-normal leading-[1.45] tracking-tight text-foreground">
+          {post.content}
+        </p>
       </div>
     </PostShell>
-  );
-}
-
-interface ConnectionProvenanceProps {
-  sourceATitleHint: string;
-  sourceBTitleHint: string;
-  primaryDocumentId: Id<"documents">;
-  isWithinDocument: boolean;
-}
-
-function ConnectionProvenance({
-  sourceATitleHint,
-  sourceBTitleHint,
-  primaryDocumentId,
-  isWithinDocument,
-}: ConnectionProvenanceProps) {
-  if (isWithinDocument) {
-    return (
-      <div
-        data-testid="connection-provenance"
-        className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground/70"
-      >
-        <FileText className="size-3 shrink-0" />
-        <span className="truncate">
-          Sections in:{" "}
-          <Link
-            to="/app/library/$documentId"
-            params={{ documentId: primaryDocumentId }}
-            className="underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
-          >
-            {sourceATitleHint}
-          </Link>
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      data-testid="connection-provenance"
-      className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground/70"
-    >
-      <FileText className="size-3 shrink-0" />
-      <span className="truncate">
-        Connecting:{" "}
-        <Link
-          to="/app/library/$documentId"
-          params={{ documentId: primaryDocumentId }}
-          className="underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground/80 hover:decoration-muted-foreground/60"
-          aria-label={`Source: ${sourceATitleHint}`}
-        >
-          {sourceATitleHint}
-        </Link>
-        {" + "}
-        <span>{sourceBTitleHint}</span>
-      </span>
-    </div>
   );
 }

@@ -8,7 +8,6 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { LearningGoalOnboardingPrompt } from "@/components/upload/learning-goal-onboarding-dialog";
 import { useUploadErrorHandler } from "@/components/upload/upload-error-provider";
@@ -46,23 +45,24 @@ export function UploadUrlTab({ onDocumentCreated }: UploadUrlTabProps) {
 
   const createFromUrl = useMutation(api.content.documents.createFromUrl);
 
-  const detectedType = url.trim() ? detectUrlType(url.trim()) : null;
-  const urlValid = url.trim() ? isValidUrl(url.trim()) : null;
+  const trimmed = url.trim();
+  const detectedType = trimmed ? detectUrlType(trimmed) : null;
+  const urlValid = trimmed ? isValidUrl(trimmed) : null;
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const trimmed = url.trim();
-      if (!trimmed || !isValidUrl(trimmed)) {
+      const value = url.trim();
+      if (!value || !isValidUrl(value)) {
         toast.error("Please enter a valid URL starting with http:// or https://");
         return;
       }
 
       setSubmitting(true);
       try {
-        const fileType = detectUrlType(trimmed);
-        const documentId = await createFromUrl({ url: trimmed, fileType });
-        onDocumentCreated({ documentId, documentTitle: trimmed, sourceType: fileType });
+        const fileType = detectUrlType(value);
+        const documentId = await createFromUrl({ url: value, fileType });
+        onDocumentCreated({ documentId, documentTitle: value, sourceType: fileType });
         posthog.capture("content.uploaded", {
           source_type: fileType,
         });
@@ -90,30 +90,42 @@ export function UploadUrlTab({ onDocumentCreated }: UploadUrlTabProps) {
   );
 
   return (
-    <Card className="border border-border p-8">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-16 items-center justify-center border border-border text-muted-foreground">
-            <Globe className="size-8" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold">Paste a URL</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Add an article or YouTube video to your library.
-            </p>
-          </div>
+    <div className="border border-border bg-card">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-6 md:p-8">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="inline-block size-1.5 rounded-full bg-primary/70" />
+          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.32em] text-muted-foreground">
+            From the web
+          </span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <div>
+          <h2 className="font-logo text-2xl font-semibold tracking-tight md:text-[1.75rem]">
+            Paste a link
+          </h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Articles, blog posts, and YouTube videos are supported.
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">
+          <label
+            htmlFor="url-input"
+            className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground"
+          >
+            URL
+          </label>
           <div className="relative">
             <Input
+              id="url-input"
               data-testid="url-input"
               type="url"
               placeholder="https://example.com/article or YouTube URL"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               disabled={submitting}
-              className="pr-24"
+              className="h-11 pr-28"
             />
             {detectedType && urlValid && (
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -133,20 +145,17 @@ export function UploadUrlTab({ onDocumentCreated }: UploadUrlTabProps) {
               </div>
             )}
           </div>
-          {url.trim() && urlValid === false && (
+          {trimmed && urlValid === false && (
             <p className="text-sm text-destructive">
               Please enter a valid URL starting with https://
             </p>
           )}
-          <p className="text-xs text-muted-foreground">
-            Supported: articles, blog posts, YouTube videos
-          </p>
         </div>
 
         <Button
           data-testid="url-submit"
           type="submit"
-          disabled={submitting || !url.trim() || !urlValid}
+          disabled={submitting || !trimmed || !urlValid}
           className="w-full"
         >
           {submitting ? (
@@ -155,10 +164,10 @@ export function UploadUrlTab({ onDocumentCreated }: UploadUrlTabProps) {
               Processing...
             </>
           ) : (
-            "Add"
+            "Add to library"
           )}
         </Button>
       </form>
-    </Card>
+    </div>
   );
 }

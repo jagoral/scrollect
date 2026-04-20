@@ -31,9 +31,8 @@ export function Post({ post }: PostProps) {
       return <SummaryPost post={{ ...post, typeData }} />;
     case "connection":
       return <ConnectionPost post={{ ...post, typeData }} />;
-    default: {
-      const _exhaustive: never = typeData;
+    default:
+      typeData satisfies never;
       return null;
-    }
   }
 }

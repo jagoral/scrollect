@@ -314,6 +314,7 @@ test.describe("Library desktop layout", { tag: "@seeded" }, () => {
     const main = page.locator('[data-testid="app-main-scroll"]');
     const panel = page.locator('[data-testid="library-detail-panel"]');
     await expect(panel).toBeVisible();
+    await expect(panel).toContainText("Select a document");
     await expect
       .poll(() => main.evaluate((el) => getComputedStyle(el).borderRightWidth))
       .toBe("0px");
@@ -326,6 +327,7 @@ test.describe("Library desktop layout", { tag: "@seeded" }, () => {
     await docButton.click();
 
     await expect(panel).toBeVisible();
+    await expect(panel).not.toContainText("Select a document");
     await expect
       .poll(() => panel.evaluate((el) => getComputedStyle(el).borderLeftWidth))
       .toBe("1px");
