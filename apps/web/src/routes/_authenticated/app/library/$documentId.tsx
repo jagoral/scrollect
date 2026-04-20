@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, FileText, Globe, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Globe, Loader2, Rss, Trash2 } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -131,7 +131,15 @@ function DocumentDetailPage() {
           )}
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link to="/app/feed" search={{ documentId: document._id }} />}
+          >
+            <Rss data-icon="inline-start" />
+            Open feed for this document
+          </Button>
           {document.status === "ready" && <ImportHighlightsDialog documentId={document._id} />}
           <AlertDialog
             open={deleteDialogOpen}

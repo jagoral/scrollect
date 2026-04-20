@@ -1,13 +1,14 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
-import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
+import type { Doc, Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { CheckCircle, FileUp, Loader2, Rss, Sparkles, Timer } from "lucide-react";
+import { BookOpen, CheckCircle, FileUp, Loader2, Rss, Sparkles, Timer } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { StatusBadge } from "@/components/document-status";
 import { Post } from "@/components/posts";
 import { buildTagMap } from "@/components/tags";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,6 +18,8 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 type FeedSearch = {
   noAutoServe?: boolean;
+  scope?: "all" | "document";
+  documentId?: string;
 };
 
 export const Route = createFileRoute("/_authenticated/app/feed")({
@@ -24,32 +27,50 @@ export const Route = createFileRoute("/_authenticated/app/feed")({
   head: () => ({
     meta: [{ title: "Feed | Scrollect" }],
   }),
-  validateSearch: (search: Record<string, unknown>): FeedSearch => ({
-    noAutoServe:
-      search.noAutoServe === true ||
-      search.noAutoServe === "true" ||
-      search.noAutoServe === "" ||
-      search.noAutoGenerate === true ||
-      search.noAutoGenerate === "true" ||
-      search.noAutoGenerate === "",
-  }),
+  validateSearch: (search: Record<string, unknown>): FeedSearch => {
+    const documentId =
+      typeof search.documentId === "string" && search.documentId.length > 0
+        ? search.documentId
+        : undefined;
+
+    return {
+      noAutoServe:
+        search.noAutoServe === true ||
+        search.noAutoServe === "true" ||
+        search.noAutoServe === "" ||
+        search.noAutoGenerate === true ||
+        search.noAutoGenerate === "true" ||
+        search.noAutoGenerate === "",
+      scope: documentId ? "document" : search.scope === "all" ? "all" : undefined,
+      documentId,
+    };
+  },
   component: FeedPage,
 });
 
 function FeedPage() {
-  const { noAutoServe } = Route.useSearch();
-
-  const { results, status, loadMore } = usePaginatedQuery(
-    api.feed.queries.list,
-    {},
-    { initialNumItems: 10 },
+  const { noAutoServe, documentId } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const isDocumentScoped = documentId !== undefined;
+  const scopedDocumentId = isDocumentScoped ? (documentId as Id<"documents">) : undefined;
+  const feedArgs = useMemo(
+    () => (scopedDocumentId ? { documentId: scopedDocumentId } : {}),
+    [scopedDocumentId],
   );
+
+  const { results, status, loadMore } = usePaginatedQuery(api.feed.queries.list, feedArgs, {
+    initialNumItems: 10,
+  });
   const serveFeed = useMutation(api.feed.serving.serveFeed);
+  const serveDocumentFeed = useMutation(api.feed.serving.serveDocumentFeed);
+  const { data: scopedDocument } = useQuery(
+    convexQuery(api.content.documents.get, scopedDocumentId ? { id: scopedDocumentId } : "skip"),
+  );
 
   const [serving, setServing] = useState(false);
   const [serveReason, setServeReason] = useState<"no_drafts" | "processing" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const autoServedRef = useRef(false);
+  const autoServedScopeRef = useRef<string | null>(null);
 
   const posthog = usePostHog();
 
@@ -62,10 +83,14 @@ function FeedPage() {
     setError(null);
     setServeReason(null);
     try {
-      const result = await serveFeed({});
+      const result = scopedDocumentId
+        ? await serveDocumentFeed({ documentId: scopedDocumentId })
+        : await serveFeed({});
       posthog.capture("feed.served", {
         post_count: result.posts.length,
         reason: result.reason ?? null,
+        scope: scopedDocumentId ? "document" : "all",
+        documentId: scopedDocumentId ?? null,
       });
       if (result.reason) {
         setServeReason(result.reason);
@@ -78,24 +103,51 @@ function FeedPage() {
       servingRef.current = false;
       setServing(false);
     }
-  }, [serveFeed, posthog]);
+  }, [serveDocumentFeed, serveFeed, posthog, scopedDocumentId]);
 
   useEffect(() => {
     if (noAutoServe) return;
-    if (autoServedRef.current) return;
+    const autoServeKey = scopedDocumentId ?? "all";
+    if (autoServedScopeRef.current === autoServeKey) return;
     if (status === "LoadingFirstPage") return;
     if (results.length > 0) return;
 
-    autoServedRef.current = true;
+    autoServedScopeRef.current = autoServeKey;
     serve();
-  }, [noAutoServe, status, results.length, serve]);
+  }, [noAutoServe, scopedDocumentId, status, results.length, serve]);
+
+  const openedScopeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!scopedDocumentId) return;
+    if (openedScopeRef.current === scopedDocumentId) return;
+    openedScopeRef.current = scopedDocumentId;
+    posthog.capture("feed_scope_opened", {
+      scope: "document",
+      documentId: scopedDocumentId,
+    });
+  }, [posthog, scopedDocumentId]);
 
   const handleServe = useCallback(() => {
     posthog.capture("feed.serve_clicked", {
       existing_post_count: results.length,
+      scope: scopedDocumentId ? "document" : "all",
+      documentId: scopedDocumentId ?? null,
     });
     serve();
-  }, [posthog, serve, results.length]);
+  }, [posthog, serve, results.length, scopedDocumentId]);
+
+  const handleResetScope = useCallback(() => {
+    posthog.capture("feed_scope_reset", {
+      from_scope: "document",
+      documentId: scopedDocumentId ?? null,
+    });
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        documentId: undefined,
+      }),
+    });
+  }, [navigate, posthog, scopedDocumentId]);
 
   const sentinelRef = useInfiniteScroll(status, loadMore);
 
@@ -172,7 +224,11 @@ function FeedPage() {
       <div className="mb-6 flex items-center justify-between px-4 md:px-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning posts.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {scopedDocumentId
+              ? "Learning posts from this document."
+              : "Your AI-generated learning posts."}
+          </p>
         </div>
         <Button onClick={handleServe} disabled={serving} data-testid="feed-serve-button">
           {serving ? (
@@ -184,6 +240,30 @@ function FeedPage() {
         </Button>
       </div>
 
+      {scopedDocumentId && (
+        <div className="mb-6 px-4 md:px-6">
+          <Alert data-testid="feed-scope-banner">
+            <BookOpen data-icon="inline-start" />
+            <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Currently viewing:{" "}
+                <strong className="font-semibold text-foreground">
+                  {scopedDocument?.title ?? "this document"}
+                </strong>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetScope}
+                data-testid="feed-view-all"
+              >
+                View all
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertDescription>{error}</AlertDescription>
@@ -191,7 +271,11 @@ function FeedPage() {
       )}
 
       {enrichedResults.length === 0 && !serving ? (
-        <FeedEmptyState reason={serveReason} onServe={handleServe} serving={serving} />
+        scopedDocumentId ? (
+          <DocumentFeedEmptyState document={scopedDocument} reason={serveReason} />
+        ) : (
+          <FeedEmptyState reason={serveReason} onServe={handleServe} serving={serving} />
+        )
       ) : (
         <div className="animate-stagger-in">
           <div className="border-y border-border">
@@ -234,6 +318,54 @@ function FeedPage() {
               </Button>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface DocumentFeedEmptyStateProps {
+  document: Doc<"documents"> | null | undefined;
+  reason: "no_drafts" | "processing" | null;
+}
+
+function DocumentFeedEmptyState({ document, reason }: DocumentFeedEmptyStateProps) {
+  const status = document?.status;
+  const waitingForProcessing =
+    reason === "processing" ||
+    status === "uploaded" ||
+    status === "parsing" ||
+    status === "chunking" ||
+    status === "embedding" ||
+    status === "summarizing" ||
+    status === "generating_cards";
+
+  return (
+    <div
+      data-testid="feed-document-empty-state"
+      className="mt-12 flex flex-col items-center gap-5 px-4 text-center"
+    >
+      <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
+        {waitingForProcessing ? (
+          <Loader2 className="size-8 animate-spin text-primary/70" />
+        ) : (
+          <BookOpen className="size-8 text-primary/70" />
+        )}
+      </div>
+      <div>
+        <p className="text-lg font-semibold tracking-tight">
+          {waitingForProcessing ? "No posts yet - still generating" : "No posts for this document"}
+        </p>
+        <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {waitingForProcessing
+            ? "Scrollect is still turning this document into learning posts."
+            : "There are no ready posts for this document yet."}
+        </p>
+      </div>
+      {document && (
+        <div className="flex flex-col items-center gap-2">
+          <p className="max-w-sm break-words text-xs text-muted-foreground">{document.title}</p>
+          <StatusBadge status={document.status} />
         </div>
       )}
     </div>

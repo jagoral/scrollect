@@ -1,10 +1,11 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
+import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, Globe, Loader2, MousePointerClick, Trash2, X } from "lucide-react";
+import { FileText, Globe, Loader2, MousePointerClick, Rss, Trash2, X } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { createContext, useCallback, useContext, useState } from "react";
 import { toast } from "sonner";
@@ -215,7 +216,15 @@ function DocumentDetailContent({
         )}
       </div>
 
-      <div className="mt-4 flex justify-end gap-2">
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          render={<Link to="/app/feed" search={{ documentId: document._id }} />}
+        >
+          <Rss data-icon="inline-start" />
+          Open feed for this document
+        </Button>
         {document.status === "ready" && <ImportHighlightsDialog documentId={document._id} />}
         <AlertDialog
           open={deleteDialogOpen}

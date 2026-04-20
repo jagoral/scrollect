@@ -11,7 +11,10 @@ import type { DislikeReason } from "../lib/validators";
 import { FRESHNESS_WINDOW_MS } from "../../src/feed/logic/constants";
 
 export const list = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: {
+    paginationOpts: paginationOptsValidator,
+    documentId: v.optional(v.id("documents")),
+  },
   handler: async (ctx, args) => {
     const user = await optionalAuth(ctx);
     if (!user) {
@@ -22,11 +25,31 @@ export const list = query({
       };
     }
 
-    const result = await ctx.db
-      .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
-      .order("desc")
-      .paginate(args.paginationOpts);
+    const scopedDocumentId = args.documentId;
+    if (scopedDocumentId) {
+      const document = await ctx.db.get(scopedDocumentId);
+      if (!document || document.userId !== user._id) {
+        return {
+          page: [],
+          isDone: true,
+          continueCursor: "",
+        };
+      }
+    }
+
+    const result = scopedDocumentId
+      ? await ctx.db
+          .query("posts")
+          .withIndex("by_userId_document", (q) =>
+            q.eq("userId", user._id).eq("primarySourceDocumentId", scopedDocumentId),
+          )
+          .order("desc")
+          .paginate(args.paginationOpts)
+      : await ctx.db
+          .query("posts")
+          .withIndex("by_userId", (q) => q.eq("userId", user._id))
+          .order("desc")
+          .paginate(args.paginationOpts);
 
     const visiblePage = result.page.filter((post) => post.reaction !== "dislike");
 
