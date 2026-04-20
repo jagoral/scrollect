@@ -9,7 +9,7 @@ fi
 
 cd "$(dirname "$0")/../packages/backend"
 
-if [ "$VERCEL_GIT_COMMIT_REF" = "main" ] || [ "$VERCEL_GIT_COMMIT_REF" = "dev" ]; then
+if [ "$VERCEL_GIT_COMMIT_REF" = "main" ]; then
   npx convex deploy
   npx convex run migrations:runAll
   cd ../../apps/web
