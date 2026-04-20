@@ -326,11 +326,18 @@ async function buildReactionSummary(
 ): Promise<{ summary: ReactionSummary; feedbackRows: Doc<"reactionFeedback">[] }> {
   // Cap at 500 most recent rows to bound memory. Recent signals matter more
   // for scoring, so we order desc and drop the oldest if the user exceeds 500.
-  const feedbackRows = await ctx.db
-    .query("reactionFeedback")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .order("desc")
-    .take(500);
+  // `postDraftId` is optional during the Card->Post widen window; drop rows
+  // that have not yet been remapped so downstream scoring always has a draft.
+  const feedbackRows = (
+    await ctx.db
+      .query("reactionFeedback")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(500)
+  ).filter(
+    (fb): fb is Doc<"reactionFeedback"> & { postDraftId: Id<"postDrafts"> } =>
+      fb.postDraftId !== undefined,
+  );
 
   const draftLookup = new Map(draftsToScore.map((d) => [d._id as string, d]));
 

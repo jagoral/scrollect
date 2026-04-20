@@ -60,9 +60,8 @@ import type * as lib_functions from "../lib/functions.js";
 import type * as lib_rateLimitChecks from "../lib/rateLimitChecks.js";
 import type * as lib_rateLimitConfig from "../lib/rateLimitConfig.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as migrations from "../migrations.js";
 import type * as ops_healthCheck from "../ops/healthCheck.js";
-import type * as ops_migrateEarlyAdopters from "../ops/migrateEarlyAdopters.js";
-import type * as ops_migrations from "../ops/migrations.js";
 import type * as ops_testing from "../ops/testing.js";
 import type * as ops_testingActions from "../ops/testingActions.js";
 
@@ -125,9 +124,8 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimitChecks": typeof lib_rateLimitChecks;
   "lib/rateLimitConfig": typeof lib_rateLimitConfig;
   "lib/validators": typeof lib_validators;
+  migrations: typeof migrations;
   "ops/healthCheck": typeof ops_healthCheck;
-  "ops/migrateEarlyAdopters": typeof ops_migrateEarlyAdopters;
-  "ops/migrations": typeof ops_migrations;
   "ops/testing": typeof ops_testing;
   "ops/testingActions": typeof ops_testingActions;
 }>;
