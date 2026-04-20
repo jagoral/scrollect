@@ -85,9 +85,12 @@ test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
     await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
 
     const endState = page.locator('[data-testid="feed-end-state"]');
+    const feedScroller = page.locator('[data-testid="app-main-scroll"]');
     for (let i = 0; i < 10; i++) {
       const cardCountBefore = await page.locator('[data-testid="post-card"]').count();
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await feedScroller.evaluate((el) => {
+        el.scrollTop = el.scrollHeight;
+      });
       if (await endState.isVisible()) break;
       // Wait for either new content to load (card count increases) or end state to appear
       await Promise.race([
@@ -129,6 +132,42 @@ test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
     });
 
     expect(horizontalOverflow).toBeLessThanOrEqual(1);
+  });
+
+  test("desktop detail panel stays fixed while the feed column scrolls", async ({ page }) => {
+    await page.setViewportSize({ width: 1536, height: 864 });
+    await page.goto("/app/feed?noAutoGenerate");
+    await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
+
+    await page
+      .locator('[data-testid="post-card"]')
+      .first()
+      .locator('[data-testid="source-badge"]')
+      .click();
+
+    const panel = page.locator('[data-testid="feed-detail-panel"]');
+    const feedScroller = page.locator('[data-testid="app-main-scroll"]');
+    await expect(panel).toBeVisible();
+    await expect(feedScroller).toBeVisible();
+
+    const initialPanelBox = await panel.boundingBox();
+    expect(initialPanelBox).not.toBeNull();
+
+    await feedScroller.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect.poll(() => feedScroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+
+    const scrolledPanelBox = await panel.boundingBox();
+    expect(scrolledPanelBox).not.toBeNull();
+
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    expect(Math.abs(scrolledPanelBox!.y - initialPanelBox!.y)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(scrolledPanelBox!.height - (viewport!.height - initialPanelBox!.y)),
+    ).toBeLessThanOrEqual(1);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   });
 
   test("empty state shows when no posts exist", async ({ page }) => {
