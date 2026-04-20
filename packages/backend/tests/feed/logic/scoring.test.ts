@@ -6,7 +6,7 @@ import {
   FRESHNESS_WINDOW_MS,
   HIGHLIGHT_BOOST,
   REACTION_ALREADY_KNOW_MULTIPLIER,
-  REACTION_LIKE_CARD_TYPE_MULTIPLIER,
+  REACTION_LIKE_POST_TYPE_MULTIPLIER,
   REACTION_LIKE_SECTION_MULTIPLIER,
   REACTION_NOT_INTERESTING_MULTIPLIER,
   REACTION_WRONG_TYPE_MULTIPLIER,
@@ -165,7 +165,7 @@ describe("scoreDrafts", () => {
   });
 
   describe("type diversity reorder", () => {
-    it("prevents more than 3 consecutive same-type cards", () => {
+    it("prevents more than 3 consecutive same-type posts", () => {
       const drafts = [
         makeDraft({ id: "i1", postType: "insight", qualityScore: 0.9 }),
         makeDraft({ id: "i2", postType: "insight", qualityScore: 0.88 }),
@@ -250,7 +250,7 @@ describe("scoreDrafts", () => {
       expect(dominantCount).toBeLessThanOrEqual(maxPerDoc);
     });
 
-    it("demotes excess document cards to end of list", () => {
+    it("demotes excess document posts to end of list", () => {
       const drafts = [
         makeDraft({ id: "d1-a", documentId: "doc-1", qualityScore: 0.95 }),
         makeDraft({ id: "d1-b", documentId: "doc-1", qualityScore: 0.94 }),
@@ -322,7 +322,7 @@ describe("scoreDrafts", () => {
       expect(sectionACounts).toBeLessThanOrEqual(maxPerSection);
     });
 
-    it("demotes excess section cards to end of list", () => {
+    it("demotes excess section posts to end of list", () => {
       const drafts = [
         ...Array.from({ length: 5 }, (_, i) =>
           makeDraft({
@@ -659,9 +659,9 @@ describe("scoreDrafts", () => {
     function emptyReactionSummary(): ReactionSummary {
       return {
         dislikedSections: new Map(),
-        dislikedCardTypes: new Set(),
+        dislikedPostTypes: new Set(),
         likedSections: new Set(),
-        likedCardTypes: new Set(),
+        likedPostTypes: new Set(),
         rejectedDraftIds: new Set(),
       };
     }
@@ -726,14 +726,14 @@ describe("scoreDrafts", () => {
       expect(result[0]!.score).toBeCloseTo(1.0 * REACTION_ALREADY_KNOW_MULTIPLIER, 3);
     });
 
-    it("applies wrong_type penalty (0.5x) to drafts of disliked card type", () => {
+    it("applies wrong_type penalty (0.5x) to drafts of disliked post type", () => {
       const drafts = [
         makeDraft({ id: "bad-type", postType: "quiz", ...BASE_DRAFT }),
         makeDraft({ id: "ok-type", postType: "insight", ...BASE_DRAFT }),
       ];
 
       const summary = emptyReactionSummary();
-      summary.dislikedCardTypes.add("quiz");
+      summary.dislikedPostTypes.add("quiz");
 
       const result = scoreDrafts({
         drafts,
@@ -794,14 +794,14 @@ describe("scoreDrafts", () => {
       expect(neutral.score).toBeCloseTo(1.0, 3);
     });
 
-    it("applies like card type boost (1.15x)", () => {
+    it("applies like post type boost (1.15x)", () => {
       const drafts = [
         makeDraft({ id: "liked-type", postType: "quiz", ...BASE_DRAFT }),
         makeDraft({ id: "neutral-type", postType: "insight", ...BASE_DRAFT }),
       ];
 
       const summary = emptyReactionSummary();
-      summary.likedCardTypes.add("quiz");
+      summary.likedPostTypes.add("quiz");
 
       const result = scoreDrafts({
         drafts,
@@ -813,7 +813,7 @@ describe("scoreDrafts", () => {
       const liked = result.find((d) => d.id === "liked-type")!;
       const neutral = result.find((d) => d.id === "neutral-type")!;
 
-      expect(liked.score).toBeCloseTo(1.0 * REACTION_LIKE_CARD_TYPE_MULTIPLIER, 3);
+      expect(liked.score).toBeCloseTo(1.0 * REACTION_LIKE_POST_TYPE_MULTIPLIER, 3);
       expect(neutral.score).toBeCloseTo(1.0, 3);
     });
 
@@ -829,7 +829,7 @@ describe("scoreDrafts", () => {
 
       const summary = emptyReactionSummary();
       summary.dislikedSections.set("sec-bad", "not_interesting");
-      summary.dislikedCardTypes.add("quiz");
+      summary.dislikedPostTypes.add("quiz");
 
       const result = scoreDrafts({
         drafts,
@@ -854,7 +854,7 @@ describe("scoreDrafts", () => {
 
       const summary = emptyReactionSummary();
       summary.likedSections.add("sec-fav");
-      summary.likedCardTypes.add("quiz");
+      summary.likedPostTypes.add("quiz");
 
       const result = scoreDrafts({
         drafts,
@@ -863,7 +863,7 @@ describe("scoreDrafts", () => {
         reactionSummary: summary,
       });
 
-      const expected = 1.0 * REACTION_LIKE_SECTION_MULTIPLIER * REACTION_LIKE_CARD_TYPE_MULTIPLIER;
+      const expected = 1.0 * REACTION_LIKE_SECTION_MULTIPLIER * REACTION_LIKE_POST_TYPE_MULTIPLIER;
       expect(result[0]!.score).toBeCloseTo(expected, 3);
     });
 
@@ -1048,7 +1048,7 @@ describe("scoreDrafts", () => {
       expect(result[0]!.score).toBeCloseTo(0.8, 3);
     });
 
-    it("front-matter card ranks below substantive cards even with same semantic score", () => {
+    it("front-matter post ranks below substantive posts even with same semantic score", () => {
       const drafts = [
         makeDraft({
           id: "front-matter",
@@ -1426,7 +1426,7 @@ describe("scoreDrafts", () => {
     });
   });
 
-  describe("ADR-018 card-type share caps", () => {
+  describe("ADR-018 post-type share caps", () => {
     function quoteHeavyPool(): ScoredDraft[] {
       // 12 quotes ranked above 6 insights and 2 quizzes.
       const quotes = Array.from({ length: 12 }, (_, i) =>
@@ -1577,15 +1577,15 @@ describe("scoreDrafts", () => {
     // 150-draft pool that mirrors a real DDIA-like distribution after Task 3:
     //   - ~10% from front-matter sections (semantic 0.20-0.32, sectionQualitySignal 0.2)
     //   - ~25% verbatim-but-uneducational quotes / generic summaries (semantic 0.40-0.60)
-    //   - ~45% useful learning cards (semantic 0.65-0.85)
-    //   - ~20% high-value cards on dense technical sections (semantic 0.85-0.93)
+    //   - ~45% useful learning posts (semantic 0.65-0.85)
+    //   - ~20% high-value posts on dense technical sections (semantic 0.85-0.93)
     // The validator rubric (ADR-018 §1) is what produces this real shape.
     function buildSyntheticPool(): ScoredDraft[] {
-      const cardTypes = ["insight", "summary", "quiz", "quote"] as const;
+      const postTypes = ["insight", "summary", "quiz", "quote"] as const;
       const totalSections = 30;
       const totalDrafts = 150;
       return Array.from({ length: totalDrafts }, (_, i) => {
-        const postType = cardTypes[i % cardTypes.length]!;
+        const postType = postTypes[i % postTypes.length]!;
         const sectionIdx = i % totalSections;
         const tier = i / totalDrafts;
 
@@ -1651,7 +1651,7 @@ describe("scoreDrafts", () => {
       expect(belowThreshold).toBeGreaterThanOrEqual(0.2);
     });
 
-    it("the first 10 served cards span at least 50% of book depth", () => {
+    it("the first 10 served posts span at least 50% of book depth", () => {
       const drafts = buildSyntheticPool();
       const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 10 };
       const result = scoreDrafts({ drafts, config, now: NOW });
@@ -1661,7 +1661,7 @@ describe("scoreDrafts", () => {
       expect(spread).toBeGreaterThanOrEqual(0.5);
     });
 
-    it("the first 20 served cards do not include any front-matter section", () => {
+    it("the first 20 served posts do not include any front-matter section", () => {
       const drafts = buildSyntheticPool();
       const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 20 };
       const result = scoreDrafts({ drafts, config, now: NOW });
@@ -1670,7 +1670,7 @@ describe("scoreDrafts", () => {
       expect(frontMatterInTop.length).toBe(0);
     });
 
-    it("quote share over the first 20 served cards is <= 30%", () => {
+    it("quote share over the first 20 served posts is <= 30%", () => {
       const drafts = buildSyntheticPool();
       const config: ScoringConfig = { ...DEFAULT_SCORING_CONFIG, batchSize: 20 };
       const result = scoreDrafts({ drafts, config, now: NOW });
@@ -1703,7 +1703,7 @@ describe("scoreDrafts", () => {
       const goalIds = goalResult.slice(0, 10).map((d) => d.id);
       expect(goalIds).not.toEqual(noGoalIds);
 
-      // sec-15 cards should be promoted into the first batch by the goal alignment.
+      // sec-15 posts should be promoted into the first batch by the goal alignment.
       const sec15InGoalTop = goalResult
         .slice(0, 10)
         .filter((d) => d.sectionSummaryId === "sec-15").length;

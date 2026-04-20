@@ -15,10 +15,10 @@ function countSpeechArtifacts(text: string): number {
 export const transcriptionPolish = createScorer<any, any, any>({
   name: "Transcription Polish",
   description:
-    "Checks that YouTube/speech-source quote cards have speech artifacts removed while non-speech sources are unaffected",
+    "Checks that YouTube/speech-source quote posts have speech artifacts removed while non-speech sources are unaffected",
   scorer: async ({ output }) => {
     if (output.postType !== "quote") {
-      return { score: 1, metadata: { rationale: "Not a quote card, skipping" } };
+      return { score: 1, metadata: { rationale: "Not a quote post, skipping" } };
     }
 
     if (!isSpeechSource(output.fileType)) {

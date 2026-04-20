@@ -5,7 +5,7 @@ import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
 const CARD = '[data-testid="post-card"]';
 
 function cardOfType(type: string) {
-  return `${CARD}[data-card-type="${type}"]`;
+  return `${CARD}[data-post-type="${type}"]`;
 }
 
 test.describe("Connection card rendering (seeded)", { tag: "@seeded" }, () => {

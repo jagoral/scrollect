@@ -497,15 +497,15 @@
     animation: illust-drift 5.5s ease-in-out infinite;
     animation-delay: 1.5s;
   }
-  .illust-card-1 {
+  .illust-post-1 {
     animation: illust-float 4.5s ease-in-out infinite;
     animation-delay: 0.2s;
   }
-  .illust-card-2 {
+  .illust-post-2 {
     animation: illust-float-reverse 4s ease-in-out infinite;
     animation-delay: 0.6s;
   }
-  .illust-card-3 {
+  .illust-post-3 {
     animation: illust-float 4.2s ease-in-out infinite;
     animation-delay: 1s;
   }

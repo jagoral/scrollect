@@ -3,7 +3,7 @@ import {
   HIGHLIGHT_BOOST,
   MAX_CONSECUTIVE_SAME_TYPE,
   REACTION_ALREADY_KNOW_MULTIPLIER,
-  REACTION_LIKE_CARD_TYPE_MULTIPLIER,
+  REACTION_LIKE_POST_TYPE_MULTIPLIER,
   REACTION_LIKE_SECTION_MULTIPLIER,
   REACTION_NOT_INTERESTING_MULTIPLIER,
   REACTION_WRONG_TYPE_MULTIPLIER,
@@ -31,7 +31,7 @@ export type ScoringConfig = {
   reactionAlreadyKnowMultiplier: number;
   reactionWrongTypeMultiplier: number;
   reactionLikeSectionMultiplier: number;
-  reactionLikeCardTypeMultiplier: number;
+  reactionLikePostTypeMultiplier: number;
   goalRelevanceAlpha: number;
   goalRelevanceFloor: number;
   frontMatterPenalty: number;
@@ -52,7 +52,7 @@ export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
   reactionAlreadyKnowMultiplier: REACTION_ALREADY_KNOW_MULTIPLIER,
   reactionWrongTypeMultiplier: REACTION_WRONG_TYPE_MULTIPLIER,
   reactionLikeSectionMultiplier: REACTION_LIKE_SECTION_MULTIPLIER,
-  reactionLikeCardTypeMultiplier: REACTION_LIKE_CARD_TYPE_MULTIPLIER,
+  reactionLikePostTypeMultiplier: REACTION_LIKE_POST_TYPE_MULTIPLIER,
   goalRelevanceAlpha: GOAL_RELEVANCE_ALPHA,
   goalRelevanceFloor: GOAL_RELEVANCE_FLOOR,
   frontMatterPenalty: FRONT_MATTER_PENALTY,
@@ -88,9 +88,9 @@ export type DislikeSignal = "not_interesting" | "already_know";
 
 export type ReactionSummary = {
   dislikedSections: Map<string, DislikeSignal>;
-  dislikedCardTypes: Set<string>;
+  dislikedPostTypes: Set<string>;
   likedSections: Set<string>;
-  likedCardTypes: Set<string>;
+  likedPostTypes: Set<string>;
   rejectedDraftIds: Set<string>;
 };
 
@@ -113,7 +113,7 @@ export type ReactionSummary = {
  * Per ADR-018 §3, learning-goal embeddings are per-document. The scorer looks up each
  * draft's embedding by its `documentId`, so a pool spanning docs with different goals
  * ranks each draft against its own goal — a doc with goal "learn Rust" never has its
- * cards boosted by another doc's "learn React" vector.
+ * posts boosted by another doc's "learn React" vector.
  *
  * Pass order (each later pass may demote earlier picks): score → sort → book-position
  * round-robin → quote-share cap → quiz-share cap → type diversity → section diversity →
@@ -166,8 +166,8 @@ export function scoreDrafts(opts: {
   // passes. Each later pass may partially undo an earlier promotion - that is intentional
   // and matches ADR-016's "later passes win" guarantee from the existing scorer.
   const bookReordered = applyBookPositionDiversity(scored, config);
-  const quoteCapped = applyCardTypeShareCap(bookReordered, "quote", config.maxQuoteShare, config);
-  const quizCapped = applyCardTypeShareCap(quoteCapped, "quiz", config.maxQuizShare, config);
+  const quoteCapped = applyPostTypeShareCap(bookReordered, "quote", config.maxQuoteShare, config);
+  const quizCapped = applyPostTypeShareCap(quoteCapped, "quiz", config.maxQuizShare, config);
   const typeReordered = applyTypeDiversity(quizCapped, config.maxConsecutiveSameType);
   const sectionReordered = applySectionDiversity(typeReordered, config);
   return applyDocumentDiversity(sectionReordered, config);
@@ -177,8 +177,8 @@ export function scoreDrafts(opts: {
  * Compute the `effectiveQuality` term used by the scorer.
  *
  * Exported so the serving site can emit the serving-quality-distribution analytics event
- * using exactly the same math as ranking. Per ADR-018 §4: when both card and section
- * signals exist, blend with card-level dominant; when only semantic exists, use it
+ * using exactly the same math as ranking. Per ADR-018 §4: when both post and section
+ * signals exist, blend with post-level dominant; when only semantic exists, use it
  * alone; otherwise fall back to the structural `qualityScore` so old drafts keep working.
  */
 export function computeEffectiveQuality(draft: ScoredDraft): number {
@@ -252,12 +252,12 @@ function computeReactionMultiplier(
     }
   }
 
-  if (summary.dislikedCardTypes.has(draft.postType)) {
+  if (summary.dislikedPostTypes.has(draft.postType)) {
     multiplier *= config.reactionWrongTypeMultiplier;
   }
 
-  if (summary.likedCardTypes.has(draft.postType)) {
-    multiplier *= config.reactionLikeCardTypeMultiplier;
+  if (summary.likedPostTypes.has(draft.postType)) {
+    multiplier *= config.reactionLikePostTypeMultiplier;
   }
 
   return multiplier;
@@ -272,7 +272,7 @@ function computeReactionMultiplier(
  *   (e.g. highlight/thematic drafts, or pre-ADR documents).
  * - Returns input untouched if fewer than 2 distinct quartiles are populated.
  *
- * Picks the highest-scored remaining card from each non-empty quartile in turn until
+ * Picks the highest-scored remaining post from each non-empty quartile in turn until
  * `batchSize` items are accepted, then appends the rest in their original (score) order
  * as demoted tail. Round-robin starts from the lowest-occupied quartile.
  */
@@ -327,14 +327,14 @@ function bookPositionBucketIndex(draft: ScoredDraft, bucketCount: number): numbe
 }
 
 /**
- * Demote-to-tail share cap for a single card type within the served batch. ADR-018 §6.
+ * Demote-to-tail share cap for a single post type within the served batch. ADR-018 §6.
  * The "share" is computed against the eventual batch size, so a 30% cap on a batch of 15
- * allows at most 4 quotes (or 4 quizzes) in the accepted prefix; additional cards of the
- * capped type are pushed to the tail behind any other-type cards.
+ * allows at most 4 quotes (or 4 quizzes) in the accepted prefix; additional posts of the
+ * capped type are pushed to the tail behind any other-type posts.
  *
  * Same shape as the existing `applyDocumentDiversity` so cap semantics stay consistent.
  */
-function applyCardTypeShareCap(
+function applyPostTypeShareCap(
   sorted: ScoredDraftWithScore[],
   postType: string,
   share: number,

@@ -518,11 +518,11 @@ export const insertSeededData = internalMutation({
       }
     }
 
-    // Create 7 posts covering all card types.
+    // Create 7 posts covering all post types.
     // Insertion order is reversed from desired feed display order because
     // the feed query sorts by DESC _creationTime (last inserted = first shown).
-    // The order simulates interleaving output: hook card (quiz) first in feed,
-    // no two consecutive cards share the same type.
+    // The order simulates interleaving output: hook post (quiz) first in feed,
+    // no two consecutive posts share the same type.
     // Feed display order: quiz(MC), insight, quiz(TF), connection, insight, quote, summary
     const postDefs: Array<{
       content: string;

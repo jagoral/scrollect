@@ -86,7 +86,7 @@ export function LearningGoalOnboardingDialog({
         preset_edited: selectedPresets.length > 0 && trimmed !== presetText,
         preset_count: selectedPresets.length,
       });
-      toast.success("Goal saved. It will shape the cards generated for this document.");
+      toast.success("Goal saved. It will shape the posts generated for this document.");
       close();
     } catch (error) {
       posthog.captureException(error);
@@ -126,19 +126,19 @@ export function LearningGoalOnboardingDialog({
           <DialogDescription>
             {prompt ? (
               <>
-                A specific goal helps Scrollect focus cards for{" "}
+                A specific goal helps Scrollect focus posts for{" "}
                 <span className="font-medium text-foreground">{prompt.documentTitle}</span>. You can
                 change it later.
               </>
             ) : (
-              "A specific goal helps Scrollect focus the cards. You can change it later."
+              "A specific goal helps Scrollect focus the posts. You can change it later."
             )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
           <div className="border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Card generation waits for <span className="font-medium text-foreground">Save goal</span>{" "}
+            Post generation waits for <span className="font-medium text-foreground">Save goal</span>{" "}
             or <span className="font-medium text-foreground">Skip for now</span>. Parsing and
             chunking continue in the background.
           </div>

@@ -1,7 +1,7 @@
 import { ZERO_USAGE, addUsage, type TokenUsage } from "../../providers/llm/models";
 import type { DraftPostType, DraftGenerationServiceContext, TypeData } from "../../providers/types";
 
-export const DRAFT_CARD_TYPES: DraftPostType[] = ["insight", "quiz", "quote", "summary"];
+export const DRAFT_POST_TYPES: DraftPostType[] = ["insight", "quiz", "quote", "summary"];
 const MIN_QUALITY_SCORE = 0.3;
 type ContextDepth = "representative" | "full";
 
@@ -35,7 +35,7 @@ export type GenerateDraftsInput = {
    */
   sectionQualitySignal?: number;
   allChunks: ChunkData[];
-  cardTypes?: DraftPostType[];
+  postTypes?: DraftPostType[];
   generationBatch?: number;
   contextDepth?: ContextDepth;
   existingHashes: ReadonlySet<string>;
@@ -67,7 +67,7 @@ export type ValidationRejection = {
 
 export type GenerateDraftsMetrics = {
   sectionTitle: string;
-  cardTypesAttempted: number;
+  postTypesAttempted: number;
   draftsGenerated: number;
   draftsDeduplicated: number;
   draftsDiscardedLowQuality: number;
@@ -243,11 +243,11 @@ export async function generateDraftsForSection(opts: {
     chunkStartIndex: section.chunkStartIndex,
     chunkEndIndex: section.chunkEndIndex,
   });
-  const cardTypes = input.cardTypes ?? DRAFT_CARD_TYPES;
+  const postTypes = input.postTypes ?? DRAFT_POST_TYPES;
 
   const metrics: GenerateDraftsMetrics = {
     sectionTitle: section.sectionTitle,
-    cardTypesAttempted: cardTypes.length,
+    postTypesAttempted: postTypes.length,
     draftsGenerated: 0,
     draftsDeduplicated: 0,
     draftsDiscardedLowQuality: 0,
@@ -258,7 +258,7 @@ export async function generateDraftsForSection(opts: {
     validationRejections: [],
   };
 
-  if (sourceChunks.length === 0 || cardTypes.length === 0) {
+  if (sourceChunks.length === 0 || postTypes.length === 0) {
     return { drafts: [], tokenUsage: ZERO_USAGE, metrics };
   }
 
@@ -272,7 +272,7 @@ export async function generateDraftsForSection(opts: {
   const seenHashes = new Set(existingHashes);
 
   const settled = await Promise.allSettled(
-    cardTypes.map((postType) =>
+    postTypes.map((postType) =>
       services.llm
         .generateDraft({
           postType,
@@ -296,17 +296,17 @@ export async function generateDraftsForSection(opts: {
       continue;
     }
 
-    const { postType, card, usage } = result.value;
+    const { postType, draft, usage } = result.value;
     totalUsage = addUsage(totalUsage, usage);
 
-    if (!card) {
+    if (!draft) {
       if (postType === "quote") metrics.draftsSkippedNoQuote++;
       continue;
     }
 
-    if (!card.content) continue;
+    if (!draft.content) continue;
 
-    const contentHash = hashContent(card.content);
+    const contentHash = hashContent(draft.content);
     if (seenHashes.has(contentHash)) {
       metrics.draftsDeduplicated++;
       continue;
@@ -314,8 +314,8 @@ export async function generateDraftsForSection(opts: {
 
     const qualityScore = computeQualityScore({
       postType,
-      content: card.content,
-      typeData: card.typeData,
+      content: draft.content,
+      typeData: draft.typeData,
       sourceChunkCount: sourceChunks.length,
     });
 
@@ -330,8 +330,8 @@ export async function generateDraftsForSection(opts: {
       sectionSummaryId: section.sectionSummaryId,
       userId,
       postType,
-      content: card.content,
-      typeData: castTypeData(postType, card.typeData),
+      content: draft.content,
+      typeData: castTypeData(postType, draft.typeData),
       sourceChunkIds: sourceChunks.map((c) => c._id),
       contentHash,
       qualityScore,

@@ -89,7 +89,7 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
         toast.success(
           <span>
             <strong>{trimmedTitle}</strong> added! Processing typically takes 3-5 minutes and
-            continues in the background. Add a learning goal now so cards use it.{" "}
+            continues in the background. Add a learning goal now so posts use it.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>

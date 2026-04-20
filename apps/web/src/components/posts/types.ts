@@ -46,9 +46,9 @@ export type { DislikeReason } from "@scrollect/backend/convex/lib/validators";
 
 import type { DocumentTag } from "@/components/tags/types";
 
-export type { DocumentTag as PostCardTag } from "@/components/tags/types";
+export type { DocumentTag as PostTag } from "@/components/tags/types";
 
-export interface PostCardData {
+export interface PostView {
   _id: Id<"posts">;
   content: string;
   postType: PostType;

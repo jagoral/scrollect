@@ -31,7 +31,7 @@ const connectionDraftSchema = z.object({
 
 function buildSystemPrompt(language?: string): string {
   return `You are a connection discovery assistant for Scrollect, a personal learning feed app.
-Given two sections from the user's library (possibly from different documents), determine if they share a meaningful conceptual connection and generate a connection card.
+Given two sections from the user's library (possibly from different documents), determine if they share a meaningful conceptual connection and generate a connection post.
 
 <instructions>
 1. ${buildLanguageInstruction(language)}
@@ -79,7 +79,7 @@ export class AiSdkConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
     documentBTitle: string;
     language?: string;
   }): Promise<{
-    card: { content: string; typeData: Record<string, unknown> } | null;
+    draft: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
   }> {
     const chunksA = opts.sectionA.chunks.map((c, i) => `Chunk A${i}:\n${c.content}`).join("\n\n");
@@ -108,11 +108,11 @@ ${chunksB}`;
     });
 
     if (!output || !output.isGenuineConnection) {
-      return { card: null, usage };
+      return { draft: null, usage };
     }
 
     return {
-      card: {
+      draft: {
         content: output.content,
         typeData: {
           type: "connection",
@@ -143,11 +143,11 @@ export class StubConnectionDiscoveryLlm implements ConnectionDiscoveryLlm {
     documentBTitle: string;
     language?: string;
   }): Promise<{
-    card: { content: string; typeData: Record<string, unknown> } | null;
+    draft: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
   }> {
     return {
-      card: {
+      draft: {
         content: `Connection between "${opts.sectionA.title}" and "${opts.sectionB.title}": these sections share a conceptual link.`,
         typeData: {
           type: "connection",

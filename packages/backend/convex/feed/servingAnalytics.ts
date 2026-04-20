@@ -26,7 +26,7 @@ async function emit(
 
 const bookDepthReachValidator = v.object({
   documentId: v.string(),
-  cardCount: v.number(),
+  postCount: v.number(),
   maxBookPosition: v.number(),
   minBookPosition: v.number(),
   spreadBookPosition: v.number(),
@@ -35,14 +35,14 @@ const bookDepthReachValidator = v.object({
 
 const postTypeMixValidator = v.object({
   documentId: v.string(),
-  cardCount: v.number(),
-  // Flat record (card type -> count). PostHog ingests this shape cleanly and the key set
+  postCount: v.number(),
+  // Flat record (post type -> count). PostHog ingests this shape cleanly and the key set
   // is small and stable (insight, quiz, quote, summary).
   mix: v.record(v.string(), v.number()),
 });
 
 const qualityDistributionValidator = v.object({
-  totalCards: v.number(),
+  totalPosts: v.number(),
   mean: v.number(),
   std: v.number(),
   belowThreshold07Share: v.number(),
@@ -55,13 +55,13 @@ const goalRelevanceValidator = v.object({
   applied: v.boolean(),
   sectionEmbeddingCoveragePercent: v.number(),
   meanRelevanceBoost: v.number(),
-  boostedCardCount: v.number(),
+  boostedPostCount: v.number(),
 });
 
 export const captureServingAnalytics = internalAction({
   args: {
     userId: v.string(),
-    cardCount: v.number(),
+    postCount: v.number(),
     elapsedMs: v.number(),
     isDepleted: v.boolean(),
     remainingPending: v.number(),
@@ -80,7 +80,7 @@ export const captureServingAnalytics = internalAction({
         totalDislikes: v.number(),
         dislikesByReason: v.record(v.string(), v.number()),
         penalizedSections: v.number(),
-        penalizedCardTypes: v.number(),
+        penalizedPostTypes: v.number(),
         rejectedDrafts: v.number(),
       }),
     ),
@@ -93,8 +93,8 @@ export const captureServingAnalytics = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await emit(ctx, args.userId, "feed.cards_served", {
-      count: args.cardCount,
+    await emit(ctx, args.userId, "feed.posts_served", {
+      count: args.postCount,
       time_ms: args.elapsedMs,
       ...(args.draftsPerDocumentStats && {
         drafts_per_document_min: args.draftsPerDocumentStats.min,
@@ -107,7 +107,7 @@ export const captureServingAnalytics = internalAction({
         reaction_total_dislikes: args.reactionStats.totalDislikes,
         reaction_dislikes_by_reason: args.reactionStats.dislikesByReason,
         reaction_penalized_sections: args.reactionStats.penalizedSections,
-        reaction_penalized_card_types: args.reactionStats.penalizedCardTypes,
+        reaction_penalized_post_types: args.reactionStats.penalizedPostTypes,
         reaction_rejected_drafts: args.reactionStats.rejectedDrafts,
       }),
     });
@@ -126,7 +126,7 @@ export const captureServingAnalytics = internalAction({
       for (const reach of args.bookDepthReaches) {
         await emit(ctx, args.userId, "feed.first_session_book_depth_reach", {
           document_id: reach.documentId,
-          card_count: reach.cardCount,
+          post_count: reach.postCount,
           max_book_position: reach.maxBookPosition,
           min_book_position: reach.minBookPosition,
           spread_book_position: reach.spreadBookPosition,
@@ -137,9 +137,9 @@ export const captureServingAnalytics = internalAction({
 
     if (args.postTypeMixes && args.postTypeMixes.length > 0) {
       for (const mix of args.postTypeMixes) {
-        await emit(ctx, args.userId, "feed.first_session_card_type_mix", {
+        await emit(ctx, args.userId, "feed.first_session_post_type_mix", {
           document_id: mix.documentId,
-          card_count: mix.cardCount,
+          post_count: mix.postCount,
           // Shallow record of counts; PostHog ingests this reliably.
           type_mix: mix.mix,
         });
@@ -148,7 +148,7 @@ export const captureServingAnalytics = internalAction({
 
     if (args.qualityDistribution) {
       await emit(ctx, args.userId, "feed.serving_quality_score_distribution", {
-        total_cards: args.qualityDistribution.totalCards,
+        total_posts: args.qualityDistribution.totalPosts,
         mean: args.qualityDistribution.mean,
         std: args.qualityDistribution.std,
         below_threshold_0_7_share: args.qualityDistribution.belowThreshold07Share,
@@ -161,7 +161,7 @@ export const captureServingAnalytics = internalAction({
         applied: args.goalRelevance.applied,
         section_embedding_coverage_percent: args.goalRelevance.sectionEmbeddingCoveragePercent,
         mean_relevance_boost: args.goalRelevance.meanRelevanceBoost,
-        boosted_card_count: args.goalRelevance.boostedCardCount,
+        boosted_post_count: args.goalRelevance.boostedPostCount,
       });
     }
 

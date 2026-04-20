@@ -142,7 +142,7 @@ describe("discoverThemes", () => {
 });
 
 describe("generateThematicDrafts", () => {
-  it("generates drafts for each theme with insight and summary card types", async () => {
+  it("generates drafts for each theme with insight and summary post types", async () => {
     const vectorStore = createMockVectorStore({
       search: async (): Promise<VectorSearchResult[]> => makeSearchResults(),
     });
@@ -209,7 +209,7 @@ describe("generateThematicDrafts", () => {
     });
     const draftLlm = createMockPostDraftLlm({
       generateDraft: vi.fn().mockResolvedValue({
-        card: {
+        draft: {
           content: "Identical thematic content for all types",
           typeData: { type: "insight" },
         },
@@ -264,7 +264,7 @@ describe("generateThematicDrafts", () => {
           async (opts: { postType: string; sectionTitle: string; learningGoal?: string }) => {
             if (opts.postType === "insight") throw new Error("LLM failure");
             return {
-              card: {
+              draft: {
                 content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful thematic card content here.`,
                 typeData: { type: "summary", bulletPoints: ["Point 1", "Point 2"] },
               },
@@ -326,7 +326,7 @@ describe("generateThematicDrafts", () => {
     expect(result.drafts.length).toBeGreaterThan(0);
   });
 
-  it("accumulates token usage across themes and card types", async () => {
+  it("accumulates token usage across themes and post types", async () => {
     const usage = {
       inputTokens: 100,
       outputTokens: 50,
@@ -341,7 +341,7 @@ describe("generateThematicDrafts", () => {
         .fn()
         .mockImplementation(
           async (opts: { postType: string; sectionTitle: string; learningGoal?: string }) => ({
-            card: {
+            draft: {
               content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful thematic card content.`,
               typeData:
                 opts.postType === "summary"
@@ -385,7 +385,7 @@ describe("generateThematicDrafts", () => {
       search: async (): Promise<VectorSearchResult[]> => makeSearchResults(),
     });
     const generateDraft = vi.fn().mockResolvedValue({
-      card: {
+      draft: {
         content: "Draft insight for testing: a useful thematic card.",
         typeData: { type: "insight" },
       },

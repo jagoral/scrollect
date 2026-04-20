@@ -1,7 +1,7 @@
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
 
-type SectionName = "hero" | "how_it_works" | "card_types" | "pricing" | "bottom_cta";
+type SectionName = "hero" | "how_it_works" | "post_types" | "pricing" | "bottom_cta";
 
 export function useLandingSection(sectionName: SectionName, { initiallyVisible = false } = {}) {
   const posthog = usePostHog();

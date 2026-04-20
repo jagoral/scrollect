@@ -3,19 +3,19 @@ status: proposed
 date: 2026-04-19
 ---
 
-# ADR-018: Best-cards-first serving after quality-first generation
+# ADR-018: Best-posts-first serving after quality-first generation
 
 ## Context
 
-Issue #216. ADR-017 (PR #217, #215) made initial draft generation lazy, bounded, and section-ranker driven. The remaining problem is at serving time: the first feed after upload still clusters in the first 2% of the book and is dominated by quote cards. Production DDIA evidence: first 12 served cards in positions 0-2%, quote share 41.7% vs pool 24.3%, `qualityScore` median 1.000 and 97.9% of drafts in `[0.85, 1.0]`. The current serving scorer in `src/feed/logic/scoring.ts` (ADR-016) uses `qualityScore` as its sole quality signal, ignores the user's learning goal, and has no book-depth constraint. This ADR changes the inputs to that scorer and adds new diversity passes. It does not re-litigate ADR-016's scoring architecture, generation cadence (#215), or section allocation — those remain the baseline.
+Issue #216. ADR-017 (PR #217, #215) made initial draft generation lazy, bounded, and section-ranker driven. The remaining problem is at serving time: the first feed after upload still clusters in the first 2% of the book and is dominated by quote posts. Production DDIA evidence: first 12 served posts in positions 0-2%, quote share 41.7% vs pool 24.3%, `qualityScore` median 1.000 and 97.9% of drafts in `[0.85, 1.0]`. The current serving scorer in `src/feed/logic/scoring.ts` (ADR-016) uses `qualityScore` as its sole quality signal, ignores the user's learning goal, and has no book-depth constraint. This ADR changes the inputs to that scorer and adds new diversity passes. It does not re-litigate ADR-016's scoring architecture, generation cadence (#215), or section allocation — those remain the baseline.
 
 ## Decision
 
-### 1. `semanticQualityScore` on `cardDrafts`
+### 1. `semanticQualityScore` on `postDrafts`
 
-Add `semanticQualityScore: v.optional(v.number())` to the `cardDrafts` table. The score is 0-1, produced at generation time by extending the existing `CardDraftValidator` call (already a per-draft LLM call — no new calls added). The validator returns both its existing boolean verdict and a semantic-quality judgement against a rubric: does the card teach a concrete concept, mechanism, tradeoff, example, failure mode, or decision rule; is it specific and self-contained; is it memorable and worth the learner's attention right now? The rubric is language-agnostic — no English-only keywords.
+Add `semanticQualityScore: v.optional(v.number())` to the `postDrafts` table. The score is 0-1, produced at generation time by extending the existing `PostDraftValidator` call (already a per-draft LLM call — no new calls added). The validator returns both its existing boolean verdict and a semantic-quality judgement against a rubric: does the post teach a concrete concept, mechanism, tradeoff, example, failure mode, or decision rule; is it specific and self-contained; is it memorable and worth the learner's attention right now? The rubric is language-agnostic — no English-only keywords.
 
-Explicit quote-specific anchor in the rubric: a quote that is verbatim and well-formed but does not teach a concept, decision principle, or mechanism scores ≤ 0.6. This is how quote cards — which historically hit structural `qualityScore = 1.000` — can now land below 0.7. Front matter, dedications, acknowledgements, part dividers, generic chapter setup, trivial quiz facts, and vague summaries also score low under the same rubric without needing any title-phrase heuristic.
+Explicit quote-specific anchor in the rubric: a quote that is verbatim and well-formed but does not teach a concept, decision principle, or mechanism scores ≤ 0.6. This is how quote posts — which historically hit structural `qualityScore = 1.000` — can now land below 0.7. Front matter, dedications, acknowledgements, part dividers, generic chapter setup, trivial quiz facts, and vague summaries also score low under the same rubric without needing any title-phrase heuristic.
 
 **Fallback:** if `semanticQualityScore` is missing (pre-ADR drafts, validator failure, validator disabled) the serving scorer reads `qualityScore` in its place. No crash path.
 
@@ -59,17 +59,17 @@ score = effectiveQuality
       * frontMatterPenalty
 ```
 
-- `effectiveQuality = semanticQualityScore ?? qualityScore` when only card-level data is present. When both card and section signals exist: `effectiveQuality = 0.7 * semanticQualityScore + 0.3 * sectionQualitySignal`. Card-level dominates; section-level breaks ties and down-ranks drafts whose section was rated low by the ranker.
+- `effectiveQuality = semanticQualityScore ?? qualityScore` when only post-level data is present. When both post and section signals exist: `effectiveQuality = 0.7 * semanticQualityScore + 0.3 * sectionQualitySignal`. Post-level dominates; section-level breaks ties and down-ranks drafts whose section was rated low by the ranker.
 - `frontMatterPenalty = 0.2` if `sectionQualitySignal < 0.3`, else `1.0`. Language-agnostic because `sectionQualitySignal` itself is language-agnostic (#215 ranker is multilingual).
 - `recencyBoost`, `highlightMultiplier`, `saturationPenalty`, `reactionMultiplier`: unchanged from ADR-016.
 
 ### 5. Book-position diversity pass
 
-New reorder pass, added to `scoreDrafts` after the score sort and before the existing type/section/document diversity passes. Each `ScoredDraft` gains `bookPosition = section.chunkStartIndex / document.chunkCount` (0-1). The pass buckets the scored list into four book-depth quartiles, then round-robin picks the highest-scored remaining card from each non-empty quartile until the batch target is reached. Demoted cards go to the tail, same pattern as existing diversity passes.
+New reorder pass, added to `scoreDrafts` after the score sort and before the existing type/section/document diversity passes. Each `ScoredDraft` gains `bookPosition = section.chunkStartIndex / document.chunkCount` (0-1). The pass buckets the scored list into four book-depth quartiles, then round-robin picks the highest-scored remaining post from each non-empty quartile until the batch target is reached. Demoted posts go to the tail, same pattern as existing diversity passes.
 
 Graceful degradation: documents with fewer than 4 substantive sections collapse to a single bucket (pass is a no-op). The cap respects the existing batch size from `ScoringConfig`.
 
-### 6. Card-type share caps at serve time
+### 6. Post-type share caps at serve time
 
 Extend `ScoringConfig`:
 
@@ -84,8 +84,8 @@ Implemented as demote-to-tail passes (same shape as `applyDocumentDiversity`). S
 
 Emitted via the existing `WideEvent` helper in `convex/feed/servingAnalytics.ts`:
 
-- `feed.first_session_book_depth_reach` — max and quartile spread of `bookPosition` in the first 10 served cards per document.
-- `feed.first_session_card_type_mix` — type distribution in the first 10 served cards.
+- `feed.first_session_book_depth_reach` — max and quartile spread of `bookPosition` in the first 10 served posts per document.
+- `feed.first_session_post_type_mix` — type distribution in the first 10 served posts.
 - `feed.serving_quality_score_distribution` — histogram buckets of `effectiveQuality` across the batch.
 - `feed.learning_goal_relevance_applied` — whether a goal embedding was present and the mean `goalRelevance - 1` applied.
 
@@ -94,27 +94,27 @@ Emitted via the existing `WideEvent` helper in `convex/feed/servingAnalytics.ts`
 ### Alternatives considered
 
 - **Separate LLM judge pass after generation** — Doubles LLM cost for zero quality gain vs. extending the existing validator prompt. The validator already reads content and `typeData`.
-- **Store per-card embedding and compare directly to goal** — Adds an embedding call per draft (~150 extra embed calls per document). Section-level embedding is already produced by #215 and is granular enough for goal relevance.
+- **Store per-post embedding and compare directly to goal** — Adds an embedding call per draft (~150 extra embed calls per document). Section-level embedding is already produced by #215 and is granular enough for goal relevance.
 - **English keyword list for front-matter filtering** — Explicitly forbidden by #216. Breaks non-English uploads. `sectionQualitySignal` + semantic judge cover the same cases language-agnostically.
 - **Rerank top candidates via LLM call at serve time** — Exceeds the <500ms serve budget (ADR-016). Also introduces a language-assumption risk in the rerank prompt.
 - **Materialize scores in a `feedQueue` table** — Same argument as ADR-016: breaks on weight changes, adds sync surface, buys nothing at personal scale.
 - **Backfill existing drafts** — Out of scope per #216. Would require re-running the validator over thousands of drafts. Fallback path (`semanticQualityScore ?? qualityScore`) means existing drafts keep working.
-- **Pass book-position into the score directly as a weight** — Couples diversity with quality. A post-scoring reorder pass is easier to reason about and test independently, matching the existing type/section/document diversity pattern.
+- **Pass book-position into the score directly as a weight** — Couples diversity with quality. A score-adjacent reorder pass is easier to reason about and test independently, matching the existing type/section/document diversity pattern.
 
 ## Consequences
 
-- **Quality signal distribution unlocks.** Because the judge reads content semantics rather than structure, quote cards can score 0.3-0.6, vague summaries 0.2-0.5, and part-divider summaries <0.3. Meets AC std ≥ 0.15 and ≥ 20% below 0.7 on new documents. Old drafts continue to use `qualityScore` and the AC applies only to new-document serving.
+- **Quality signal distribution unlocks.** Because the judge reads content semantics rather than structure, quote posts can score 0.3-0.6, vague summaries 0.2-0.5, and part-divider summaries <0.3. Meets AC std ≥ 0.15 and ≥ 20% below 0.7 on new documents. Old drafts continue to use `qualityScore` and the AC applies only to new-document serving.
 - **Backward compatibility preserved.** Every new field is optional; every new multiplier defaults to 1.0; every new cap is permissive when inputs are absent. Existing drafts and users without a learning goal keep working unchanged.
 - **New-document-only rollout.** `semanticQualityScore` and `sectionQualitySignal` populate at generation time only. No migration, no backfill. Documents uploaded before this ADR keep their `qualityScore`-based ranking; documents uploaded after use the full formula. Switchover is automatic per-document.
 - **Multilingual by construction.** The semantic judge rubric, the section ranker (#215), the goal embedding, and all penalty terms are language-agnostic. No title-phrase matching anywhere.
 - **Serving cost.** One vector fetch for the user goal (cached within the mutation) plus up to `batchSize * 3` section-vector fetches for the top candidates. Within ADR-016's <500ms budget.
 - **Test and eval surface.** `scoreDrafts` stays pure — a new optional `goalEmbedding` plus `sectionEmbeddings` map parameter is sufficient. Goal-vs-no-goal A/B harness drops out for free: call the function twice with and without the goal vector and diff the order. Semantic-judge prompt drift requires eval coverage (QA task).
 - **Risk: validator LLM drift.** The semantic-quality rubric is prompt-driven, so rubric changes could shift the distribution. Mitigated by evals and by keeping the score optional with a structural fallback.
-- **Diversity may force lower-scoring cards into the batch.** Book-position and type-share passes can promote a lower-scored card over a higher-scored one. This is intentional — the first-session AC is about spread, not about serving only the top N by score. Consequences are bounded by the existing batch size.
+- **Diversity may force lower-scoring posts into the batch.** Book-position and type-share passes can promote a lower-scored post over a higher-scored one. This is intentional — the first-session AC is about spread, not about serving only the top N by score. Consequences are bounded by the existing batch size.
 
 ## More Information
 
-- ADR-013 defines `cardDrafts` schema and generation pipeline.
+- ADR-013 defines `postDrafts` schema and generation pipeline.
 - ADR-015 defines highlight-triggered draft generation and `strategy: "highlight"`.
 - ADR-016 defines the serving scorer, diversity pass architecture, and `ScoringConfig`. This ADR extends #4 (formula) and adds new passes without replacing it.
 - Issue #215 / PR #217 is the generation baseline: bounded pool, section-ranked draft planning, quote-share cap at generation time.

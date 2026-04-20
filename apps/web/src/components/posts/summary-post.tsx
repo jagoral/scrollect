@@ -2,18 +2,18 @@ import Markdown from "react-markdown";
 
 import { Badge } from "@/components/ui/badge";
 
-import { CardShell, SourceBadge } from "./card-shell";
-import type { PostCardData, SummaryTypeData } from "./types";
+import { PostShell, SourceBadge } from "./post-shell";
+import type { PostView, SummaryTypeData } from "./types";
 
-interface SummaryCardProps {
-  post: PostCardData & { typeData: SummaryTypeData };
+interface SummaryPostProps {
+  post: PostView & { typeData: SummaryTypeData };
 }
 
-export function SummaryCard({ post }: SummaryCardProps) {
+export function SummaryPost({ post }: SummaryPostProps) {
   const { bulletPoints } = post.typeData;
 
   return (
-    <CardShell post={post}>
+    <PostShell post={post}>
       <div className="mb-3 flex items-center gap-2">
         <SourceBadge post={post} className="mb-0" />
         <Badge
@@ -40,6 +40,6 @@ export function SummaryCard({ post }: SummaryCardProps) {
           <Markdown>{post.content}</Markdown>
         </div>
       )}
-    </CardShell>
+    </PostShell>
   );
 }

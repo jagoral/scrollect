@@ -5,7 +5,7 @@ import { OgImageShell } from "./og-image-shell";
 /**
  * Version B: "Remember everything you read" - Light, editorial, contrarian.
  * Right side: a mini learning feed showing the product concept -
- * bite-sized cards with source indicators, like a social media feed.
+ * bite-sized posts with source indicators, like a social media feed.
  */
 export function OgImage() {
   return (
@@ -63,16 +63,16 @@ export function OgImage() {
 
           {/* Feed container - looks like a phone/app frame */}
           <div className="relative flex w-[520px] flex-col gap-[16px] rounded-[20px] border border-[#e2e6e9] bg-white/80 p-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
-            {/* Card 1 - PDF source */}
-            <FeedCard
+            {/* Post 1 - PDF source */}
+            <FeedPost
               sourceColor="#e74c3c"
               sourceLabel="PDF"
               titleWidth="75%"
               bodyWidths={["90%", "60%"]}
             />
 
-            {/* Card 2 - Article source - highlighted as "active" */}
-            <FeedCard
+            {/* Post 2 - Article source - highlighted as "active" */}
+            <FeedPost
               sourceColor="#0d8b8a"
               sourceLabel="Article"
               titleWidth="60%"
@@ -80,15 +80,15 @@ export function OgImage() {
               highlighted
             />
 
-            {/* Card 3 - Video source */}
-            <FeedCard
+            {/* Post 3 - Video source */}
+            <FeedPost
               sourceColor="#dbb14e"
               sourceLabel="Video"
               titleWidth="65%"
               bodyWidths={["80%", "55%"]}
             />
 
-            {/* Fade hint - more cards below */}
+            {/* Fade hint - more posts below */}
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[50px] rounded-b-[20px] bg-[linear-gradient(transparent,white)]" />
           </div>
         </div>
@@ -97,7 +97,7 @@ export function OgImage() {
   );
 }
 
-function FeedCard({
+function FeedPost({
   sourceColor,
   sourceLabel,
   titleWidth,

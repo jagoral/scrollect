@@ -27,8 +27,8 @@ export function createMockPostDraftLlm(overrides?: Partial<PostDraftLlm>): PostD
       documentTitle: string;
       learningGoal?: string;
     }) => ({
-      card: {
-        content: `Draft ${opts.postType} for "${opts.sectionTitle}": a useful learning card.`,
+      draft: {
+        content: `Draft ${opts.postType} for "${opts.sectionTitle}": a useful learning post.`,
         typeData: buildMockTypeData(opts.postType),
       },
       usage: ZERO_USAGE,
@@ -123,7 +123,7 @@ export function createMockConnectionDiscoveryLlm(
 ): ConnectionDiscoveryLlm {
   return {
     generateConnectionDraft: async (opts) => ({
-      card: {
+      draft: {
         content: `Connection between "${opts.sectionA.title}" and "${opts.sectionB.title}": meaningful conceptual link.`,
         typeData: {
           type: "connection",
@@ -163,7 +163,7 @@ export function createMockHighlightDraftLlm(
       language?: string;
       learningGoal?: string;
     }) => ({
-      cards: opts.highlights.map((h) => ({
+      drafts: opts.highlights.map((h) => ({
         highlightId: h.highlightId,
         content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}`,
         postType: "insight" as DraftPostType,

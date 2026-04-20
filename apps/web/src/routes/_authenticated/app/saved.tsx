@@ -3,7 +3,7 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import { usePaginatedQuery } from "convex/react";
 import { Bookmark, Loader2 } from "lucide-react";
 
-import { PostCard } from "@/components/post-card";
+import { Post } from "@/components/posts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
@@ -29,7 +29,7 @@ function SavedPage() {
       <div className="py-6">
         <div className="mb-6 px-4 md:px-6">
           <h1 className="text-2xl font-bold tracking-tight">Saved</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your bookmarked learning cards.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Your bookmarked learning posts.</p>
         </div>
         <div className="border-y border-border">
           {[1, 2, 3].map((i) => (
@@ -59,7 +59,7 @@ function SavedPage() {
     <div className="py-6">
       <div className="mb-6 px-4 md:px-6">
         <h1 className="text-2xl font-bold tracking-tight">Saved</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Your bookmarked learning cards.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Your bookmarked learning posts.</p>
       </div>
 
       {results.length === 0 ? (
@@ -70,7 +70,7 @@ function SavedPage() {
           <div>
             <p className="text-lg font-semibold tracking-tight">No saved posts yet</p>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Save cards from your feed to find them here.
+              Save posts from your feed to find them here.
             </p>
           </div>
         </div>
@@ -80,7 +80,7 @@ function SavedPage() {
             {results.map((bookmark) => {
               if (!bookmark.post) return null;
               return (
-                <PostCard
+                <Post
                   key={bookmark._id}
                   post={{
                     ...bookmark.post,

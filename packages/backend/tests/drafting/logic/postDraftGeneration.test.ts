@@ -22,7 +22,7 @@ const fakeHash = (content: string) => `hash-${content.slice(0, 20)}`;
 function makeChunk(overrides?: Partial<ChunkData>): ChunkData {
   return {
     _id: "chunk-0",
-    content: "Test chunk content for generating learning cards from documents.",
+    content: "Test chunk content for generating learning posts from documents.",
     chunkIndex: 0,
     ...overrides,
   };
@@ -185,7 +185,7 @@ describe("computeQualityScore", () => {
 });
 
 describe("generateDraftsForSection", () => {
-  it("generates drafts for all 4 card types", async () => {
+  it("generates drafts for all 4 post types", async () => {
     const services = createMockDraftGenerationServices();
     const result = await generateDraftsForSection({
       input: makeInput(),
@@ -201,22 +201,22 @@ describe("generateDraftsForSection", () => {
     expect(result.metrics.draftsGenerated).toBe(4);
   });
 
-  it("generates only the planned card types", async () => {
+  it("generates only the planned post types", async () => {
     const services = createMockDraftGenerationServices();
     const result = await generateDraftsForSection({
-      input: makeInput({ cardTypes: ["insight", "summary"], generationBatch: 3 }),
+      input: makeInput({ postTypes: ["insight", "summary"], generationBatch: 3 }),
       services,
     });
 
     expect(result.drafts.map((draft) => draft.postType)).toEqual(["insight", "summary"]);
     expect(result.drafts.every((draft) => draft.generationBatch === 3)).toBe(true);
-    expect(result.metrics.cardTypesAttempted).toBe(2);
+    expect(result.metrics.postTypesAttempted).toBe(2);
   });
 
   it("passes full section chunks to the LLM when configured for deeper context", async () => {
     const generateDraft = vi.fn().mockResolvedValue({
-      card: {
-        content: "Draft insight for testing: a useful learning card.",
+      draft: {
+        content: "Draft insight for testing: a useful learning post.",
         typeData: { type: "insight" },
       },
       usage: {
@@ -231,7 +231,7 @@ describe("generateDraftsForSection", () => {
 
     await generateDraftsForSection({
       input: makeInput({
-        cardTypes: ["insight"],
+        postTypes: ["insight"],
         contextDepth: "full",
         allChunks: Array.from({ length: 5 }, (_, i) =>
           makeChunk({ _id: `chunk-${i}`, chunkIndex: i }),
@@ -257,7 +257,7 @@ describe("generateDraftsForSection", () => {
   it("skips quote drafts when the LLM returns no quote worth surfacing", async () => {
     const llm = createMockPostDraftLlm({
       generateDraft: vi.fn().mockResolvedValue({
-        card: null,
+        draft: null,
         usage: {
           inputTokens: 0,
           outputTokens: 0,
@@ -269,7 +269,7 @@ describe("generateDraftsForSection", () => {
     const services = createMockDraftGenerationServices({ llm });
 
     const result = await generateDraftsForSection({
-      input: makeInput({ cardTypes: ["quote"] }),
+      input: makeInput({ postTypes: ["quote"] }),
       services,
     });
 
@@ -293,7 +293,7 @@ describe("generateDraftsForSection", () => {
   it("deduplicates drafts with same content hash", async () => {
     const llm = createMockPostDraftLlm({
       generateDraft: vi.fn().mockResolvedValue({
-        card: {
+        draft: {
           content: "Identical content for all types",
           typeData: { type: "insight" },
         },
@@ -335,7 +335,7 @@ describe("generateDraftsForSection", () => {
   it("discards drafts below minimum quality score", async () => {
     const llm = createMockPostDraftLlm({
       generateDraft: vi.fn().mockResolvedValue({
-        card: {
+        draft: {
           content: "",
           typeData: { type: "insight" },
         },
@@ -357,7 +357,7 @@ describe("generateDraftsForSection", () => {
     expect(result.drafts).toHaveLength(0);
   });
 
-  it("accumulates token usage across all card types", async () => {
+  it("accumulates token usage across all post types", async () => {
     const usage = {
       inputTokens: 100,
       outputTokens: 50,
@@ -369,8 +369,8 @@ describe("generateDraftsForSection", () => {
         .fn()
         .mockImplementation(
           async (opts: { postType: string; sectionTitle: string; learningGoal?: string }) => ({
-            card: {
-              content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful learning card content here.`,
+            draft: {
+              content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful learning post content here.`,
               typeData:
                 opts.postType === "quiz"
                   ? {
@@ -414,7 +414,7 @@ describe("generateDraftsForSection", () => {
           async (opts: { postType: string; sectionTitle: string; learningGoal?: string }) => {
             if (opts.postType === "quiz") throw new Error("LLM failure");
             return {
-              card: {
+              draft: {
                 content: `Draft ${opts.postType} for "${opts.sectionTitle}": useful card content here.`,
                 typeData:
                   opts.postType === "quote"
@@ -446,8 +446,8 @@ describe("generateDraftsForSection", () => {
 
   it("passes fileType through to the LLM", async () => {
     const generateDraft = vi.fn().mockResolvedValue({
-      card: {
-        content: "Draft insight for testing: a useful learning card.",
+      draft: {
+        content: "Draft insight for testing: a useful learning post.",
         typeData: { type: "insight" },
       },
       usage: {
@@ -470,8 +470,8 @@ describe("generateDraftsForSection", () => {
 
   it("passes learningGoal through to the LLM when present", async () => {
     const generateDraft = vi.fn().mockResolvedValue({
-      card: {
-        content: "Draft insight for testing: a useful learning card.",
+      draft: {
+        content: "Draft insight for testing: a useful learning post.",
         typeData: { type: "insight" },
       },
       usage: {

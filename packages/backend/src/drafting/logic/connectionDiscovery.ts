@@ -375,11 +375,11 @@ async function generateDraftsForCandidates(opts: {
       continue;
     }
 
-    const { candidate, card, usage } = result.value;
+    const { candidate, draft, usage } = result.value;
     totalUsage = addUsage(totalUsage, usage);
     metrics.pairsProcessed++;
 
-    if (!card) {
+    if (!draft) {
       metrics.pairsRejectedByLlm++;
       pairs.push({
         userId: input.userId,
@@ -395,7 +395,7 @@ async function generateDraftsForCandidates(opts: {
       status: "drafted",
     });
 
-    const contentHash = input.hashContent(card.content);
+    const contentHash = input.hashContent(draft.content);
     if (seenDraftHashes.has(contentHash)) {
       metrics.draftsDeduplicated++;
       continue;
@@ -414,9 +414,9 @@ async function generateDraftsForCandidates(opts: {
       sectionSummaryId: candidate.sectionSummaryIdA,
       userId: input.userId,
       postType: "connection",
-      content: card.content,
+      content: draft.content,
       typeData: {
-        ...card.typeData,
+        ...draft.typeData,
         type: "connection",
         similarityScore: candidate.similarityScore,
         connectionType: candidate.connectionType,
@@ -439,7 +439,7 @@ async function generateDraftForCandidate(opts: {
   candidate: CandidatePair;
   chunksByDocumentId: Record<string, ChunkData[]>;
 }): Promise<{
-  card: { content: string; typeData: Record<string, unknown> } | null;
+  draft: { content: string; typeData: Record<string, unknown> } | null;
   usage: TokenUsage;
 }> {
   const { input, services, candidate, chunksByDocumentId } = opts;
@@ -447,13 +447,13 @@ async function generateDraftForCandidate(opts: {
   const sectionA = input.allSections.get(candidate.sectionSummaryIdA);
   const sectionB = input.allSections.get(candidate.sectionSummaryIdB);
   if (!sectionA || !sectionB) {
-    return { card: null, usage: ZERO_USAGE };
+    return { draft: null, usage: ZERO_USAGE };
   }
 
   const docA = input.allDocuments.get(sectionA.documentId);
   const docB = input.allDocuments.get(sectionB.documentId);
   if (!docA || !docB) {
-    return { card: null, usage: ZERO_USAGE };
+    return { draft: null, usage: ZERO_USAGE };
   }
 
   const chunksA = selectChunksForSection({ section: sectionA, chunksByDocumentId });

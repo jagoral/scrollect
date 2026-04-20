@@ -32,16 +32,16 @@ export const referenceClarity = createScorer<any, any, any>({
     const { output: result } = await generateText({
       model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
-      system: `You are a reference clarity evaluator. Check whether a learning card uses proper names instead of vague references.
+      system: `You are a reference clarity evaluator. Check whether a learning post uses proper names instead of vague references.
 
-Score 0: Card uses vague references like "the player", "the coach", "the author", "the expert", "a prominent figure" when the person's actual name is clearly available in the source material.
+Score 0: Post uses vague references like "the player", "the coach", "the author", "the expert", "a prominent figure" when the person's actual name is clearly available in the source material.
 Score 0.5: Some proper names are used but there are still vague references where names were available.
-Score 1: All people, teams, and organizations mentioned in the card are referred to by their proper names when those names appear in the source.
+Score 1: All people, teams, and organizations mentioned in the post are referred to by their proper names when those names appear in the source.
 
-Important: Only penalize vague references when the proper name IS available in the source. If the source itself uses a vague reference without providing a name, the card is not expected to invent one.`,
-      prompt: `Evaluate reference clarity in this learning card:
+Important: Only penalize vague references when the proper name IS available in the source. If the source itself uses a vague reference without providing a name, the post is not expected to invent one.`,
+      prompt: `Evaluate reference clarity in this learning post:
 
-Card content: "${output.content}"
+Post content: "${output.content}"
 Type data: ${JSON.stringify(output.typeData, null, 2)}
 
 Source material:

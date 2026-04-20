@@ -1,4 +1,4 @@
-import type { FeedServingFixture, FixtureCardType, FixtureDraft } from "./types";
+import type { FeedServingFixture, FixturePostType, FixtureDraft } from "./types";
 
 /**
  * DDIA-shaped synthetic fixture for issue #216 / ADR-018.
@@ -45,7 +45,7 @@ type Section = {
   /** Correlation with `DDIA_GOAL_EMBEDDING`, in [0, 1]. Drives section embedding. */
   goalCorrelation: number;
   /** Mix of drafts this section contributes to the pool. */
-  draftMix: FixtureCardType[];
+  draftMix: FixturePostType[];
   contentPreview: string;
 };
 
@@ -281,7 +281,7 @@ function buildChapterSections(): Section[] {
       const signalJitter = ((sectionCursor % 4) - 1.5) * 0.06;
       const correlationJitter = ((sectionCursor % 3) - 1) * 0.05;
       const isQuoteHeavy = shape.quoteHeavy === true && i % 2 === 0;
-      const mix: FixtureCardType[] = isQuoteHeavy
+      const mix: FixturePostType[] = isQuoteHeavy
         ? ["quote", "quote", "quote", "insight"]
         : i % 3 === 0
           ? ["insight", "summary", "quiz"]

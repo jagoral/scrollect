@@ -78,7 +78,7 @@ export function DeleteAccountDialog() {
           <AlertDialogTitle>Delete your account?</AlertDialogTitle>
           <AlertDialogDescription>
             This will permanently delete your account and all associated data - documents, learning
-            cards, bookmarks, and tags. This action cannot be undone.
+            posts, bookmarks, and tags. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="my-2">

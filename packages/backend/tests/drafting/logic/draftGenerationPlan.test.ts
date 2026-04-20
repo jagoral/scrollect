@@ -57,7 +57,7 @@ describe("planDraftGeneration", () => {
 
     expect(plan.zeroDraftSectionCount).toBe(0);
     expect(plan.sections).toHaveLength(sections.length);
-    expect(plan.sections.every((section) => section.cardTypes.length >= 1)).toBe(true);
+    expect(plan.sections.every((section) => section.postTypes.length >= 1)).toBe(true);
   });
 
   it("uses language-agnostic ranker scores for non-English sections", () => {
@@ -103,7 +103,7 @@ describe("planDraftGeneration", () => {
 
     expect(plan.quoteDraftCount).toBeLessThanOrEqual(Math.floor(plan.totalDrafts * 0.25));
     expect(
-      plan.sections.filter((section) => section.cardTypes.includes("quote")).length,
+      plan.sections.filter((section) => section.postTypes.includes("quote")).length,
     ).toBeLessThan(sections.length);
   });
 
@@ -121,7 +121,7 @@ describe("planDraftGeneration", () => {
     const plan = planDraftGeneration({ sections, mode: "replenishment", maxDrafts: 30 });
     const uncoveredDrafts = plan.sections
       .filter((section) => Number(section.sectionSummaryId.replace("section-", "")) < 20)
-      .reduce((sum, section) => sum + section.cardTypes.length, 0);
+      .reduce((sum, section) => sum + section.postTypes.length, 0);
 
     expect(uncoveredDrafts / plan.totalDrafts).toBeGreaterThanOrEqual(0.5);
   });

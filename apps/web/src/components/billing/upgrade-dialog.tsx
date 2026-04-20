@@ -38,7 +38,7 @@ export function UpgradeDialog({
   open,
   onOpenChange,
   title = "You've hit your free tier limit",
-  description = "Upgrade to Pro to keep adding content. Your existing feed, cards, and library stay exactly as they are.",
+  description = "Upgrade to Pro to keep adding content. Your existing feed, posts, and library stay exactly as they are.",
   source = "unknown",
 }: UpgradeDialogProps) {
   const { upgradeToPro, isPending } = useBilling();

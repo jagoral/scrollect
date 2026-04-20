@@ -13,14 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { useCardImpression } from "@/hooks/use-card-impression";
+import { usePostImpression } from "@/hooks/use-post-impression";
 import { useDetailPanel } from "@/components/detail-panel";
 
 import { DislikeReasonSheet } from "./dislike-reason-sheet";
 import { getFileTypeConfig } from "./file-type-config";
-import type { DislikeReason, PostCardData, PostType } from "./types";
+import type { DislikeReason, PostType, PostView } from "./types";
 
-const cardAccentColor: Record<PostType, string> = {
+const postAccentColor: Record<PostType, string> = {
   insight: "border-l-primary",
   quote: "border-l-amber-500",
   summary: "border-l-blue-500",
@@ -30,7 +30,7 @@ const cardAccentColor: Record<PostType, string> = {
 
 function updatePostInPaginatedPages(
   localStore: OptimisticLocalStore,
-  postId: PostCardData["_id"],
+  postId: PostView["_id"],
   updater: (post: Record<string, unknown>) => Record<string, unknown>,
 ) {
   const allPages = localStore.getAllQueries(api.feed.queries.list);
@@ -45,10 +45,7 @@ function updatePostInPaginatedPages(
   }
 }
 
-function removePostFromPaginatedPages(
-  localStore: OptimisticLocalStore,
-  postId: PostCardData["_id"],
-) {
+function removePostFromPaginatedPages(localStore: OptimisticLocalStore, postId: PostView["_id"]) {
   const allPages = localStore.getAllQueries(api.feed.queries.list);
   for (const { args, value } of allPages) {
     if (value === undefined) continue;
@@ -61,7 +58,7 @@ function removePostFromPaginatedPages(
   }
 }
 
-export function SourceBadge({ post, className }: { post: PostCardData; className?: string }) {
+export function SourceBadge({ post, className }: { post: PostView; className?: string }) {
   const { Icon } = getFileTypeConfig(post.fileType);
 
   return (
@@ -78,13 +75,13 @@ export function SourceBadge({ post, className }: { post: PostCardData; className
   );
 }
 
-interface CardShellProps {
-  post: PostCardData;
+interface PostShellProps {
+  post: PostView;
   children: ReactNode;
   quizVariant?: "multiple_choice" | "true_false";
 }
 
-export function CardShell({ post, children, quizVariant }: CardShellProps) {
+export function PostShell({ post, children, quizVariant }: PostShellProps) {
   const posthog = usePostHog();
   const detailPanel = useDetailPanel();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -93,13 +90,13 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
 
   const impressionProperties = useMemo(
     () => ({
-      card_type: post.postType,
+      post_type: post.postType,
       source_type: "document",
       created_at: post.createdAt,
     }),
     [post.postType, post.createdAt],
   );
-  const impressionRef = useCardImpression(post._id, impressionProperties);
+  const impressionRef = usePostImpression(post._id, impressionProperties);
 
   const tags = post.tags ?? [];
 
@@ -127,8 +124,8 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
 
   const handleLikeClick = useCallback(() => {
     const nextReaction = post.reaction === "like" ? "none" : "like";
-    posthog.capture("card.reacted", {
-      card_type: post.postType,
+    posthog.capture("post.reacted", {
+      post_type: post.postType,
       reaction: nextReaction,
     });
     setReaction({ postId: post._id, reaction: nextReaction });
@@ -137,8 +134,8 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
   const handleDislikeClick = useCallback(() => {
     reasonSelectedRef.current = false;
     setSheetOpen(true);
-    posthog.capture("card.dislike_reason_sheet_opened", {
-      card_type: post.postType,
+    posthog.capture("post.dislike_reason_sheet_opened", {
+      post_type: post.postType,
     });
   }, [post.postType, posthog]);
 
@@ -146,19 +143,19 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
     (reason: DislikeReason) => {
       reasonSelectedRef.current = true;
 
-      posthog.capture("card.reacted", {
-        card_type: post.postType,
+      posthog.capture("post.reacted", {
+        post_type: post.postType,
         reaction: "dislike",
         dislike_reason: reason,
       });
-      posthog.capture("card.dislike_reason_selected", {
-        card_type: post.postType,
+      posthog.capture("post.dislike_reason_selected", {
+        post_type: post.postType,
         dislike_reason: reason,
         source_document_id: post.primarySourceDocumentId,
         post_draft_id: post.postDraftId ?? null,
       });
-      posthog.capture("card.hidden_by_dislike", {
-        card_type: post.postType,
+      posthog.capture("post.hidden_by_dislike", {
+        post_type: post.postType,
         dislike_reason: reason,
       });
 
@@ -169,7 +166,7 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
       });
 
       if (isLegacyPost) {
-        toast.info("Feedback saved, but won't affect future cards for this older post.");
+        toast.info("Feedback saved, but won't affect future posts for this older post.");
       }
     },
     [
@@ -184,8 +181,8 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
   );
 
   const handleSheetDismissed = useCallback(() => {
-    posthog.capture("card.dislike_reason_sheet_dismissed", {
-      card_type: post.postType,
+    posthog.capture("post.dislike_reason_sheet_dismissed", {
+      post_type: post.postType,
       selected: reasonSelectedRef.current,
     });
   }, [posthog, post.postType]);
@@ -195,11 +192,11 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
       <article
         ref={impressionRef}
         data-testid="post-card"
-        data-card-type={post.postType}
+        data-post-type={post.postType}
         data-quiz-variant={quizVariant}
         className={cn(
           "group/card relative min-w-0 border-l-2 border-t border-border first:border-t-0 bg-card text-card-foreground transition-colors border-r",
-          cardAccentColor[post.postType],
+          postAccentColor[post.postType],
           detailPanel && "cursor-pointer hover:bg-accent/30",
         )}
         onClick={() => detailPanel?.openDetail(post)}
@@ -239,8 +236,8 @@ export function CardShell({ post, children, quizVariant }: CardShellProps) {
                 )}
                 onClick={(e) => {
                   e.stopPropagation();
-                  posthog.capture("card.bookmarked", {
-                    card_type: post.postType,
+                  posthog.capture("post.bookmarked", {
+                    post_type: post.postType,
                     bookmarked: !post.isBookmarked,
                   });
                   toggleBookmark({ postId: post._id });

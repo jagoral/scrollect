@@ -60,7 +60,7 @@ Backend code must read in Scrollect language. Use these terms in module names, f
 - **Post Draft** (`postDrafts`) — a generated candidate in the user's draft pool. Has a **Post Kind**, a **Strategy**, a **Generation Batch**, a **Content Hash** (dedup key), a **Served Count**, a **Quality Score triple**, and a status (`pending` → `served` / `used` / `rejected`). This is the internal Drafting artifact.
 - **Post** (`posts`) — the user-facing materialization of a Post Draft when served into a Feed. References its originating Post Draft (`posts.postDraftId`) and carries a **Primary Source** reference (`primarySourceDocumentId`, `primarySourceDocumentTitle`, `sectionTitle`, page range) back to the Document/Section it was drawn from. This is where **Reaction State** and **Bookmark** attachment live.
 
-(There is no standalone "Card" entity. A Post Draft and its Post are two projections of the same content — Draft is the generation/scoring view, Post is the delivered view with reactions and source attribution. "Card" remains a UI-only word in the frontend.)
+(There is no standalone "Card" entity. A Post Draft and its Post are two projections of the same content - Draft is the generation/scoring view, Post is the delivered view with reactions and source attribution. Frontend code, component names, and UI copy use "Post" to match the domain. "Card" survives only in generic UI primitives such as shadcn's `components/ui/card.tsx`.)
 
 - **Reaction State** — the current reaction on a Post (`posts.reaction`).
 - **Reaction Event** (`reactionFeedback`) — append-only record of reaction changes with an optional `dislikeReason`; what analytics and learning-signal code consumes.

@@ -287,7 +287,7 @@ export const serveFeed = mutation({
 
       await ctx.scheduler.runAfter(0, internal.feed.servingAnalytics.captureServingAnalytics, {
         userId,
-        cardCount: postIds.length,
+        postCount: postIds.length,
         elapsedMs,
         isDepleted,
         remainingPending,
@@ -315,7 +315,7 @@ type ReactionStats = {
   totalDislikes: number;
   dislikesByReason: Record<string, number>;
   penalizedSections: number;
-  penalizedCardTypes: number;
+  penalizedPostTypes: number;
   rejectedDrafts: number;
 };
 
@@ -335,9 +335,9 @@ async function buildReactionSummary(
   const draftLookup = new Map(draftsToScore.map((d) => [d._id as string, d]));
 
   const dislikedSections = new Map<string, DislikeSignal>();
-  const dislikedCardTypes = new Set<string>();
+  const dislikedPostTypes = new Set<string>();
   const likedSections = new Set<string>();
-  const likedCardTypes = new Set<string>();
+  const likedPostTypes = new Set<string>();
   const rejectedDraftIds = new Set<string>();
 
   // Batch-fetch all out-of-pool drafts upfront to avoid N+1 sequential reads
@@ -357,9 +357,9 @@ async function buildReactionSummary(
     if (!draft) continue;
     applyFeedbackSignals(draft, fb, {
       dislikedSections,
-      dislikedCardTypes,
+      dislikedPostTypes,
       likedSections,
-      likedCardTypes,
+      likedPostTypes,
       rejectedDraftIds,
     });
   }
@@ -367,9 +367,9 @@ async function buildReactionSummary(
   return {
     summary: {
       dislikedSections,
-      dislikedCardTypes,
+      dislikedPostTypes,
       likedSections,
-      likedCardTypes,
+      likedPostTypes,
       rejectedDraftIds,
     },
     feedbackRows,
@@ -385,7 +385,7 @@ function applyFeedbackSignals(
 
   if (fb.reaction === "like") {
     if (sectionId) summary.likedSections.add(sectionId);
-    summary.likedCardTypes.add(draft.postType);
+    summary.likedPostTypes.add(draft.postType);
     return;
   }
 
@@ -395,7 +395,7 @@ function applyFeedbackSignals(
   }
 
   if (fb.dislikeReason === "wrong_type") {
-    summary.dislikedCardTypes.add(draft.postType);
+    summary.dislikedPostTypes.add(draft.postType);
   }
 
   if (
@@ -415,7 +415,7 @@ function summarizeReactionStats(
   feedbackRows: Doc<"reactionFeedback">[],
 ): ReactionStats {
   // Count actual feedback rows to avoid double-counting. A single like populates
-  // both likedSections and likedCardTypes, so set sizes would overcount.
+  // both likedSections and likedPostTypes, so set sizes would overcount.
   const totalLikes = feedbackRows.filter((fb) => fb.reaction === "like").length;
   const totalDislikes = feedbackRows.filter((fb) => fb.reaction === "dislike").length;
 
@@ -433,7 +433,7 @@ function summarizeReactionStats(
     totalDislikes,
     dislikesByReason,
     penalizedSections: summary.dislikedSections.size,
-    penalizedCardTypes: summary.dislikedCardTypes.size,
+    penalizedPostTypes: summary.dislikedPostTypes.size,
     rejectedDrafts: summary.rejectedDraftIds.size,
   };
 }

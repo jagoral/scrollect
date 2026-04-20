@@ -35,7 +35,7 @@ export type DraftPlanningSection = {
 
 export type PlannedSectionDrafts = {
   sectionSummaryId: string;
-  cardTypes: DraftPostType[];
+  postTypes: DraftPostType[];
   generationBatch: number;
   qualitySignal: number;
   quoteCandidate: boolean;
@@ -74,7 +74,7 @@ const DRAFT_PLANNING_POLICIES = {
   },
 } satisfies Record<GenerationMode, DraftPlanningPolicy>;
 
-const CARD_TYPES_BY_DRAFT_COUNT = {
+const POST_TYPES_BY_DRAFT_COUNT = {
   one: ["insight"],
   two: {
     default: ["insight", "summary"],
@@ -108,7 +108,7 @@ export function planDraftGeneration(opts: {
     maxDrafts: opts.maxDrafts ?? policy.maxDrafts,
   });
 
-  const plannedSections = assignCardTypes({
+  const plannedSections = assignPostTypes({
     sections: countedSections,
     generationBatch: opts.generationBatch ?? policy.defaultGenerationBatch,
   });
@@ -228,7 +228,7 @@ function allocateReplenishmentDraftCounts(opts: {
   return counted;
 }
 
-function assignCardTypes(opts: {
+function assignPostTypes(opts: {
   sections: CountedSection[];
   generationBatch: number;
 }): PlannedSectionDrafts[] {
@@ -241,7 +241,7 @@ function assignCardTypes(opts: {
 
     return {
       sectionSummaryId: section.sectionSummaryId,
-      cardTypes: selectCardTypes({ draftCount: section.draftCount, includeQuote }),
+      postTypes: selectPostTypes({ draftCount: section.draftCount, includeQuote }),
       generationBatch: opts.generationBatch,
       qualitySignal: section.qualitySignal,
       quoteCandidate: section.quoteCandidate,
@@ -250,14 +250,14 @@ function assignCardTypes(opts: {
   });
 }
 
-function selectCardTypes(opts: { draftCount: number; includeQuote: boolean }): DraftPostType[] {
+function selectPostTypes(opts: { draftCount: number; includeQuote: boolean }): DraftPostType[] {
   if (opts.draftCount <= 0) return [];
-  if (opts.draftCount === 1) return [...CARD_TYPES_BY_DRAFT_COUNT.one];
+  if (opts.draftCount === 1) return [...POST_TYPES_BY_DRAFT_COUNT.one];
 
   const variant = opts.includeQuote ? "quote" : "default";
-  if (opts.draftCount === 2) return [...CARD_TYPES_BY_DRAFT_COUNT.two[variant]];
-  if (opts.draftCount === 3) return [...CARD_TYPES_BY_DRAFT_COUNT.three[variant]];
-  return [...CARD_TYPES_BY_DRAFT_COUNT.four[variant]];
+  if (opts.draftCount === 2) return [...POST_TYPES_BY_DRAFT_COUNT.two[variant]];
+  if (opts.draftCount === 3) return [...POST_TYPES_BY_DRAFT_COUNT.three[variant]];
+  return [...POST_TYPES_BY_DRAFT_COUNT.four[variant]];
 }
 
 function summarizePlan(opts: {
@@ -265,15 +265,15 @@ function summarizePlan(opts: {
   totalSectionCount: number;
 }): DraftGenerationPlan {
   const totalDrafts = opts.plannedSections.reduce(
-    (sum, section) => sum + section.cardTypes.length,
+    (sum, section) => sum + section.postTypes.length,
     0,
   );
   const quoteDraftCount = opts.plannedSections.reduce(
-    (sum, section) => sum + section.cardTypes.filter((type) => type === "quote").length,
+    (sum, section) => sum + section.postTypes.filter((type) => type === "quote").length,
     0,
   );
   const previouslyUncoveredDrafts = opts.plannedSections.reduce(
-    (sum, section) => sum + (section.wasPreviouslyUncovered ? section.cardTypes.length : 0),
+    (sum, section) => sum + (section.wasPreviouslyUncovered ? section.postTypes.length : 0),
     0,
   );
 
@@ -282,7 +282,7 @@ function summarizePlan(opts: {
     totalDrafts,
     zeroDraftSectionCount: opts.totalSectionCount - opts.plannedSections.length,
     sectionsWithThreeOrMoreDrafts: opts.plannedSections.filter(
-      (section) => section.cardTypes.length >= 3,
+      (section) => section.postTypes.length >= 3,
     ).length,
     quoteDraftCount,
     previouslyUncoveredDraftShare: totalDrafts === 0 ? 0 : previouslyUncoveredDrafts / totalDrafts,

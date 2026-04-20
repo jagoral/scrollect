@@ -2,19 +2,19 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { CardShell, SourceBadge } from "./card-shell";
-import type { PostCardData, QuoteTypeData } from "./types";
+import { PostShell, SourceBadge } from "./post-shell";
+import type { PostView, QuoteTypeData } from "./types";
 
-interface QuoteCardProps {
-  post: PostCardData & { typeData: QuoteTypeData };
+interface QuotePostProps {
+  post: PostView & { typeData: QuoteTypeData };
 }
 
-export function QuoteCard({ post }: QuoteCardProps) {
+export function QuotePost({ post }: QuotePostProps) {
   const { quotedText, attribution } = post.typeData;
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <CardShell post={post}>
+    <PostShell post={post}>
       <SourceBadge post={post} />
       <div>
         <blockquote
@@ -45,6 +45,6 @@ export function QuoteCard({ post }: QuoteCardProps) {
           </p>
         )}
       </div>
-    </CardShell>
+    </PostShell>
   );
 }

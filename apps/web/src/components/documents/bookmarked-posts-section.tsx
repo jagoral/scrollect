@@ -6,15 +6,15 @@ import { Bookmark, ChevronDown } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 
-import { PostCard } from "@/components/post-card";
+import { Post } from "@/components/posts";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
-interface BookmarkedCardsSectionProps {
+interface BookmarkedPostsSectionProps {
   documentId: Id<"documents">;
 }
 
-export function BookmarkedCardsSection({ documentId }: BookmarkedCardsSectionProps) {
+export function BookmarkedPostsSection({ documentId }: BookmarkedPostsSectionProps) {
   const { data: bookmarkedPosts } = useQuery(
     convexQuery(api.content.bookmarks.listBookmarkedByDocument, { documentId }),
   );
@@ -24,13 +24,13 @@ export function BookmarkedCardsSection({ documentId }: BookmarkedCardsSectionPro
   if (bookmarkedPosts === undefined || bookmarkedPosts.length === 0) return null;
 
   return (
-    <div data-testid="bookmarked-cards-section" className="mt-6 border-t border-border pt-5">
+    <div data-testid="bookmarked-posts-section" className="mt-6 border-t border-border pt-5">
       <Collapsible
         open={isOpen}
         onOpenChange={(open) => {
           setIsOpen(open);
           if (open) {
-            posthog.capture("bookmarked_cards.expanded", {
+            posthog.capture("bookmarked_posts.expanded", {
               document_id: documentId,
               count: bookmarkedPosts.length,
             });
@@ -46,14 +46,14 @@ export function BookmarkedCardsSection({ documentId }: BookmarkedCardsSectionPro
           }
         >
           <Bookmark className="size-3.5" />
-          Bookmarked cards ({bookmarkedPosts.length})
+          Bookmarked posts ({bookmarkedPosts.length})
           <ChevronDown className={cn("size-3.5 transition-transform", isOpen && "rotate-180")} />
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="mt-3 border-y border-r border-border" data-testid="bookmarked-cards-list">
+          <div className="mt-3 border-y border-r border-border" data-testid="bookmarked-posts-list">
             {bookmarkedPosts.map((post) => (
-              <PostCard key={post._id} post={post} />
+              <Post key={post._id} post={post} />
             ))}
           </div>
         </CollapsibleContent>

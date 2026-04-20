@@ -4,19 +4,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { CardShell, SourceBadge } from "./card-shell";
-import type { PostCardData, QuizTypeData } from "./types";
+import { PostShell, SourceBadge } from "./post-shell";
+import type { PostView, QuizTypeData } from "./types";
 
-interface QuizRevealCardProps {
-  post: PostCardData & { typeData: QuizTypeData };
+interface QuizRevealPostProps {
+  post: PostView & { typeData: QuizTypeData };
 }
 
-export function QuizRevealCard({ post }: QuizRevealCardProps) {
+export function QuizRevealPost({ post }: QuizRevealPostProps) {
   const [revealed, setRevealed] = useState(false);
   const { question, options, correctIndex, explanation } = post.typeData;
 
   return (
-    <CardShell post={post} quizVariant={post.typeData.variant}>
+    <PostShell post={post} quizVariant={post.typeData.variant}>
       <SourceBadge post={post} />
       <div data-testid="quiz-question" className="mb-3 text-sm font-medium text-foreground">
         {question}
@@ -54,6 +54,6 @@ export function QuizRevealCard({ post }: QuizRevealCardProps) {
           </p>
         </div>
       )}
-    </CardShell>
+    </PostShell>
   );
 }

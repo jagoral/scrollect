@@ -4,14 +4,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { CardShell, SourceBadge } from "./card-shell";
-import type { PostCardData, QuizTypeData } from "./types";
+import { PostShell, SourceBadge } from "./post-shell";
+import type { PostView, QuizTypeData } from "./types";
 
-interface QuizMcCardProps {
-  post: PostCardData & { typeData: QuizTypeData };
+interface QuizMcPostProps {
+  post: PostView & { typeData: QuizTypeData };
 }
 
-export function QuizMcCard({ post }: QuizMcCardProps) {
+export function QuizMcPost({ post }: QuizMcPostProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const { question, options, correctIndex, explanation } = post.typeData;
   const answered = selectedIndex !== null;
@@ -24,7 +24,7 @@ export function QuizMcCard({ post }: QuizMcCardProps) {
   }
 
   return (
-    <CardShell post={post} quizVariant={post.typeData.variant}>
+    <PostShell post={post} quizVariant={post.typeData.variant}>
       <SourceBadge post={post} />
       <div data-testid="quiz-question" className="mb-3 text-sm font-medium text-foreground">
         {question}
@@ -86,6 +86,6 @@ export function QuizMcCard({ post }: QuizMcCardProps) {
           {explanation}
         </div>
       )}
-    </CardShell>
+    </PostShell>
   );
 }

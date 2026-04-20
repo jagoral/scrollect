@@ -5,17 +5,17 @@ import { useLandingSection } from "@/hooks/use-landing-section";
 import { cn } from "@/lib/utils";
 
 import {
-  PreviewConnectionCard,
-  PreviewInsightCard,
-  PreviewQuizCard,
-  PreviewQuoteCard,
-  PreviewSummaryCard,
-} from "./preview-cards";
+  PreviewConnectionPost,
+  PreviewInsightPost,
+  PreviewQuizPost,
+  PreviewQuotePost,
+  PreviewSummaryPost,
+} from "./preview-posts";
 
-type CardTypeValue = "insight" | "quote" | "quiz" | "summary" | "connection";
+type PostTypeValue = "insight" | "quote" | "quiz" | "summary" | "connection";
 
-const cardTypes: ReadonlyArray<{
-  value: CardTypeValue;
+const postTypes: ReadonlyArray<{
+  value: PostTypeValue;
   label: string;
   icon: typeof Lightbulb;
   accentColor: string;
@@ -64,29 +64,29 @@ const cardTypes: ReadonlyArray<{
   },
 ];
 
-function CardPreview({ value }: { value: CardTypeValue }) {
+function PostPreview({ value }: { value: PostTypeValue }) {
   switch (value) {
     case "insight":
-      return <PreviewInsightCard />;
+      return <PreviewInsightPost />;
     case "quote":
-      return <PreviewQuoteCard />;
+      return <PreviewQuotePost />;
     case "quiz":
-      return <PreviewQuizCard interactive />;
+      return <PreviewQuizPost interactive />;
     case "summary":
-      return <PreviewSummaryCard />;
+      return <PreviewSummaryPost />;
     case "connection":
-      return <PreviewConnectionCard />;
+      return <PreviewConnectionPost />;
   }
 }
 
-export function CardTypesSection() {
-  const { ref, isVisible } = useLandingSection("card_types");
-  const [activeTab, setActiveTab] = useState<CardTypeValue>("insight");
+export function PostTypesSection() {
+  const { ref, isVisible } = useLandingSection("post_types");
+  const [activeTab, setActiveTab] = useState<PostTypeValue>("insight");
 
   return (
     <section
       ref={ref}
-      aria-labelledby="card-types-heading"
+      aria-labelledby="post-types-heading"
       className={cn(
         "border-t border-border px-4 py-16 md:py-20",
         "transition-[transform,opacity] duration-700 ease-out",
@@ -96,16 +96,16 @@ export function CardTypesSection() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-10 md:mb-12">
           <span className="mb-3 inline-flex items-center border border-border px-3 py-1 text-xs tracking-widest text-muted-foreground uppercase">
-            Card types
+            Post types
           </span>
           <h2
-            id="card-types-heading"
+            id="post-types-heading"
             className="text-2xl font-bold tracking-[-0.02em] text-pretty sm:text-3xl"
           >
             Five ways to learn from every document
           </h2>
           <p className="mt-2 max-w-lg text-muted-foreground">
-            Each card type reinforces knowledge differently - from active recall quizzes to
+            Each post type reinforces knowledge differently - from active recall quizzes to
             cross-document connections.
           </p>
         </div>
@@ -113,16 +113,16 @@ export function CardTypesSection() {
         <div className="grid items-start gap-6 md:grid-cols-2 md:gap-8">
           <div className="relative hidden md:block">
             <div className="sticky top-24">
-              <CardPreview key={activeTab} value={activeTab} />
+              <PostPreview key={activeTab} value={activeTab} />
             </div>
           </div>
 
           <div
             role="tablist"
-            aria-label="Card types"
+            aria-label="Post types"
             className="flex flex-col border border-border"
           >
-            {cardTypes.map((type, i) => {
+            {postTypes.map((type, i) => {
               const isActive = type.value === activeTab;
               const Icon = type.icon;
 
@@ -173,7 +173,7 @@ export function CardTypesSection() {
           </div>
 
           <div className="md:hidden" id={`panel-${activeTab}`} role="tabpanel">
-            <CardPreview key={activeTab} value={activeTab} />
+            <PostPreview key={activeTab} value={activeTab} />
           </div>
         </div>
       </div>

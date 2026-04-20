@@ -5,21 +5,21 @@ import Markdown from "react-markdown";
 
 import { Badge } from "@/components/ui/badge";
 
-import { CardShell } from "./card-shell";
-import type { ConnectionTypeData, PostCardData } from "./types";
+import { PostShell } from "./post-shell";
+import type { ConnectionTypeData, PostView } from "./types";
 
-interface ConnectionCardProps {
-  post: PostCardData & { typeData: ConnectionTypeData };
+interface ConnectionPostProps {
+  post: PostView & { typeData: ConnectionTypeData };
 }
 
-export function ConnectionCard({ post }: ConnectionCardProps) {
+export function ConnectionPost({ post }: ConnectionPostProps) {
   const { sourceATitleHint, sourceBTitleHint, connectionType, sourceAKeyIdea, sourceBKeyIdea } =
     post.typeData;
 
   const isWithinDocument = connectionType === "within_document";
 
   return (
-    <CardShell post={post}>
+    <PostShell post={post}>
       <div className="mb-3 flex items-center gap-2" data-testid="connection-header">
         <Badge
           variant="outline"
@@ -64,7 +64,7 @@ export function ConnectionCard({ post }: ConnectionCardProps) {
       >
         <Markdown>{post.content}</Markdown>
       </div>
-    </CardShell>
+    </PostShell>
   );
 }
 

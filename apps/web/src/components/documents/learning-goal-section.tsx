@@ -140,7 +140,7 @@ export function LearningGoalSection({
       </h2>
       {isOnboardingPending && (
         <p className="mb-3 text-sm text-muted-foreground">
-          Card generation is waiting for your focus. Add a goal or skip for now so your feed can
+          Post generation is waiting for your focus. Add a goal or skip for now so your feed can
           continue.
         </p>
       )}
@@ -161,8 +161,8 @@ export function LearningGoalSection({
           {value.length === 0
             ? "Try naming the outcome, context, or decision you want help with."
             : isOnboardingPending
-              ? "This goal will shape the first cards generated for this document."
-              : "Changes affect the next cards generated for this document."}
+              ? "This goal will shape the first posts generated for this document."
+              : "Changes affect the next posts generated for this document."}
         </p>
         <span
           data-testid="learning-goal-char-count"

@@ -86,7 +86,7 @@ export function DislikeReasonSheet({
           data-testid="dislike-reason-sheet"
           className="w-56 gap-0 p-0 py-1"
         >
-          <PopoverTitle className="sr-only">Why do you dislike this card?</PopoverTitle>
+          <PopoverTitle className="sr-only">Why do you dislike this post?</PopoverTitle>
           <PopoverDescription className="sr-only">
             Select a reason to help improve your feed.
           </PopoverDescription>
@@ -109,7 +109,7 @@ export function DislikeReasonSheet({
       >
         <div className="mx-auto mb-1 mt-0 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/25" />
 
-        <SheetTitle className="sr-only">Why do you dislike this card?</SheetTitle>
+        <SheetTitle className="sr-only">Why do you dislike this post?</SheetTitle>
         <SheetDescription className="sr-only">
           Select a reason to help us improve your feed.
         </SheetDescription>

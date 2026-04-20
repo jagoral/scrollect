@@ -1,15 +1,15 @@
 import Markdown from "react-markdown";
 
-import { CardShell, SourceBadge } from "./card-shell";
-import type { PostCardData } from "./types";
+import { PostShell, SourceBadge } from "./post-shell";
+import type { PostView } from "./types";
 
-interface InsightCardProps {
-  post: PostCardData;
+interface InsightPostProps {
+  post: PostView;
 }
 
-export function InsightCard({ post }: InsightCardProps) {
+export function InsightPost({ post }: InsightPostProps) {
   return (
-    <CardShell post={post}>
+    <PostShell post={post}>
       <SourceBadge post={post} />
       <div
         data-testid="insight-content"
@@ -17,6 +17,6 @@ export function InsightCard({ post }: InsightCardProps) {
       >
         <Markdown>{post.content}</Markdown>
       </div>
-    </CardShell>
+    </PostShell>
   );
 }

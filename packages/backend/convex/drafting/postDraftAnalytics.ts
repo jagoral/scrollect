@@ -137,7 +137,7 @@ export async function captureDraftGenerationAnalytics(opts: {
       document_id: documentId,
       generation_batch: generationBatch,
       mode,
-      by_card_type: lengthDistribution,
+      by_post_type: lengthDistribution,
     },
   });
 

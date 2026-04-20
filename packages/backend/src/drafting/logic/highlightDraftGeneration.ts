@@ -219,19 +219,19 @@ async function generateDraftsForSectionGroup(opts: {
   const drafts: HighlightDraftRecord[] = [];
   const sourceChunkIds = representativeChunks.map((c) => c._id);
 
-  for (const card of result.cards) {
-    if (!card.content) continue;
+  for (const draft of result.drafts) {
+    if (!draft.content) continue;
 
-    const contentHash = input.hashContent(card.content);
+    const contentHash = input.hashContent(draft.content);
     if (seenHashes.has(contentHash)) {
       metrics.draftsDeduplicated++;
       continue;
     }
 
     const qualityScore = computeQualityScore({
-      postType: card.postType,
-      content: card.content,
-      typeData: card.typeData,
+      postType: draft.postType,
+      content: draft.content,
+      typeData: draft.typeData,
       sourceChunkCount: representativeChunks.length,
     });
 
@@ -245,9 +245,9 @@ async function generateDraftsForSectionGroup(opts: {
       documentId: input.documentId,
       sectionSummaryId: group.section._id,
       userId: input.userId,
-      postType: card.postType,
-      content: card.content,
-      typeData: castTypeData(card.postType, card.typeData),
+      postType: draft.postType,
+      content: draft.content,
+      typeData: castTypeData(draft.postType, draft.typeData),
       sourceChunkIds,
       contentHash,
       qualityScore,

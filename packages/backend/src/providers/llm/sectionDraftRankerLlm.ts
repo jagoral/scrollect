@@ -13,7 +13,7 @@ const rankingSchema = z.object({
           .number()
           .min(0)
           .max(1)
-          .describe("0 means no useful learning cards; 1 means very dense learning value"),
+          .describe("0 means no useful learning posts; 1 means very dense learning value"),
         quoteCandidate: z
           .boolean()
           .describe("True only if the section summary suggests a memorable verbatim quote exists"),

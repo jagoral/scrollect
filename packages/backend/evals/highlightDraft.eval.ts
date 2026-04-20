@@ -78,7 +78,7 @@ evalite("Highlight Draft", {
 
     try {
       const start = performance.now();
-      const { cards, usage } = await llm.generateDraftsFromHighlights({
+      const { drafts, usage } = await llm.generateDraftsFromHighlights({
         highlights: [{ highlightId: input.highlightId, highlightText: input.highlightText }],
         sectionSummary: input.sectionSummary,
         sectionTitle: input.sectionTitle,
@@ -87,13 +87,13 @@ evalite("Highlight Draft", {
       });
       const durationMs = Math.round(performance.now() - start);
 
-      const card = cards[0];
-      if (!card) return emptyResult;
+      const draft = drafts[0];
+      if (!draft) return emptyResult;
 
       return {
-        postType: card.postType,
-        content: card.content,
-        typeData: card.typeData,
+        postType: draft.postType,
+        content: draft.content,
+        typeData: draft.typeData,
         sourceChunks: input.chunks.map((c) => c.content),
         highlightText: input.highlightText,
         expectedLanguage: input.expectedLanguage,

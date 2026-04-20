@@ -32,7 +32,7 @@ function resolveStage({
 
 const steps: ReadonlyArray<{ key: OnboardingStage; label: string }> = [
   { key: "welcome", label: "Add content" },
-  { key: "processing", label: "AI generates cards" },
+  { key: "processing", label: "AI generates posts" },
   { key: "ready", label: "Scroll your feed" },
 ];
 
@@ -103,7 +103,7 @@ function WelcomeStage() {
       </div>
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-balance sm:text-3xl">
-          Let's turn something you've read into cards you'll remember.
+          Let's turn something you've read into posts you'll remember.
         </h2>
         <p className="mt-3 max-w-xl text-muted-foreground">
           Add any PDF, article, YouTube video, or note. In about a minute you'll have a personal
@@ -139,7 +139,7 @@ function ProcessingStage({ documents }: { documents: OnboardingDocument[] }) {
           <Loader2 className="size-5 animate-spin" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight">Generating your first cards</h2>
+          <h2 className="text-xl font-bold tracking-tight">Generating your first posts</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             This typically takes 1-3 minutes. You can stay here or come back later - we'll keep
             working in the background.
@@ -168,14 +168,14 @@ function ReadyStage() {
     <div className="flex flex-col items-start gap-5">
       <div className="inline-flex items-center gap-2 border border-emerald-500/40 bg-emerald-500/5 px-3 py-1 text-[10px] font-medium tracking-[0.15em] text-emerald-600 uppercase dark:text-emerald-400">
         <CheckCircle2 className="size-3" />
-        Your first cards are ready
+        Your first posts are ready
       </div>
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-balance sm:text-3xl">
           The good part. Scroll your first feed.
         </h2>
         <p className="mt-3 max-w-xl text-muted-foreground">
-          Your cards are waiting in the feed. React to shape what you see next - Scrollect learns as
+          Your posts are waiting in the feed. React to shape what you see next - Scrollect learns as
           you go.
         </p>
       </div>

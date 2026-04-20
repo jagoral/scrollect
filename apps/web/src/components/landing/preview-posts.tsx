@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-function PreviewCardActions() {
+function PreviewPostActions() {
   const [saved, setSaved] = useState(false);
   const [liked, setLiked] = useState(false);
 
@@ -23,7 +23,7 @@ function PreviewCardActions() {
       <Button
         variant="ghost"
         size="icon-sm"
-        title={liked ? "Remove like" : "Like this card"}
+        title={liked ? "Remove like" : "Like this post"}
         className={cn("transition-colors", liked && "text-primary")}
         onClick={() => setLiked((l) => !l)}
       >
@@ -33,7 +33,7 @@ function PreviewCardActions() {
   );
 }
 
-function PreviewCardShell({
+function PreviewPostShell({
   accentClassName,
   children,
 }: {
@@ -51,7 +51,7 @@ function PreviewCardShell({
         {children}
         <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
           <span className="text-xs tracking-wide text-muted-foreground/70">2 hours ago</span>
-          <PreviewCardActions />
+          <PreviewPostActions />
         </div>
       </div>
     </article>
@@ -69,9 +69,9 @@ function PreviewSourceBadge({ label }: { label: string }) {
   );
 }
 
-export function PreviewInsightCard() {
+export function PreviewInsightPost() {
   return (
-    <PreviewCardShell accentClassName="border-l-primary/50">
+    <PreviewPostShell accentClassName="border-l-primary/50">
       <PreviewSourceBadge label="Clean Code - Chapter 3" />
       <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
         <p>
@@ -79,13 +79,13 @@ export function PreviewInsightCard() {
           validation and persistence is doing two things - split it.
         </p>
       </div>
-    </PreviewCardShell>
+    </PreviewPostShell>
   );
 }
 
-export function PreviewQuoteCard() {
+export function PreviewQuotePost() {
   return (
-    <PreviewCardShell accentClassName="border-l-amber-500/50">
+    <PreviewPostShell accentClassName="border-l-amber-500/50">
       <PreviewSourceBadge label="Thinking, Fast and Slow - Part II" />
       <div>
         <blockquote className="text-base leading-relaxed text-foreground/90">
@@ -97,7 +97,7 @@ export function PreviewQuoteCard() {
           attending to, distorting our judgment of its true importance.
         </p>
       </div>
-    </PreviewCardShell>
+    </PreviewPostShell>
   );
 }
 
@@ -110,12 +110,12 @@ const QUIZ_OPTIONS = [
 
 const CORRECT_INDEX = 1;
 
-export function PreviewQuizCard({ interactive = false }: { interactive?: boolean }) {
+export function PreviewQuizPost({ interactive = false }: { interactive?: boolean }) {
   const [selected, setSelected] = useState<number | null>(null);
   const answered = selected !== null;
 
   return (
-    <PreviewCardShell accentClassName="border-l-emerald-500/50">
+    <PreviewPostShell accentClassName="border-l-emerald-500/50">
       <PreviewSourceBadge label="Designing Data-Intensive Applications" />
       <div className="mb-3 text-sm font-medium text-foreground">
         What is the primary advantage of an append-only log over in-place updates in a database
@@ -171,13 +171,13 @@ export function PreviewQuizCard({ interactive = false }: { interactive?: boolean
           crash recovery (replay the log from the last checkpoint).
         </div>
       )}
-    </PreviewCardShell>
+    </PreviewPostShell>
   );
 }
 
-export function PreviewSummaryCard() {
+export function PreviewSummaryPost() {
   return (
-    <PreviewCardShell accentClassName="border-l-blue-500/50">
+    <PreviewPostShell accentClassName="border-l-blue-500/50">
       <PreviewSourceBadge label="System Design Interview - Ch. 5" />
       <ul className="flex flex-col gap-2 text-sm leading-relaxed text-foreground/90">
         {[
@@ -191,13 +191,13 @@ export function PreviewSummaryCard() {
           </li>
         ))}
       </ul>
-    </PreviewCardShell>
+    </PreviewPostShell>
   );
 }
 
-export function PreviewConnectionCard() {
+export function PreviewConnectionPost() {
   return (
-    <PreviewCardShell accentClassName="border-l-violet-500/50">
+    <PreviewPostShell accentClassName="border-l-violet-500/50">
       <div className="mb-3 flex items-center gap-2">
         <Badge
           variant="outline"
@@ -222,6 +222,6 @@ export function PreviewConnectionCard() {
           <FileText className="size-2.5" /> DDIA - Ch. 1
         </span>
       </div>
-    </PreviewCardShell>
+    </PreviewPostShell>
   );
 }

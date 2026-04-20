@@ -10,7 +10,7 @@ const classificationSchema = z.object({
       highlightId: z.string().describe("The highlight ID from the input"),
       postType: z
         .enum(["insight", "quiz", "quote", "summary"])
-        .describe("The best-fit card type for this highlight"),
+        .describe("The best-fit post type for this highlight"),
     }),
   ),
 });
@@ -87,7 +87,7 @@ const TYPE_SCHEMAS: Record<DraftPostType, z.ZodSchema> = {
   summary: summarySchema,
 };
 
-const CLASSIFICATION_SYSTEM = `You classify highlighted passages into the best-fit learning card type.
+const CLASSIFICATION_SYSTEM = `You classify highlighted passages into the best-fit learning post type.
 
 <rules>
 Apply these rules in order. Use the FIRST matching rule:
@@ -129,7 +129,7 @@ function buildClassificationPrompt(opts: {
 Highlights to classify:
 ${highlightList}
 
-Classify each highlight into exactly one card type.`;
+Classify each highlight into exactly one post type.`;
 }
 
 function buildGenerationSystem(opts: { postType: DraftPostType; language?: string }): string {
@@ -140,7 +140,7 @@ function buildGenerationSystem(opts: { postType: DraftPostType; language?: strin
     case "quote":
       return `${base}
 
-Create a QUOTE card from a highlighted passage.
+Create a QUOTE post from a highlighted passage.
 
 <rules>
 - quotedText: copy the highlight text EXACTLY, character-for-character. Do not modify or paraphrase.
@@ -157,7 +157,7 @@ Create a QUOTE card from a highlighted passage.
     case "quiz":
       return `${base}
 
-Create a QUIZ card testing recall of a specific fact from a highlighted passage.
+Create a QUIZ post testing recall of a specific fact from a highlighted passage.
 
 <rules>
 - question: target a concrete, verifiable fact (a name, number, date, or specific claim) that appears in BOTH the highlight AND the source chunks
@@ -175,7 +175,7 @@ Create a QUIZ card testing recall of a specific fact from a highlighted passage.
     case "insight":
       return `${base}
 
-Create an INSIGHT card - a specific fact, surprising detail, or concrete example from a highlighted passage.
+Create an INSIGHT post - a specific fact, surprising detail, or concrete example from a highlighted passage.
 
 <rules>
 - content: 2-4 sentences grounding the insight in the highlighted text
@@ -193,7 +193,7 @@ Create an INSIGHT card - a specific fact, surprising detail, or concrete example
     case "summary":
       return `${base}
 
-Create a SUMMARY card extracting specific takeaways from a highlighted passage.
+Create a SUMMARY post extracting specific takeaways from a highlighted passage.
 
 <rules>
 - bulletPoints: 2-5 specific takeaways, each containing at least one name, number, or technical term from the highlight
@@ -225,7 +225,7 @@ Section summary: ${opts.sectionSummary}${buildLearningGoalContext(opts.learningG
 Source chunks:
 ${chunkText}
 
-Highlighted passage to create a card from:
+Highlighted passage to create a post from:
 "${opts.highlightText}"`;
 }
 
@@ -239,7 +239,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
     language?: string;
     learningGoal?: string;
   }): Promise<{
-    cards: Array<{
+    drafts: Array<{
       highlightId: string;
       content: string;
       postType: DraftPostType;
@@ -316,7 +316,7 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
       }
 
       return {
-        card: {
+        draft: {
           highlightId: highlight.highlightId,
           content,
           postType,
@@ -328,12 +328,12 @@ export class AiSdkHighlightDraftLlm implements HighlightDraftLlm {
 
     const results = await Promise.all(generationPromises);
 
-    const cards = results.map((r) => r.card);
+    const drafts = results.map((r) => r.draft);
     for (const r of results) {
       totalUsage = addUsage(totalUsage, r.usage);
     }
 
-    return { cards, usage: totalUsage };
+    return { drafts, usage: totalUsage };
   }
 }
 
@@ -347,7 +347,7 @@ export class StubHighlightDraftLlm implements HighlightDraftLlm {
     language?: string;
     learningGoal?: string;
   }): Promise<{
-    cards: Array<{
+    drafts: Array<{
       highlightId: string;
       content: string;
       postType: DraftPostType;
@@ -355,12 +355,12 @@ export class StubHighlightDraftLlm implements HighlightDraftLlm {
     }>;
     usage: TokenUsage;
   }> {
-    const cards = opts.highlights.map((h) => ({
+    const drafts = opts.highlights.map((h) => ({
       highlightId: h.highlightId,
       content: `Insight from highlight in "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)}...`,
       postType: "insight" as DraftPostType,
       typeData: { type: "insight" },
     }));
-    return { cards, usage: ZERO_USAGE };
+    return { drafts, usage: ZERO_USAGE };
   }
 }

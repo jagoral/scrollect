@@ -223,7 +223,7 @@ describe("generateHighlightDrafts", () => {
 
   it("passes learningGoal through to highlight draft generation", async () => {
     const generateDraftsFromHighlights = vi.fn().mockResolvedValue({
-      cards: [
+      drafts: [
         {
           highlightId: "h-0",
           content: 'Insight from highlight in "Introduction": useful content.',
@@ -286,7 +286,7 @@ describe("generateHighlightDrafts", () => {
   it("deduplicates drafts with same content hash", async () => {
     const llm = createMockHighlightDraftLlm({
       generateDraftsFromHighlights: vi.fn().mockResolvedValue({
-        cards: [
+        drafts: [
           {
             highlightId: "h-0",
             content: "Identical content for dedup test",
@@ -364,7 +364,7 @@ describe("generateHighlightDrafts", () => {
     };
     const llm = createMockHighlightDraftLlm({
       generateDraftsFromHighlights: vi.fn().mockImplementation(async (opts) => ({
-        cards: opts.highlights.map((h: { highlightId: string; highlightText: string }) => ({
+        drafts: opts.highlights.map((h: { highlightId: string; highlightText: string }) => ({
           highlightId: h.highlightId,
           content: `Insight from "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)} with enough content.`,
           postType: "insight",
@@ -392,7 +392,7 @@ describe("generateHighlightDrafts", () => {
         callCount++;
         if (callCount === 1) throw new Error("LLM failure");
         return {
-          cards: opts.highlights.map((h: { highlightId: string; highlightText: string }) => ({
+          drafts: opts.highlights.map((h: { highlightId: string; highlightText: string }) => ({
             highlightId: h.highlightId,
             content: `Insight from "${opts.sectionTitle}": ${h.highlightText.slice(0, 50)} with enough length.`,
             postType: "insight",
@@ -421,7 +421,7 @@ describe("generateHighlightDrafts", () => {
   it("discards drafts with empty content", async () => {
     const llm = createMockHighlightDraftLlm({
       generateDraftsFromHighlights: vi.fn().mockResolvedValue({
-        cards: [
+        drafts: [
           {
             highlightId: "h-0",
             content: "",

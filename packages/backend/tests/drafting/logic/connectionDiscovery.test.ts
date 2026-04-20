@@ -190,7 +190,7 @@ describe("discoverConnections", () => {
     expect(result.metrics.withinDocumentFallback).toBe(false);
   });
 
-  it("generates connection drafts with correct strategy and card type", async () => {
+  it("generates connection drafts with correct strategy and post type", async () => {
     const summaryStore = createMockSummaryStore({
       search: vi.fn().mockResolvedValue(makeCrossDocSearchResults()),
     });
@@ -264,13 +264,13 @@ describe("discoverConnections", () => {
     expect(result.metrics.pairsBelowThreshold).toBeGreaterThan(0);
   });
 
-  it("handles LLM rejection (null card)", async () => {
+  it("handles LLM rejection (null draft)", async () => {
     const summaryStore = createMockSummaryStore({
       search: vi.fn().mockResolvedValue(makeCrossDocSearchResults()),
     });
     const llm = createMockConnectionDiscoveryLlm({
       generateConnectionDraft: vi.fn().mockResolvedValue({
-        card: null,
+        draft: null,
         usage: {
           inputTokens: 100,
           outputTokens: 50,
@@ -398,7 +398,7 @@ describe("discoverConnections", () => {
     });
     const llm = createMockConnectionDiscoveryLlm({
       generateConnectionDraft: vi.fn().mockResolvedValue({
-        card: {
+        draft: {
           content: "A meaningful connection between the two sections discussing related concepts.",
           typeData: {
             type: "connection",

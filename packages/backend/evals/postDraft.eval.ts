@@ -85,7 +85,7 @@ function buildSectionInputs(): SectionInput[] {
 evalite("Section Draft Smoke", {
   data: () => buildSectionInputs().map((s) => ({ input: s })),
   task: async (input: SectionInput) => {
-    const { card } = await llm.generateDraft({
+    const { draft } = await llm.generateDraft({
       postType: input.postType,
       sectionSummary: input.sectionSummary,
       sectionTitle: input.sectionTitle,
@@ -94,7 +94,7 @@ evalite("Section Draft Smoke", {
       fileType: input.fileType,
     });
 
-    if (!card) {
+    if (!draft) {
       return {
         postType: input.postType,
         content: "",
@@ -107,8 +107,8 @@ evalite("Section Draft Smoke", {
 
     return {
       postType: input.postType,
-      content: card.content,
-      typeData: card.typeData,
+      content: draft.content,
+      typeData: draft.typeData,
       sourceChunks: input.chunks.map((c) => c.content),
       expectedLanguage: input.expectedLanguage,
       fileType: input.fileType,

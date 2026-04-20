@@ -68,7 +68,7 @@ export function UploadUrlTab({ onDocumentCreated }: UploadUrlTabProps) {
         });
         toast.success(
           <span>
-            Submitted! Processing continues in the background. Add a learning goal now so cards use
+            Submitted! Processing continues in the background. Add a learning goal now so posts use
             it.{" "}
             <Link to="/app/library" className="underline">
               View in library

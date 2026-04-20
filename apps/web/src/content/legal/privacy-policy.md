@@ -5,7 +5,7 @@ Last updated: March 16, 2026
 This Privacy Policy for Scrollect ("we," "us," or "our"), describes how and why we might access, collect, store, use, and/or share ("process") your personal information when you use our services ("Services"), including when you:
 
 - Visit our website at {{SITE_URL}} or any website of ours that links to this Privacy Policy
-- Use Scrollect. Scrollect is a personal learning application. Users upload content they want to learn from - PDFs, EPUBs, articles, and YouTube videos - and the app generates a scrollable feed of bite-sized learning cards (summaries, insights, quizzes, key quotes, and cross-source connections) powered by AI.
+- Use Scrollect. Scrollect is a personal learning application. Users upload content they want to learn from - PDFs, EPUBs, articles, and YouTube videos - and the app generates a scrollable feed of bite-sized learning posts (summaries, insights, quizzes, key quotes, and cross-source connections) powered by AI.
 - Engage with us in other related ways, including any marketing or events
 
 **Questions or concerns?** Reading this Privacy Policy will help you understand your privacy rights and choices. We are responsible for making decisions about how your personal information is processed. If you do not agree with our policies and practices, please do not use our Services. If you still have any questions or concerns, please contact us at {{CONTACT_EMAIL}}.
@@ -144,7 +144,7 @@ We may need to share your personal information in the following situations:
 We share your personal information with the following categories of service providers who assist us in operating our Services:
 
 - **Cloud infrastructure:** Convex (database and backend services), Vercel (web hosting and deployment)
-- **AI processing:** Anthropic (content analysis and learning card generation)
+- **AI processing:** Anthropic (content analysis and learning post generation)
 - **Payment processing:** Polar Software Inc. (subscription and payment management)
 - **Analytics:** Google Analytics (usage analytics and reporting)
 - **Authentication:** Better-Auth (self-hosted authentication - no personal data is shared externally through this service)
@@ -177,14 +177,14 @@ We provide the AI Products through third-party service providers ("AI Service Pr
 
 **Content Transmitted to AI Service Providers**
 
-When you upload or add content to the Services - including PDF documents, EPUB ebooks, web articles, and YouTube video URLs - the textual content extracted from those sources (such as PDF text, EPUB text, article text, and YouTube transcripts) is transmitted to Anthropic for processing. This processing enables the generation of learning cards, summaries, quizzes, insights, and cross-source connections. Only the textual content necessary for processing is transmitted; we do not send unrelated personal information to Anthropic beyond what is contained in the uploaded content itself.
+When you upload or add content to the Services - including PDF documents, EPUB ebooks, web articles, and YouTube video URLs - the textual content extracted from those sources (such as PDF text, EPUB text, article text, and YouTube transcripts) is transmitted to Anthropic for processing. This processing enables the generation of learning posts, summaries, quizzes, insights, and cross-source connections. Only the textual content necessary for processing is transmitted; we do not send unrelated personal information to Anthropic beyond what is contained in the uploaded content itself.
 
 **Our AI Products**
 
 Our AI Products are designed for the following functions:
 
 - AI-powered content analysis and summarization
-- AI-generated learning cards and quizzes
+- AI-generated learning posts and quizzes
 - AI-driven cross-source knowledge connections
 - AI-based text analysis and key insight extraction
 

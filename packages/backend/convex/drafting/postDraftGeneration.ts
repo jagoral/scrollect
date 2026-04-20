@@ -158,7 +158,7 @@ export const generateDraftsForDocument = internalAction({
             jobId,
             documentId,
             sectionSummaryId: plannedSection.sectionSummaryId as Id<"sectionSummaries">,
-            cardTypes: plannedSection.cardTypes,
+            postTypes: plannedSection.postTypes,
             generationBatch: plannedSection.generationBatch,
             sectionQualitySignal: plannedSection.qualitySignal,
             mode,

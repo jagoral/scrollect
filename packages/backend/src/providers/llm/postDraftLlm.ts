@@ -11,7 +11,7 @@ const insightSchema = z.object({
     .min(350)
     .max(1600)
     .describe(
-      "5-8 sentences with specific facts, surprising details, and concrete examples. Use **bold** for key terms. Provide enough context so the card is self-contained and useful without reading the source.",
+      "5-8 sentences with specific facts, surprising details, and concrete examples. Use **bold** for key terms. Provide enough context so the post is self-contained and useful without reading the source.",
     ),
 });
 
@@ -94,12 +94,12 @@ function buildSystemPrompt(opts: {
 }): string {
   const { postType, language, fileType } = opts;
   const base = `You are an AI learning assistant for Scrollect, a personal learning feed app.
-Your job is to create a single focused learning card from a section of a document.
+Your job is to create a single focused learning post from a section of a document.
 
 <instructions>
 1. ${buildLanguageInstruction(language)}
-2. Before writing, identify 2-3 specific details from the source: exact names, numbers, dates, or notable phrases you will reference in the card.
-3. Create the card using those specific details. Stay close to the source text.
+2. Before writing, identify 2-3 specific details from the source: exact names, numbers, dates, or notable phrases you will reference in the post.
+3. Create the post using those specific details. Stay close to the source text.
 </instructions>
 
 <quality_rules>
@@ -123,10 +123,10 @@ Your job is to create a single focused learning card from a section of a documen
     case "insight":
       return `${base}
 
-<task>Create an INSIGHT card - a specific fact, surprising detail, or concrete example from the source.</task>
+<task>Create an INSIGHT post - a specific fact, surprising detail, or concrete example from the source.</task>
 
 <format>
-- 5-8 sentences (aim for 550-1100 characters). The card should be self-contained and useful on its own
+- 5-8 sentences (aim for 550-1100 characters). The post should be self-contained and useful on its own
 - Use **bold** for key terms (names, technical terms, numbers)
 - Include at least one direct phrase from the source text
 - The first sentence must contain a specific fact, not a general introduction
@@ -136,7 +136,7 @@ Your job is to create a single focused learning card from a section of a documen
     case "quiz":
       return `${base}
 
-<task>Create a QUIZ card testing recall of a specific detail from the source.</task>
+<task>Create a QUIZ post testing recall of a specific detail from the source.</task>
 
 <format>
 - The content field should provide 3-5 sentences of context about what the quiz tests and why it matters (aim for 400-800 characters)
@@ -149,7 +149,7 @@ Your job is to create a single focused learning card from a section of a documen
     case "quote":
       return `${base}
 
-<task>Create a QUOTE card featuring a notable passage from the source.</task>
+<task>Create a QUOTE post featuring a notable passage from the source.</task>
 
 ${
   isSpeechSource(fileType)
@@ -177,7 +177,7 @@ ${
     case "summary":
       return `${base}
 
-<task>Create a SUMMARY card with bullet points listing specific takeaways from the section.</task>
+<task>Create a SUMMARY post with bullet points listing specific takeaways from the section.</task>
 
 <format>
 - 2-5 bullet points, each containing at least one proper noun, number, or technical term from the source
@@ -198,7 +198,7 @@ export class AiSdkPostDraftLlm implements PostDraftLlm {
     fileType?: string;
     learningGoal?: string;
   }): Promise<{
-    card: { content: string; typeData: Record<string, unknown> } | null;
+    draft: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
   }> {
     const chunkText = opts.chunks.map((c, i) => `Chunk ${i}:\n${c.content}`).join("\n\n---\n\n");
@@ -230,7 +230,7 @@ ${chunkText}`;
       opts.postType === "quote" &&
       (result as z.infer<typeof quoteDecisionSchema>).hasQuote === false
     ) {
-      return { card: null, usage };
+      return { draft: null, usage };
     }
 
     const content = (result as Record<string, unknown>).content as string;
@@ -262,7 +262,7 @@ ${chunkText}`;
     }
 
     return {
-      card: { content, typeData },
+      draft: { content, typeData },
       usage,
     };
   }
@@ -317,11 +317,11 @@ export class StubPostDraftLlm implements PostDraftLlm {
     fileType?: string;
     learningGoal?: string;
   }): Promise<{
-    card: { content: string; typeData: Record<string, unknown> };
+    draft: { content: string; typeData: Record<string, unknown> };
     usage: TokenUsage;
   }> {
     return {
-      card: STUB_DRAFTS[opts.postType](opts.sectionTitle),
+      draft: STUB_DRAFTS[opts.postType](opts.sectionTitle),
       usage: ZERO_USAGE,
     };
   }

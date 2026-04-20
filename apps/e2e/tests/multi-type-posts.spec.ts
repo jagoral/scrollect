@@ -5,7 +5,7 @@ import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
 const CARD = '[data-testid="post-card"]';
 
 function cardOfType(type: string) {
-  return `${CARD}[data-card-type="${type}"]`;
+  return `${CARD}[data-post-type="${type}"]`;
 }
 
 test.describe("Multi-type cards and source provenance", { tag: "@seeded" }, () => {
@@ -25,7 +25,7 @@ test.describe("Multi-type cards and source provenance", { tag: "@seeded" }, () =
       await expect(cards).toHaveCount(7, { timeout: 15000 });
 
       const types = await cards.evaluateAll((els) => [
-        ...new Set(els.map((el) => el.getAttribute("data-card-type"))),
+        ...new Set(els.map((el) => el.getAttribute("data-post-type"))),
       ]);
 
       for (const expected of ["insight", "quiz", "quote", "summary", "connection"]) {
@@ -121,7 +121,7 @@ test.describe("Multi-type cards and source provenance", { tag: "@seeded" }, () =
 
       for (let i = 0; i < count; i++) {
         const card = cards.nth(i);
-        const type = await card.getAttribute("data-card-type");
+        const type = await card.getAttribute("data-post-type");
         // Connection cards use a provenance line instead of the standard source-badge
         const selector =
           type === "connection"

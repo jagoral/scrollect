@@ -23,7 +23,7 @@ import type { DrainedAnalyticsEvent } from "./helpers";
  * `POST /api/e2e-analytics-drain` (Task 6). Events are consumed on read.
  *
  * First-session gating: `feed.first_session_book_depth_reach` and
- * `feed.first_session_card_type_mix` fire only when a document has
+ * `feed.first_session_post_type_mix` fire only when a document has
  * `createdAt` within 24h AND its drafts had `servedCount == 0` before the
  * batch. The seeded account pre-populates `servedCount: 1` to keep the
  * seeded feed stable across runs, so those two events do not fire here.
@@ -69,7 +69,7 @@ test.describe("Feed: best cards first (issue #216)", { tag: "@seeded" }, () => {
     await expect(serveButton).toBeVisible();
     await serveButton.click();
 
-    // Serve mutation completes when the spinner clears. `feed.cards_served`
+    // Serve mutation completes when the spinner clears. `feed.posts_served`
     // is emitted by `captureServingAnalytics` at the tail of the mutation -
     // we drain once it's visible so assertions see serve-only events.
     await expect(serveButton).not.toBeDisabled({ timeout: 15_000 });
@@ -81,7 +81,7 @@ test.describe("Feed: best cards first (issue #216)", { tag: "@seeded" }, () => {
         all.some((e) => e.event === "feed.serving_quality_score_distribution") &&
         all.some((e) => e.event === "feed.learning_goal_relevance_applied"),
     });
-    expect(events, "serve should emit at least feed.cards_served").not.toHaveLength(0);
+    expect(events, "serve should emit at least feed.posts_served").not.toHaveLength(0);
 
     const qualityEvent = findEvent(events, "feed.serving_quality_score_distribution");
     expect(qualityEvent, "quality distribution event must fire per batch").toBeDefined();
@@ -129,8 +129,8 @@ function findEvent(
 
 function assertQualityDistributionShape(event: DrainedAnalyticsEvent) {
   const props = event.properties;
-  expect(typeof props.total_cards, "total_cards is number").toBe("number");
-  expect(props.total_cards as number).toBeGreaterThan(0);
+  expect(typeof props.total_posts, "total_posts is number").toBe("number");
+  expect(props.total_posts as number).toBeGreaterThan(0);
 
   expect(typeof props.mean, "mean is number").toBe("number");
   const mean = props.mean as number;
@@ -171,14 +171,14 @@ function assertGoalRelevanceShape(
   const boost = props.mean_relevance_boost as number;
   expect(boost).toBeGreaterThanOrEqual(0);
 
-  expect(typeof props.boosted_card_count, "boosted_card_count is number").toBe("number");
-  expect(props.boosted_card_count as number).toBeGreaterThanOrEqual(0);
+  expect(typeof props.boosted_post_count, "boosted_post_count is number").toBe("number");
+  expect(props.boosted_post_count as number).toBeGreaterThanOrEqual(0);
 
   if (!opts.expectedApplied) {
     // When the goal is cleared the scorer short-circuits to no-op, so no
     // cards can be boosted. This is the cheap signal that the applied-gate
     // is wired correctly end-to-end.
-    expect(props.boosted_card_count as number).toBe(0);
+    expect(props.boosted_post_count as number).toBe(0);
   }
 }
 

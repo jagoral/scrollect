@@ -6,7 +6,7 @@ import type {
 } from "../../providers/types";
 import { castTypeData, computeQualityScore } from "./postDraftGeneration";
 
-const THEMATIC_CARD_TYPES: DraftPostType[] = ["insight", "summary"];
+const THEMATIC_POST_TYPES: DraftPostType[] = ["insight", "summary"];
 const MIN_QUALITY_SCORE = 0.3;
 const THEME_CHUNKS_TOP_K = 3;
 
@@ -177,7 +177,7 @@ async function generateDraftsForTheme(opts: {
   let totalUsage = ZERO_USAGE;
 
   const settled = await Promise.allSettled(
-    THEMATIC_CARD_TYPES.map((postType) =>
+    THEMATIC_POST_TYPES.map((postType) =>
       services.draftLlm
         .generateDraft({
           postType,
@@ -199,13 +199,13 @@ async function generateDraftsForTheme(opts: {
       continue;
     }
 
-    const { postType, card, usage } = result.value;
+    const { postType, draft, usage } = result.value;
     totalUsage = addUsage(totalUsage, usage);
 
-    if (!card) continue;
-    if (!card.content) continue;
+    if (!draft) continue;
+    if (!draft.content) continue;
 
-    const contentHash = input.hashContent(card.content);
+    const contentHash = input.hashContent(draft.content);
     if (seenHashes.has(contentHash)) {
       metrics.draftsDeduplicated++;
       continue;
@@ -213,8 +213,8 @@ async function generateDraftsForTheme(opts: {
 
     const qualityScore = computeQualityScore({
       postType,
-      content: card.content,
-      typeData: card.typeData,
+      content: draft.content,
+      typeData: draft.typeData,
       sourceChunkCount: sourceChunkIds.length,
     });
 
@@ -229,8 +229,8 @@ async function generateDraftsForTheme(opts: {
       sectionSummaryId: undefined,
       userId: input.userId,
       postType,
-      content: card.content,
-      typeData: castTypeData(postType, card.typeData),
+      content: draft.content,
+      typeData: castTypeData(postType, draft.typeData),
       sourceChunkIds,
       contentHash,
       qualityScore,

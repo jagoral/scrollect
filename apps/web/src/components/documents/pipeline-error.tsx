@@ -13,7 +13,7 @@ const STAGE_LABELS: Record<string, string> = {
   chunking: "content chunking",
   embedding: "embedding generation",
   summarizing: "summarization",
-  generating_cards: "card generation",
+  generating_cards: "post generation",
 };
 
 interface PipelineErrorProps {

@@ -31,14 +31,14 @@ export const connectionGenuineness = createScorer<any, any, any>({
 
 Score 0: Superficial or forced connection. The sections merely share a common word or broad topic without real conceptual overlap.
 Score 0.5: Moderate connection. There is some thematic overlap but the explanation is vague or doesn't reference specific evidence from both sources.
-Score 1: Genuine, insightful connection. The card explains a specific conceptual link with evidence from both sections - shared patterns, complementary perspectives, or cause-and-effect relationships.`,
+Score 1: Genuine, insightful connection. The post explains a specific conceptual link with evidence from both sections - shared patterns, complementary perspectives, or cause-and-effect relationships.`,
       prompt: `Section A: "${input.sectionATitle}"
 Summary A: ${input.sectionASummary}
 
 Section B: "${input.sectionBTitle}"
 Summary B: ${input.sectionBSummary}
 
-Connection card content: "${output.content}"
+Connection post content: "${output.content}"
 Source A hint: ${output.typeData.sourceATitleHint}
 Source B hint: ${output.typeData.sourceBTitleHint}`,
       temperature: 0,

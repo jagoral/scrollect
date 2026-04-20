@@ -10,7 +10,7 @@ export function detectLanguage(text: string): "pl" | "en" {
 
 export const languageMatch = createScorer<any, any, any>({
   name: "Language Match",
-  description: "Checks if card output language matches the expected source language",
+  description: "Checks if post output language matches the expected source language",
   scorer: ({ input, output }) => {
     if (!output.content) {
       return {

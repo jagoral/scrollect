@@ -1,21 +1,21 @@
 import { ZERO_USAGE } from "../../../src/providers/llm/models";
 import type {
   AnalyticsService,
-  CardGenerationService,
   ContentFetcher,
   EmbeddingProvider,
   FeedServiceContext,
+  PostGenerationService,
   SummarySearchResult,
   SummaryVectorStore,
   VectorSearchResult,
   VectorStore,
 } from "../../../src/providers/types";
 
-export function createMockCardGenerator(
-  overrides?: Partial<CardGenerationService>,
-): CardGenerationService {
+export function createMockPostGenerator(
+  overrides?: Partial<PostGenerationService>,
+): PostGenerationService {
   return {
-    generateCards: async () => ({ cards: [], usage: ZERO_USAGE }),
+    generatePosts: async () => ({ posts: [], usage: ZERO_USAGE }),
     ...overrides,
   };
 }
@@ -73,7 +73,7 @@ export function createMapContentFetcher(data: Map<string, string>): ContentFetch
 
 export function createMockServices(overrides?: Partial<FeedServiceContext>): FeedServiceContext {
   return {
-    cardGenerator: createMockCardGenerator(),
+    postGenerator: createMockPostGenerator(),
     embedder: createMockEmbedder(),
     vectorStore: createMockVectorStore(),
     summaryStore: createMockSummaryStore(),
