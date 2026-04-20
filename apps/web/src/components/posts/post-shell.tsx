@@ -8,8 +8,12 @@ import type { ReactNode } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  DocumentThumb,
+  FileTypeIcon,
+  ReadingProgress,
+} from "@/components/documents/document-thumb";
 import { TagList } from "@/components/tags";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,15 +21,24 @@ import { usePostImpression } from "@/hooks/use-post-impression";
 import { useDetailPanel } from "@/components/detail-panel";
 
 import { DislikeReasonSheet } from "./dislike-reason-sheet";
-import { getFileTypeConfig } from "./file-type-config";
 import type { DislikeReason, PostType, PostView } from "./types";
 
-const postAccentColor: Record<PostType, string> = {
-  insight: "border-l-primary",
-  quote: "border-l-amber-500",
-  summary: "border-l-blue-500",
-  connection: "border-l-violet-500",
-  quiz: "border-l-emerald-500",
+type AccentTokens = { rail: string; text: string };
+
+const postAccent: Record<PostType, AccentTokens> = {
+  insight: { rail: "bg-primary/60", text: "text-primary" },
+  quote: { rail: "bg-amber-500/60", text: "text-amber-600 dark:text-amber-400" },
+  summary: { rail: "bg-blue-500/60", text: "text-blue-600 dark:text-blue-400" },
+  connection: { rail: "bg-violet-500/60", text: "text-violet-600 dark:text-violet-400" },
+  quiz: { rail: "bg-emerald-500/60", text: "text-emerald-600 dark:text-emerald-400" },
+};
+
+const postTypeLabel: Record<PostType, string> = {
+  insight: "Insight",
+  quote: "Quote",
+  summary: "Summary",
+  connection: "Connection",
+  quiz: "Quiz",
 };
 
 function updatePostInPaginatedPages(
@@ -58,30 +71,14 @@ function removePostFromPaginatedPages(localStore: OptimisticLocalStore, postId: 
   }
 }
 
-export function SourceBadge({ post, className }: { post: PostView; className?: string }) {
-  const { Icon } = getFileTypeConfig(post.fileType);
-
-  return (
-    <div
-      data-testid="source-badge"
-      className={cn(
-        "mb-3 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground",
-        className,
-      )}
-    >
-      <Icon className="size-3.5 shrink-0" />
-      <span className="truncate">{post.primarySourceDocumentTitle ?? "Untitled"}</span>
-    </div>
-  );
-}
-
 interface PostShellProps {
   post: PostView;
   children: ReactNode;
   quizVariant?: "multiple_choice" | "true_false";
+  onViewed?: (postId: string) => void;
 }
 
-export function PostShell({ post, children, quizVariant }: PostShellProps) {
+export function PostShell({ post, children, quizVariant, onViewed }: PostShellProps) {
   const posthog = usePostHog();
   const detailPanel = useDetailPanel();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -96,9 +93,13 @@ export function PostShell({ post, children, quizVariant }: PostShellProps) {
     }),
     [post.postType, post.createdAt],
   );
-  const impressionRef = usePostImpression(post._id, impressionProperties);
+  const impressionRef = usePostImpression(post._id, impressionProperties, {
+    onViewed: () => onViewed?.(post._id),
+  });
 
   const tags = post.tags ?? [];
+  const accent = postAccent[post.postType];
+  const selected = detailPanel?.selectedPost?._id === post._id;
 
   const toggleBookmark = useMutation(api.content.bookmarks.toggle).withOptimisticUpdate(
     (localStore, args) => {
@@ -192,51 +193,92 @@ export function PostShell({ post, children, quizVariant }: PostShellProps) {
       <article
         ref={impressionRef}
         data-testid="post-card"
+        data-post-id={post._id}
         data-post-type={post.postType}
         data-quiz-variant={quizVariant}
         className={cn(
-          "group/card relative min-w-0 border-l-2 border-t border-border first:border-t-0 bg-card text-card-foreground transition-colors",
-          postAccentColor[post.postType],
-          !detailPanel && "border-r",
-          detailPanel && "cursor-pointer hover:bg-accent/30",
+          "group/card relative grid min-w-0 scroll-mt-24 grid-cols-[38px_1fr] gap-5 border-b border-border bg-card pt-6 pr-6 pb-5 pl-5 text-card-foreground transition-colors",
+          detailPanel && "cursor-pointer",
+          detailPanel && !selected && "hover:bg-accent/30",
+          selected && "bg-primary/[0.04]",
         )}
         onClick={() => detailPanel?.openDetail(post)}
       >
-        <div className="px-6 pt-6 pb-5">
-          {post.isNew && (
-            <Badge
-              data-testid="new-badge"
-              aria-label="New: from a recently added document"
-              className="mb-2 gap-1 rounded-none border-emerald-500/40 bg-transparent text-emerald-600 dark:text-emerald-400"
-              variant="freshness"
-            >
-              <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
-              New
-            </Badge>
-          )}
+        <div aria-hidden className={cn("absolute inset-x-0 top-0 h-px", accent.rail)} />
+
+        <aside className="flex flex-col items-center gap-2 pt-[2px]">
+          <DocumentThumb
+            documentId={post.primarySourceDocumentId as unknown as string}
+            title={post.primarySourceDocumentTitle ?? "Untitled"}
+            fileType={post.fileType}
+            variant="spine"
+          />
+          <div className="h-full w-px bg-border" />
+        </aside>
+
+        <div className="min-w-0">
+          <div className="mb-4 flex items-center justify-between gap-4 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className={cn("font-medium", accent.text)}>{postTypeLabel[post.postType]}</span>
+              {quizVariant && (
+                <>
+                  <span className="text-foreground/30">·</span>
+                  <span>{quizVariant === "multiple_choice" ? "MC" : "True/False"}</span>
+                </>
+              )}
+              {post.isNew && (
+                <>
+                  <span className="text-foreground/30">·</span>
+                  <span
+                    data-testid="new-badge"
+                    aria-label="New: from a recently added document"
+                    className="inline-flex items-center gap-1.5 border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-emerald-600 dark:text-emerald-400"
+                  >
+                    <span aria-hidden className="size-1 rounded-full bg-emerald-500" />
+                    New
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-3 whitespace-nowrap text-muted-foreground/80">
+              {post.sectionTitle && <span className="truncate">&sect; {post.sectionTitle}</span>}
+              <ReadingProgress pageStart={post.pageStart} />
+            </div>
+          </div>
+
           {children}
 
           {tags.length > 0 && (
-            <div className="mt-2">
+            <div className="mt-4">
               <TagList tags={tags} maxVisible={3} size="sm" />
             </div>
           )}
 
-          <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-            <time className="text-xs tracking-wide text-muted-foreground/70">
-              {formatDistanceToNow(post.createdAt, { addSuffix: true })}
-            </time>
+          <div className="mt-5 grid grid-cols-[1fr_auto] items-end gap-6 border-t border-border pt-3">
+            <div className="flex min-w-0 items-center gap-2 text-[12px] leading-snug text-muted-foreground">
+              <FileTypeIcon fileType={post.fileType} className="text-muted-foreground/70" />
+              <span data-testid="source-badge" className="min-w-0 truncate">
+                <span className="border-b border-border font-logo text-[13.5px] font-medium text-foreground/85">
+                  {post.primarySourceDocumentTitle ?? "Untitled"}
+                </span>
+              </span>
+              <span className="text-foreground/30">·</span>
+              <time className="font-mono text-[11px] tracking-wide text-muted-foreground/60">
+                {formatDistanceToNow(post.createdAt, { addSuffix: true })}
+              </time>
+            </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0" onClick={(e) => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "transition-all duration-200 active:scale-95 [&_svg]:transition-all [&_svg]:duration-200",
-                  post.isBookmarked && "bg-primary/15 text-primary hover:bg-primary/20",
+                  "size-8 rounded-none transition-all duration-200 active:scale-95",
+                  post.isBookmarked
+                    ? "bg-primary/10 text-primary hover:bg-primary/15"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={() => {
                   posthog.capture("post.bookmarked", {
                     post_type: post.postType,
                     bookmarked: !post.isBookmarked,
@@ -248,47 +290,46 @@ export function PostShell({ post, children, quizVariant }: PostShellProps) {
                 title="Save"
               >
                 {post.isBookmarked ? (
-                  <BookmarkCheck className="size-4" />
+                  <BookmarkCheck className="size-[15px]" />
                 ) : (
-                  <Bookmark className="size-4" />
+                  <Bookmark className="size-[15px]" />
                 )}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "transition-all duration-200 active:scale-95 [&_svg]:transition-all [&_svg]:duration-200",
-                  post.reaction === "like" &&
-                    "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20",
+                  "size-8 rounded-none transition-all duration-200 active:scale-95",
+                  post.reaction === "like"
+                    ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 dark:text-emerald-400"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLikeClick();
-                }}
+                onClick={handleLikeClick}
                 data-testid="like-button"
                 aria-pressed={post.reaction === "like"}
                 title="Like"
               >
-                <ThumbsUp className={cn("size-4", post.reaction === "like" && "fill-current")} />
+                <ThumbsUp
+                  className={cn("size-[15px]", post.reaction === "like" && "fill-current")}
+                />
               </Button>
               <Button
                 ref={dislikeButtonRef}
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "transition-all duration-200 active:scale-95 [&_svg]:transition-all [&_svg]:duration-200",
-                  post.reaction === "dislike" && "bg-red-500/15 text-red-500 hover:bg-red-500/20",
+                  "size-8 rounded-none transition-all duration-200 active:scale-95",
+                  post.reaction === "dislike"
+                    ? "bg-red-500/10 text-red-500 hover:bg-red-500/15"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDislikeClick();
-                }}
+                onClick={handleDislikeClick}
                 data-testid="dislike-button"
                 aria-pressed={post.reaction === "dislike"}
                 title="Dislike"
               >
                 <ThumbsDown
-                  className={cn("size-4", post.reaction === "dislike" && "fill-current")}
+                  className={cn("size-[15px]", post.reaction === "dislike" && "fill-current")}
                 />
               </Button>
             </div>

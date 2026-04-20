@@ -39,16 +39,17 @@ export function DocumentUsageMeter({
 
   if (variant === "compact") {
     return (
-      <div className="flex flex-wrap items-center gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-mono tabular-nums text-foreground">
-            {used} / {limit}
+      <div className="flex flex-col items-start gap-1.5 md:items-end">
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-sm font-medium tabular-nums text-foreground">
+            {used}
+            <span className="text-muted-foreground/50"> / {limit}</span>
           </span>
-          <span className="text-muted-foreground">
-            documents {tier === "pro" ? "this cycle" : "used"}
+          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+            {tier === "pro" ? "This cycle" : "Used"}
           </span>
         </div>
-        <div className="h-1.5 w-24 overflow-hidden bg-muted" aria-hidden>
+        <div className="h-1 w-40 overflow-hidden bg-muted" aria-hidden>
           <div
             className={cn("h-full transition-[width] duration-300", barTone)}
             style={{ width: `${percent}%` }}
@@ -58,7 +59,7 @@ export function DocumentUsageMeter({
           <Button
             size="sm"
             variant="outline"
-            className="h-7 border-primary text-primary hover:bg-primary/10"
+            className="mt-1 h-7 border-primary text-primary hover:bg-primary/10"
             onClick={onUpgradeClick}
           >
             Upgrade

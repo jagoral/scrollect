@@ -6,9 +6,7 @@ import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
-import { ScrollectLogo } from "./scrollect-logo";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
@@ -48,133 +46,132 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
   });
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4">
-      <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 text-primary">
-            <ScrollectLogo size="lg" />
-          </div>
-          <CardTitle className="text-2xl">Create account</CardTitle>
-          <CardDescription>Start building your personal learning feed</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              form.handleSubmit();
-            }}
-            className="space-y-4"
-          >
-            <form.Field name="name">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Name</Label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    placeholder="Your name"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-sm text-destructive">
-                      {error?.message}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </form.Field>
+    <div>
+      <div className="mb-8">
+        <h1 className="font-logo text-3xl font-semibold leading-[1.05] tracking-[-0.015em] sm:text-[2.25rem]">
+          Create account
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Start your learning feed in under a minute.
+        </p>
+      </div>
 
-            <form.Field name="email">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Email</Label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    type="email"
-                    placeholder="you@example.com"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-sm text-destructive">
-                      {error?.message}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </form.Field>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
+        }}
+        className="space-y-4"
+      >
+        <form.Field name="name">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor={field.name}>Name</Label>
+              <Input
+                id={field.name}
+                name={field.name}
+                placeholder="Your name"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-sm text-destructive">
+                  {error?.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </form.Field>
 
-            <form.Field name="password">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Password</Label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    type="password"
-                    placeholder="At least 8 characters"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-sm text-destructive">
-                      {error?.message}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </form.Field>
+        <form.Field name="email">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor={field.name}>Email</Label>
+              <Input
+                id={field.name}
+                name={field.name}
+                type="email"
+                placeholder="you@example.com"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-sm text-destructive">
+                  {error?.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </form.Field>
 
-            <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting] as const}>
-              {([canSubmit, isSubmitting]) => (
-                <Button
-                  type="submit"
-                  className="w-full active:scale-[0.98]"
-                  disabled={!canSubmit || isSubmitting}
-                >
-                  {isSubmitting ? "Creating account..." : "Create Account"}
-                </Button>
-              )}
-            </form.Subscribe>
-          </form>
+        <form.Field name="password">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor={field.name}>Password</Label>
+              <Input
+                id={field.name}
+                name={field.name}
+                type="password"
+                placeholder="At least 8 characters"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-sm text-destructive">
+                  {error?.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </form.Field>
 
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            By creating an account, you agree to our{" "}
-            <Link
-              to="/terms-and-conditions"
-              target="_blank"
-              className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
+        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting] as const}>
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              type="submit"
+              size="lg"
+              className="mt-2 w-full border border-primary bg-primary text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98]"
+              disabled={!canSubmit || isSubmitting}
             >
-              Terms & Conditions
-            </Link>{" "}
-            and{" "}
-            <Link
-              to="/privacy-policy"
-              target="_blank"
-              className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
-            >
-              Privacy Policy
-            </Link>
-            .
-          </p>
+              {isSubmitting ? "Creating account..." : "Create account"}
+            </Button>
+          )}
+        </form.Subscribe>
+      </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <button
-              onClick={onSwitchToSignIn}
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Sign in
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+      <p className="mt-5 text-xs text-muted-foreground">
+        By creating an account, you agree to our{" "}
+        <Link
+          to="/terms-and-conditions"
+          target="_blank"
+          className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
+        >
+          Terms & Conditions
+        </Link>{" "}
+        and{" "}
+        <Link
+          to="/privacy-policy"
+          target="_blank"
+          className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
+        >
+          Privacy Policy
+        </Link>
+        .
+      </p>
+
+      <div className="mt-6 text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <button
+          onClick={onSwitchToSignIn}
+          className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+        >
+          Sign in
+        </button>
+      </div>
     </div>
   );
 }

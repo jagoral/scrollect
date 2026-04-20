@@ -18,21 +18,25 @@ export function HeroSection() {
     >
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-10 pt-12 md:flex-row md:items-center md:gap-16 md:pt-0">
         <div className="animate-hero-in flex flex-1 flex-col items-center text-center md:items-start md:text-left">
-          <div className="max-w-lg">
-            <div className="mb-4 inline-flex items-center border border-border px-3 py-1 text-xs tracking-widest text-muted-foreground uppercase">
-              AI-powered learning feed
+          <div className="max-w-xl">
+            <div className="mb-5 inline-flex items-center gap-2.5 text-muted-foreground">
+              <span aria-hidden className="inline-block size-1.5 rounded-full bg-primary" />
+              <span className="font-mono text-[10px] font-medium uppercase tracking-[0.32em]">
+                AI Learning Feed
+              </span>
             </div>
             <h1
               id="hero-heading"
-              className="text-5xl font-bold tracking-[-0.03em] text-balance sm:text-6xl md:text-7xl"
+              className="font-logo text-[3.25rem] font-semibold leading-[1] tracking-[-0.02em] text-balance sm:text-6xl md:text-[5.25rem]"
             >
-              Remember <span className="text-primary">everything</span> you read.
+              Remember <em className="not-italic text-primary">everything</em> you read.
             </h1>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground text-pretty md:text-xl">
-              AI turns your saved content into a curated learning feed.
+            <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty md:text-xl md:leading-[1.55]">
+              AI turns your saved content into a curated learning feed - bite-sized posts
+              you&apos;ll actually remember.
             </p>
           </div>
-          <div className="mt-8 flex flex-col items-center gap-4 md:items-start">
+          <div className="mt-10 flex flex-col items-center gap-4 md:items-start">
             <Button
               size="lg"
               render={<Link to="/signin" />}
@@ -41,8 +45,8 @@ export function HeroSection() {
             >
               Get Started
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Free during beta. No credit card required.
+            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground">
+              Free during beta · No credit card
             </span>
             <span className="text-sm text-muted-foreground">
               Already have an account?{" "}

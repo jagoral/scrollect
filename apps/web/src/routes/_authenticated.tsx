@@ -29,9 +29,8 @@ function AuthenticatedLayout() {
   const isFeedRoute = pathname === "/app/feed" || pathname === "/app/saved";
   const isLibraryList = pathname === "/app/library" || pathname === "/app/library/";
   const detailGridClassName =
-    "grid min-w-0 flex-1 grid-cols-1 lg:h-[calc(100svh-3.5rem)] lg:min-h-0 lg:overflow-hidden lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
-  const detailMainClassName =
-    "min-w-0 border-r border-border lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain";
+    "grid min-h-[calc(100svh-3.5rem)] min-w-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
+  const detailMainClassName = "min-w-0";
 
   return (
     <SidebarProvider open={true}>
@@ -46,9 +45,9 @@ function AuthenticatedLayout() {
           <UserMenu />
         </div>
       </header>
-      <div className="flex min-h-svh w-full min-w-0 pt-14 lg:h-svh lg:overflow-hidden">
+      <div className="flex min-h-svh w-full min-w-0 pt-14">
         <AppSidebar />
-        <SidebarInset className="min-h-[calc(100svh-3.5rem)] min-w-0 overflow-x-hidden lg:h-[calc(100svh-3.5rem)] lg:min-h-0 lg:overflow-hidden">
+        <SidebarInset className="min-h-[calc(100svh-3.5rem)] min-w-0 overflow-x-hidden">
           {isFeedRoute ? (
             <DetailPanelProvider>
               <div className={detailGridClassName}>
@@ -68,7 +67,7 @@ function AuthenticatedLayout() {
               </div>
             </LibraryDetailProvider>
           ) : (
-            <main className="w-full max-w-3xl shrink-0">
+            <main className="w-full min-w-0">
               <Outlet />
             </main>
           )}

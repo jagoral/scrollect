@@ -44,17 +44,20 @@ export function HowItWorksSection() {
       )}
     >
       <div className="mx-auto max-w-5xl">
-        <div className="mb-10 md:mb-12">
-          <span className="mb-3 inline-flex items-center border border-border px-3 py-1 text-xs tracking-widest text-muted-foreground uppercase">
-            How it works
-          </span>
+        <div className="mb-10 md:mb-14">
+          <div className="mb-4 inline-flex items-center gap-2.5 text-muted-foreground">
+            <span aria-hidden className="inline-block size-1.5 rounded-full bg-primary" />
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.32em]">
+              How it works
+            </span>
+          </div>
           <h2
             id="how-it-works-heading"
-            className="text-2xl font-bold tracking-[-0.02em] text-pretty sm:text-3xl"
+            className="font-logo text-3xl font-semibold leading-[1.05] tracking-[-0.015em] text-pretty sm:text-4xl md:text-[2.75rem]"
           >
             Three steps from content to retention
           </h2>
-          <p className="mt-2 max-w-lg text-muted-foreground">
+          <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground text-pretty md:text-lg">
             From raw content to lasting knowledge in under a minute - no manual note-taking
             required.
           </p>
@@ -77,8 +80,10 @@ export function HowItWorksSection() {
                   {String(step.number).padStart(2, "0")}
                 </span>
               </div>
-              <h3 className="text-base font-semibold">{step.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+              <h3 className="font-logo text-xl font-semibold leading-tight tracking-tight">
+                {step.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty">
                 {step.description}
               </p>
             </div>

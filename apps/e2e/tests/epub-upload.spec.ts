@@ -20,7 +20,7 @@ test.describe("EPUB file upload", () => {
   test("user can upload an EPUB file and sees success message", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     await page
       .locator('[data-testid="file-input"]')
@@ -33,7 +33,7 @@ test.describe("EPUB file upload", () => {
   test("EPUB document reaches ready status and produces chunks", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     await page
       .locator('[data-testid="file-input"]')

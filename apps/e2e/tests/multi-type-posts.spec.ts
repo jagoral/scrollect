@@ -115,30 +115,42 @@ test.describe("Multi-type cards and source provenance", { tag: "@seeded" }, () =
   });
 
   test.describe("Source provenance", () => {
-    test("every card has a source badge or connection provenance", async ({ page }) => {
+    test("every card has a source badge and connection cards also have the A/B source grid", async ({
+      page,
+    }) => {
       const cards = page.locator(CARD);
       const count = await cards.count();
 
       for (let i = 0; i < count; i++) {
         const card = cards.nth(i);
+        await expect(card.locator('[data-testid="source-badge"]')).toBeVisible({ timeout: 5000 });
         const type = await card.getAttribute("data-post-type");
-        // Connection cards use a provenance line instead of the standard source-badge
-        const selector =
-          type === "connection"
-            ? '[data-testid="connection-provenance"]'
-            : '[data-testid="source-badge"]';
-        await expect(card.locator(selector)).toBeVisible({ timeout: 5000 });
+        if (type === "connection") {
+          await expect(card.locator('[data-testid="connection-source-a"]')).toBeVisible({
+            timeout: 5000,
+          });
+          await expect(card.locator('[data-testid="connection-source-b"]')).toBeVisible({
+            timeout: 5000,
+          });
+        }
       }
     });
 
-    test("connection card provenance contains both document titles", async ({ page }) => {
+    test("connection card source grid contains both document titles", async ({ page }) => {
       const card = page.locator(cardOfType("connection")).first();
       await expect(card).toBeVisible();
 
-      const provenance = card.locator('[data-testid="connection-provenance"]');
-      await expect(provenance).toBeVisible();
-      await expect(provenance).toContainText("E2E Seed Document");
-      await expect(provenance).toContainText("E2E Seed Document 2");
+      const sourceA = card.locator('[data-testid="connection-source-a"]');
+      const sourceB = card.locator('[data-testid="connection-source-b"]');
+      await expect(sourceA).toBeVisible();
+      await expect(sourceB).toBeVisible();
+
+      const titles = new Set([
+        (await sourceA.textContent())?.trim() ?? "",
+        (await sourceB.textContent())?.trim() ?? "",
+      ]);
+      expect(titles.has("E2E Seed Document")).toBe(true);
+      expect(titles.has("E2E Seed Document 2")).toBe(true);
     });
   });
 });

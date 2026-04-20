@@ -82,7 +82,13 @@ describe("buildSummaryVectorPoints", () => {
       userId: "user1",
       docSummary: "doc summary",
       sectionResults: [
-        { sectionTitle: "Intro", summary: "intro summary", chunkStartIndex: 0, chunkEndIndex: 2 },
+        {
+          sectionTitle: "Intro",
+          summary: "intro summary",
+          isSubstantiveContent: true,
+          chunkStartIndex: 0,
+          chunkEndIndex: 2,
+        },
       ],
       vectors: [
         [0.1, 0.2],
@@ -107,8 +113,20 @@ describe("buildSummaryVectorPoints", () => {
       userId: "user1",
       docSummary: "doc summary",
       sectionResults: [
-        { sectionTitle: "A", summary: "a", chunkStartIndex: 0, chunkEndIndex: 1 },
-        { sectionTitle: "B", summary: "b", chunkStartIndex: 2, chunkEndIndex: 5 },
+        {
+          sectionTitle: "A",
+          summary: "a",
+          isSubstantiveContent: true,
+          chunkStartIndex: 0,
+          chunkEndIndex: 1,
+        },
+        {
+          sectionTitle: "B",
+          summary: "b",
+          isSubstantiveContent: true,
+          chunkStartIndex: 2,
+          chunkEndIndex: 5,
+        },
       ],
       vectors: [[1], [2], [3]],
       idToUuid: fakeIdToUuid,

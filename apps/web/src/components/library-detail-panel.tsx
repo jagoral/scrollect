@@ -4,15 +4,16 @@ import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
-import { formatDistanceToNow } from "date-fns";
-import { FileText, Globe, Loader2, MousePointerClick, Rss, Trash2, X } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { ExternalLink, Loader2, MousePointerClick, Rss, Trash2, X } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { createContext, useCallback, useContext, useState } from "react";
 import { toast } from "sonner";
 
-import { fileTypeIcons, StatusBadge } from "@/components/document-status";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, statusConfig } from "@/components/document-status";
+import { DetailRail, DetailRailPlaceholder, DETAIL_RULED_BG_STYLE } from "@/components/detail-rail";
 import { BookmarkedPostsSection } from "@/components/documents/bookmarked-posts-section";
+import { DocumentThumb, FileTypeIcon } from "@/components/documents/document-thumb";
 import { HighlightsSection } from "@/components/documents/highlights-section";
 import { ImportHighlightsDialog } from "@/components/documents/import-highlights-dialog";
 import { LearningGoalSection } from "@/components/documents/learning-goal-section";
@@ -34,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 type LibraryDetailContextValue = {
   selectedDocumentId: Id<"documents"> | null;
@@ -75,17 +77,13 @@ export function LibraryDetailPanel() {
     if (isMobile) return null;
 
     return (
-      <aside className="-ml-px hidden h-full min-h-0 min-w-0 overflow-hidden border-l border-border lg:block">
-        <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-          <div className="flex size-12 items-center justify-center border border-border">
-            <MousePointerClick className="size-5 text-muted-foreground" />
-          </div>
-          <p className="mt-4 text-sm font-medium text-foreground">Select a document</p>
-          <p className="mt-1 max-w-[200px] text-xs text-muted-foreground">
-            Click any document in your library to see its details here.
-          </p>
-        </div>
-      </aside>
+      <DetailRail testId="library-detail-panel">
+        <DetailRailPlaceholder
+          icon={MousePointerClick}
+          title="Select a document"
+          description="Click any document in your archive to open its file card here."
+        />
+      </DetailRail>
     );
   }
 
@@ -109,7 +107,7 @@ export function LibraryDetailPanel() {
   }
 
   return (
-    <aside className="-ml-px hidden h-full min-h-0 min-w-0 overflow-hidden border-l border-border lg:block">
+    <DetailRail testId="library-detail-panel">
       <div className="h-full overflow-y-auto overscroll-contain">
         <div
           key={selectedDocumentId}
@@ -118,8 +116,25 @@ export function LibraryDetailPanel() {
           <DocumentDetailContent documentId={selectedDocumentId} onClose={closeDetail} />
         </div>
       </div>
-    </aside>
+    </DetailRail>
   );
+}
+
+const KIND_LABELS: Record<string, string> = {
+  pdf: "PDF",
+  epub: "Book",
+  md: "Markdown",
+  markdown: "Markdown",
+  txt: "Note",
+  text: "Note",
+  html: "Article",
+  article: "Article",
+  url: "Article",
+  youtube: "Video",
+};
+
+function kindLabel(fileType: string): string {
+  return KIND_LABELS[fileType.toLowerCase()] ?? fileType.toUpperCase();
 }
 
 function DocumentDetailContent({
@@ -153,10 +168,16 @@ function DocumentDetailContent({
 
   if (document === undefined) {
     return (
-      <div className="px-6 py-5">
-        <Skeleton className="h-6 w-2/3" />
-        <Skeleton className="mt-3 h-4 w-1/3" />
-        <Skeleton className="mt-6 h-32 w-full" />
+      <div className="flex h-full min-w-0 flex-col">
+        <div className="flex items-center justify-between border-b border-dashed border-border px-6 py-4 md:px-7">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="size-8" />
+        </div>
+        <div className="px-6 py-7 md:px-8">
+          <Skeleton className="aspect-[16/9] w-full" />
+          <Skeleton className="mt-6 h-7 w-3/4" />
+          <Skeleton className="mt-3 h-3 w-1/2" />
+        </div>
       </div>
     );
   }
@@ -172,130 +193,218 @@ function DocumentDetailContent({
     );
   }
 
+  const statusAccent = statusConfig[document.status].dotClassName;
+  const hostname = document.sourceUrl ? safeHostname(document.sourceUrl) : null;
+
   return (
-    <div className="min-w-0 px-6 py-5">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="flex min-w-0 items-start gap-2.5 text-lg font-bold tracking-tight">
-          <span className="mt-0.5 shrink-0 text-muted-foreground">
-            {fileTypeIcons[document.fileType] ?? <FileText className="size-4" />}
+    <div className="flex h-full min-w-0 flex-col">
+      <div className="flex items-center justify-between border-b border-dashed border-border px-6 py-4 md:px-7">
+        <div className="flex min-w-0 items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+          <span>Volume</span>
+          <span className="text-foreground/30">&middot;</span>
+          <span className="font-medium text-foreground">{kindLabel(document.fileType)}</span>
+          <span className="text-foreground/30">&middot;</span>
+          <span className="truncate">
+            {format(document.createdAt, "MMM d, yyyy").toUpperCase()}
           </span>
-          <span className="min-w-0 break-all">{document.title}</span>
-        </h2>
-        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
-          <X className="size-4" />
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0 rounded-none"
+          onClick={onClose}
+        >
+          <X className="size-3.5" />
           <span className="sr-only">Close</span>
         </Button>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <StatusBadge status={document.status} />
-        <Badge
-          variant="outline"
-          className="rounded-none border-border bg-transparent font-normal text-muted-foreground"
-        >
-          {document.fileType.toUpperCase()}
-        </Badge>
-        {document.sourceUrl && (
-          <a
-            href={document.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      <div
+        className="flex min-w-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-7 md:px-8"
+        style={DETAIL_RULED_BG_STYLE}
+      >
+        <div className="flex min-w-0 flex-col gap-5">
+          <figure
+            className={cn(
+              "relative aspect-[16/9] w-full overflow-hidden border border-border",
+              "bg-muted/30 shadow-[0_1px_0_0_rgba(0,0,0,0.04)]",
+            )}
           >
-            <Globe className="size-3 shrink-0" />
-            <span className="min-w-0 break-all">{new URL(document.sourceUrl).hostname}</span>
-          </a>
-        )}
-        <span className="text-xs text-muted-foreground">
-          {formatDistanceToNow(document.createdAt, { addSuffix: true })}
-        </span>
-        {document.status === "ready" && (
-          <span className="text-xs text-muted-foreground">
-            {document.chunkCount} chunk{document.chunkCount !== 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
+            {document.thumbnailUrl ? (
+              <img
+                src={document.thumbnailUrl}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 size-full object-cover"
+              />
+            ) : (
+              <DocumentThumb
+                documentId={document._id}
+                title={document.title}
+                fileType={document.fileType}
+                variant="hero"
+                className="absolute inset-0"
+              />
+            )}
+            <div aria-hidden className={cn("absolute inset-x-0 bottom-0 h-[3px]", statusAccent)} />
+            <div className="absolute left-4 top-4">
+              <span className="inline-flex items-center gap-1.5 border border-border/80 bg-background/80 px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground backdrop-blur">
+                <FileTypeIcon fileType={document.fileType} className="size-3" />
+                {kindLabel(document.fileType)}
+              </span>
+            </div>
+          </figure>
 
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          render={<Link to="/app/feed" search={{ documentId: document._id }} />}
-        >
-          <Rss data-icon="inline-start" />
-          Open feed for this document
-        </Button>
-        {document.status === "ready" && <ImportHighlightsDialog documentId={document._id} />}
-        <AlertDialog
-          open={deleteDialogOpen}
-          onOpenChange={(open) => {
-            if (!isDeleting) setDeleteDialogOpen(open);
-          }}
-        >
-          <AlertDialogTrigger
-            render={<Button variant="destructive" size="sm" data-testid="delete-document-button" />}
-          >
-            <Trash2 data-icon="inline-start" />
-            Delete
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete document</AlertDialogTitle>
-              <AlertDialogDescription>
-                Delete &ldquo;{document.title}&rdquo;? This will remove the document and all
-                generated posts. This cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting} data-testid="cancel-delete-button">
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                disabled={isDeleting}
-                onClick={handleDelete}
-                data-testid="confirm-delete-button"
+          <div className="flex items-center justify-between gap-3">
+            <StatusBadge status={document.status} />
+            {hostname && (
+              <a
+                href={document.sourceUrl!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-w-0 items-center gap-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
               >
-                {isDeleting && <Loader2 className="animate-spin" data-icon="inline-start" />}
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-
-      {(document.status === "ready" || document.learningGoalOnboardingStatus === "pending") && (
-        <>
-          {document.status === "ready" && <DocumentTagSection documentId={document._id} />}
-          <LearningGoalSection
-            documentId={document._id}
-            initialGoal={document.learningGoal}
-            onboardingStatus={document.learningGoalOnboardingStatus}
-            sourceType={document.fileType}
-          />
-          {document.status === "ready" && <HighlightsSection documentId={document._id} />}
-          {document.status === "ready" && <BookmarkedPostsSection documentId={document._id} />}
-        </>
-      )}
-
-      {document.status === "error" && (
-        <PipelineError
-          documentId={document._id}
-          errorMessage={document.errorMessage}
-          failedAt={document.failedAt}
-        />
-      )}
-
-      {isProcessingStatus(document.status) && <ProcessingProgress status={document.status} />}
-
-      {document.status === "deleting" && (
-        <div className="mt-10 flex flex-col items-center gap-4 text-center" role="status">
-          <div className="flex size-12 items-center justify-center border border-destructive/30 bg-transparent">
-            <Loader2 className="size-5 animate-spin text-destructive" aria-hidden="true" />
+                <ExternalLink className="size-3 shrink-0" />
+                <span className="truncate normal-case tracking-normal text-[12px]">{hostname}</span>
+              </a>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground">Deleting document...</p>
+
+          <h2
+            data-testid="library-detail-title"
+            className="font-logo text-[1.65rem] font-semibold leading-[1.15] tracking-tight text-foreground md:text-[1.85rem]"
+          >
+            {document.title}
+          </h2>
+
+          <dl className="flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+            {document.status === "ready" && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <dt className="sr-only">Chunks</dt>
+                  <dd className="tabular-nums text-foreground/70">
+                    {document.chunkCount.toLocaleString()}
+                  </dd>
+                  <span>Chunk{document.chunkCount !== 1 ? "s" : ""}</span>
+                </div>
+                <span aria-hidden className="text-foreground/20">
+                  &middot;
+                </span>
+              </>
+            )}
+            <div className="flex items-center gap-1.5">
+              <dt className="sr-only">Added</dt>
+              <span>Added</span>
+              <dd className="normal-case tracking-normal text-foreground/70">
+                {formatDistanceToNow(document.createdAt, { addSuffix: true })}
+              </dd>
+            </div>
+          </dl>
         </div>
-      )}
+
+        <div className="flex flex-wrap items-center gap-1 border-y border-dashed border-border py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-none"
+            render={<Link to="/app/feed" search={{ documentId: document._id }} />}
+          >
+            <Rss data-icon="inline-start" />
+            Open in feed
+          </Button>
+          {document.status === "ready" && (
+            <>
+              <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+              <ImportHighlightsDialog documentId={document._id} />
+            </>
+          )}
+          <span className="ml-auto" />
+          <AlertDialog
+            open={deleteDialogOpen}
+            onOpenChange={(open) => {
+              if (!isDeleting) setDeleteDialogOpen(open);
+            }}
+          >
+            <AlertDialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-none text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  data-testid="delete-document-button"
+                />
+              }
+            >
+              <Trash2 data-icon="inline-start" />
+              Delete
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete document</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Delete &ldquo;{document.title}&rdquo;? This will remove the document and all
+                  generated posts. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting} data-testid="cancel-delete-button">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  disabled={isDeleting}
+                  onClick={handleDelete}
+                  data-testid="confirm-delete-button"
+                >
+                  {isDeleting && <Loader2 className="animate-spin" data-icon="inline-start" />}
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+
+        {(document.status === "ready" || document.learningGoalOnboardingStatus === "pending") && (
+          <div className="flex flex-col">
+            {document.status === "ready" && <DocumentTagSection documentId={document._id} />}
+            <LearningGoalSection
+              documentId={document._id}
+              initialGoal={document.learningGoal}
+              onboardingStatus={document.learningGoalOnboardingStatus}
+              sourceType={document.fileType}
+            />
+            {document.status === "ready" && <HighlightsSection documentId={document._id} />}
+            {document.status === "ready" && <BookmarkedPostsSection documentId={document._id} />}
+          </div>
+        )}
+
+        {document.status === "error" && (
+          <PipelineError
+            documentId={document._id}
+            errorMessage={document.errorMessage}
+            failedAt={document.failedAt}
+          />
+        )}
+
+        {isProcessingStatus(document.status) && <ProcessingProgress status={document.status} />}
+
+        {document.status === "deleting" && (
+          <div className="mt-4 flex flex-col items-center gap-4 text-center" role="status">
+            <div className="flex size-12 items-center justify-center border border-destructive/30 bg-transparent">
+              <Loader2 className="size-5 animate-spin text-destructive" aria-hidden="true" />
+            </div>
+            <p className="text-sm text-muted-foreground">Deleting document...</p>
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+function safeHostname(url: string): string | null {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
 }
