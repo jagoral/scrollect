@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { SEEDED_USER, resetTestData, signInToSeededFeed } from "./helpers";
+import { SEEDED_USER, reseedAccount, resetTestData, signInToSeededFeed } from "./helpers";
 
 const CARD = '[data-testid="post-card"]';
 
@@ -8,6 +8,7 @@ test.describe("Feed v2 ordering constraints", { tag: "@seeded" }, () => {
   test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {
+    await reseedAccount();
     await signInToSeededFeed(page);
   });
 

@@ -29,7 +29,7 @@ function AuthenticatedLayout() {
   const isFeedRoute = pathname === "/app/feed" || pathname === "/app/saved";
   const isLibraryList = pathname === "/app/library" || pathname === "/app/library/";
   const detailGridClassName =
-    "grid min-w-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
+    "grid min-h-[calc(100svh-3.5rem)] min-w-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
 
   return (
     <SidebarProvider open={true}>
@@ -44,9 +44,9 @@ function AuthenticatedLayout() {
           <UserMenu />
         </div>
       </header>
-      <div className="flex w-full min-w-0 pt-14">
+      <div className="flex min-h-svh w-full min-w-0 pt-14">
         <AppSidebar />
-        <SidebarInset className="min-w-0 overflow-x-hidden">
+        <SidebarInset className="min-h-[calc(100svh-3.5rem)] min-w-0 overflow-x-hidden">
           {isFeedRoute ? (
             <DetailPanelProvider>
               <div className={detailGridClassName}>

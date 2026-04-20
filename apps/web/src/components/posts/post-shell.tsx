@@ -195,8 +195,9 @@ export function PostShell({ post, children, quizVariant }: PostShellProps) {
         data-post-type={post.postType}
         data-quiz-variant={quizVariant}
         className={cn(
-          "group/card relative min-w-0 border-l-2 border-t border-border first:border-t-0 bg-card text-card-foreground transition-colors border-r",
+          "group/card relative min-w-0 border-l-2 border-t border-border first:border-t-0 bg-card text-card-foreground transition-colors",
           postAccentColor[post.postType],
+          !detailPanel && "border-r",
           detailPanel && "cursor-pointer hover:bg-accent/30",
         )}
         onClick={() => detailPanel?.openDetail(post)}
