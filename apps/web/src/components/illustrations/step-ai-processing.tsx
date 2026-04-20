@@ -113,7 +113,7 @@ export function StepAiProcessing({
           isActive && "translate-x-2",
         )}
       />
-      {/* Tinted fragment (near cards, transitioning) */}
+      {/* Tinted fragment (near posts, transitioning) */}
       <Fragment
         tinted
         className={cn(
@@ -123,7 +123,7 @@ export function StepAiProcessing({
         )}
       />
 
-      {/* Emerging cards (right) */}
+      {/* Emerging posts (right) */}
       <div className="absolute right-[4%] top-1/2 w-[44%] -translate-y-1/2 md:right-[6%] md:w-[33%]">
         <div
           className={cn(
@@ -132,8 +132,8 @@ export function StepAiProcessing({
             isActive && "scale-[1.03]",
           )}
         >
-          {/* Quote card */}
-          <div className="illust-card-1 relative overflow-hidden rounded-lg border-[1.5px] border-foreground/18 bg-white/75 shadow-sm dark:bg-white/10">
+          {/* Quote post */}
+          <div className="illust-post-1 relative overflow-hidden rounded-lg border-[1.5px] border-foreground/18 bg-white/75 shadow-sm dark:bg-white/10">
             <div className="absolute top-0 bottom-0 left-0 w-[3px] rounded-l-lg bg-amber-500/50" />
             <div className="py-[7px] pr-[8px] pl-[12px]">
               <div className="flex items-start gap-[5px]">
@@ -149,8 +149,8 @@ export function StepAiProcessing({
             </div>
           </div>
 
-          {/* Insight card */}
-          <div className="illust-card-2 relative overflow-hidden rounded-lg border-[1.5px] border-foreground/18 bg-white/75 shadow-sm dark:bg-white/10">
+          {/* Insight post */}
+          <div className="illust-post-2 relative overflow-hidden rounded-lg border-[1.5px] border-foreground/18 bg-white/75 shadow-sm dark:bg-white/10">
             <div className="absolute top-0 bottom-0 left-0 w-[3px] rounded-l-lg bg-primary/50" />
             <div className="py-[7px] pr-[8px] pl-[12px]">
               <div className="flex items-start gap-[6px]">
@@ -166,8 +166,8 @@ export function StepAiProcessing({
             </div>
           </div>
 
-          {/* Quiz card */}
-          <div className="illust-card-3 relative overflow-hidden rounded-lg border-[1.5px] border-foreground/18 bg-white/75 shadow-sm dark:bg-white/10">
+          {/* Quiz post */}
+          <div className="illust-post-3 relative overflow-hidden rounded-lg border-[1.5px] border-foreground/18 bg-white/75 shadow-sm dark:bg-white/10">
             <div className="absolute top-0 bottom-0 left-0 w-[3px] rounded-l-lg bg-emerald-500/50" />
             <div className="py-[7px] pr-[8px] pl-[12px]">
               <div className="flex items-start gap-[5px]">

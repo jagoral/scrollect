@@ -240,7 +240,7 @@ export async function fetchConnectionDrafts(email: string) {
   return JSON.parse(body).drafts as Array<{
     _id: string;
     documentId: string;
-    cardType: string;
+    postType: string;
     strategy: string;
     sourceChunkIds: string[];
     typeData: {

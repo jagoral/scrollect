@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { BottomCtaSection } from "@/components/landing/bottom-cta-section";
-import { CardTypesSection } from "@/components/landing/card-types-section";
+import { PostTypesSection } from "@/components/landing/post-types-section";
 import { HeroSection } from "@/components/landing/hero-section";
 import { HowItWorksSection } from "@/components/landing/how-it-works-section";
 import { PricingSection } from "@/components/landing/pricing-section";
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "AI turns your saved content into a curated learning feed. Upload PDFs, articles, and markdown - get bite-sized learning cards you'll actually remember.",
+          "AI turns your saved content into a curated learning feed. Upload PDFs, articles, and markdown - get bite-sized learning posts you'll actually remember.",
       },
     ],
     links: [{ rel: "canonical", href: "https://scrollect.app/" }],
@@ -30,7 +30,7 @@ function HomePage() {
   return (
     <div className="flex flex-1 flex-col">
       <HeroSection />
-      <CardTypesSection />
+      <PostTypesSection />
       <HowItWorksSection />
       <PricingSection />
       <BottomCtaSection />

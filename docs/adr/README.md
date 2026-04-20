@@ -5,7 +5,7 @@ An Architecture Decision Record (ADR) captures an important architecture decisio
 ## Conventions
 
 - Directory: `docs/adr/`
-- Naming: numbered slug, `NNN-short-slug.md` (e.g. `018-best-cards-first-serving.md`)
+- Naming: numbered slug, `NNN-short-slug.md` (e.g. `018-best-posts-first-serving.md`)
 - Status values: `proposed`, `accepted`, `rejected`, `deprecated`, `superseded`
 - Template: `.agents/skills/adr-skill/assets/templates/adr-simple.md`
 
@@ -35,4 +35,4 @@ An Architecture Decision Record (ADR) captures an important architecture decisio
 - [ADR-015: Highlight-triggered draft generation](015-highlight-triggered-draft-generation.md)
 - [ADR-016: Feed v2 ranking and serving](016-feed-v2-ranking-serving.md)
 - [ADR-017: Self-hosted Marker on RunPod](017-self-hosted-marker-runpod.md)
-- [ADR-018: Best-cards-first serving after quality-first generation](018-best-cards-first-serving.md)
+- [ADR-018: Best-posts-first serving after quality-first generation](018-best-posts-first-serving.md)

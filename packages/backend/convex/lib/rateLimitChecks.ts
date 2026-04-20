@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internalMutation } from "../_generated/server";
-import { resolveTier } from "../entitlements";
+import { resolveTier } from "../access/entitlements";
 import { rateLimiter, tieredLimiterName } from "./rateLimitConfig";
 
 export const enforceFeedGenerationLimit = internalMutation({

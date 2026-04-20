@@ -8,7 +8,7 @@ import { CheckCircle, FileUp, Loader2, Rss, Sparkles, Timer } from "lucide-react
 import { usePostHog } from "posthog-js/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { PostCard } from "@/components/post-card";
+import { Post } from "@/components/posts";
 import { buildTagMap } from "@/components/tags";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -64,7 +64,7 @@ function FeedPage() {
     try {
       const result = await serveFeed({});
       posthog.capture("feed.served", {
-        card_count: result.posts.length,
+        post_count: result.posts.length,
         reason: result.reason ?? null,
       });
       if (result.reason) {
@@ -92,7 +92,7 @@ function FeedPage() {
 
   const handleServe = useCallback(() => {
     posthog.capture("feed.serve_clicked", {
-      existing_card_count: results.length,
+      existing_post_count: results.length,
     });
     serve();
   }, [posthog, serve, results.length]);
@@ -107,7 +107,7 @@ function FeedPage() {
 
   const { data: tagsBatch } = useQuery(
     convexQuery(
-      api.tags.getDocumentTagsBatch,
+      api.content.tags.getDocumentTagsBatch,
       results.length > 0 ? { documentIds: uniqueDocumentIds } : "skip",
     ),
   );
@@ -128,7 +128,7 @@ function FeedPage() {
     if (status === "Exhausted" && !exhaustedTracked.current) {
       exhaustedTracked.current = true;
       posthog.capture("feed.exhausted", {
-        total_cards: enrichedResults.length,
+        total_posts: enrichedResults.length,
       });
     }
     if (status !== "Exhausted") {
@@ -141,7 +141,7 @@ function FeedPage() {
       <div className="py-6">
         <div className="mb-6 px-4 md:px-6">
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning posts.</p>
         </div>
         <div className="border-y border-border">
           {[1, 2, 3].map((i) => (
@@ -172,7 +172,7 @@ function FeedPage() {
       <div className="mb-6 flex items-center justify-between px-4 md:px-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning cards.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Your AI-generated learning posts.</p>
         </div>
         <Button onClick={handleServe} disabled={serving} data-testid="feed-serve-button">
           {serving ? (
@@ -196,7 +196,7 @@ function FeedPage() {
         <div className="animate-stagger-in">
           <div className="border-y border-border">
             {enrichedResults.map((post) => (
-              <PostCard key={post._id} post={post} />
+              <Post key={post._id} post={post} />
             ))}
           </div>
 
@@ -225,7 +225,7 @@ function FeedPage() {
                   You&apos;re all caught up
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground/60">
-                  Generate more cards to keep learning.
+                  Generate more posts to keep learning.
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={handleServe} disabled={serving}>
@@ -262,7 +262,7 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
         <div>
           <p className="text-lg font-semibold tracking-tight">Your documents are being processed</p>
           <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            Learning cards will appear here once processing completes. This usually takes a few
+            Learning posts will appear here once processing completes. This usually takes a few
             minutes.
           </p>
         </div>
@@ -286,7 +286,7 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
           <p className="text-lg font-semibold tracking-tight">No content yet</p>
           <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
             Upload books, articles, or videos to your library. We&apos;ll generate bite-sized
-            learning cards from them automatically.
+            learning posts from them automatically.
           </p>
         </div>
         <Button render={<Link to="/app/upload" />} data-testid="feed-upload-cta">
@@ -308,7 +308,7 @@ function FeedEmptyState({ reason, onServe, serving }: FeedEmptyStateProps) {
       <div>
         <p className="text-lg font-semibold tracking-tight">No posts yet</p>
         <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-          Click &quot;Generate&quot; to create learning cards from your documents.
+          Click &quot;Generate&quot; to create learning posts from your documents.
         </p>
       </div>
       <Button onClick={onServe} disabled={serving} data-testid="feed-serve-button">

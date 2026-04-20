@@ -1,4 +1,7 @@
-import { FILE_SIZE_LIMITS_PRO, formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import {
+  FILE_SIZE_LIMITS_PRO,
+  formatFileSize,
+} from "@scrollect/backend/src/platform/fileSizeLimits";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef } from "react";
@@ -35,7 +38,7 @@ export function UpgradeDialog({
   open,
   onOpenChange,
   title = "You've hit your free tier limit",
-  description = "Upgrade to Pro to keep adding content. Your existing feed, cards, and library stay exactly as they are.",
+  description = "Upgrade to Pro to keep adding content. Your existing feed, posts, and library stay exactly as they are.",
   source = "unknown",
 }: UpgradeDialogProps) {
   const { upgradeToPro, isPending } = useBilling();

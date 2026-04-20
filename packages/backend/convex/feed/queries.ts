@@ -95,27 +95,27 @@ export const setReaction = mutation({
     // the scoring pool.
     if (args.reaction === "none") {
       await ctx.db.patch(args.postId, { reaction: undefined });
-      if (post.cardDraftId) {
-        await deleteReactionFeedback(ctx, user._id, post.cardDraftId);
+      if (post.postDraftId) {
+        await deleteReactionFeedback(ctx, user._id, post.postDraftId);
       }
       return null;
     }
 
     await ctx.db.patch(args.postId, { reaction: args.reaction });
 
-    if (post.cardDraftId) {
+    if (post.postDraftId) {
       await upsertReactionFeedback(ctx, {
         userId: user._id,
         postId: args.postId,
-        cardDraftId: post.cardDraftId,
+        postDraftId: post.postDraftId,
         reaction: args.reaction as "like" | "dislike",
         dislikeReason: args.dislikeReason,
       });
 
       if (args.dislikeReason === "low_quality") {
-        const draft = await ctx.db.get(post.cardDraftId);
+        const draft = await ctx.db.get(post.postDraftId);
         if (draft && draft.status !== "rejected") {
-          await ctx.db.patch(post.cardDraftId, {
+          await ctx.db.patch(post.postDraftId, {
             status: "rejected",
             rejectionReason: "low_quality_user_feedback",
           });
@@ -144,15 +144,15 @@ async function upsertReactionFeedback(
   params: {
     userId: string;
     postId: Id<"posts">;
-    cardDraftId: Id<"cardDrafts">;
+    postDraftId: Id<"postDrafts">;
     reaction: "like" | "dislike";
     dislikeReason: DislikeReason | undefined;
   },
 ): Promise<void> {
   const existing = await ctx.db
     .query("reactionFeedback")
-    .withIndex("by_userId_cardDraftId", (q) =>
-      q.eq("userId", params.userId).eq("cardDraftId", params.cardDraftId),
+    .withIndex("by_userId_postDraftId", (q) =>
+      q.eq("userId", params.userId).eq("postDraftId", params.postDraftId),
     )
     .first();
 
@@ -166,7 +166,7 @@ async function upsertReactionFeedback(
     await ctx.db.insert("reactionFeedback", {
       userId: params.userId,
       postId: params.postId,
-      cardDraftId: params.cardDraftId,
+      postDraftId: params.postDraftId,
       reaction: params.reaction,
       dislikeReason: params.dislikeReason,
       createdAt: Date.now(),
@@ -177,12 +177,12 @@ async function upsertReactionFeedback(
 async function deleteReactionFeedback(
   ctx: MutationCtx,
   userId: string,
-  cardDraftId: Id<"cardDrafts">,
+  postDraftId: Id<"postDrafts">,
 ): Promise<void> {
   const existing = await ctx.db
     .query("reactionFeedback")
-    .withIndex("by_userId_cardDraftId", (q) =>
-      q.eq("userId", userId).eq("cardDraftId", cardDraftId),
+    .withIndex("by_userId_postDraftId", (q) =>
+      q.eq("userId", userId).eq("postDraftId", postDraftId),
     )
     .first();
 

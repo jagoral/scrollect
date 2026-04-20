@@ -14,14 +14,14 @@ const steps = [
   {
     number: 2,
     icon: Sparkles,
-    title: "AI generates cards",
+    title: "AI generates posts",
     description: "A dedicated AI agent extracts insights, quotes, and quizzes from your content.",
   },
   {
     number: 3,
     icon: Rss,
     title: "Scroll your feed",
-    description: "Review bite-sized cards that help you remember and connect what you learn.",
+    description: "Review bite-sized posts that help you remember and connect what you learn.",
   },
 ] satisfies Array<{
   number: number;

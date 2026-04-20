@@ -2,7 +2,7 @@ import { createScorer } from "evalite";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import { getAI } from "../../src/providers/ai";
+import { getAI } from "../../src/providers/llm/models";
 
 const ratingSchema = z.object({
   score: z
@@ -27,16 +27,16 @@ export const contentSpecificity = createScorer<any, any, any>({
     const { output: result } = await generateText({
       model: getAI().languageModel("evaluate"),
       output: Output.object({ schema: ratingSchema }),
-      system: `You are a content quality evaluator. Rate how specific and concrete the given learning card content is on a 0-1 scale.
+      system: `You are a content quality evaluator. Rate how specific and concrete the given learning post content is on a 0-1 scale.
 
 Score 0: Generic content that could apply to any topic. Uses vague phrases like "this chapter discusses important concepts", "there are many factors", "the author explains key ideas".
 Score 0.5: Some specific details but padded with generic filler.
 Score 1: Highly specific content with concrete facts, exact names, numbers, dates, verbatim quotes, or precise examples from the source.
 
 Be strict. Most AI-generated content scores 0.3-0.6 due to vague hedging.`,
-      prompt: `Rate the specificity of this learning card content:
+      prompt: `Rate the specificity of this learning post content:
 
-Card content: "${output.content}"
+Post content: "${output.content}"
 
 Source material (for context):
 ${output.sourceChunks.slice(0, 2).join("\n---\n")}`,

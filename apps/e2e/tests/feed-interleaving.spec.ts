@@ -23,7 +23,7 @@ test.describe("Feed v2 ordering constraints", { tag: "@seeded" }, () => {
     expect(cardCount).toBeGreaterThan(0);
 
     const types = await cards.evaluateAll((els) =>
-      els.map((el) => el.getAttribute("data-card-type")),
+      els.map((el) => el.getAttribute("data-post-type")),
     );
 
     // Check that no more than MAX_CONSECUTIVE_SAME_TYPE (3) consecutive cards share a type
@@ -46,7 +46,7 @@ test.describe("Feed v2 ordering constraints", { tag: "@seeded" }, () => {
     await expect(cards.first()).toBeVisible();
 
     const types = await cards.evaluateAll((els) =>
-      els.map((el) => el.getAttribute("data-card-type")),
+      els.map((el) => el.getAttribute("data-post-type")),
     );
 
     const validTypes = ["insight", "quiz", "quote", "summary", "connection"];

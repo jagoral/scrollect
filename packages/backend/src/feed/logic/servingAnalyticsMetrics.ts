@@ -45,29 +45,29 @@ export type FirstSessionDocumentBatch = {
 
 export type BookDepthReach = {
   documentId: string;
-  cardCount: number;
+  postCount: number;
   maxBookPosition: number;
   minBookPosition: number;
   spreadBookPosition: number;
   populatedQuartiles: number;
 };
 
-export type CardTypeMix = {
+export type PostTypeMix = {
   documentId: string;
-  cardCount: number;
+  postCount: number;
   /**
-   * Flat record (card type → count). PostHog ingests this shape cleanly; keep it small —
-   * only four draft card types exist today.
+   * Flat record (post type -> count). PostHog ingests this shape cleanly; keep it small -
+   * only four draft post types exist today.
    */
   mix: Record<string, number>;
 };
 
 export type QualityDistribution = {
-  totalCards: number;
+  totalPosts: number;
   mean: number;
   std: number;
   belowThreshold07Share: number;
-  /** Flat `bucket_label → count` map. Small, stable key set. */
+  /** Flat `bucket_label -> count` map. Small, stable key set. */
   buckets: Record<string, number>;
 };
 
@@ -86,7 +86,7 @@ export type GoalRelevanceSummary = {
    */
   meanRelevanceBoost: number;
   /** Count of served drafts whose relevance was strictly greater than 1.0. */
-  boostedCardCount: number;
+  boostedPostCount: number;
 };
 
 /**
@@ -141,7 +141,7 @@ export function computeBookDepthReach(batch: FirstSessionDocumentBatch): BookDep
   const min = Math.min(...positions);
   return {
     documentId: batch.documentId,
-    cardCount: positions.length,
+    postCount: positions.length,
     maxBookPosition: round3(max),
     minBookPosition: round3(min),
     spreadBookPosition: round3(max - min),
@@ -149,14 +149,14 @@ export function computeBookDepthReach(batch: FirstSessionDocumentBatch): BookDep
   };
 }
 
-export function computeCardTypeMix(batch: FirstSessionDocumentBatch): CardTypeMix {
+export function computePostTypeMix(batch: FirstSessionDocumentBatch): PostTypeMix {
   const mix: Record<string, number> = {};
   for (const draft of batch.topDrafts) {
-    mix[draft.cardType] = (mix[draft.cardType] ?? 0) + 1;
+    mix[draft.postType] = (mix[draft.postType] ?? 0) + 1;
   }
   return {
     documentId: batch.documentId,
-    cardCount: batch.topDrafts.length,
+    postCount: batch.topDrafts.length,
     mix,
   };
 }
@@ -177,7 +177,7 @@ export function computeQualityDistribution(drafts: ScoredDraft[]): QualityDistri
     if (bucket) buckets[bucket.label]! += 1;
   }
   return {
-    totalCards: drafts.length,
+    totalPosts: drafts.length,
     mean: round3(mean),
     std: round3(std),
     belowThreshold07Share: round3(belowCount / quality.length),
@@ -202,12 +202,10 @@ export function summarizeGoalRelevance(opts: {
       applied: false,
       sectionEmbeddingCoveragePercent: 0,
       meanRelevanceBoost: 0,
-      boostedCardCount: 0,
+      boostedPostCount: 0,
     };
   }
 
-  // Embedding dimensions are shared across the goal map (same provider, same model) so
-  // peek the first entry to size coverage checks.
   const expectedDim = goalMap.values().next().value?.length ?? 0;
   const unique = [...new Set(opts.candidateSectionIds)];
   const covered = unique.filter((id) => {
@@ -217,7 +215,7 @@ export function summarizeGoalRelevance(opts: {
   const coverage = unique.length === 0 ? 0 : covered.length / unique.length;
 
   let totalBoost = 0;
-  let boostedCards = 0;
+  let boostedPosts = 0;
   let relevantDrafts = 0;
   for (const draft of opts.topDrafts) {
     const goalEmbedding = goalMap.get(draft.documentId);
@@ -230,7 +228,7 @@ export function summarizeGoalRelevance(opts: {
     const cosine = cosineSimilarity(goalEmbedding, vec);
     const boost = opts.goalRelevanceAlpha * Math.max(0, cosine - opts.goalRelevanceFloor);
     totalBoost += boost;
-    if (boost > 0) boostedCards++;
+    if (boost > 0) boostedPosts++;
     relevantDrafts++;
   }
 
@@ -238,7 +236,7 @@ export function summarizeGoalRelevance(opts: {
     applied: true,
     sectionEmbeddingCoveragePercent: round3(coverage),
     meanRelevanceBoost: relevantDrafts === 0 ? 0 : round3(totalBoost / relevantDrafts),
-    boostedCardCount: boostedCards,
+    boostedPostCount: boostedPosts,
   };
 }
 

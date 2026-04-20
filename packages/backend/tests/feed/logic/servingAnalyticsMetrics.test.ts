@@ -10,7 +10,7 @@ import {
   FIRST_SESSION_WINDOW_MS,
   QUALITY_DISTRIBUTION_BUCKETS,
   computeBookDepthReach,
-  computeCardTypeMix,
+  computePostTypeMix,
   computeQualityDistribution,
   firstSessionDocuments,
   summarizeGoalRelevance,
@@ -24,7 +24,7 @@ function scored(overrides: Partial<ScoredDraftWithScore> & { id: string }): Scor
     id: overrides.id,
     documentId: overrides.documentId ?? "doc-1",
     sectionSummaryId: overrides.sectionSummaryId,
-    cardType: overrides.cardType ?? "insight",
+    postType: overrides.postType ?? "insight",
     strategy: overrides.strategy ?? "section",
     qualityScore: overrides.qualityScore ?? 0.8,
     semanticQualityScore: overrides.semanticQualityScore,
@@ -123,7 +123,7 @@ describe("computeBookDepthReach", () => {
       documentCreatedAt: NOW,
     });
     expect(result).not.toBeNull();
-    expect(result!.cardCount).toBe(4);
+    expect(result!.postCount).toBe(4);
     expect(result!.minBookPosition).toBeCloseTo(0, 3);
     expect(result!.maxBookPosition).toBeCloseTo(0.9, 3);
     expect(result!.spreadBookPosition).toBeCloseTo(0.9, 3);
@@ -153,7 +153,7 @@ describe("computeBookDepthReach", () => {
       documentCreatedAt: NOW,
     });
     expect(result).not.toBeNull();
-    expect(result!.cardCount).toBe(2);
+    expect(result!.postCount).toBe(2);
     expect(result!.populatedQuartiles).toBe(2);
   });
 
@@ -181,38 +181,38 @@ describe("computeBookDepthReach", () => {
       documentCreatedAt: NOW,
     });
     expect(result).not.toBeNull();
-    expect(result!.cardCount).toBe(1);
+    expect(result!.postCount).toBe(1);
   });
 });
 
-describe("computeCardTypeMix", () => {
-  it("returns a flat count record by card type", () => {
+describe("computePostTypeMix", () => {
+  it("returns a flat count record by post type", () => {
     const topDrafts = [
-      scored({ id: "1", cardType: "insight" }),
-      scored({ id: "2", cardType: "insight" }),
-      scored({ id: "3", cardType: "quote" }),
-      scored({ id: "4", cardType: "quiz" }),
-      scored({ id: "5", cardType: "quiz" }),
-      scored({ id: "6", cardType: "summary" }),
+      scored({ id: "1", postType: "insight" }),
+      scored({ id: "2", postType: "insight" }),
+      scored({ id: "3", postType: "quote" }),
+      scored({ id: "4", postType: "quiz" }),
+      scored({ id: "5", postType: "quiz" }),
+      scored({ id: "6", postType: "summary" }),
     ];
-    const result = computeCardTypeMix({
+    const result = computePostTypeMix({
       documentId: "doc-a",
       topDrafts,
       priorServedCount: 0,
       documentCreatedAt: NOW,
     });
-    expect(result.cardCount).toBe(6);
+    expect(result.postCount).toBe(6);
     expect(result.mix).toEqual({ insight: 2, quote: 1, quiz: 2, summary: 1 });
   });
 
   it("returns an empty mix for empty input", () => {
-    const result = computeCardTypeMix({
+    const result = computePostTypeMix({
       documentId: "doc-a",
       topDrafts: [],
       priorServedCount: 0,
       documentCreatedAt: NOW,
     });
-    expect(result.cardCount).toBe(0);
+    expect(result.postCount).toBe(0);
     expect(result.mix).toEqual({});
   });
 });
@@ -223,7 +223,7 @@ describe("computeQualityDistribution", () => {
       id: overrides.id,
       documentId: "doc-1",
       sectionSummaryId: overrides.sectionSummaryId,
-      cardType: overrides.cardType ?? "insight",
+      postType: overrides.postType ?? "insight",
       strategy: "section",
       qualityScore: overrides.qualityScore ?? 1.0,
       semanticQualityScore: overrides.semanticQualityScore,
@@ -267,7 +267,7 @@ describe("computeQualityDistribution", () => {
       draft({ id: "e", semanticQualityScore: 0.95 }),
     ];
     const result = computeQualityDistribution(drafts)!;
-    expect(result.totalCards).toBe(5);
+    expect(result.totalPosts).toBe(5);
     expect(result.std).toBeGreaterThan(0.15);
     expect(result.belowThreshold07Share).toBeCloseTo(3 / 5, 3);
     // All 8 labels present (zeros included) so ops dashboards can plot stable axes.
@@ -310,7 +310,7 @@ describe("summarizeGoalRelevance", () => {
     });
     expect(result.applied).toBe(false);
     expect(result.meanRelevanceBoost).toBe(0);
-    expect(result.boostedCardCount).toBe(0);
+    expect(result.boostedPostCount).toBe(0);
     expect(result.sectionEmbeddingCoveragePercent).toBe(0);
   });
 
@@ -369,7 +369,7 @@ describe("summarizeGoalRelevance", () => {
     });
     expect(result.applied).toBe(true);
     expect(result.sectionEmbeddingCoveragePercent).toBe(0);
-    expect(result.boostedCardCount).toBe(0);
+    expect(result.boostedPostCount).toBe(0);
   });
 
   it("reports meanRelevanceBoost matching the scorer's goalRelevance - 1 term", () => {
@@ -394,7 +394,7 @@ describe("summarizeGoalRelevance", () => {
     // half: cosine = 1/sqrt(2) ~ 0.707 -> boost = 0.6 * (0.707 - 0.1) = 0.364
     const expectedMean = (0.54 + 0.6 * (Math.SQRT1_2 - 0.1)) / 2;
     expect(result.meanRelevanceBoost).toBeCloseTo(expectedMean, 2);
-    expect(result.boostedCardCount).toBe(2);
+    expect(result.boostedPostCount).toBe(2);
   });
 
   it("ignores topDrafts without a sectionSummaryId (highlight/thematic)", () => {
@@ -408,7 +408,7 @@ describe("summarizeGoalRelevance", () => {
     });
     expect(result.applied).toBe(true);
     expect(result.meanRelevanceBoost).toBe(0);
-    expect(result.boostedCardCount).toBe(0);
+    expect(result.boostedPostCount).toBe(0);
   });
 
   it("clamps boosts below the floor to zero", () => {
@@ -420,7 +420,7 @@ describe("summarizeGoalRelevance", () => {
       goalRelevanceAlpha: alpha,
       goalRelevanceFloor: floor,
     });
-    expect(result.boostedCardCount).toBe(0);
+    expect(result.boostedPostCount).toBe(0);
     expect(result.meanRelevanceBoost).toBe(0);
   });
 
@@ -440,6 +440,6 @@ describe("summarizeGoalRelevance", () => {
       goalRelevanceFloor: floor,
     });
     expect(result.applied).toBe(true);
-    expect(result.boostedCardCount).toBe(1);
+    expect(result.boostedPostCount).toBe(1);
   });
 });

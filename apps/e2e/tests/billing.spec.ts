@@ -54,10 +54,10 @@ test.describe("Free-tier billing UX", () => {
     await expect(page).toHaveURL(APP_SUCCESS_URL);
     await expect(page.getByText(/welcome to scrollect/i)).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: /turn something you've read into cards/i }),
+      page.getByRole("heading", { name: /turn something you've read into posts/i }),
     ).toBeVisible();
     await expect(page.getByText("Add content")).toBeVisible();
-    await expect(page.getByText("AI generates cards")).toBeVisible();
+    await expect(page.getByText("AI generates posts")).toBeVisible();
     await expect(page.getByText("Scroll your feed")).toBeVisible();
   });
 

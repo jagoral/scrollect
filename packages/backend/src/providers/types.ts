@@ -1,9 +1,9 @@
-import type { ModelAlias, TokenUsage } from "./ai";
-export type { ModelAlias, TokenUsage } from "./ai";
+import type { ModelAlias, TokenUsage } from "./llm/models";
+export type { ModelAlias, TokenUsage } from "./llm/models";
 
-export interface CardGenerationService {
-  generateCards(opts: { systemPrompt: string; userPrompt: string; cardCount: number }): Promise<{
-    cards: Record<string, unknown>[];
+export interface PostGenerationService {
+  generatePosts(opts: { systemPrompt: string; userPrompt: string; postCount: number }): Promise<{
+    posts: Record<string, unknown>[];
     usage: TokenUsage;
   }>;
 }
@@ -123,7 +123,7 @@ export interface VectorStore {
 }
 
 export type FeedServiceContext = {
-  cardGenerator: CardGenerationService;
+  postGenerator: PostGenerationService;
   embedder: EmbeddingProvider;
   vectorStore: VectorStore;
   summaryStore: SummaryVectorStore;
@@ -168,18 +168,22 @@ export interface TaggingLlm {
 }
 
 export interface DocumentMetadataLlm {
+  /**
+   * Infers a document title from its opening context. Returns the raw LLM output;
+   * callers are responsible for applying domain sanitization (`cleanDocumentTitle`).
+   */
   inferTitle(opts: {
-    firstChunk: string;
+    titleContext: string;
     currentTitle: string;
     fileType: string;
     language?: string;
   }): Promise<{ title?: string; usage: TokenUsage }>;
 }
 
-/** Card types eligible for draft generation (excludes "connection"). Standalone mirror of the Convex validator type. */
-export type DraftCardType = "insight" | "quiz" | "quote" | "summary";
+/** Post types eligible for draft generation (excludes "connection"). Standalone mirror of the Convex validator type. */
+export type DraftPostType = "insight" | "quiz" | "quote" | "summary";
 
-/** Discriminated union describing per-card-type metadata. Standalone mirror of the Convex validator type. */
+/** Discriminated union describing per-post-type metadata. Standalone mirror of the Convex validator type. */
 export type TypeData =
   | { type: "insight" }
   | {
@@ -202,9 +206,9 @@ export type TypeData =
       connectionType?: "cross_document" | "within_document";
     };
 
-export interface CardDraftLlm {
+export interface PostDraftLlm {
   generateDraft(opts: {
-    cardType: DraftCardType;
+    postType: DraftPostType;
     sectionSummary: string;
     sectionTitle: string;
     chunks: Array<{ content: string; chunkId: string }>;
@@ -213,7 +217,7 @@ export interface CardDraftLlm {
     fileType?: string;
     learningGoal?: string;
   }): Promise<{
-    card: { content: string; typeData: Record<string, unknown> } | null;
+    draft: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
   }>;
 }
@@ -222,8 +226,8 @@ export type ValidationResult = {
   isValid: boolean;
   rejectionReason?: string;
   /**
-   * Semantic learning-value score in [0, 1]. Measures whether the card teaches a concrete
-   * concept, mechanism, tradeoff, example, failure mode, or decision rule — independent of
+   * Semantic learning-value score in [0, 1]. Measures whether the draft teaches a concrete
+   * concept, mechanism, tradeoff, example, failure mode, or decision rule - independent of
    * structural validity. Optional: undefined when the validator cannot score (legacy path,
    * error, or stub). The serving scorer falls back to the structural `qualityScore` when
    * this is absent.
@@ -232,9 +236,9 @@ export type ValidationResult = {
   usage: TokenUsage;
 };
 
-export interface CardDraftValidator {
+export interface PostDraftValidator {
   validateDraft(opts: {
-    cardType: DraftCardType;
+    postType: DraftPostType;
     content: string;
     typeData: Record<string, unknown>;
     sectionTitle: string;
@@ -277,7 +281,7 @@ export interface ThematicLlm {
 }
 
 export interface ConnectionDiscoveryLlm {
-  /** Generate a connection card from two related sections. Returns null if the LLM rejects the pair as trivial. */
+  /** Generate a connection draft from two related sections. Returns null if the LLM rejects the pair as trivial. */
   generateConnectionDraft(opts: {
     sectionA: {
       title: string;
@@ -293,7 +297,7 @@ export interface ConnectionDiscoveryLlm {
     documentBTitle: string;
     language?: string;
   }): Promise<{
-    card: { content: string; typeData: Record<string, unknown> } | null;
+    draft: { content: string; typeData: Record<string, unknown> } | null;
     usage: TokenUsage;
   }>;
 }
@@ -323,14 +327,14 @@ export type DocumentMetadataServiceContext = {
 };
 
 export type DraftGenerationServiceContext = {
-  llm: CardDraftLlm;
-  validator?: CardDraftValidator;
+  llm: PostDraftLlm;
+  validator?: PostDraftValidator;
   ranker?: SectionDraftRankerLlm;
 };
 
 export type ThematicDraftGenerationServiceContext = {
   thematicLlm: ThematicLlm;
-  draftLlm: CardDraftLlm;
+  draftLlm: PostDraftLlm;
   embedder: EmbeddingProvider;
   vectorStore: VectorStore;
 };
@@ -351,10 +355,10 @@ export interface HighlightDraftLlm {
     language?: string;
     learningGoal?: string;
   }): Promise<{
-    cards: Array<{
+    drafts: Array<{
       highlightId: string;
       content: string;
-      cardType: DraftCardType;
+      postType: DraftPostType;
       typeData: Record<string, unknown>;
     }>;
     usage: TokenUsage;

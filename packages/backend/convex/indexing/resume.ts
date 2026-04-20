@@ -1,0 +1,137 @@
+"use node";
+
+import { v } from "convex/values";
+
+import { internal } from "../_generated/api";
+import { internalAction } from "../_generated/server";
+import { WideEvent } from "../../src/platform/logging";
+
+import { fanOutEmbedding } from "./embedding";
+import { resumeSummarizing } from "./summarizing";
+
+export const resumeProcessing = internalAction({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, { documentId }) => {
+    const evt = new WideEvent("pipeline.resumeProcessing");
+    evt.set({ documentId });
+    try {
+      const doc = await ctx.runQuery(internal.content.documents.getInternal, { id: documentId });
+      if (!doc) throw new Error(`Document ${documentId} not found`);
+      if (doc.status !== "error") return;
+
+      evt.set("failedAt", doc.failedAt);
+
+      switch (doc.failedAt) {
+        case "parsing":
+          evt.set("resumePath", "startProcessing");
+          // Re-submit to Marker from scratch (stateless, idempotent)
+          await ctx.scheduler.runAfter(0, internal.indexing.startProcessing.startProcessing, {
+            documentId,
+          });
+          break;
+
+        case "chunking": {
+          const allChunks = await ctx.runQuery(internal.content.chunks.listByDocumentInternal, {
+            documentId,
+          });
+          if (allChunks.length > 0) {
+            evt.set("resumePath", "embedUnembeddedChunks");
+            // Chunks exist — skip to embedding
+            await ctx.runMutation(internal.content.documents.updateStatus, {
+              id: documentId,
+              status: "embedding",
+            });
+            await ctx.scheduler.runAfter(0, internal.indexing.resume.embedUnembeddedChunks, {
+              documentId,
+            });
+          } else {
+            evt.set("resumePath", "startProcessing");
+            // No chunks — re-start from scratch
+            await ctx.scheduler.runAfter(0, internal.indexing.startProcessing.startProcessing, {
+              documentId,
+            });
+          }
+          break;
+        }
+
+        case "embedding":
+          evt.set("resumePath", "embedUnembeddedChunks");
+          await ctx.runMutation(internal.content.documents.updateStatus, {
+            id: documentId,
+            status: "embedding",
+          });
+          await ctx.scheduler.runAfter(0, internal.indexing.resume.embedUnembeddedChunks, {
+            documentId,
+          });
+          break;
+
+        case "summarizing":
+          evt.set("resumePath", "resumeSummarizing");
+          await resumeSummarizing(ctx, documentId);
+          break;
+
+        case "generating_cards":
+          evt.set("resumePath", "resumeGeneratingCards");
+          await ctx.runMutation(internal.content.documents.updateStatus, {
+            id: documentId,
+            status: "generating_cards",
+          });
+          await ctx.scheduler.runAfter(
+            0,
+            internal.drafting.postDraftGeneration.generateDraftsForDocument,
+            { documentId },
+          );
+          break;
+
+        case "deleting":
+          evt.set("resumePath", "retryDeleteDocument");
+          await ctx.scheduler.runAfter(0, internal.content.documentActions.retryDeleteDocument, {
+            documentId,
+          });
+          break;
+
+        default:
+          evt.set("resumePath", "startProcessing");
+          // No failedAt — restart from scratch
+          await ctx.scheduler.runAfter(0, internal.indexing.startProcessing.startProcessing, {
+            documentId,
+          });
+          break;
+      }
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
+  },
+});
+
+export const embedUnembeddedChunks = internalAction({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, { documentId }) => {
+    const evt = new WideEvent("pipeline.embedUnembeddedChunks");
+    evt.set({ documentId });
+    try {
+      const unembedded = await ctx.runQuery(internal.content.chunks.listUnembedded, {
+        documentId,
+      });
+
+      evt.set("unembeddedCount", unembedded.length);
+
+      if (unembedded.length === 0) {
+        // All chunks already embedded — continue to summarizing
+        await resumeSummarizing(ctx, documentId);
+        return;
+      }
+
+      const chunkIds = unembedded.map((c) => c._id);
+      await fanOutEmbedding(ctx, documentId, chunkIds);
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
+  },
+});

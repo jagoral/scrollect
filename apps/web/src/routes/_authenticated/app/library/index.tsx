@@ -51,7 +51,7 @@ function LibraryPage() {
     results: documents,
     status,
     loadMore,
-  } = usePaginatedQuery(api.documents.list, {}, { initialNumItems: 20 });
+  } = usePaginatedQuery(api.content.documents.list, {}, { initialNumItems: 20 });
 
   const sentinelRef = useInfiniteScroll(status, loadMore);
   const libraryDetail = useLibraryDetail();
@@ -68,8 +68,10 @@ function LibraryPage() {
     [documentIdsKey],
   );
 
-  const { data: allUserTags } = useQuery(convexQuery(api.tags.listUserTags, {}));
-  const { data: tagsBatch } = useQuery(convexQuery(api.tags.getDocumentTagsBatch, { documentIds }));
+  const { data: allUserTags } = useQuery(convexQuery(api.content.tags.listUserTags, {}));
+  const { data: tagsBatch } = useQuery(
+    convexQuery(api.content.tags.getDocumentTagsBatch, { documentIds }),
+  );
 
   const tagOptions = allUserTags ?? [];
 
@@ -108,7 +110,7 @@ function LibraryPage() {
 
   const hasDocuments = documents.length > 0;
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const { data: userProfile } = useQuery(convexQuery(api.entitlements.getUserProfile, {}));
+  const { data: userProfile } = useQuery(convexQuery(api.access.entitlements.getUserProfile, {}));
   const onboardingActive = userProfile ? !userProfile.onboardingCompleted : false;
 
   return (

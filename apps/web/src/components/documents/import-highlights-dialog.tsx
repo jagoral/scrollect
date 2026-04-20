@@ -1,6 +1,6 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
 import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { formatFileSize } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import { formatFileSize } from "@scrollect/backend/src/platform/fileSizeLimits";
 import { useMutation } from "convex/react";
 import { BookMarked, Loader2, Upload } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
@@ -34,7 +34,7 @@ export function ImportHighlightsDialog({ documentId }: ImportHighlightsDialogPro
     title: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const importHighlights = useMutation(api.highlights.importHighlights);
+  const importHighlights = useMutation(api.content.highlights.importHighlights);
   const posthog = usePostHog();
 
   const resetState = () => {

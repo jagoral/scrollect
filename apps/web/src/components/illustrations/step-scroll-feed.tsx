@@ -40,14 +40,14 @@ export function StepScrollFeed({
 
           {/* Screen area */}
           <div className="mx-[5%] mt-[3%] overflow-hidden rounded-md bg-foreground/[0.02] p-[5%]">
-            {/* Card stack */}
+            {/* Post stack */}
             <div
               className={cn(
                 "space-y-[8px] transition-transform duration-500",
                 isActive && "-translate-y-3",
               )}
             >
-              {/* Quote card */}
+              {/* Quote post */}
               <div className="relative overflow-hidden rounded-md border border-foreground/12 bg-white/70 dark:bg-white/10">
                 <div className="absolute top-0 bottom-0 left-0 w-[3px] rounded-l-md bg-amber-500/50" />
                 <div className="py-[8px] pr-[8px] pl-[12px]">
@@ -64,7 +64,7 @@ export function StepScrollFeed({
                 </div>
               </div>
 
-              {/* Insight card */}
+              {/* Insight post */}
               <div className="relative overflow-hidden rounded-md border border-foreground/12 bg-white/70 dark:bg-white/10">
                 <div className="absolute top-0 bottom-0 left-0 w-[3px] rounded-l-md bg-primary/50" />
                 <div className="py-[8px] pr-[8px] pl-[12px]">
@@ -81,7 +81,7 @@ export function StepScrollFeed({
                 </div>
               </div>
 
-              {/* Quiz card */}
+              {/* Quiz post */}
               <div className="relative overflow-hidden rounded-md border border-foreground/12 bg-white/70 dark:bg-white/10">
                 <div className="absolute top-0 bottom-0 left-0 w-[3px] rounded-l-md bg-emerald-500/50" />
                 <div className="py-[8px] pr-[8px] pl-[12px]">
@@ -96,7 +96,7 @@ export function StepScrollFeed({
                 </div>
               </div>
 
-              {/* Partial card peeking */}
+              {/* Partial post peeking */}
               <div className="h-[14px] rounded-t-md border border-b-0 border-foreground/[0.08] bg-white/30 dark:bg-white/[0.04]" />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
-import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/convex/lib/fileSizeLimits";
+import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/src/platform/fileSizeLimits";
 import { useMutation } from "convex/react";
 import { Link } from "@tanstack/react-router";
 import { FileText, Loader2 } from "lucide-react";
@@ -31,8 +31,8 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
   const { usage } = useBilling();
   const fileSizeLimits = getFileSizeLimits(usage?.tier ?? "free");
 
-  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
-  const createFromText = useMutation(api.documents.createFromText);
+  const generateUploadUrl = useMutation(api.content.documents.generateUploadUrl);
+  const createFromText = useMutation(api.content.documents.createFromText);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -89,7 +89,7 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
         toast.success(
           <span>
             <strong>{trimmedTitle}</strong> added! Processing typically takes 3-5 minutes and
-            continues in the background. Add a learning goal now so cards use it.{" "}
+            continues in the background. Add a learning goal now so posts use it.{" "}
             <Link to="/app/library" className="underline">
               View in library
             </Link>

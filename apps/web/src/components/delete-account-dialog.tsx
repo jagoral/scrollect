@@ -25,7 +25,7 @@ const CONFIRMATION_TEXT = "DELETE";
 
 export function DeleteAccountDialog() {
   const posthog = usePostHog();
-  const deleteAccount = useAction(api.accountActions.deleteAccount);
+  const deleteAccount = useAction(api.access.accountActions.deleteAccount);
   const [open, setOpen] = useState(false);
   const [confirmationInput, setConfirmationInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -78,7 +78,7 @@ export function DeleteAccountDialog() {
           <AlertDialogTitle>Delete your account?</AlertDialogTitle>
           <AlertDialogDescription>
             This will permanently delete your account and all associated data - documents, learning
-            cards, bookmarks, and tags. This action cannot be undone.
+            posts, bookmarks, and tags. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="my-2">
