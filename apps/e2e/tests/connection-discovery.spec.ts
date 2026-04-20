@@ -12,7 +12,7 @@ import {
 async function uploadMarkdownFile(page: import("@playwright/test").Page, filename: string) {
   await page.goto("/app/upload");
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, filename));
   await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
   await skipLearningGoalPrompt(page);

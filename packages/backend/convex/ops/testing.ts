@@ -465,6 +465,28 @@ export const insertSeededData = internalMutation({
     const { userId, storageId } = args;
     const now = Date.now();
 
+    // A third source keeps the 7-post seeded feed compatible with the
+    // document-diversity assertion: 3 + 3 + 1 posts across documents.
+    const documentId3 = await ctx.db.insert("documents", {
+      title: "E2E Seed Document 3",
+      fileType: "article",
+      sourceUrl: "https://example.com/e2e-seed-3",
+      status: "ready",
+      chunkCount: 1,
+      userId,
+      createdAt: now - 2000,
+    });
+
+    const chunkId3 = await ctx.db.insert("chunks", {
+      documentId: documentId3,
+      content:
+        "Software pattern catalogs explain how recurring design ideas can be reused across product and architecture decisions.",
+      chunkIndex: 0,
+      tokenCount: 50,
+      embedded: true,
+      createdAt: now - 2000,
+    });
+
     // Create first document
     const documentId = await ctx.db.insert("documents", {
       title: "E2E Seed Document",
@@ -592,10 +614,10 @@ export const insertSeededData = internalMutation({
           type: "quote",
           quotedText: "The observer pattern establishes a one-to-many dependency between objects.",
         },
-        docId: documentId,
-        docTitle: "E2E Seed Document",
-        fileType: "md",
-        chunkId: chunkIds[2]!,
+        docId: documentId3,
+        docTitle: "E2E Seed Document 3",
+        fileType: "article",
+        chunkId: chunkId3,
         strategy: "section",
       },
       {
