@@ -79,6 +79,14 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
       await ctx.db.delete(job._id);
     }
 
+    const sections = await ctx.db
+      .query("sectionSummaries")
+      .withIndex("by_documentId", (q) => q.eq("documentId", doc._id))
+      .collect();
+    for (const section of sections) {
+      await ctx.db.delete(section._id);
+    }
+
     if (doc.storageId) {
       try {
         await ctx.storage.delete(doc.storageId);
@@ -102,6 +110,33 @@ async function cleanupUserData(ctx: MutationCtx, userId: string) {
       }
     }
     await ctx.db.delete(post._id);
+  }
+
+  // postDrafts must be deleted with the rest: orphaned drafts (whose document
+  // was deleted in a prior cleanup) would otherwise be picked up by serveFeed
+  // and materialized as posts with title "Unknown", contaminating later tests.
+  const postDrafts = await ctx.db
+    .query("postDrafts")
+    .withIndex("by_userId_status", (q) => q.eq("userId", userId))
+    .collect();
+  for (const draft of postDrafts) {
+    await ctx.db.delete(draft._id);
+  }
+
+  const reactionFeedbackRows = await ctx.db
+    .query("reactionFeedback")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const row of reactionFeedbackRows) {
+    await ctx.db.delete(row._id);
+  }
+
+  const connectionPairs = await ctx.db
+    .query("connectionPairs")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const pair of connectionPairs) {
+    await ctx.db.delete(pair._id);
   }
 
   const grants = await ctx.db
