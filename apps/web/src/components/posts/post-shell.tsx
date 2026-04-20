@@ -15,6 +15,7 @@ import {
 } from "@/components/documents/document-thumb";
 import { TagList } from "@/components/tags";
 import { Button } from "@/components/ui/button";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import { cn } from "@/lib/utils";
 
 import { usePostImpression } from "@/hooks/use-post-impression";
@@ -197,7 +198,7 @@ export function PostShell({ post, children, quizVariant, onViewed }: PostShellPr
         data-post-type={post.postType}
         data-quiz-variant={quizVariant}
         className={cn(
-          "group/card relative grid min-w-0 scroll-mt-24 grid-cols-[38px_1fr] gap-5 border-b border-border bg-card pt-6 pr-6 pb-5 pl-5 text-card-foreground transition-colors",
+          "group/card relative grid min-w-0 scroll-mt-32 grid-cols-[38px_1fr] gap-5 border-b border-border bg-card pt-6 pr-6 pb-5 pl-5 text-card-foreground transition-colors",
           detailPanel && "cursor-pointer",
           detailPanel && !selected && "hover:bg-accent/30",
           selected && "bg-primary/[0.04]",
@@ -241,7 +242,11 @@ export function PostShell({ post, children, quizVariant, onViewed }: PostShellPr
               )}
             </div>
             <div className="flex items-center gap-3 whitespace-nowrap text-muted-foreground/80">
-              {post.sectionTitle && <span className="truncate">&sect; {post.sectionTitle}</span>}
+              {post.sectionTitle && (
+                <span className="truncate">
+                  &sect; <InlineMarkdown>{post.sectionTitle}</InlineMarkdown>
+                </span>
+              )}
               <ReadingProgress pageStart={post.pageStart} />
             </div>
           </div>

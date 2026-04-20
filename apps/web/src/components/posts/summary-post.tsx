@@ -1,5 +1,6 @@
 import Markdown from "react-markdown";
 
+import { InlineMarkdown } from "@/components/inline-markdown";
 import { cn } from "@/lib/utils";
 
 import { PostShell } from "./post-shell";
@@ -31,7 +32,7 @@ export function SummaryPost({ post, onViewed }: SummaryPostProps) {
       <div>
         {post.sectionTitle && (
           <p className="mb-3 font-logo text-[19px] font-medium tracking-tight text-foreground">
-            {post.sectionTitle}
+            <InlineMarkdown>{post.sectionTitle}</InlineMarkdown>
           </p>
         )}
         <ol data-testid="summary-bullets" className="m-0 list-none p-0">

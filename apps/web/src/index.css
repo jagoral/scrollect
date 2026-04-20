@@ -6,7 +6,12 @@
 @import "@fontsource/geist-sans/latin-600.css";
 @import "@fontsource/geist-sans/latin-700.css";
 @import "@fontsource/geist-mono/latin-400.css";
+@import "@fontsource/fraunces/latin-400.css";
+@import "@fontsource/fraunces/latin-500.css";
 @import "@fontsource/fraunces/latin-600.css";
+@import "@fontsource/fraunces/latin-ext-400.css";
+@import "@fontsource/fraunces/latin-ext-500.css";
+@import "@fontsource/fraunces/latin-ext-600.css";
 @import "vanilla-cookieconsent/dist/cookieconsent.css";
 @import "./styles/cookie-consent.css";
 @plugin "@tailwindcss/typography";
@@ -135,6 +140,7 @@
   }
   html {
     @apply font-sans;
+    scroll-padding-top: 5rem;
   }
 }
 

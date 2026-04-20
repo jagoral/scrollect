@@ -22,7 +22,7 @@ export function UnreadPostsBanner({
   return (
     <div
       data-testid="feed-new-posts-banner"
-      className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-3 backdrop-blur md:px-6"
+      className="sticky top-14 z-30 border-b border-border bg-background/95 px-4 py-3 backdrop-blur md:px-6"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
