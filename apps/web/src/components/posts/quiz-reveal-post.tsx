@@ -9,14 +9,15 @@ import type { PostView, QuizTypeData } from "./types";
 
 interface QuizRevealPostProps {
   post: PostView & { typeData: QuizTypeData };
+  onViewed?: (postId: string) => void;
 }
 
-export function QuizRevealPost({ post }: QuizRevealPostProps) {
+export function QuizRevealPost({ post, onViewed }: QuizRevealPostProps) {
   const [revealed, setRevealed] = useState(false);
   const { question, options, correctIndex, explanation } = post.typeData;
 
   return (
-    <PostShell post={post} quizVariant={post.typeData.variant}>
+    <PostShell post={post} quizVariant={post.typeData.variant} onViewed={onViewed}>
       <div>
         <p
           data-testid="quiz-question"

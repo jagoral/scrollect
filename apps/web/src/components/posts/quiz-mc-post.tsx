@@ -8,9 +8,10 @@ import type { PostView, QuizTypeData } from "./types";
 
 interface QuizMcPostProps {
   post: PostView & { typeData: QuizTypeData };
+  onViewed?: (postId: string) => void;
 }
 
-export function QuizMcPost({ post }: QuizMcPostProps) {
+export function QuizMcPost({ post, onViewed }: QuizMcPostProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const { question, options, correctIndex, explanation } = post.typeData;
   const answered = selectedIndex !== null;
@@ -23,7 +24,7 @@ export function QuizMcPost({ post }: QuizMcPostProps) {
   }
 
   return (
-    <PostShell post={post} quizVariant={post.typeData.variant}>
+    <PostShell post={post} quizVariant={post.typeData.variant} onViewed={onViewed}>
       <div>
         <p
           data-testid="quiz-question"

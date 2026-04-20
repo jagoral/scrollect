@@ -3,13 +3,14 @@ import type { PostView, QuoteTypeData } from "./types";
 
 interface QuotePostProps {
   post: PostView & { typeData: QuoteTypeData };
+  onViewed?: (postId: string) => void;
 }
 
-export function QuotePost({ post }: QuotePostProps) {
+export function QuotePost({ post, onViewed }: QuotePostProps) {
   const { quotedText, attribution } = post.typeData;
 
   return (
-    <PostShell post={post}>
+    <PostShell post={post} onViewed={onViewed}>
       <div>
         <blockquote
           data-testid="quoted-text"

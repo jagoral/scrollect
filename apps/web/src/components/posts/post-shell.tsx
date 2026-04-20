@@ -75,9 +75,10 @@ interface PostShellProps {
   post: PostView;
   children: ReactNode;
   quizVariant?: "multiple_choice" | "true_false";
+  onViewed?: (postId: string) => void;
 }
 
-export function PostShell({ post, children, quizVariant }: PostShellProps) {
+export function PostShell({ post, children, quizVariant, onViewed }: PostShellProps) {
   const posthog = usePostHog();
   const detailPanel = useDetailPanel();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -92,7 +93,9 @@ export function PostShell({ post, children, quizVariant }: PostShellProps) {
     }),
     [post.postType, post.createdAt],
   );
-  const impressionRef = usePostImpression(post._id, impressionProperties);
+  const impressionRef = usePostImpression(post._id, impressionProperties, {
+    onViewed: () => onViewed?.(post._id),
+  });
 
   const tags = post.tags ?? [];
   const accent = postAccent[post.postType];
@@ -190,10 +193,11 @@ export function PostShell({ post, children, quizVariant }: PostShellProps) {
       <article
         ref={impressionRef}
         data-testid="post-card"
+        data-post-id={post._id}
         data-post-type={post.postType}
         data-quiz-variant={quizVariant}
         className={cn(
-          "group/card relative grid min-w-0 grid-cols-[38px_1fr] gap-5 border-b border-border bg-card pt-6 pr-6 pb-5 pl-5 text-card-foreground transition-colors",
+          "group/card relative grid min-w-0 scroll-mt-24 grid-cols-[38px_1fr] gap-5 border-b border-border bg-card pt-6 pr-6 pb-5 pl-5 text-card-foreground transition-colors",
           detailPanel && "cursor-pointer",
           detailPanel && !selected && "hover:bg-accent/30",
           selected && "bg-primary/[0.04]",

@@ -7,14 +7,15 @@ import type { PostView, SummaryTypeData } from "./types";
 
 interface SummaryPostProps {
   post: PostView & { typeData: SummaryTypeData };
+  onViewed?: (postId: string) => void;
 }
 
-export function SummaryPost({ post }: SummaryPostProps) {
+export function SummaryPost({ post, onViewed }: SummaryPostProps) {
   const { bulletPoints } = post.typeData;
 
   if (bulletPoints.length === 0) {
     return (
-      <PostShell post={post}>
+      <PostShell post={post} onViewed={onViewed}>
         <div
           data-testid="summary-content"
           className="prose prose-sm prose-neutral max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 dark:prose-invert"
@@ -26,7 +27,7 @@ export function SummaryPost({ post }: SummaryPostProps) {
   }
 
   return (
-    <PostShell post={post}>
+    <PostShell post={post} onViewed={onViewed}>
       <div>
         {post.sectionTitle && (
           <p className="mb-3 font-logo text-[19px] font-medium tracking-tight text-foreground">

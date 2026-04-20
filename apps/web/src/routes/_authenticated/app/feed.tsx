@@ -9,12 +9,14 @@ import { usePostHog } from "posthog-js/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/document-status";
+import { UnreadPostsBanner } from "@/components/feed/unread-posts-banner";
 import { PageHeader } from "@/components/page-header";
 import { Post } from "@/components/posts";
 import { buildTagMap } from "@/components/tags";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFeedUnreadPosts } from "@/hooks/use-feed-unread-posts";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 type FeedSearch = {
@@ -58,6 +60,7 @@ function FeedPage() {
     () => (scopedDocumentId ? { documentId: scopedDocumentId } : {}),
     [scopedDocumentId],
   );
+  const feedScopeKey = scopedDocumentId ? `document:${scopedDocumentId}` : "all";
 
   const { results, status, loadMore } = usePaginatedQuery(api.feed.queries.list, feedArgs, {
     initialNumItems: 10,
@@ -67,13 +70,26 @@ function FeedPage() {
   const { data: scopedDocument } = useQuery(
     convexQuery(api.content.documents.get, scopedDocumentId ? { id: scopedDocumentId } : "skip"),
   );
+  const feedScopeLabel = scopedDocumentId
+    ? (scopedDocument?.title ?? "this document feed")
+    : "your feed";
 
   const [serving, setServing] = useState(false);
   const [serveReason, setServeReason] = useState<"no_drafts" | "processing" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingJumpPostId, setPendingJumpPostId] = useState<string | null>(null);
   const autoServedScopeRef = useRef<string | null>(null);
+  const jumpLoadRequestRef = useRef<string | null>(null);
 
   const posthog = usePostHog();
+  const {
+    firstUnreadPostId,
+    unreadCount,
+    unreadPostIdSet,
+    registerBatch,
+    clearBatch,
+    markBatchSeenForPost,
+  } = useFeedUnreadPosts(feedScopeKey);
 
   const servingRef = useRef(false);
 
@@ -93,6 +109,11 @@ function FeedPage() {
         scope: scopedDocumentId ? "document" : "all",
         documentId: scopedDocumentId ?? null,
       });
+      if (result.posts.length > 0) {
+        const postIds = result.posts.map((postId) => postId as string);
+        registerBatch(postIds);
+        setPendingJumpPostId(postIds[0] ?? null);
+      }
       if (result.reason) {
         setServeReason(result.reason);
       }
@@ -104,7 +125,7 @@ function FeedPage() {
       servingRef.current = false;
       setServing(false);
     }
-  }, [serveDocumentFeed, serveFeed, posthog, scopedDocumentId]);
+  }, [serveDocumentFeed, serveFeed, posthog, scopedDocumentId, registerBatch]);
 
   useEffect(() => {
     if (noAutoServe) return;
@@ -150,6 +171,40 @@ function FeedPage() {
     });
   }, [navigate, posthog, scopedDocumentId]);
 
+  const jumpToUnreadPost = useCallback(() => {
+    if (!firstUnreadPostId) return;
+    posthog.capture("feed.unread_jump_clicked", {
+      count: unreadCount,
+      scope: scopedDocumentId ? "document" : "all",
+      documentId: scopedDocumentId ?? null,
+    });
+    setPendingJumpPostId(firstUnreadPostId);
+  }, [firstUnreadPostId, posthog, scopedDocumentId, unreadCount]);
+
+  const dismissUnreadPosts = useCallback(() => {
+    posthog.capture("feed.unread_batch_dismissed", {
+      count: unreadCount,
+      scope: scopedDocumentId ? "document" : "all",
+      documentId: scopedDocumentId ?? null,
+    });
+    clearBatch();
+  }, [clearBatch, posthog, scopedDocumentId, unreadCount]);
+
+  const handlePostViewed = useCallback(
+    (postId: string) => {
+      const wasUnread = unreadPostIdSet.has(postId);
+      markBatchSeenForPost(postId);
+      if (!wasUnread) return;
+
+      posthog.capture("feed.unread_batch_seen", {
+        count: unreadCount,
+        scope: scopedDocumentId ? "document" : "all",
+        documentId: scopedDocumentId ?? null,
+      });
+    },
+    [markBatchSeenForPost, posthog, scopedDocumentId, unreadCount, unreadPostIdSet],
+  );
+
   const sentinelRef = useInfiniteScroll(status, loadMore);
 
   const docIdKey = results.map((p) => p.primarySourceDocumentId).join(",");
@@ -175,6 +230,27 @@ function FeedPage() {
       })),
     [results, tagsByDocId],
   );
+  const postIdKey = enrichedResults.map((post) => post._id).join(",");
+
+  useEffect(() => {
+    if (!pendingJumpPostId) return;
+    const didScroll = scrollToPostId(pendingJumpPostId);
+    if (!didScroll) {
+      const loadRequestKey = `${pendingJumpPostId}:${postIdKey}`;
+      if (status === "CanLoadMore" && jumpLoadRequestRef.current !== loadRequestKey) {
+        jumpLoadRequestRef.current = loadRequestKey;
+        loadMore(10);
+      }
+      return;
+    }
+
+    posthog.capture("feed.unread_jump_performed", {
+      scope: scopedDocumentId ? "document" : "all",
+      documentId: scopedDocumentId ?? null,
+    });
+    jumpLoadRequestRef.current = null;
+    setPendingJumpPostId(null);
+  }, [loadMore, pendingJumpPostId, posthog, postIdKey, scopedDocumentId, status]);
 
   const exhaustedTracked = useRef(false);
   useEffect(() => {
@@ -281,10 +357,23 @@ function FeedPage() {
         )
       ) : (
         <div className="animate-stagger-in">
+          <UnreadPostsBanner
+            count={unreadCount}
+            scopeLabel={feedScopeLabel}
+            onJump={jumpToUnreadPost}
+            onDismiss={dismissUnreadPosts}
+          />
           <div className="border-b border-border">
-            {enrichedResults.map((post) => (
-              <Post key={post._id} post={post} />
-            ))}
+            {enrichedResults.map((post) => {
+              const isUnread = unreadPostIdSet.has(post._id);
+              return (
+                <Post
+                  key={post._id}
+                  post={{ ...post, isNew: isUnread }}
+                  onViewed={handlePostViewed}
+                />
+              );
+            })}
           </div>
 
           <div ref={sentinelRef} className="h-1" />
@@ -325,6 +414,21 @@ function FeedPage() {
       )}
     </div>
   );
+}
+
+function scrollToPostId(postId: string) {
+  const post = Array.from(document.querySelectorAll<HTMLElement>("[data-post-id]")).find(
+    (element) => element.dataset.postId === postId,
+  );
+  if (!post) return false;
+
+  const rect = post.getBoundingClientRect();
+  const isComfortablyVisible = rect.top >= 96 && rect.top <= window.innerHeight * 0.7;
+  if (!isComfortablyVisible) {
+    post.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  return true;
 }
 
 interface DocumentFeedEmptyStateProps {

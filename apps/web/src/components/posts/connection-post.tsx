@@ -5,13 +5,14 @@ import type { ConnectionTypeData, PostView } from "./types";
 
 interface ConnectionPostProps {
   post: PostView & { typeData: ConnectionTypeData };
+  onViewed?: (postId: string) => void;
 }
 
-export function ConnectionPost({ post }: ConnectionPostProps) {
+export function ConnectionPost({ post, onViewed }: ConnectionPostProps) {
   const { sourceATitleHint, sourceBTitleHint, sourceAKeyIdea, sourceBKeyIdea } = post.typeData;
 
   return (
-    <PostShell post={post}>
+    <PostShell post={post} onViewed={onViewed}>
       <div data-testid="connection-content">
         <div className="mb-4 grid grid-cols-[1fr_28px_1fr] items-stretch gap-3">
           <div className="border border-border bg-violet-500/[0.03] px-3.5 py-3">
