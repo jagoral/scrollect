@@ -75,7 +75,10 @@ export function LibraryDetailPanel() {
     if (isMobile) return null;
 
     return (
-      <aside className="-ml-px hidden h-full min-h-0 min-w-0 overflow-hidden border-l border-border lg:block">
+      <aside
+        data-testid="library-detail-panel"
+        className="hidden min-w-0 overflow-hidden border-l border-border bg-background lg:fixed lg:right-0 lg:top-14 lg:bottom-0 lg:z-20 lg:block lg:w-[calc((100vw-var(--sidebar-width))*0.4)]"
+      >
         <div className="flex h-full flex-col items-center justify-center px-6 text-center">
           <div className="flex size-12 items-center justify-center border border-border">
             <MousePointerClick className="size-5 text-muted-foreground" />
@@ -109,7 +112,10 @@ export function LibraryDetailPanel() {
   }
 
   return (
-    <aside className="-ml-px hidden h-full min-h-0 min-w-0 overflow-hidden border-l border-border lg:block">
+    <aside
+      data-testid="library-detail-panel"
+      className="hidden min-w-0 overflow-hidden border-l border-border bg-background lg:fixed lg:right-0 lg:top-14 lg:bottom-0 lg:z-20 lg:block lg:w-[calc((100vw-var(--sidebar-width))*0.4)]"
+    >
       <div className="h-full overflow-y-auto overscroll-contain">
         <div
           key={selectedDocumentId}

@@ -43,12 +43,9 @@ test.describe("Feed serving performance", { tag: "@seeded" }, () => {
 
     // Scroll to the bottom to trigger infinite scroll / exhaustion
     const endState = page.locator('[data-testid="feed-end-state"]');
-    const feedScroller = page.locator('[data-testid="app-main-scroll"]');
     for (let i = 0; i < 10; i++) {
       const cardCountBefore = await cards.count();
-      await feedScroller.evaluate((el) => {
-        el.scrollTop = el.scrollHeight;
-      });
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       if (await endState.isVisible()) break;
       await Promise.race([
         endState.waitFor({ state: "visible", timeout: 3000 }).catch(() => {}),

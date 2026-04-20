@@ -68,7 +68,7 @@ export function DetailPanel() {
   return (
     <aside
       data-testid="feed-detail-panel"
-      className="hidden h-full min-h-0 min-w-0 overflow-hidden bg-background lg:block"
+      className="hidden min-w-0 overflow-hidden border-l border-border bg-background lg:fixed lg:right-0 lg:top-14 lg:bottom-0 lg:z-20 lg:block lg:w-[calc((100vw-var(--sidebar-width))*0.4)]"
     >
       <div className="h-full overflow-y-auto overscroll-contain">
         <div key={selectedPost._id} className="animate-in fade-in slide-in-from-top-2 duration-200">
@@ -76,6 +76,19 @@ export function DetailPanel() {
         </div>
       </div>
     </aside>
+  );
+}
+
+export function FeedDetailDivider() {
+  const ctx = useDetailPanel();
+  if (!ctx || ctx.selectedPost) return null;
+
+  return (
+    <aside
+      aria-hidden="true"
+      data-testid="feed-detail-divider"
+      className="pointer-events-none hidden min-w-0 overflow-hidden border-l border-border bg-background lg:fixed lg:right-0 lg:top-14 lg:bottom-0 lg:z-10 lg:block lg:w-[calc((100vw-var(--sidebar-width))*0.4)]"
+    />
   );
 }
 

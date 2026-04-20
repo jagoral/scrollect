@@ -9,6 +9,7 @@ import { usePostHog } from "posthog-js/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/document-status";
+import { FeedDetailDivider } from "@/components/detail-panel";
 import { Post } from "@/components/posts";
 import { buildTagMap } from "@/components/tags";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -220,107 +221,110 @@ function FeedPage() {
   }
 
   return (
-    <div className="py-6">
-      <div className="mb-6 flex items-center justify-between px-4 md:px-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {scopedDocumentId
-              ? "Learning posts from this document."
-              : "Your AI-generated learning posts."}
-          </p>
-        </div>
-        <Button onClick={handleServe} disabled={serving} data-testid="feed-serve-button">
-          {serving ? (
-            <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
-          ) : (
-            <Sparkles className="size-4" data-icon="inline-start" />
-          )}
-          Generate
-        </Button>
-      </div>
-
-      {scopedDocumentId && (
-        <div className="mb-6 px-4 md:px-6">
-          <Alert data-testid="feed-scope-banner">
-            <BookOpen data-icon="inline-start" />
-            <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                Currently viewing:{" "}
-                <strong className="font-semibold text-foreground">
-                  {scopedDocument?.title ?? "this document"}
-                </strong>
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleResetScope}
-                data-testid="feed-view-all"
-              >
-                View all
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {enrichedResults.length === 0 && !serving ? (
-        scopedDocumentId ? (
-          <DocumentFeedEmptyState document={scopedDocument} reason={serveReason} />
-        ) : (
-          <FeedEmptyState reason={serveReason} onServe={handleServe} serving={serving} />
-        )
-      ) : (
-        <div className="animate-stagger-in">
-          <div className="border-y border-border">
-            {enrichedResults.map((post) => (
-              <Post key={post._id} post={post} />
-            ))}
+    <>
+      <FeedDetailDivider />
+      <div className="py-6">
+        <div className="mb-6 flex items-center justify-between px-4 md:px-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {scopedDocumentId
+                ? "Learning posts from this document."
+                : "Your AI-generated learning posts."}
+            </p>
           </div>
-
-          <div ref={sentinelRef} className="h-1" />
-
-          {status === "LoadingMore" && (
-            <div className="flex justify-center py-4 animate-in fade-in duration-300">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </div>
-          )}
-
-          {status === "Exhausted" && enrichedResults.length > 0 && (
-            <div
-              data-testid="feed-end-state"
-              className="flex flex-col items-center gap-4 py-12 text-center text-muted-foreground animate-in fade-in duration-500"
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-px w-16 bg-border" />
-                <div className="flex size-10 items-center justify-center border-y border border-border">
-                  <CheckCircle className="size-5 text-primary" />
-                </div>
-                <div className="h-px w-16 bg-border" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.1em]">
-                  You&apos;re all caught up
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground/60">
-                  Generate more posts to keep learning.
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleServe} disabled={serving}>
-                <Sparkles className="size-3.5" />
-                Generate more
-              </Button>
-            </div>
-          )}
+          <Button onClick={handleServe} disabled={serving} data-testid="feed-serve-button">
+            {serving ? (
+              <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
+            ) : (
+              <Sparkles className="size-4" data-icon="inline-start" />
+            )}
+            Generate
+          </Button>
         </div>
-      )}
-    </div>
+
+        {scopedDocumentId && (
+          <div className="mb-6 px-4 md:px-6">
+            <Alert data-testid="feed-scope-banner">
+              <BookOpen data-icon="inline-start" />
+              <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  Currently viewing:{" "}
+                  <strong className="font-semibold text-foreground">
+                    {scopedDocument?.title ?? "this document"}
+                  </strong>
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetScope}
+                  data-testid="feed-view-all"
+                >
+                  View all
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {enrichedResults.length === 0 && !serving ? (
+          scopedDocumentId ? (
+            <DocumentFeedEmptyState document={scopedDocument} reason={serveReason} />
+          ) : (
+            <FeedEmptyState reason={serveReason} onServe={handleServe} serving={serving} />
+          )
+        ) : (
+          <div className="animate-stagger-in">
+            <div className="border-y border-border">
+              {enrichedResults.map((post) => (
+                <Post key={post._id} post={post} />
+              ))}
+            </div>
+
+            <div ref={sentinelRef} className="h-1" />
+
+            {status === "LoadingMore" && (
+              <div className="flex justify-center py-4 animate-in fade-in duration-300">
+                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {status === "Exhausted" && enrichedResults.length > 0 && (
+              <div
+                data-testid="feed-end-state"
+                className="flex flex-col items-center gap-4 py-12 text-center text-muted-foreground animate-in fade-in duration-500"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-px w-16 bg-border" />
+                  <div className="flex size-10 items-center justify-center border-y border border-border">
+                    <CheckCircle className="size-5 text-primary" />
+                  </div>
+                  <div className="h-px w-16 bg-border" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em]">
+                    You&apos;re all caught up
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground/60">
+                    Generate more posts to keep learning.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleServe} disabled={serving}>
+                  <Sparkles className="size-3.5" />
+                  Generate more
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
