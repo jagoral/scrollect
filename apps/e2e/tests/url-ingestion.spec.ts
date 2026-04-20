@@ -29,7 +29,7 @@ test.describe(
     }) => {
       await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
-      await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
       // All three tabs should be visible
       await expect(page.getByRole("tab", { name: /upload file/i })).toBeVisible();
@@ -46,7 +46,7 @@ test.describe(
     test("switching tabs shows the correct content panel", async ({ page }) => {
       await page.goto("/app/upload");
       await page.waitForLoadState("networkidle");
-      await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
       await test.step("switch to Paste URL tab", async () => {
         await page.getByRole("tab", { name: /paste url/i }).click();
@@ -73,7 +73,7 @@ test.describe(
           "aria-selected",
           "true",
         );
-        await expect(page.getByText(/drag & drop/i)).toBeVisible();
+        await expect(page.locator('[data-testid="file-drop-zone"]')).toBeVisible();
       });
     });
   },

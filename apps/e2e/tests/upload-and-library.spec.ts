@@ -31,13 +31,13 @@ test.describe("Upload and Content Library flow", () => {
       .getByRole("link", { name: /upload/i })
       .click();
     await expect(page).toHaveURL(/\/upload/);
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
   });
 
   test("user can upload a Markdown file and sees success message", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
 
@@ -51,7 +51,7 @@ test.describe("Upload and Content Library flow", () => {
   }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     await page
       .locator('[data-testid="file-input"]')
@@ -92,7 +92,7 @@ test.describe("Upload and Content Library flow", () => {
   test("after upload, user can skip the learning goal prompt", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     await page
       .locator('[data-testid="file-input"]')
@@ -128,7 +128,7 @@ test.describe("Upload and Content Library flow", () => {
   test("multiple uploads queue a learning goal choice for each document", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     await page.locator('[data-testid="file-input"]').setInputFiles([
       {
@@ -158,7 +158,7 @@ test.describe("Upload and Content Library flow", () => {
   test("after upload, document appears in library with correct title", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
     await skipLearningGoalPrompt(page);
@@ -174,7 +174,7 @@ test.describe("Upload and Content Library flow", () => {
   test("clicking a document in library navigates to detail page", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
     await skipLearningGoalPrompt(page);
@@ -209,7 +209,7 @@ test.describe("Upload and Content Library flow", () => {
   test("document detail page shows title and status after processing", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, "test.md"));
     await expect(page.getByText(/uploaded/i)).toBeVisible({ timeout: 30000 });
     await skipLearningGoalPrompt(page);
@@ -231,7 +231,7 @@ test.describe("Upload and Content Library flow", () => {
   test("upload page rejects unsupported file types", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     await page.locator('input[type="file"]').setInputFiles({
       name: "invalid.txt",
@@ -254,7 +254,7 @@ test.describe("File upload size validation", { tag: "@seeded" }, () => {
   test("oversized markdown file shows error toast", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     // Use markdown (5MB limit) instead of PDF (50MB limit) to stay under
     // Playwright's 50MB in-memory buffer cap for setInputFiles
@@ -272,7 +272,7 @@ test.describe("File upload size validation", { tag: "@seeded" }, () => {
   test("empty file shows error toast", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
     await page.locator('[data-testid="file-input"]').setInputFiles({
       name: "empty.md",
@@ -288,13 +288,58 @@ test.describe("File upload size validation", { tag: "@seeded" }, () => {
   test("upload help text displays accepted types and size limits", async ({ page }) => {
     await page.goto("/app/upload");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /upload content/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^upload$/i })).toBeVisible();
 
-    const helpText = page.locator('[data-testid="file-drop-zone"]').getByText(/accepts/i);
-    await expect(helpText).toBeVisible();
-    await expect(helpText).toContainText(
-      /Accepts \.pdf \(max \d+\.\d MB\), \.epub \(max \d+\.\d MB\), and \.md \(max \d+\.\d MB\)/,
-    );
+    const dropZone = page.locator('[data-testid="file-drop-zone"]');
+    await expect(dropZone).toBeVisible();
+    await expect(dropZone).toContainText(".pdf");
+    await expect(dropZone).toContainText(".epub");
+    await expect(dropZone).toContainText(".md");
+    await expect(dropZone).toContainText(/\d+(\.\d+)?\s*MB/);
+  });
+});
+
+test.describe("Library desktop layout", { tag: "@seeded" }, () => {
+  test.beforeEach(async () => {
+    await reseedAccount();
+  });
+
+  test.afterEach(async () => {
+    await resetTestData(SEEDED_USER.email);
+  });
+
+  test("right detail divider is a single collapsed border", async ({ page }) => {
+    await page.setViewportSize({ width: 1536, height: 864 });
+    await page.goto("/app/library");
+
+    const main = page.locator('[data-testid="app-main-scroll"]');
+    const panel = page.locator('[data-testid="library-detail-panel"]');
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("Select a document");
+    await expect
+      .poll(() => main.evaluate((el) => getComputedStyle(el).borderRightWidth))
+      .toBe("0px");
+    await expect
+      .poll(() => panel.evaluate((el) => getComputedStyle(el).borderLeftWidth))
+      .toBe("1px");
+
+    const docButton = page.locator('[data-testid="document-item"]').first();
+    await expect(docButton).toBeVisible({ timeout: 15000 });
+    await docButton.click();
+
+    await expect(panel).toBeVisible();
+    await expect(panel).not.toContainText("Select a document");
+    await expect
+      .poll(() => panel.evaluate((el) => getComputedStyle(el).borderLeftWidth))
+      .toBe("1px");
+
+    const horizontalOverflow = await page.evaluate(() => {
+      const root = document.documentElement;
+      const body = document.body;
+      return Math.max(root.scrollWidth, body.scrollWidth) - root.clientWidth;
+    });
+
+    expect(horizontalOverflow).toBeLessThanOrEqual(1);
   });
 });
 

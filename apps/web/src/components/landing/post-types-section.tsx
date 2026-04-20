@@ -94,17 +94,20 @@ export function PostTypesSection() {
       )}
     >
       <div className="mx-auto max-w-5xl">
-        <div className="mb-10 md:mb-12">
-          <span className="mb-3 inline-flex items-center border border-border px-3 py-1 text-xs tracking-widest text-muted-foreground uppercase">
-            Post types
-          </span>
+        <div className="mb-10 md:mb-14">
+          <div className="mb-4 inline-flex items-center gap-2.5 text-muted-foreground">
+            <span aria-hidden className="inline-block size-1.5 rounded-full bg-primary" />
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.32em]">
+              Post types
+            </span>
+          </div>
           <h2
             id="post-types-heading"
-            className="text-2xl font-bold tracking-[-0.02em] text-pretty sm:text-3xl"
+            className="font-logo text-3xl font-semibold leading-[1.05] tracking-[-0.015em] text-pretty sm:text-4xl md:text-[2.75rem]"
           >
             Five ways to learn from every document
           </h2>
-          <p className="mt-2 max-w-lg text-muted-foreground">
+          <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground text-pretty md:text-lg">
             Each post type reinforces knowledge differently - from active recall quizzes to
             cross-document connections.
           </p>
@@ -152,7 +155,7 @@ export function PostTypesSection() {
                   <div className="min-w-0">
                     <span
                       className={cn(
-                        "text-sm font-semibold transition-colors duration-150",
+                        "font-logo text-lg font-semibold leading-tight tracking-tight transition-colors duration-150",
                         isActive ? "text-foreground" : "text-foreground/80",
                       )}
                     >
@@ -160,7 +163,7 @@ export function PostTypesSection() {
                     </span>
                     <p
                       className={cn(
-                        "mt-0.5 text-sm transition-colors duration-150",
+                        "mt-1 text-sm leading-relaxed transition-colors duration-150 text-pretty",
                         isActive ? "text-muted-foreground" : "text-muted-foreground/60",
                       )}
                     >

@@ -79,7 +79,8 @@ export async function seedEarlyAdopterGrant(email: string) {
   }
 }
 
-export async function cleanupTestData(email: string) {
+export async function cleanupTestData(email: string | undefined) {
+  if (!email) return;
   try {
     const { ok, status, body } = await convexE2ERequest("/api/e2e-cleanup", email);
     if (!ok) {
@@ -114,7 +115,7 @@ export async function signUp(page: Page): Promise<{ email: string }> {
   await page.goto("/signin");
   await page.waitForLoadState("networkidle");
   await dismissCookieConsent(page);
-  await page.getByRole("button", { name: /sign up/i }).click();
+  await page.getByRole("button", { name: /create an account/i }).click();
   await page.getByLabel("Name").fill(user.name);
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);

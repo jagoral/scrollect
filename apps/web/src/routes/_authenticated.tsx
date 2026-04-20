@@ -67,7 +67,7 @@ function AuthenticatedLayout() {
               </div>
             </LibraryDetailProvider>
           ) : (
-            <main className="w-full max-w-3xl shrink-0">
+            <main className="w-full min-w-0">
               <Outlet />
             </main>
           )}

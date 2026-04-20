@@ -76,17 +76,20 @@ export function PricingSection() {
       )}
     >
       <div className="mx-auto max-w-5xl">
-        <div className="mb-10 md:mb-12">
-          <span className="mb-3 inline-flex items-center border border-border px-3 py-1 text-xs tracking-widest text-muted-foreground uppercase">
-            Pricing
-          </span>
+        <div className="mb-10 md:mb-14">
+          <div className="mb-4 inline-flex items-center gap-2.5 text-muted-foreground">
+            <span aria-hidden className="inline-block size-1.5 rounded-full bg-primary" />
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.32em]">
+              Pricing
+            </span>
+          </div>
           <h2
             id="pricing-heading"
-            className="text-2xl font-bold tracking-[-0.02em] text-pretty sm:text-3xl"
+            className="font-logo text-3xl font-semibold leading-[1.05] tracking-[-0.015em] text-pretty sm:text-4xl md:text-[2.75rem]"
           >
             One tier to try it, one tier to live in it
           </h2>
-          <p className="mt-2 max-w-lg text-muted-foreground">
+          <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground text-pretty md:text-lg">
             No seats, no add-ons, no surprise usage bills. Free is enough to decide if Scrollect
             fits; Pro is enough to make it a habit.
           </p>
@@ -103,24 +106,26 @@ export function PricingSection() {
               )}
             >
               {tier.highlight && (
-                <span className="absolute top-4 right-4 inline-flex items-center border border-primary px-2 py-0.5 text-[10px] tracking-[0.15em] text-primary uppercase">
+                <span className="absolute top-4 right-4 inline-flex items-center border border-primary px-2 py-0.5 font-mono text-[10px] font-medium tracking-[0.22em] text-primary uppercase">
                   Recommended
                 </span>
               )}
 
-              <span className="text-xs tracking-widest text-muted-foreground uppercase">
+              <span className="font-mono text-[10px] font-medium tracking-[0.28em] text-muted-foreground uppercase">
                 {tier.eyebrow}
               </span>
-              <h3 className="mt-3 text-2xl font-bold tracking-tight">{tier.name}</h3>
+              <h3 className="mt-3 font-logo text-3xl font-semibold tracking-tight">{tier.name}</h3>
 
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-mono text-4xl font-bold tracking-tight text-foreground">
+                <span className="font-mono text-[2.75rem] font-semibold tabular-nums tracking-tight text-foreground">
                   {tier.price}
                 </span>
                 <span className="text-sm text-muted-foreground">/ {tier.priceUnit}</span>
               </div>
 
-              <p className="mt-4 text-sm text-muted-foreground text-pretty">{tier.blurb}</p>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground text-pretty">
+                {tier.blurb}
+              </p>
 
               <ul className="mt-6 flex-1 space-y-2.5">
                 {tier.features.map((feature) => (

@@ -116,14 +116,14 @@ test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
     await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
 
     const main = page.locator('[data-testid="app-main-scroll"]');
-    const closedDivider = page.locator('[data-testid="feed-detail-divider"]');
-    await expect(page.locator('[data-testid="feed-detail-panel"]')).toHaveCount(0);
+    const panel = page.locator('[data-testid="feed-detail-panel"]');
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("Select a post");
     await expect
       .poll(() => main.evaluate((el) => getComputedStyle(el).borderRightWidth))
       .toBe("0px");
-    await expect(closedDivider).toBeVisible();
     await expect
-      .poll(() => closedDivider.evaluate((el) => getComputedStyle(el).borderLeftWidth))
+      .poll(() => panel.evaluate((el) => getComputedStyle(el).borderLeftWidth))
       .toBe("1px");
 
     await page
@@ -132,9 +132,8 @@ test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
       .locator('[data-testid="source-badge"]')
       .click();
 
-    const panel = page.locator('[data-testid="feed-detail-panel"]');
     await expect(panel).toBeVisible();
-    await expect(closedDivider).toHaveCount(0);
+    await expect(panel).not.toContainText("Select a post");
     await expect
       .poll(() => panel.evaluate((el) => getComputedStyle(el).borderLeftWidth))
       .toBe("1px");
@@ -146,6 +145,22 @@ test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
     });
 
     expect(horizontalOverflow).toBeLessThanOrEqual(1);
+  });
+
+  test("saved page keeps the desktop detail placeholder rail", async ({ page }) => {
+    await page.setViewportSize({ width: 1536, height: 864 });
+    await page.goto("/app/saved");
+
+    const main = page.locator('[data-testid="app-main-scroll"]');
+    const panel = page.locator('[data-testid="feed-detail-panel"]');
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("Select a post");
+    await expect
+      .poll(() => main.evaluate((el) => getComputedStyle(el).borderRightWidth))
+      .toBe("0px");
+    await expect
+      .poll(() => panel.evaluate((el) => getComputedStyle(el).borderLeftWidth))
+      .toBe("1px");
   });
 
   test("desktop detail panel stays fixed while the browser page scrolls", async ({ page }) => {

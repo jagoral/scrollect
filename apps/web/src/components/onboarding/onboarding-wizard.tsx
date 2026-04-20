@@ -4,9 +4,10 @@ import type { Doc } from "@scrollect/backend/convex/_generated/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { ArrowRight, CheckCircle2, FileText, Globe, Loader2, Sparkles, Upload } from "lucide-react";
+import { ArrowRight, Check, FileText, Globe, Loader2, Sparkles, Upload } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import { DETAIL_RULED_BG_STYLE } from "@/components/detail-rail";
 import {
   ProcessingProgressBar,
   isProcessingStatus,
@@ -30,9 +31,9 @@ function resolveStage({
   return "welcome";
 }
 
-const steps: ReadonlyArray<{ key: OnboardingStage; label: string }> = [
+const STEPS: ReadonlyArray<{ key: OnboardingStage; label: string }> = [
   { key: "welcome", label: "Add content" },
-  { key: "processing", label: "AI generates posts" },
+  { key: "processing", label: "AI extracts posts" },
   { key: "ready", label: "Scroll your feed" },
 ];
 
@@ -43,6 +44,7 @@ export function OnboardingWizard({ documents }: { documents: OnboardingDocument[
   const firstPostQuery = usePaginatedQuery(api.feed.queries.list, {}, { initialNumItems: 1 });
   const hasFirstPost = firstPostQuery.results.length > 0;
   const stage = resolveStage({ documents, hasFirstPost });
+  const stageIndex = STEPS.findIndex((s) => s.key === stage);
 
   const markedRef = useRef(false);
   useEffect(() => {
@@ -55,62 +57,81 @@ export function OnboardingWizard({ documents }: { documents: OnboardingDocument[
 
   if (!profile || profile.onboardingCompleted) return null;
 
+  const progress = ((stageIndex + 1) / STEPS.length) * 100;
+  const currentStep = STEPS[stageIndex];
+
   return (
-    <div className="mx-4 md:mx-6 mb-8 border border-border bg-card">
-      <div className="grid gap-0 border-b border-border md:grid-cols-3">
-        {steps.map((step, i) => {
-          const reached = steps.findIndex((s) => s.key === stage) >= i;
-          return (
-            <div
-              key={step.key}
-              className={cn(
-                "flex items-center gap-3 px-5 py-3 text-sm",
-                i > 0 && "border-t border-border md:border-t-0 md:border-l",
-                reached ? "text-foreground" : "text-muted-foreground/70",
-              )}
-            >
+    <section
+      data-testid="onboarding-wizard"
+      className="mx-4 mb-10 border border-border bg-card md:mx-6"
+    >
+      <div className="flex items-center gap-4 px-5 pt-4 pb-3 md:px-6">
+        <span className="shrink-0 font-mono text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
+          <span className="text-foreground tabular-nums">
+            {String(stageIndex + 1).padStart(2, "0")}
+          </span>
+          <span className="text-muted-foreground/50"> / 0{STEPS.length}</span>
+          <span className="mx-2 text-muted-foreground/30">·</span>
+          <span className="text-foreground normal-case tracking-normal">{currentStep.label}</span>
+        </span>
+        <div
+          className="relative h-[2px] flex-1 overflow-hidden bg-border/60"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
+        >
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 transition-[width] duration-500 ease-out",
+              stage === "ready" ? "bg-emerald-500" : "bg-primary",
+            )}
+            style={{ width: `${progress}%` }}
+          />
+          {STEPS.map((_, i) => {
+            if (i === 0) return null;
+            const pct = (i / STEPS.length) * 100;
+            return (
               <span
-                className={cn(
-                  "flex size-6 items-center justify-center border font-mono text-xs",
-                  reached
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground",
-                )}
-              >
-                {i + 1}
-              </span>
-              <span className={cn(reached ? "font-medium" : "")}>{step.label}</span>
-            </div>
-          );
-        })}
+                key={i}
+                aria-hidden
+                className="absolute top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-card ring-1 ring-border"
+                style={{ left: `${pct}%` }}
+              />
+            );
+          })}
+        </div>
       </div>
 
-      <div className="px-6 py-8 md:px-10 md:py-10">
+      <div
+        className="border-t border-border px-6 py-10 md:px-10 md:py-12"
+        style={DETAIL_RULED_BG_STYLE}
+      >
         {stage === "welcome" && <WelcomeStage />}
         {stage === "processing" && <ProcessingStage documents={documents} />}
         {stage === "ready" && <ReadyStage />}
       </div>
-    </div>
+    </section>
   );
 }
 
 function WelcomeStage() {
   return (
     <div className="flex flex-col items-start gap-6">
-      <div className="inline-flex items-center gap-2 border border-primary/40 bg-primary/5 px-3 py-1 text-[10px] font-medium tracking-[0.15em] text-primary uppercase">
+      <span className="inline-flex items-center gap-2 border border-primary/40 bg-primary/5 px-3 py-1 font-mono text-[10px] font-medium tracking-[0.22em] text-primary uppercase">
         <Sparkles className="size-3" />
         Welcome to Scrollect
-      </div>
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-balance sm:text-3xl">
-          Let's turn something you've read into posts you'll remember.
-        </h2>
-        <p className="mt-3 max-w-xl text-muted-foreground">
-          Add any PDF, article, YouTube video, or note. In about a minute you'll have a personal
-          feed of insights, quotes, and quizzes drawn from it.
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-3">
+      </span>
+      <h2 className="font-logo text-[2rem] font-semibold leading-[1.05] tracking-tight text-balance md:text-[2.6rem]">
+        Let&rsquo;s turn something you&rsquo;ve read
+        <br className="hidden sm:block" />
+        into posts you&rsquo;ll remember.
+      </h2>
+      <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+        Add any PDF, article, YouTube video, or note. In about a minute you&rsquo;ll have a personal
+        feed of insights, quotes, and quizzes drawn from it.
+      </p>
+      <div className="flex flex-wrap gap-2 pt-1">
         <Button size="lg" render={<Link to="/app/upload" />}>
           <Upload className="size-4" />
           Upload a file
@@ -119,7 +140,7 @@ function WelcomeStage() {
           <Globe className="size-4" />
           Paste a URL
         </Button>
-        <Button size="lg" variant="outline" render={<Link to="/app/upload" />}>
+        <Button size="lg" variant="ghost" render={<Link to="/app/upload" />}>
           <FileText className="size-4" />
           Paste text
         </Button>
@@ -134,27 +155,45 @@ function ProcessingStage({ documents }: { documents: OnboardingDocument[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start gap-4">
-        <div className="flex size-10 shrink-0 items-center justify-center border border-primary/40 bg-primary/5 text-primary">
-          <Loader2 className="size-5 animate-spin" />
-        </div>
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight">Generating your first posts</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            This typically takes 1-3 minutes. You can stay here or come back later - we'll keep
-            working in the background.
-          </p>
-        </div>
+      <span className="inline-flex items-center gap-2 border border-primary/40 bg-primary/5 px-3 py-1 font-mono text-[10px] font-medium tracking-[0.22em] text-primary uppercase">
+        <Loader2 className="size-3 animate-spin" />
+        Working on it
+      </span>
+
+      <div className="max-w-xl">
+        <h2 className="font-logo text-[1.85rem] font-semibold leading-[1.08] tracking-tight text-balance md:text-[2.2rem]">
+          Generating your first posts.
+        </h2>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+          This usually takes a minute or three. Stay here to watch, or come back later - we&rsquo;ll
+          keep working while you&rsquo;re away.
+        </p>
       </div>
 
       {active && (
-        <div className="border border-border border-l-[2px] border-l-primary bg-background px-5 py-4">
-          <p className="line-clamp-1 text-sm font-semibold">{active.title}</p>
-          <div className="mt-2 flex items-center gap-3">
+        <div className="relative border border-border bg-background/80 px-5 py-4 backdrop-blur">
+          <span
+            aria-hidden
+            className={cn(
+              "absolute inset-y-0 left-0 w-[2px]",
+              isProcessingStatus(active.status) ? "bg-primary" : "bg-muted-foreground/40",
+            )}
+          />
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Now processing
+              </p>
+              <p className="mt-1.5 line-clamp-1 font-logo text-[17px] font-medium leading-tight">
+                {active.title}
+              </p>
+            </div>
             {isProcessingStatus(active.status) ? (
               <ProcessingProgressBar status={active.status} />
             ) : (
-              <span className="text-xs text-muted-foreground">{active.status}</span>
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                {active.status}
+              </span>
             )}
           </div>
         </div>
@@ -166,19 +205,18 @@ function ProcessingStage({ documents }: { documents: OnboardingDocument[] }) {
 function ReadyStage() {
   return (
     <div className="flex flex-col items-start gap-5">
-      <div className="inline-flex items-center gap-2 border border-emerald-500/40 bg-emerald-500/5 px-3 py-1 text-[10px] font-medium tracking-[0.15em] text-emerald-600 uppercase dark:text-emerald-400">
-        <CheckCircle2 className="size-3" />
-        Your first posts are ready
-      </div>
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-balance sm:text-3xl">
-          The good part. Scroll your first feed.
-        </h2>
-        <p className="mt-3 max-w-xl text-muted-foreground">
-          Your posts are waiting in the feed. React to shape what you see next - Scrollect learns as
-          you go.
-        </p>
-      </div>
+      <span className="inline-flex items-center gap-2 border border-emerald-500/40 bg-emerald-500/5 px-3 py-1 font-mono text-[10px] font-medium tracking-[0.22em] text-emerald-600 uppercase dark:text-emerald-400">
+        <Check className="size-3" strokeWidth={3} />
+        First posts ready
+      </span>
+      <h2 className="font-logo text-[2rem] font-semibold leading-[1.05] tracking-tight text-balance md:text-[2.6rem]">
+        The good part.
+        <br className="hidden sm:block" />
+        Scroll your first feed.
+      </h2>
+      <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+        Your posts are waiting. React to shape what comes next - Scrollect learns from every tap.
+      </p>
       <Button size="lg" render={<Link to="/app/feed" />}>
         Open the feed
         <ArrowRight className="size-4" />

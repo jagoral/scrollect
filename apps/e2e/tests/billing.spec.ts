@@ -52,13 +52,16 @@ test.describe("Free-tier billing UX", () => {
     page,
   }) => {
     await expect(page).toHaveURL(APP_SUCCESS_URL);
-    await expect(page.getByText(/welcome to scrollect/i)).toBeVisible();
+    const wizard = page.getByTestId("onboarding-wizard");
+    await expect(wizard).toBeVisible();
+    await expect(wizard.getByText(/welcome to scrollect/i)).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: /turn something you've read into posts/i }),
+      wizard.getByRole("heading", { name: /turn something you['’]ve read\s+into posts/i }),
     ).toBeVisible();
-    await expect(page.getByText("Add content")).toBeVisible();
-    await expect(page.getByText("AI generates posts")).toBeVisible();
-    await expect(page.getByText("Scroll your feed")).toBeVisible();
+    await expect(wizard.getByText("Add content")).toBeVisible();
+    await expect(wizard.getByRole("link", { name: /upload a file/i })).toBeVisible();
+    await expect(wizard.getByRole("link", { name: /paste a url/i })).toBeVisible();
+    await expect(wizard.getByRole("link", { name: /paste text/i })).toBeVisible();
   });
 
   test("Settings shows free-tier usage meter and upgrade dialog opens on CTA", async ({ page }) => {

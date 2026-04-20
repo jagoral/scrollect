@@ -15,7 +15,9 @@ async function bookmarkFirstPostAndNavigateToDocument(page: Page) {
   // reliably reach the article's onClick.
   await firstPost.locator('[data-testid="source-badge"]').click();
 
-  const libraryLink = page.getByRole("link", { name: /view in library/i });
+  const detailPanel = page.locator('[data-testid="feed-detail-panel"]');
+  await expect(detailPanel).toBeVisible({ timeout: 10000 });
+  const libraryLink = detailPanel.getByRole("link", { name: /^library$/i });
   await expect(libraryLink).toBeVisible({ timeout: 10000 });
   await libraryLink.click();
 

@@ -2,19 +2,18 @@ import { api } from "@scrollect/backend/convex/_generated/api";
 import { formatFileSize, getFileSizeLimits } from "@scrollect/backend/src/platform/fileSizeLimits";
 import { useMutation } from "convex/react";
 import { Link } from "@tanstack/react-router";
-import { FileText, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { LearningGoalOnboardingPrompt } from "@/components/upload/learning-goal-onboarding-dialog";
 import { useUploadErrorHandler } from "@/components/upload/upload-error-provider";
 import { useBilling } from "@/hooks/use-billing";
+import { cn } from "@/lib/utils";
 
 type UploadTextTabProps = {
   onDocumentCreated: (prompt: LearningGoalOnboardingPrompt) => void;
@@ -34,22 +33,27 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
   const generateUploadUrl = useMutation(api.content.documents.generateUploadUrl);
   const createFromText = useMutation(api.content.documents.createFromText);
 
+  const trimmedText = text.trim();
+  const trimmedTitle = title.trim();
+  const bytes = trimmedText ? new Blob([trimmedText]).size : 0;
+  const overLimit = bytes > fileSizeLimits.text;
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const trimmedText = text.trim();
-      const trimmedTitle = title.trim();
+      const valueText = text.trim();
+      const valueTitle = title.trim();
 
-      if (!trimmedText) {
+      if (!valueText) {
         toast.error("Please enter some text content.");
         return;
       }
-      if (!trimmedTitle) {
+      if (!valueTitle) {
         toast.error("Please enter a title.");
         return;
       }
 
-      const textBytes = new Blob([trimmedText]).size;
+      const textBytes = new Blob([valueText]).size;
       if (textBytes > fileSizeLimits.text) {
         toast.error(
           `Text too large (${formatFileSize(textBytes)}). Maximum is ${formatFileSize(fileSizeLimits.text)}.`,
@@ -63,7 +67,7 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
         const result = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": "text/markdown" },
-          body: trimmedText,
+          body: valueText,
         });
 
         if (!result.ok) {
@@ -73,10 +77,10 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
         const { storageId } = (await result.json()) as { storageId: string };
 
         const documentId = await createFromText({
-          title: trimmedTitle,
+          title: valueTitle,
           storageId: storageId as never,
         });
-        onDocumentCreated({ documentId, documentTitle: trimmedTitle, sourceType: "text" });
+        onDocumentCreated({ documentId, documentTitle: valueTitle, sourceType: "text" });
 
         setTitle("");
         setText("");
@@ -84,11 +88,11 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
         setTextTouched(false);
         posthog.capture("content.uploaded", {
           source_type: "text",
-          file_size: new Blob([trimmedText]).size,
+          file_size: new Blob([valueText]).size,
         });
         toast.success(
           <span>
-            <strong>{trimmedTitle}</strong> added! Processing typically takes 3-5 minutes and
+            <strong>{valueTitle}</strong> added! Processing typically takes 3-5 minutes and
             continues in the background. Add a learning goal now so posts use it.{" "}
             <Link to="/app/library" className="underline">
               View in library
@@ -115,31 +119,42 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
   );
 
   return (
-    <Card className="border border-border p-8">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-16 items-center justify-center border border-border text-muted-foreground">
-            <FileText className="size-8" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold">Paste Text</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Paste any text to add it to your library (max {formatFileSize(fileSizeLimits.text)}
-              ).
-            </p>
-          </div>
+    <div className="border border-border bg-card">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-6 md:p-8">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="inline-block size-1.5 rounded-full bg-primary/70" />
+          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.32em] text-muted-foreground">
+            Write or paste
+          </span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <div>
+          <h2 className="font-logo text-2xl font-semibold tracking-tight md:text-[1.75rem]">
+            Your own notes
+          </h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Paste meeting notes, a summary, or any text worth keeping. Max{" "}
+            {formatFileSize(fileSizeLimits.text)}.
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="text-title">Title</Label>
+          <label
+            htmlFor="text-title"
+            className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground"
+          >
+            Title
+          </label>
           <Input
             id="text-title"
             data-testid="text-title-input"
-            placeholder="e.g., Meeting notes, Research summary"
+            placeholder="e.g., Q3 strategy notes"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={() => setTitleTouched(true)}
             disabled={submitting}
+            className="h-11"
           />
           {titleTouched && !title.trim() && (
             <p className="text-sm text-destructive">Title is required</p>
@@ -147,7 +162,12 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="text-content">Content</Label>
+          <label
+            htmlFor="text-content"
+            className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground"
+          >
+            Content
+          </label>
           <Textarea
             id="text-content"
             data-testid="text-content-input"
@@ -156,24 +176,32 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
             onChange={(e) => setText(e.target.value)}
             onBlur={() => setTextTouched(true)}
             disabled={submitting}
-            rows={6}
+            rows={10}
             className="resize-y"
           />
-          {textTouched && !text.trim() && (
-            <p className="text-sm text-destructive">Text content is required</p>
-          )}
-          {text.trim() && (
-            <p className="text-xs text-muted-foreground">
-              {formatFileSize(new Blob([text.trim()]).size)} of{" "}
-              {formatFileSize(fileSizeLimits.text)}
-            </p>
-          )}
+          <div className="flex items-center justify-between">
+            {textTouched && !text.trim() ? (
+              <p className="text-sm text-destructive">Text content is required</p>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {trimmedText ? `${trimmedText.length.toLocaleString()} characters` : ""}
+              </span>
+            )}
+            <span
+              className={cn(
+                "font-mono text-[10px] tabular-nums uppercase tracking-[0.2em]",
+                overLimit ? "text-destructive" : "text-muted-foreground/70",
+              )}
+            >
+              {formatFileSize(bytes)} / {formatFileSize(fileSizeLimits.text)}
+            </span>
+          </div>
         </div>
 
         <Button
           data-testid="text-submit"
           type="submit"
-          disabled={submitting || !text.trim() || !title.trim()}
+          disabled={submitting || !trimmedText || !trimmedTitle || overLimit}
           className="w-full"
         >
           {submitting ? (
@@ -182,10 +210,10 @@ export function UploadTextTab({ onDocumentCreated }: UploadTextTabProps) {
               Processing...
             </>
           ) : (
-            "Add to Library"
+            "Add to library"
           )}
         </Button>
       </form>
-    </Card>
+    </div>
   );
 }
