@@ -79,9 +79,6 @@ export default defineSchema({
     primarySourceDocumentTitle: v.string(),
     // v2 fields (optional for backward compat with existing dev data)
     postDraftId: v.optional(v.id("postDrafts")),
-    // Widen phase: accept legacy references while the Card->Post migration runs.
-    // Narrowed in the follow-up commit once migrations:runAll has drained them.
-    cardDraftId: v.optional(v.id("cardDrafts")),
     sectionTitle: v.optional(v.string()),
     pageStart: v.optional(v.number()),
     pageEnd: v.optional(v.number()),
@@ -104,17 +101,13 @@ export default defineSchema({
   reactionFeedback: defineTable({
     userId: v.string(),
     postId: v.id("posts"),
-    // Optional during the Card->Post widen window; narrowed back to required
-    // in the follow-up commit after migrations:runAll has set it on every row.
-    postDraftId: v.optional(v.id("postDrafts")),
-    cardDraftId: v.optional(v.id("cardDrafts")),
+    postDraftId: v.id("postDrafts"),
     reaction: reactionType,
     dislikeReason: v.optional(dislikeReason),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_postDraftId", ["userId", "postDraftId"])
-    .index("by_userId_cardDraftId", ["userId", "cardDraftId"]),
+    .index("by_userId_postDraftId", ["userId", "postDraftId"]),
 
   bookmarkLists: defineTable({
     userId: v.string(),
@@ -218,44 +211,12 @@ export default defineSchema({
     strategy: postDraftStrategy,
     rejectionReason: v.optional(v.string()),
     createdAt: v.number(),
-    // Widen-phase mapping back to the originating cardDrafts row so the
-    // posts/reactionFeedback remap migrations can translate old ids. Cleared
-    // by clearPostDraftsLegacyId and removed from the schema in the narrow commit.
-    legacyCardDraftId: v.optional(v.id("cardDrafts")),
   })
     .index("by_documentId", ["documentId"])
     .index("by_userId_status", ["userId", "status"])
     .index("by_documentId_status", ["documentId", "status"])
     .index("by_userId_contentHash", ["userId", "contentHash"])
-    .index("by_userId_status_postType", ["userId", "status", "postType"])
-    .index("by_legacyCardDraftId", ["legacyCardDraftId"]),
-
-  // Widen phase: reintroduced to let schema validation pass while the
-  // Card->Post migrations run. Narrowed out in the follow-up commit.
-  cardDrafts: defineTable({
-    documentId: v.id("documents"),
-    sectionSummaryId: v.optional(v.id("sectionSummaries")),
-    userId: v.string(),
-    cardType: postType,
-    content: v.string(),
-    typeData,
-    sourceChunkIds: v.array(v.id("chunks")),
-    contentHash: v.string(),
-    qualityScore: v.number(),
-    semanticQualityScore: v.optional(v.number()),
-    sectionQualitySignal: v.optional(v.number()),
-    status: postDraftStatus,
-    servedCount: v.optional(v.number()),
-    generationBatch: v.number(),
-    strategy: postDraftStrategy,
-    rejectionReason: v.optional(v.string()),
-    createdAt: v.number(),
-  })
-    .index("by_documentId", ["documentId"])
-    .index("by_userId_status", ["userId", "status"])
-    .index("by_documentId_status", ["documentId", "status"])
-    .index("by_userId_contentHash", ["userId", "contentHash"])
-    .index("by_userId_status_cardType", ["userId", "status", "cardType"]),
+    .index("by_userId_status_postType", ["userId", "status", "postType"]),
 
   entitlementGrants: defineTable({
     userId: v.string(),
