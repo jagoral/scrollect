@@ -15,6 +15,7 @@ import {
   RailMarker,
 } from "@/components/detail-rail";
 import { DocumentThumb, FileTypeIcon } from "@/components/documents/document-thumb";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import { Post } from "@/components/posts";
 import type { PostType, PostView } from "@/components/posts/types";
 import { Button } from "@/components/ui/button";
@@ -185,7 +186,11 @@ function SourceMarker({ post }: { post: PostView }) {
             </div>
             <div className="mt-1 flex items-center gap-1.5 font-mono text-[11px] tracking-wide text-muted-foreground">
               <FileTypeIcon fileType={post.fileType} className="size-3 text-muted-foreground/70" />
-              {post.sectionTitle && <span className="truncate">{post.sectionTitle}</span>}
+              {post.sectionTitle && (
+                <span className="truncate">
+                  <InlineMarkdown>{post.sectionTitle}</InlineMarkdown>
+                </span>
+              )}
               {post.pageStart != null && (
                 <>
                   {post.sectionTitle && <span className="text-foreground/30">&middot;</span>}

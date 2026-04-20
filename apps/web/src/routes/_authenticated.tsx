@@ -28,6 +28,7 @@ function AuthenticatedLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isFeedRoute = pathname === "/app/feed" || pathname === "/app/saved";
   const isLibraryList = pathname === "/app/library" || pathname === "/app/library/";
+  const showDetailGrid = isFeedRoute || isLibraryList;
   const detailGridClassName =
     "grid min-h-[calc(100svh-3.5rem)] min-w-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
   const detailMainClassName = "min-w-0";
@@ -48,29 +49,20 @@ function AuthenticatedLayout() {
       <div className="flex min-h-svh w-full min-w-0 pt-14">
         <AppSidebar />
         <SidebarInset className="min-h-[calc(100svh-3.5rem)] min-w-0 overflow-x-hidden">
-          {isFeedRoute ? (
-            <DetailPanelProvider>
-              <div className={detailGridClassName}>
-                <main className={detailMainClassName} data-testid="app-main-scroll">
-                  <Outlet />
-                </main>
-                <DetailPanel />
-              </div>
-            </DetailPanelProvider>
-          ) : isLibraryList ? (
+          <DetailPanelProvider>
             <LibraryDetailProvider>
-              <div className={detailGridClassName}>
-                <main className={detailMainClassName} data-testid="app-main-scroll">
+              <div className={showDetailGrid ? detailGridClassName : "w-full min-w-0"}>
+                <main
+                  className={showDetailGrid ? detailMainClassName : "w-full min-w-0"}
+                  data-testid="app-main-scroll"
+                >
                   <Outlet />
                 </main>
-                <LibraryDetailPanel />
+                {isFeedRoute && <DetailPanel />}
+                {isLibraryList && <LibraryDetailPanel />}
               </div>
             </LibraryDetailProvider>
-          ) : (
-            <main className="w-full min-w-0">
-              <Outlet />
-            </main>
-          )}
+          </DetailPanelProvider>
         </SidebarInset>
       </div>
     </SidebarProvider>
