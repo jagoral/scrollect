@@ -45,7 +45,7 @@ export function HeroSection() {
             >
               Get Started
             </Button>
-            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground/70">
+            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground">
               Free during beta · No credit card
             </span>
             <span className="text-sm text-muted-foreground">
