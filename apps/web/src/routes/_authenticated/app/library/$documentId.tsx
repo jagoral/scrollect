@@ -18,6 +18,7 @@ import { ImportHighlightsDialog } from "@/components/documents/import-highlights
 import { LearningGoalSection } from "@/components/documents/learning-goal-section";
 import { PipelineError } from "@/components/documents/pipeline-error";
 import { ProcessingProgress, isProcessingStatus } from "@/components/documents/processing-progress";
+import { TopicAssignmentSection } from "@/components/library/topic-assignment-section";
 import { NotFound } from "@/components/not-found";
 import { DocumentTagSection } from "@/components/tags/document-tag-section";
 import {
@@ -185,6 +186,7 @@ function DocumentDetailPage() {
       {(document.status === "ready" || document.learningGoalOnboardingStatus === "pending") && (
         <>
           {document.status === "ready" && <DocumentTagSection documentId={document._id} />}
+          {document.status === "ready" && <TopicAssignmentSection documentId={document._id} />}
           <LearningGoalSection
             documentId={document._id}
             initialGoal={document.learningGoal}

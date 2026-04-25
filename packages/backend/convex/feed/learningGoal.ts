@@ -3,23 +3,43 @@ import type { GenericMutationCtx, GenericQueryCtx } from "convex/server";
 import type { DataModel, Id } from "../_generated/dataModel";
 
 /**
- * Resolver seam for the learning-goal vector used by feed scoring.
+ * Resolver seam for the learning-goal vector used by feed scoring (ADR-018 §3, ADR-019).
  *
- * Today it returns `documents.learningGoalEmbedding` for the given document. The vector
- * is colocated with the `learningGoal` text on the same document so edits on one
- * document never trample another document's goal. When per-topic goals ship
- * (ADR-018 §3 future-ready resolver seam), this function will look up the document's
- * topic, resolve the topic's embedding, and fall back to the per-document default.
- * Scoring code calls this helper and stays topic-agnostic.
+ * Resolution order is `topic → document → undefined`:
+ *  1. If the document is assigned to a topic and that topic has a `learningGoalEmbedding`,
+ *     return the topic's embedding. Topics are a personal goal-scoped lens over a subset
+ *     of documents; ranking against the topic vector lets users focus the feed.
+ *  2. Otherwise, return the document's own `learningGoalEmbedding` (the per-document goal
+ *     a user set during onboarding or on the document detail page).
+ *  3. Otherwise, return `undefined`. The serving scorer treats `undefined` as
+ *     `goalRelevance = 1.0`.
  *
- * Returns `undefined` when the document has no learning goal or the embedding has
- * not yet been computed (scheduled action still pending, or provider error). The
- * serving scorer treats `undefined` as `goalRelevance = 1.0`.
+ * Scoring code calls this helper and stays topic-agnostic. The schema permits multiple
+ * `documentTopics` rows per document so future multi-select doesn't require a migration;
+ * v1 UI is single-select, but if multiple rows exist the most-recent one wins.
+ *
+ * Note: `userProfiles.learningGoalEmbedding` is intentionally not consulted - per ADR-019,
+ * the per-document goal is the ultimate fallback, never a profile-level default.
  */
 export async function getEffectiveLearningGoalEmbedding(
   ctx: GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>,
   documentId: Id<"documents">,
 ): Promise<number[] | undefined> {
+  const assignments = await ctx.db
+    .query("documentTopics")
+    .withIndex("by_documentId", (q) => q.eq("documentId", documentId))
+    .collect();
+
+  if (assignments.length > 0) {
+    const mostRecent = assignments.reduce((best, current) =>
+      current.createdAt > best.createdAt ? current : best,
+    );
+    const topic = await ctx.db.get(mostRecent.topicId);
+    if (topic?.learningGoalEmbedding && topic.learningGoalEmbedding.length > 0) {
+      return topic.learningGoalEmbedding;
+    }
+  }
+
   const doc = await ctx.db.get(documentId);
   return doc?.learningGoalEmbedding ?? undefined;
 }

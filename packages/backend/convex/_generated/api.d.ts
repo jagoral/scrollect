@@ -75,6 +75,8 @@ import type * as migrations from "../migrations.js";
 import type * as ops_healthCheck from "../ops/healthCheck.js";
 import type * as ops_testing from "../ops/testing.js";
 import type * as ops_testingActions from "../ops/testingActions.js";
+import type * as topics_topics from "../topics/topics.js";
+import type * as topics_topicsActions from "../topics/topicsActions.js";
 
 import type {
   ApiFromModules,
@@ -150,6 +152,8 @@ declare const fullApi: ApiFromModules<{
   "ops/healthCheck": typeof ops_healthCheck;
   "ops/testing": typeof ops_testing;
   "ops/testingActions": typeof ops_testingActions;
+  "topics/topics": typeof topics_topics;
+  "topics/topicsActions": typeof topics_topicsActions;
 }>;
 
 /**

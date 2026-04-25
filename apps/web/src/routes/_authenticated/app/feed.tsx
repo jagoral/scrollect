@@ -4,11 +4,21 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { BookOpen, CheckCircle, FileUp, Loader2, Rss, Sparkles, Timer } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle,
+  FileUp,
+  Library,
+  Loader2,
+  Rss,
+  Sparkles,
+  Timer,
+} from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/document-status";
+import { FeedScopeBanner } from "@/components/feed/feed-scope-banner";
 import { UnreadPostsBanner } from "@/components/feed/unread-posts-banner";
 import { PageHeader } from "@/components/page-header";
 import { Post } from "@/components/posts";
@@ -18,11 +28,17 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFeedUnreadPosts } from "@/hooks/use-feed-unread-posts";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { looksLikeConvexId } from "@/lib/convex-id";
 
+/**
+ * Feed search params. `topicId` and `documentId` are mutually exclusive;
+ * `topicId` wins when both are present.
+ */
 type FeedSearch = {
   noAutoServe?: boolean;
-  scope?: "all" | "document";
+  scope?: "all" | "document" | "topic";
   documentId?: string;
+  topicId?: string;
 };
 
 export const Route = createFileRoute("/_authenticated/app/feed")({
@@ -31,10 +47,20 @@ export const Route = createFileRoute("/_authenticated/app/feed")({
     meta: [{ title: "Feed | Scrollect" }],
   }),
   validateSearch: (search: Record<string, unknown>): FeedSearch => {
+    const topicId =
+      typeof search.topicId === "string" && search.topicId.length > 0 ? search.topicId : undefined;
     const documentId =
-      typeof search.documentId === "string" && search.documentId.length > 0
+      !topicId && typeof search.documentId === "string" && search.documentId.length > 0
         ? search.documentId
         : undefined;
+
+    const scope: FeedSearch["scope"] = topicId
+      ? "topic"
+      : documentId
+        ? "document"
+        : search.scope === "all"
+          ? "all"
+          : undefined;
 
     return {
       noAutoServe:
@@ -44,35 +70,66 @@ export const Route = createFileRoute("/_authenticated/app/feed")({
         search.noAutoGenerate === true ||
         search.noAutoGenerate === "true" ||
         search.noAutoGenerate === "",
-      scope: documentId ? "document" : search.scope === "all" ? "all" : undefined,
+      scope,
       documentId,
+      topicId,
     };
   },
   component: FeedPage,
 });
 
 function FeedPage() {
-  const { noAutoServe, documentId } = Route.useSearch();
+  const { noAutoServe, documentId, topicId } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const isDocumentScoped = documentId !== undefined;
-  const scopedDocumentId = isDocumentScoped ? (documentId as Id<"documents">) : undefined;
+  const validTopicId =
+    topicId && looksLikeConvexId(topicId) ? (topicId as Id<"topics">) : undefined;
+  const validDocumentId =
+    !validTopicId && documentId && looksLikeConvexId(documentId)
+      ? (documentId as Id<"documents">)
+      : undefined;
+  const malformedTopicId = topicId !== undefined && validTopicId === undefined;
+  const malformedDocumentId =
+    !validTopicId && documentId !== undefined && validDocumentId === undefined;
+  const scopedTopicId = validTopicId;
+  const scopedDocumentId = validDocumentId;
   const feedArgs = useMemo(
-    () => (scopedDocumentId ? { documentId: scopedDocumentId } : {}),
-    [scopedDocumentId],
+    () =>
+      scopedTopicId
+        ? { topicId: scopedTopicId }
+        : scopedDocumentId
+          ? { documentId: scopedDocumentId }
+          : {},
+    [scopedTopicId, scopedDocumentId],
   );
-  const feedScopeKey = scopedDocumentId ? `document:${scopedDocumentId}` : "all";
+  const feedScopeKey = scopedTopicId
+    ? `topic:${scopedTopicId}`
+    : scopedDocumentId
+      ? `document:${scopedDocumentId}`
+      : "all";
 
-  const { results, status, loadMore } = usePaginatedQuery(api.feed.queries.list, feedArgs, {
-    initialNumItems: 10,
-  });
+  const skipFeedQuery = malformedTopicId || malformedDocumentId;
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.feed.queries.list,
+    skipFeedQuery ? "skip" : feedArgs,
+    {
+      initialNumItems: 10,
+    },
+  );
   const serveFeed = useMutation(api.feed.serving.serveFeed);
   const serveDocumentFeed = useMutation(api.feed.serving.serveDocumentFeed);
+  const serveTopicFeed = useMutation(api.feed.serving.serveTopicFeed);
   const { data: scopedDocument } = useQuery(
     convexQuery(api.content.documents.get, scopedDocumentId ? { id: scopedDocumentId } : "skip"),
   );
-  const feedScopeLabel = scopedDocumentId
-    ? (scopedDocument?.title ?? "this document feed")
-    : "your feed";
+  const { data: scopedTopicData } = useQuery(
+    convexQuery(api.topics.topics.getTopic, scopedTopicId ? { topicId: scopedTopicId } : "skip"),
+  );
+  const scopedTopic = scopedTopicData?.topic;
+  const feedScopeLabel = scopedTopicId
+    ? (scopedTopic?.name ?? "this topic feed")
+    : scopedDocumentId
+      ? (scopedDocument?.title ?? "this document feed")
+      : "your feed";
 
   const [serving, setServing] = useState(false);
   const [serveReason, setServeReason] = useState<"no_drafts" | "processing" | null>(null);
@@ -93,6 +150,18 @@ function FeedPage() {
 
   const servingRef = useRef(false);
 
+  const scopeKind: "topic" | "document" | "all" = scopedTopicId
+    ? "topic"
+    : scopedDocumentId
+      ? "document"
+      : "all";
+
+  const topicNotFound =
+    malformedTopicId || (scopedTopicId !== undefined && scopedTopicData === null);
+  const documentNotFound =
+    malformedDocumentId || (scopedDocumentId !== undefined && scopedDocument === null);
+  const scopeNotFound = topicNotFound || documentNotFound;
+
   const serve = useCallback(async () => {
     if (servingRef.current) return;
     servingRef.current = true;
@@ -100,14 +169,17 @@ function FeedPage() {
     setError(null);
     setServeReason(null);
     try {
-      const result = scopedDocumentId
-        ? await serveDocumentFeed({ documentId: scopedDocumentId })
-        : await serveFeed({});
+      const result = scopedTopicId
+        ? await serveTopicFeed({ topicId: scopedTopicId })
+        : scopedDocumentId
+          ? await serveDocumentFeed({ documentId: scopedDocumentId })
+          : await serveFeed({});
       posthog.capture("feed.served", {
         post_count: result.posts.length,
         reason: result.reason ?? null,
-        scope: scopedDocumentId ? "document" : "all",
+        scope: scopeKind,
         documentId: scopedDocumentId ?? null,
+        topicId: scopedTopicId ?? null,
       });
       if (result.posts.length > 0) {
         const postIds = result.posts.map((postId) => postId as string);
@@ -125,70 +197,88 @@ function FeedPage() {
       servingRef.current = false;
       setServing(false);
     }
-  }, [serveDocumentFeed, serveFeed, posthog, scopedDocumentId, registerBatch]);
+  }, [
+    serveDocumentFeed,
+    serveFeed,
+    serveTopicFeed,
+    posthog,
+    scopedDocumentId,
+    scopedTopicId,
+    scopeKind,
+    registerBatch,
+  ]);
 
   useEffect(() => {
     if (noAutoServe) return;
-    const autoServeKey = scopedDocumentId ?? "all";
+    if (scopeNotFound) return;
+    const autoServeKey = scopedTopicId ?? scopedDocumentId ?? "all";
     if (autoServedScopeRef.current === autoServeKey) return;
     if (status === "LoadingFirstPage") return;
     if (results.length > 0) return;
 
     autoServedScopeRef.current = autoServeKey;
     serve();
-  }, [noAutoServe, scopedDocumentId, status, results.length, serve]);
+  }, [noAutoServe, scopeNotFound, scopedDocumentId, scopedTopicId, status, results.length, serve]);
 
   const openedScopeRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!scopedDocumentId) return;
-    if (openedScopeRef.current === scopedDocumentId) return;
-    openedScopeRef.current = scopedDocumentId;
+    const scopeId = scopedTopicId ?? scopedDocumentId;
+    if (!scopeId) return;
+    if (scopeNotFound) return;
+    if (openedScopeRef.current === scopeId) return;
+    openedScopeRef.current = scopeId;
     posthog.capture("feed_scope_opened", {
-      scope: "document",
-      documentId: scopedDocumentId,
+      scope: scopeKind,
+      documentId: scopedDocumentId ?? null,
+      topicId: scopedTopicId ?? null,
     });
-  }, [posthog, scopedDocumentId]);
+  }, [posthog, scopeNotFound, scopedDocumentId, scopedTopicId, scopeKind]);
 
   const handleServe = useCallback(() => {
     posthog.capture("feed.serve_clicked", {
       existing_post_count: results.length,
-      scope: scopedDocumentId ? "document" : "all",
+      scope: scopeKind,
       documentId: scopedDocumentId ?? null,
+      topicId: scopedTopicId ?? null,
     });
     serve();
-  }, [posthog, serve, results.length, scopedDocumentId]);
+  }, [posthog, serve, results.length, scopedDocumentId, scopedTopicId, scopeKind]);
 
   const handleResetScope = useCallback(() => {
     posthog.capture("feed_scope_reset", {
-      from_scope: "document",
+      from_scope: scopeKind,
       documentId: scopedDocumentId ?? null,
+      topicId: scopedTopicId ?? null,
     });
     navigate({
       search: (prev) => ({
         ...prev,
         documentId: undefined,
+        topicId: undefined,
       }),
     });
-  }, [navigate, posthog, scopedDocumentId]);
+  }, [navigate, posthog, scopedDocumentId, scopedTopicId, scopeKind]);
 
   const jumpToUnreadPost = useCallback(() => {
     if (!firstUnreadPostId) return;
     posthog.capture("feed.unread_jump_clicked", {
       count: unreadCount,
-      scope: scopedDocumentId ? "document" : "all",
+      scope: scopeKind,
       documentId: scopedDocumentId ?? null,
+      topicId: scopedTopicId ?? null,
     });
     setPendingJumpPostId(firstUnreadPostId);
-  }, [firstUnreadPostId, posthog, scopedDocumentId, unreadCount]);
+  }, [firstUnreadPostId, posthog, scopedDocumentId, scopedTopicId, scopeKind, unreadCount]);
 
   const dismissUnreadPosts = useCallback(() => {
     posthog.capture("feed.unread_batch_dismissed", {
       count: unreadCount,
-      scope: scopedDocumentId ? "document" : "all",
+      scope: scopeKind,
       documentId: scopedDocumentId ?? null,
+      topicId: scopedTopicId ?? null,
     });
     clearBatch();
-  }, [clearBatch, posthog, scopedDocumentId, unreadCount]);
+  }, [clearBatch, posthog, scopedDocumentId, scopedTopicId, scopeKind, unreadCount]);
 
   const handlePostViewed = useCallback(
     (postId: string) => {
@@ -198,11 +288,20 @@ function FeedPage() {
 
       posthog.capture("feed.unread_batch_seen", {
         count: unreadCount,
-        scope: scopedDocumentId ? "document" : "all",
+        scope: scopeKind,
         documentId: scopedDocumentId ?? null,
+        topicId: scopedTopicId ?? null,
       });
     },
-    [markBatchSeenForPost, posthog, scopedDocumentId, unreadCount, unreadPostIdSet],
+    [
+      markBatchSeenForPost,
+      posthog,
+      scopedDocumentId,
+      scopedTopicId,
+      scopeKind,
+      unreadCount,
+      unreadPostIdSet,
+    ],
   );
 
   const sentinelRef = useInfiniteScroll(status, loadMore);
@@ -245,12 +344,22 @@ function FeedPage() {
     }
 
     posthog.capture("feed.unread_jump_performed", {
-      scope: scopedDocumentId ? "document" : "all",
+      scope: scopeKind,
       documentId: scopedDocumentId ?? null,
+      topicId: scopedTopicId ?? null,
     });
     jumpLoadRequestRef.current = null;
     setPendingJumpPostId(null);
-  }, [loadMore, pendingJumpPostId, posthog, postIdKey, scopedDocumentId, status]);
+  }, [
+    loadMore,
+    pendingJumpPostId,
+    posthog,
+    postIdKey,
+    scopedDocumentId,
+    scopedTopicId,
+    scopeKind,
+    status,
+  ]);
 
   const exhaustedTracked = useRef(false);
   useEffect(() => {
@@ -265,7 +374,7 @@ function FeedPage() {
     }
   }, [status, posthog]); // eslint-disable-line react-hooks/exhaustive-deps -- enrichedResults.length intentionally omitted; we only fire when status changes
 
-  if (status === "LoadingFirstPage") {
+  if (status === "LoadingFirstPage" && !skipFeedQuery) {
     return (
       <div className="pb-6">
         <PageHeader
@@ -297,16 +406,23 @@ function FeedPage() {
     );
   }
 
+  const headerEyebrow = scopedTopicId
+    ? "Topic Feed"
+    : scopedDocumentId
+      ? "Document Feed"
+      : "Your Feed";
+  const headerDescription = scopedTopicId
+    ? "Learning posts focused on this topic's goal."
+    : scopedDocumentId
+      ? "Learning posts from this document."
+      : "Your AI-generated learning posts.";
+
   return (
     <div className="pb-6">
       <PageHeader
-        eyebrow={scopedDocumentId ? "Document Feed" : "Your Feed"}
+        eyebrow={headerEyebrow}
         title="Feed"
-        description={
-          scopedDocumentId
-            ? "Learning posts from this document."
-            : "Your AI-generated learning posts."
-        }
+        description={headerDescription}
         actions={
           <Button onClick={handleServe} disabled={serving} data-testid="feed-serve-button">
             {serving ? (
@@ -319,28 +435,15 @@ function FeedPage() {
         }
       />
 
-      {scopedDocumentId && (
-        <div className="mt-6 px-4 md:px-6">
-          <Alert data-testid="feed-scope-banner">
-            <BookOpen data-icon="inline-start" />
-            <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                Currently viewing:{" "}
-                <strong className="font-semibold text-foreground">
-                  {scopedDocument?.title ?? "this document"}
-                </strong>
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleResetScope}
-                data-testid="feed-view-all"
-              >
-                View all
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
+      {scopedTopicId && scopedTopic && (
+        <FeedScopeBanner scope="topic" topic={scopedTopic} onReset={handleResetScope} />
+      )}
+      {!scopedTopicId && scopedDocumentId && scopedDocument && (
+        <FeedScopeBanner
+          scope="document"
+          documentTitle={scopedDocument.title}
+          onReset={handleResetScope}
+        />
       )}
 
       {error && (
@@ -349,8 +452,14 @@ function FeedPage() {
         </Alert>
       )}
 
-      {enrichedResults.length === 0 && !serving ? (
-        scopedDocumentId ? (
+      {topicNotFound ? (
+        <UnknownScopeState scope="topic" />
+      ) : documentNotFound ? (
+        <UnknownScopeState scope="document" />
+      ) : enrichedResults.length === 0 && !serving ? (
+        scopedTopicId ? (
+          <TopicFeedEmptyState topicName={scopedTopic?.name} reason={serveReason} />
+        ) : scopedDocumentId ? (
           <DocumentFeedEmptyState document={scopedDocument} reason={serveReason} />
         ) : (
           <FeedEmptyState reason={serveReason} onServe={handleServe} serving={serving} />
@@ -474,6 +583,88 @@ function DocumentFeedEmptyState({ document, reason }: DocumentFeedEmptyStateProp
           <p className="max-w-sm break-words text-xs text-muted-foreground">{document.title}</p>
           <StatusBadge status={document.status} />
         </div>
+      )}
+    </div>
+  );
+}
+
+interface UnknownScopeStateProps {
+  scope: "topic" | "document";
+}
+
+function UnknownScopeState({ scope }: UnknownScopeStateProps) {
+  const isTopic = scope === "topic";
+  return (
+    <div
+      data-testid={isTopic ? "feed-unknown-topic-state" : "feed-unknown-document-state"}
+      className="mt-12 flex flex-col items-center gap-5 px-4 text-center"
+    >
+      <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
+        {isTopic ? (
+          <Rss className="size-8 text-primary/70" />
+        ) : (
+          <BookOpen className="size-8 text-primary/70" />
+        )}
+      </div>
+      <div>
+        <p className="text-lg font-semibold tracking-tight">
+          {isTopic ? "Unknown topic" : "Unknown document"}
+        </p>
+        <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {isTopic
+            ? "This topic doesn't exist or you don't have access to it."
+            : "This document doesn't exist or you don't have access to it."}
+        </p>
+      </div>
+      <Button
+        render={<Link to="/app/feed" />}
+        variant="outline"
+        data-testid="feed-unknown-scope-back"
+      >
+        Back to feed
+      </Button>
+    </div>
+  );
+}
+
+interface TopicFeedEmptyStateProps {
+  topicName: string | undefined;
+  reason: "no_drafts" | "processing" | null;
+}
+
+function TopicFeedEmptyState({ topicName, reason }: TopicFeedEmptyStateProps) {
+  const waitingForProcessing = reason === "processing";
+
+  return (
+    <div
+      data-testid="feed-topic-empty-state"
+      className="mt-12 flex flex-col items-center gap-5 px-4 text-center"
+    >
+      <div className="flex size-16 items-center justify-center border border-primary/30 bg-transparent">
+        {waitingForProcessing ? (
+          <Loader2 className="size-8 animate-spin text-primary/70" />
+        ) : (
+          <Rss className="size-8 text-primary/70" />
+        )}
+      </div>
+      <div>
+        <p className="text-lg font-semibold tracking-tight">
+          {waitingForProcessing ? "No posts yet - still generating" : "No posts for this topic"}
+        </p>
+        <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {waitingForProcessing
+            ? "Scrollect is still preparing posts for this topic."
+            : "Assign documents to this topic from your library, then generate to populate the feed."}
+        </p>
+      </div>
+      {topicName && (
+        <p className="max-w-sm break-words text-xs text-muted-foreground">{topicName}</p>
+      )}
+      {!waitingForProcessing && (
+        <Button render={<Link to="/app/library" />} data-testid="feed-topic-empty-library-cta">
+          <Library className="size-4" data-icon="inline-start" />
+          Go to library
+        </Button>
       )}
     </div>
   );

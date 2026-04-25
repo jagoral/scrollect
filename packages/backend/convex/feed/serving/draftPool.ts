@@ -35,7 +35,7 @@ export async function loadDraftPoolForServing(
 
   const pendingDrafts = await loadPendingDrafts(ctx, params);
   const servedDrafts =
-    params.scope.kind === "document" ? [] : await loadServedDrafts(ctx, params.userId);
+    params.scope.kind === "all" ? await loadServedDrafts(ctx, params.userId) : [];
   const draftsToScore = [...pendingDrafts, ...servedDrafts];
 
   return {
@@ -51,6 +51,21 @@ export async function determineEmptyReasonForDraftPool(
   ctx: MutationCtx,
   params: { userId: string; scope: ServingScope; scopedDocument: Doc<"documents"> | null },
 ): Promise<EmptyReason> {
+  if (params.scope.kind === "topic") {
+    const topicDocs = await loadTopicScopeDocuments(ctx, params.scope.documentIds);
+    const hasAnyDocument = topicDocs.length > 0;
+    const hasProcessingDocument = topicDocs.some(
+      (doc) =>
+        doc !== null &&
+        PROCESSING_STAGE_VALUES.includes(doc.status as (typeof PROCESSING_STAGE_VALUES)[number]),
+    );
+    return determineEmptyReasonForScope({
+      scope: params.scope,
+      hasAnyDocument,
+      hasProcessingDocument,
+    });
+  }
+
   const hasAnyDocument =
     params.scope.kind === "document"
       ? params.scopedDocument !== null
@@ -106,6 +121,16 @@ async function loadPendingDrafts(
       .take(2000);
   }
 
+  if (params.scope.kind === "topic") {
+    if (params.scope.documentIds.length === 0) return [];
+    const memberIds = new Set(params.scope.documentIds);
+    const drafts = await ctx.db
+      .query("postDrafts")
+      .withIndex("by_userId_status", (q) => q.eq("userId", params.userId).eq("status", "pending"))
+      .take(2000);
+    return drafts.filter((d) => memberIds.has(d.documentId as string));
+  }
+
   return await ctx.db
     .query("postDrafts")
     .withIndex("by_userId_status", (q) => q.eq("userId", params.userId).eq("status", "pending"))
@@ -117,4 +142,13 @@ async function loadServedDrafts(ctx: MutationCtx, userId: string): Promise<Doc<"
     .query("postDrafts")
     .withIndex("by_userId_status", (q) => q.eq("userId", userId).eq("status", "served"))
     .take(2000);
+}
+
+async function loadTopicScopeDocuments(
+  ctx: MutationCtx,
+  documentIds: string[],
+): Promise<Doc<"documents">[]> {
+  if (documentIds.length === 0) return [];
+  const docs = await Promise.all(documentIds.map((id) => ctx.db.get(id as Id<"documents">)));
+  return docs.filter((d): d is Doc<"documents"> => d !== null);
 }

@@ -1,6 +1,8 @@
+import { getFunctionName } from "convex/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { deleteAccountDocuments } from "../../convex/access/accountActions";
+import { internal } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { createMockSummaryStore, createMockVectorStore } from "./mocks";
 
@@ -39,6 +41,7 @@ describe("deleteAccountDocuments", () => {
       .mockResolvedValueOnce({ deletedHighlights: 2 })
       .mockResolvedValueOnce({ deletedPosts: 3, deletedBookmarks: 4 })
       .mockResolvedValueOnce({ deletedConnectionPairs: 5 })
+      .mockResolvedValueOnce({ deletedDocumentTopics: 12 })
       .mockResolvedValueOnce({
         deletedChunks: 6,
         deletedSectionSummaries: 7,
@@ -68,9 +71,19 @@ describe("deleteAccountDocuments", () => {
     expect(result).toEqual({ deletedDocumentCount: 1, failedDocuments: [] });
     expect(vectorDelete).toHaveBeenCalledWith(["chunk-vec"]);
     expect(summaryDelete).toHaveBeenCalledWith(["section-vec", "doc-summary-vec"]);
-    expect(runMutation).toHaveBeenCalledTimes(6);
-    expect(runMutation.mock.calls[1]?.[1]).toEqual({ documentId, userId });
-    expect(runMutation.mock.calls[3]?.[1]).toEqual({ documentId });
+    expect(runMutation).toHaveBeenCalledTimes(7);
+
+    const parallelNames = runMutation.mock.calls
+      .slice(1, 5)
+      .map((call) => getFunctionName(call?.[0]));
+    expect(parallelNames.sort()).toEqual(
+      [
+        getFunctionName(internal.content.highlights.cascadeDeleteHighlights),
+        getFunctionName(internal.content.documents.cascadeDeletePosts),
+        getFunctionName(internal.drafting.connectionPairs.cascadeDeleteByDocumentId),
+        getFunctionName(internal.topics.topics.cascadeDeleteByDocumentId),
+      ].sort(),
+    );
   });
 
   it("recovers failed cascades out of deleting status", async () => {
