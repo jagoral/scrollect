@@ -1,5 +1,7 @@
+import { getFunctionName } from "convex/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { internal } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { executeDocumentDeletionCascade } from "../../convex/content/deletion";
 import { createMockSummaryStore, createMockVectorStore } from "./mocks";
@@ -12,6 +14,7 @@ describe("executeDocumentDeletionCascade", () => {
       .mockResolvedValueOnce({ deletedHighlights: 2 })
       .mockResolvedValueOnce({ deletedPosts: 3, deletedBookmarks: 4 })
       .mockResolvedValueOnce({ deletedConnectionPairs: 5 })
+      .mockResolvedValueOnce({ deletedDocumentTopics: 12 })
       .mockResolvedValueOnce({
         deletedChunks: 6,
         deletedSectionSummaries: 7,
@@ -46,10 +49,50 @@ describe("executeDocumentDeletionCascade", () => {
 
     expect(vectorDelete).toHaveBeenCalledWith(["chunk-vec"]);
     expect(summaryDelete).toHaveBeenCalledWith(["section-vec", "doc-summary-vec"]);
-    expect(runMutation).toHaveBeenCalledTimes(6);
+    expect(runMutation).toHaveBeenCalledTimes(7);
+
+    const callNames = runMutation.mock.calls.map((call) => getFunctionName(call?.[0]));
+    expect(callNames[0]).toBe(getFunctionName(internal.content.documents.updateStatus));
     expect(runMutation.mock.calls[0]?.[1]).toEqual({ id: documentId, status: "deleting" });
-    expect(runMutation.mock.calls[1]?.[1]).toEqual({ documentId, userId });
-    expect(runMutation.mock.calls[3]?.[1]).toEqual({ documentId });
+
+    const parallelCalls = runMutation.mock.calls.slice(1, 5);
+    const parallelNames = parallelCalls.map((call) => getFunctionName(call?.[0]));
+    expect(parallelNames.sort()).toEqual(
+      [
+        getFunctionName(internal.content.highlights.cascadeDeleteHighlights),
+        getFunctionName(internal.content.documents.cascadeDeletePosts),
+        getFunctionName(internal.drafting.connectionPairs.cascadeDeleteByDocumentId),
+        getFunctionName(internal.topics.topics.cascadeDeleteByDocumentId),
+      ].sort(),
+    );
+    const callByName = new Map(
+      parallelCalls.map((call) => [getFunctionName(call?.[0]), call?.[1]]),
+    );
+    expect(
+      callByName.get(getFunctionName(internal.content.highlights.cascadeDeleteHighlights)),
+    ).toEqual({
+      documentId,
+      userId,
+    });
+    expect(callByName.get(getFunctionName(internal.content.documents.cascadeDeletePosts))).toEqual({
+      documentId,
+      userId,
+    });
+    expect(
+      callByName.get(getFunctionName(internal.drafting.connectionPairs.cascadeDeleteByDocumentId)),
+    ).toEqual({
+      documentId,
+    });
+    expect(
+      callByName.get(getFunctionName(internal.topics.topics.cascadeDeleteByDocumentId)),
+    ).toEqual({
+      documentId,
+    });
+
+    expect(callNames[5]).toBe(
+      getFunctionName(internal.content.documents.cascadeDeleteChunksAndSummaries),
+    );
+    expect(callNames[6]).toBe(getFunctionName(internal.content.documents.cascadeDeleteDocument));
     expect(result).toEqual({
       chunkVectorCount: 1,
       summaryVectorCount: 2,
@@ -64,6 +107,7 @@ describe("executeDocumentDeletionCascade", () => {
         postDrafts: 9,
         reactionFeedback: 10,
         orphanedTags: 11,
+        documentTopics: 12,
       },
     });
   });
@@ -83,6 +127,7 @@ describe("executeDocumentDeletionCascade", () => {
         deletedPostDrafts: 0,
         deletedReactionFeedback: 0,
         deletedOrphanedTags: 0,
+        deletedDocumentTopics: 0,
       };
     });
     const documentId = "doc-1" as Id<"documents">;
@@ -115,6 +160,7 @@ describe("executeDocumentDeletionCascade", () => {
       "mutation",
       "vector-delete",
       "summary-delete",
+      "mutation",
       "mutation",
       "mutation",
       "mutation",

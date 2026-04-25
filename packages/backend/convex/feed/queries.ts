@@ -14,6 +14,7 @@ export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
     documentId: v.optional(v.id("documents")),
+    topicId: v.optional(v.id("topics")),
   },
   handler: async (ctx, args) => {
     const user = await optionalAuth(ctx);
@@ -25,10 +26,35 @@ export const list = query({
       };
     }
 
-    const scopedDocumentId = args.documentId;
+    const scopedTopicId = args.topicId;
+    const scopedDocumentId = scopedTopicId ? undefined : args.documentId;
     if (scopedDocumentId) {
       const document = await ctx.db.get(scopedDocumentId);
       if (!document || document.userId !== user._id) {
+        return {
+          page: [],
+          isDone: true,
+          continueCursor: "",
+        };
+      }
+    }
+
+    let topicDocumentIds: Set<string> | null = null;
+    if (scopedTopicId) {
+      const topic = await ctx.db.get(scopedTopicId);
+      if (!topic || topic.userId !== user._id) {
+        return {
+          page: [],
+          isDone: true,
+          continueCursor: "",
+        };
+      }
+      const assignments = await ctx.db
+        .query("documentTopics")
+        .withIndex("by_topicId", (q) => q.eq("topicId", scopedTopicId))
+        .collect();
+      topicDocumentIds = new Set(assignments.map((a) => a.documentId as string));
+      if (topicDocumentIds.size === 0) {
         return {
           page: [],
           isDone: true,
@@ -51,7 +77,12 @@ export const list = query({
           .order("desc")
           .paginate(args.paginationOpts);
 
-    const visiblePage = result.page.filter((post) => post.reaction !== "dislike");
+    const visiblePage = result.page.filter((post) => {
+      if (post.reaction === "dislike") return false;
+      if (topicDocumentIds && !topicDocumentIds.has(post.primarySourceDocumentId as string))
+        return false;
+      return true;
+    });
 
     // Date.now() is non-deterministic in Convex queries but acceptable here:
     // isNew will update on the next query re-evaluation triggered by any data write,

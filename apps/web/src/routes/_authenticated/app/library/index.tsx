@@ -16,6 +16,7 @@ import {
   ProcessingProgressBar,
   isProcessingStatus,
 } from "@/components/documents/processing-progress";
+import { LibraryRowTopicChip } from "@/components/library/library-row-topic-chip";
 import { useLibraryDetail } from "@/components/library-detail-panel";
 import { TagFilterBar, TagList, buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,9 @@ function LibraryPage() {
   const { data: allUserTags } = useQuery(convexQuery(api.content.tags.listUserTags, {}));
   const { data: tagsBatch } = useQuery(
     convexQuery(api.content.tags.getDocumentTagsBatch, { documentIds }),
+  );
+  const { data: topicsBatch } = useQuery(
+    convexQuery(api.topics.topics.getDocumentTopicsBatch, { documentIds }),
   );
 
   const tagOptions = allUserTags ?? [];
@@ -235,24 +239,33 @@ function LibraryPage() {
 
               const isSelected = libraryDetail?.selectedDocumentId === doc._id;
 
+              const openRow = () => {
+                if (libraryDetail) {
+                  libraryDetail.openDetail(doc._id);
+                } else {
+                  navigate({
+                    to: "/app/library/$documentId",
+                    params: { documentId: doc._id },
+                  });
+                }
+              };
+
               return (
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   key={doc._id}
                   data-testid="document-item"
-                  onClick={() => {
-                    if (libraryDetail) {
-                      libraryDetail.openDetail(doc._id);
-                    } else {
-                      navigate({
-                        to: "/app/library/$documentId",
-                        params: { documentId: doc._id },
-                      });
+                  onClick={openRow}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openRow();
                     }
                   }}
                   className={cn(
-                    "group relative block w-full cursor-pointer border-b border-border bg-card text-left transition-all duration-200",
-                    "hover:bg-accent/30",
+                    "group relative block w-full cursor-pointer border-b border-border bg-card text-left transition-all duration-200 outline-none",
+                    "hover:bg-accent/30 focus-visible:bg-accent/40 focus-visible:ring-1 focus-visible:ring-ring",
                     isSelected && "bg-accent/40",
                   )}
                 >
@@ -290,6 +303,9 @@ function LibraryPage() {
                             />
                           )}
                         </div>
+                        {doc.status === "ready" && (
+                          <LibraryRowTopicChip topic={topicsBatch?.[doc._id] ?? null} />
+                        )}
                       </div>
 
                       <h2 className="mt-2.5 font-logo text-lg font-semibold leading-[1.25] tracking-tight text-foreground [&]:line-clamp-2 md:text-[1.35rem]">
@@ -348,7 +364,7 @@ function LibraryPage() {
                       />
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
             {filteredDocuments.length === 0 && selectedTags.size > 0 && (

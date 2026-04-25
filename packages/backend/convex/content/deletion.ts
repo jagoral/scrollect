@@ -39,6 +39,7 @@ export type DocumentDeletionCascadeResult = {
     postDrafts: number;
     reactionFeedback: number;
     orphanedTags: number;
+    documentTopics: number;
   };
 };
 
@@ -94,7 +95,7 @@ export async function executeDocumentDeletionCascade({
     services,
   });
 
-  const [highlightResult, postResult, connectionPairResult] = await Promise.all([
+  const [highlightResult, postResult, connectionPairResult, topicResult] = await Promise.all([
     ctx.runMutation(internal.content.highlights.cascadeDeleteHighlights, {
       documentId,
       userId,
@@ -104,6 +105,9 @@ export async function executeDocumentDeletionCascade({
       userId,
     }),
     ctx.runMutation(internal.drafting.connectionPairs.cascadeDeleteByDocumentId, {
+      documentId,
+    }),
+    ctx.runMutation(internal.topics.topics.cascadeDeleteByDocumentId, {
       documentId,
     }),
   ]);
@@ -134,6 +138,7 @@ export async function executeDocumentDeletionCascade({
       postDrafts: chunkResult.deletedPostDrafts,
       reactionFeedback: chunkResult.deletedReactionFeedback,
       orphanedTags: docResult.deletedOrphanedTags,
+      documentTopics: topicResult.deletedDocumentTopics,
     },
   };
 }

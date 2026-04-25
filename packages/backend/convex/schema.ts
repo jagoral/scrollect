@@ -241,4 +241,35 @@ export default defineSchema({
     .index("by_documentIdA", ["documentIdA"])
     .index("by_documentIdB", ["documentIdB"])
     .index("by_userId_status", ["userId", "status"]),
+
+  // Personal goal-scoped lens over a subset of documents (ADR-019). When the feed is
+  // scoped to a topic, posts are ranked against the topic's `learningGoalEmbedding`
+  // instead of the per-document goal — see `getEffectiveLearningGoalEmbedding`. The
+  // embedding is colocated with the goal text so edits don't trample sibling topics.
+  topics: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    learningGoal: v.string(),
+    learningGoalEmbedding: v.optional(v.array(v.float64())),
+    description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    parentTopicId: v.optional(v.id("topics")),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_name", ["userId", "name"]),
+
+  // Junction between documents and topics. v1 UI is single-topic-per-document, but the
+  // schema permits multiple rows per document so future multi-select doesn't require a
+  // migration. The resolver picks the most-recent assignment when several exist.
+  documentTopics: defineTable({
+    documentId: v.id("documents"),
+    topicId: v.id("topics"),
+    userId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_documentId", ["documentId"])
+    .index("by_topicId", ["topicId"])
+    .index("by_userId", ["userId"]),
 });
