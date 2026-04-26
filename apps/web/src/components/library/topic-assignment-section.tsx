@@ -33,7 +33,7 @@ export function TopicAssignmentSection({ documentId }: TopicAssignmentSectionPro
   const { data: currentTopic } = useQuery(
     convexQuery(api.topics.topics.getDocumentTopic, { documentId }),
   );
-  const assignDocumentToTopic = useMutation(api.topics.topics.assignDocumentToTopic);
+  const setDocumentTopic = useMutation(api.topics.topics.setDocumentTopic);
   const removeDocumentFromTopic = useMutation(api.topics.topics.removeDocumentFromTopic);
   const posthog = usePostHog();
 
@@ -60,7 +60,7 @@ export function TopicAssignmentSection({ documentId }: TopicAssignmentSectionPro
   const handleSelectTopic = async (topicId: Id<"topics">) => {
     setOpen(false);
     try {
-      await assignDocumentToTopic({ documentId, topicId });
+      await setDocumentTopic({ documentId, topicId });
       posthog.capture("document.assigned_to_topic", {
         topic_id: topicId,
         document_id: documentId,
@@ -90,7 +90,7 @@ export function TopicAssignmentSection({ documentId }: TopicAssignmentSectionPro
 
   const handleTopicCreated = async (topicId: Id<"topics">) => {
     try {
-      await assignDocumentToTopic({ documentId, topicId });
+      await setDocumentTopic({ documentId, topicId });
       posthog.capture("document.assigned_to_topic", {
         topic_id: topicId,
         document_id: documentId,

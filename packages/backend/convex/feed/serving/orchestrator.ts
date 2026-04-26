@@ -72,9 +72,10 @@ export async function serveFeedForScope(
       draftsToScore: draftPool.draftsToScore,
     });
 
-    const goalEmbeddingByDocument = await resolveGoalEmbeddings(ctx, {
-      documentIds: hydrated.documentIds,
-    });
+    const { byDocument: goalEmbeddingByDocument, sourceCounts: goalSourceCounts } =
+      await resolveGoalEmbeddings(ctx, {
+        documentIds: hydrated.documentIds,
+      });
     const now = Date.now();
     const { candidateSectionIds, sectionEmbeddings, sectionEmbeddingCoverage } =
       await resolveGoalAwareSectionEmbeddings(ctx, {
@@ -143,6 +144,9 @@ export async function serveFeedForScope(
       replenishmentTriggered,
       goalEmbeddingPresent: goalEmbeddingByDocument.size > 0,
       goalEmbeddingDocumentCount: goalEmbeddingByDocument.size,
+      goalSourceTopicCount: goalSourceCounts.topic,
+      goalSourceDocumentCount: goalSourceCounts.document,
+      goalSourceNoneCount: goalSourceCounts.none,
       sectionEmbeddingCoverage,
       ...reactionStats,
     });

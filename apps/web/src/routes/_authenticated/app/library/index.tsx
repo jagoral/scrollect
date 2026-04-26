@@ -252,34 +252,32 @@ function LibraryPage() {
 
               return (
                 <div
-                  role="button"
-                  tabIndex={0}
                   key={doc._id}
                   data-testid="document-item"
-                  onClick={openRow}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      openRow();
-                    }
-                  }}
                   className={cn(
-                    "group relative block w-full cursor-pointer border-b border-border bg-card text-left transition-all duration-200 outline-none",
-                    "hover:bg-accent/30 focus-visible:bg-accent/40 focus-visible:ring-1 focus-visible:ring-ring",
+                    "group relative block w-full border-b border-border bg-card text-left transition-all duration-200",
+                    "hover:bg-accent/30 has-[button:focus-visible]:bg-accent/40 has-[button:focus-visible]:ring-1 has-[button:focus-visible]:ring-ring",
                     isSelected && "bg-accent/40",
                   )}
                 >
+                  <button
+                    type="button"
+                    onClick={openRow}
+                    aria-label={`Open ${doc.title}`}
+                    className="absolute inset-0 z-0 cursor-pointer outline-none"
+                  />
+
                   <div
                     aria-hidden
                     className={cn(
-                      "absolute left-0 top-0 bottom-0 w-[2px] transition-all",
+                      "pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-[2px] transition-all",
                       statusColor,
                       "group-hover:w-[3px]",
                       isSelected && "w-[3px]",
                     )}
                   />
 
-                  <div className="grid grid-cols-[2rem_1fr_5rem] gap-4 px-4 py-5 md:grid-cols-[2.5rem_1fr_6rem] md:gap-6 md:px-8 md:py-6">
+                  <div className="pointer-events-none relative z-10 grid grid-cols-[2rem_1fr_5rem] gap-4 px-4 py-5 md:grid-cols-[2.5rem_1fr_6rem] md:gap-6 md:px-8 md:py-6">
                     <div className="flex flex-col items-start pt-1">
                       <span className="font-mono text-[10.5px] tabular-nums tracking-[0.18em] text-muted-foreground/50 group-hover:text-muted-foreground">
                         {String(index + 1).padStart(2, "0")}
