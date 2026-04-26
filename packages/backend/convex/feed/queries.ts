@@ -39,7 +39,6 @@ export const list = query({
       }
     }
 
-    let topicDocumentIds: Set<string> | null = null;
     if (scopedTopicId) {
       const topic = await ctx.db.get(scopedTopicId);
       if (!topic || topic.userId !== user._id) {
@@ -49,40 +48,34 @@ export const list = query({
           continueCursor: "",
         };
       }
-      const assignments = await ctx.db
-        .query("documentTopics")
-        .withIndex("by_topicId", (q) => q.eq("topicId", scopedTopicId))
-        .collect();
-      topicDocumentIds = new Set(assignments.map((a) => a.documentId as string));
-      if (topicDocumentIds.size === 0) {
-        return {
-          page: [],
-          isDone: true,
-          continueCursor: "",
-        };
-      }
     }
 
-    const result = scopedDocumentId
-      ? await ctx.db
+    const result = scopedTopicId
+      ? // Topic-scoped pagination uses the denormalized `by_userId_topic` index (B1).
+        // Earlier code paged by `by_userId` and post-filtered, which produced empty
+        // pages whenever the page contained zero topic-matching posts.
+        await ctx.db
           .query("posts")
-          .withIndex("by_userId_document", (q) =>
-            q.eq("userId", user._id).eq("primarySourceDocumentId", scopedDocumentId),
+          .withIndex("by_userId_topic", (q) =>
+            q.eq("userId", user._id).eq("topicId", scopedTopicId),
           )
           .order("desc")
           .paginate(args.paginationOpts)
-      : await ctx.db
-          .query("posts")
-          .withIndex("by_userId", (q) => q.eq("userId", user._id))
-          .order("desc")
-          .paginate(args.paginationOpts);
+      : scopedDocumentId
+        ? await ctx.db
+            .query("posts")
+            .withIndex("by_userId_document", (q) =>
+              q.eq("userId", user._id).eq("primarySourceDocumentId", scopedDocumentId),
+            )
+            .order("desc")
+            .paginate(args.paginationOpts)
+        : await ctx.db
+            .query("posts")
+            .withIndex("by_userId", (q) => q.eq("userId", user._id))
+            .order("desc")
+            .paginate(args.paginationOpts);
 
-    const visiblePage = result.page.filter((post) => {
-      if (post.reaction === "dislike") return false;
-      if (topicDocumentIds && !topicDocumentIds.has(post.primarySourceDocumentId as string))
-        return false;
-      return true;
-    });
+    const visiblePage = result.page.filter((post) => post.reaction !== "dislike");
 
     // Date.now() is non-deterministic in Convex queries but acceptable here:
     // isNew will update on the next query re-evaluation triggered by any data write,

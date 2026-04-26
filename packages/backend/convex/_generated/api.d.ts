@@ -72,9 +72,12 @@ import type * as lib_rateLimitChecks from "../lib/rateLimitChecks.js";
 import type * as lib_rateLimitConfig from "../lib/rateLimitConfig.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as migrations from "../migrations.js";
+import type * as migrations_backfillPostTopicId from "../migrations/backfillPostTopicId.js";
+import type * as migrations_backfillTopicDocumentCount from "../migrations/backfillTopicDocumentCount.js";
 import type * as ops_healthCheck from "../ops/healthCheck.js";
 import type * as ops_testing from "../ops/testing.js";
 import type * as ops_testingActions from "../ops/testingActions.js";
+import type * as topics_services from "../topics/services.js";
 import type * as topics_topics from "../topics/topics.js";
 import type * as topics_topicsActions from "../topics/topicsActions.js";
 
@@ -149,9 +152,12 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimitConfig": typeof lib_rateLimitConfig;
   "lib/validators": typeof lib_validators;
   migrations: typeof migrations;
+  "migrations/backfillPostTopicId": typeof migrations_backfillPostTopicId;
+  "migrations/backfillTopicDocumentCount": typeof migrations_backfillTopicDocumentCount;
   "ops/healthCheck": typeof ops_healthCheck;
   "ops/testing": typeof ops_testing;
   "ops/testingActions": typeof ops_testingActions;
+  "topics/services": typeof topics_services;
   "topics/topics": typeof topics_topics;
   "topics/topicsActions": typeof topics_topicsActions;
 }>;

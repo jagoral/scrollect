@@ -53,6 +53,8 @@ Add `serveTopicFeed({ topicId, limit })` mirroring the existing `serveDocumentFe
 
 `deleteTopic` cascades only the `documentTopics` rows for that Topic. The Documents themselves survive and revert to per-Document goal resolution on the next serve. Contrast with Document deletion, which already cascades a long chain (vectors, chunks, section summaries, post drafts, posts, bookmarks, highlights, connection pairs); Document deletion now also cascades any `documentTopics` rows pointing at the Document.
 
+Account deletion (`deleteRemainingUserData` in `convex/access/account.ts`) cascades both `topics` and `documentTopics` rows owned by the user, alongside the existing per-document cascade chain triggered by `deleteAccountDocuments`. This guarantees no orphaned topic state survives account deletion. The per-document cascade (`cascadeDeleteByDocumentId` in `convex/topics/topics.ts`) handles `documentTopics` rows tied to deleted documents; `deleteRemainingUserData` then sweeps any remaining user-owned topic state (the `topics` rows themselves, plus any `documentTopics` rows whose documents survived per-document cleanup but are user-scoped).
+
 ### 7. Goal-text edit triggers re-embedding
 
 Editing `topics.learningGoal` schedules `embedTopicGoal` (new action in `convex/topicsActions.ts`), which writes `topics.learningGoalEmbedding`. This mirrors the `updateLearningGoal` -> `embedLearningGoal` pattern in `convex/content/documents.ts` and `convex/content/documentActions.ts`. Any text change recomputes; clearing the goal text clears the embedding. No cross-Topic reconciliation - each Topic's vector is colocated with its own text.

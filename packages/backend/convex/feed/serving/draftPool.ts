@@ -123,12 +123,20 @@ async function loadPendingDrafts(
 
   if (params.scope.kind === "topic") {
     if (params.scope.documentIds.length === 0) return [];
-    const memberIds = new Set(params.scope.documentIds);
-    const drafts = await ctx.db
-      .query("postDrafts")
-      .withIndex("by_userId_status", (q) => q.eq("userId", params.userId).eq("status", "pending"))
-      .take(2000);
-    return drafts.filter((d) => memberIds.has(d.documentId as string));
+    // Fan out per topic-member document instead of paging the user's full pending
+    // pool and filtering (B4). Mirrors the document-scope branch above; cheaper for
+    // users with many drafts whose topic only covers a few documents.
+    const draftsByDocument = await Promise.all(
+      params.scope.documentIds.map((id) =>
+        ctx.db
+          .query("postDrafts")
+          .withIndex("by_documentId_status", (q) =>
+            q.eq("documentId", id as Id<"documents">).eq("status", "pending"),
+          )
+          .take(2000),
+      ),
+    );
+    return draftsByDocument.flat();
   }
 
   return await ctx.db

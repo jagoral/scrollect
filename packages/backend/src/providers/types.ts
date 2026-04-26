@@ -373,3 +373,7 @@ export type VectorDeletionServices = {
   vectorStore: VectorStore;
   summaryStore: SummaryVectorStore;
 };
+
+export type TopicEmbeddingServiceContext = {
+  embedder: EmbeddingProvider;
+};

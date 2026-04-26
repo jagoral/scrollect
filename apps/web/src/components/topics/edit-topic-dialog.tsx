@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -181,55 +182,57 @@ function EditTopicDialogBody({
 
         <div className="flex flex-col gap-2">
           <Label>Color</Label>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Topic color">
-            {TOPIC_COLORS.map((option) => {
-              const selected = option.key === color;
-              return (
-                <button
-                  key={option.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  aria-label={option.label}
-                  onClick={() => setColor(option.key)}
-                  disabled={submitting}
-                  className={cn(
-                    "size-7 rounded-full border-2 transition-all",
-                    option.swatch,
-                    selected ? "border-foreground scale-110" : "border-transparent hover:scale-105",
-                  )}
-                />
-              );
-            })}
-          </div>
+          <RadioGroup
+            value={color}
+            onValueChange={(next: string) => setColor(next as TopicColorKey)}
+            aria-label="Topic color"
+            disabled={submitting}
+            className="flex w-fit flex-wrap gap-2"
+          >
+            {TOPIC_COLORS.map((option) => (
+              <RadioGroupItem
+                key={option.key}
+                value={option.key}
+                unstyled
+                aria-label={option.label}
+                data-testid={`topic-color-${option.key}`}
+                className={cn(
+                  "size-7 shrink-0 rounded-full border-2 border-transparent transition-all",
+                  option.swatch,
+                  "hover:scale-105",
+                  "data-checked:border-foreground data-checked:scale-110",
+                )}
+              />
+            ))}
+          </RadioGroup>
         </div>
 
         <div className="flex flex-col gap-2">
           <Label>Icon</Label>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Topic icon">
-            {TOPIC_ICONS.map(({ key, label, Icon }) => {
-              const selected = key === icon;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  aria-label={label}
-                  onClick={() => setIcon(key)}
-                  disabled={submitting}
-                  className={cn(
-                    "flex size-9 items-center justify-center rounded-md border transition-colors",
-                    selected
-                      ? "border-foreground bg-accent text-accent-foreground"
-                      : "border-border bg-background text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Icon className="size-4" />
-                </button>
-              );
-            })}
-          </div>
+          <RadioGroup
+            value={icon}
+            onValueChange={(next: string) => setIcon(next as TopicIconKey)}
+            aria-label="Topic icon"
+            disabled={submitting}
+            className="flex w-fit flex-wrap gap-2"
+          >
+            {TOPIC_ICONS.map(({ key, label, Icon }) => (
+              <RadioGroupItem
+                key={key}
+                value={key}
+                unstyled
+                aria-label={label}
+                data-testid={`topic-icon-${key}`}
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors",
+                  "hover:text-foreground",
+                  "data-checked:border-foreground data-checked:bg-accent data-checked:text-accent-foreground",
+                )}
+              >
+                <Icon className="size-4" />
+              </RadioGroupItem>
+            ))}
+          </RadioGroup>
         </div>
       </div>
 

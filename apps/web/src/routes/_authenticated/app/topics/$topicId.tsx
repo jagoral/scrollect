@@ -43,7 +43,7 @@ function TopicDetailPage() {
   const { topicId } = Route.useParams();
   const typedTopicId = topicId as Id<"topics">;
   const isMalformedTopicId = !looksLikeConvexId(topicId);
-  const { data, error } = useQuery(
+  const { data } = useQuery(
     convexQuery(
       api.topics.topics.getTopic,
       isMalformedTopicId ? "skip" : { topicId: typedTopicId },
@@ -56,7 +56,7 @@ function TopicDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  if (isMalformedTopicId || data === null || error != null) {
+  if (isMalformedTopicId || data === null) {
     return (
       <div
         data-testid="topic-unknown-state"

@@ -83,6 +83,14 @@ export default defineSchema({
     pageStart: v.optional(v.number()),
     pageEnd: v.optional(v.number()),
     fileType: v.optional(v.string()),
+    /**
+     * Denormalized active-topic id at post insertion time (B1 / ADR-019). Lets the
+     * topic-scoped feed pagination use the `by_userId_topic` index instead of paging
+     * the user's full feed and filtering in memory (which leaks "ghost pages" to the
+     * client). Mutations that move/remove a topic assignment restamp this column on
+     * affected posts; deletes set it back to undefined.
+     */
+    topicId: v.optional(v.id("topics")),
     // TODO(post-launch): Drop legacy fields after wiping dev data
     primarySourceChunkId: v.optional(v.id("chunks")),
     primarySourceSectionTitle: v.optional(v.string()),
@@ -96,7 +104,8 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_type", ["userId", "postType"])
     .index("by_userId_createdAt", ["userId", "createdAt"])
-    .index("by_userId_document", ["userId", "primarySourceDocumentId"]),
+    .index("by_userId_document", ["userId", "primarySourceDocumentId"])
+    .index("by_userId_topic", ["userId", "topicId"]),
 
   reactionFeedback: defineTable({
     userId: v.string(),
@@ -255,6 +264,14 @@ export default defineSchema({
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
     parentTopicId: v.optional(v.id("topics")),
+    /**
+     * Denormalized count of `documentTopics` rows pointing at this topic (B3).
+     * `listTopics` reads this directly instead of running per-topic assignment
+     * counts. Maintained by `setDocumentTopic` / `removeDocumentFromTopic` /
+     * `cascadeDeleteByDocumentId`. Treats `undefined` as 0 for back-compat with
+     * pre-backfill rows; the `backfillTopicDocumentCount` migration recomputes it.
+     */
+    documentCount: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])

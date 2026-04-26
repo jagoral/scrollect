@@ -210,6 +210,32 @@ async function resetUserData(ctx: MutationCtx, userId: string) {
     }
   }
 
+  // Wipe topics and the documentTopics junction so topic-creating tests don't have
+  // to manage cleanup themselves (D1). Also clears the denormalized `posts.topicId`
+  // stamp on every post so a freshly-empty topic state is consistent across all
+  // serving paths.
+  const documentTopics = await ctx.db
+    .query("documentTopics")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const row of documentTopics) {
+    await ctx.db.delete(row._id);
+  }
+
+  const topics = await ctx.db
+    .query("topics")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const topic of topics) {
+    await ctx.db.delete(topic._id);
+  }
+
+  for (const post of posts) {
+    if (post.topicId !== undefined) {
+      await ctx.db.patch(post._id, { topicId: undefined });
+    }
+  }
+
   if (posts.length > 0) {
     const newestPost = maxBy(posts, (p) => p.createdAt)!;
     await ctx.db.patch(newestPost._id, { createdAt: Date.now() });
