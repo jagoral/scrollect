@@ -125,6 +125,7 @@ export const getDocumentTopic = query({
       color: v.optional(v.string()),
       icon: v.optional(v.string()),
       parentTopicId: v.optional(v.id("topics")),
+      documentCount: v.optional(v.number()),
       createdAt: v.number(),
     }),
     v.null(),
@@ -147,11 +148,7 @@ export const getDocumentTopic = query({
 
     const topic = await ctx.db.get(activeTopicId as Id<"topics">);
     if (!topic || topic.userId !== user._id) return null;
-    // Strip back-compat fields not part of this query's return validator.
-    const { documentCount: _omit, ...rest } = topic as Doc<"topics"> & {
-      documentCount?: number;
-    };
-    return rest;
+    return topic;
   },
 });
 
@@ -602,11 +599,27 @@ export const setTopicLearningGoalEmbedding = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const topic = await ctx.db.get(args.topicId);
-    if (!topic) return null;
-    if (!topic.learningGoal || topic.learningGoal.trim().length === 0) return null;
-    await ctx.db.patch(args.topicId, { learningGoalEmbedding: args.embedding });
-    return null;
+    const evt = new WideEvent("topics.setTopicLearningGoalEmbedding");
+    evt.set("topicId", args.topicId);
+    try {
+      const topic = await ctx.db.get(args.topicId);
+      if (!topic) {
+        evt.set("skipped", "topic_not_found");
+        return null;
+      }
+      if (!topic.learningGoal || topic.learningGoal.trim().length === 0) {
+        evt.set("skipped", "empty_goal");
+        return null;
+      }
+      await ctx.db.patch(args.topicId, { learningGoalEmbedding: args.embedding });
+      evt.set("embeddingDimensions", args.embedding.length);
+      return null;
+    } catch (error) {
+      evt.setError(error);
+      throw error;
+    } finally {
+      evt.emit();
+    }
   },
 });
 
@@ -619,7 +632,10 @@ export const cascadeDeleteByDocumentId = internalMutation({
       .withIndex("by_documentId", (q) => q.eq("documentId", args.documentId))
       .collect();
 
-    // Decrement counter on every topic that loses an assignment (B3).
+    // Decrement counter on every topic that loses an assignment (B3). If this
+    // mutation races a concurrent setDocumentTopic / removeDocumentFromTopic on
+    // the same topic, Convex's optimistic concurrency retries the loser, so the
+    // adjustment is observed exactly once per assignment.
     const perTopic = new Map<Id<"topics">, number>();
     for (const a of assignments) {
       const id = a.topicId as Id<"topics">;
@@ -670,8 +686,16 @@ async function adjustTopicDocumentCount(
 ): Promise<void> {
   const topic = await ctx.db.get(topicId);
   if (!topic) return;
-  const next = Math.max(0, (topic.documentCount ?? 0) + delta);
-  await ctx.db.patch(topicId, { documentCount: next });
+  const current = topic.documentCount ?? 0;
+  const raw = current + delta;
+  if (raw < 0) {
+    // The floor at 0 hides counter drift silently; log it so a backfill run
+    // can detect it. Either a missed increment somewhere, or a double-decrement.
+    const evt = new WideEvent("topics.documentCountDrift");
+    evt.set({ topicId, current, delta, expected: raw });
+    evt.emit();
+  }
+  await ctx.db.patch(topicId, { documentCount: Math.max(0, raw) });
 }
 
 /**

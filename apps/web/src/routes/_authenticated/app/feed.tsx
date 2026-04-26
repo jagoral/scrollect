@@ -179,8 +179,13 @@ function FeedPage() {
     registerBatch,
   ]);
 
+  // Only auto-serve once the paginated query has completed with zero rows.
+  // Earlier statuses ("LoadingFirstPage", "LoadingMore", "CanLoadMore") can
+  // expose a transient empty `results` array between scope switches before the
+  // WebSocket replies, which would fire serve() against a feed that's still
+  // loading. "Exhausted" is the only status where empty == genuinely empty.
   const isReadyForAutoServe =
-    !noAutoServe && !scopeNotFound && status !== "LoadingFirstPage" && results.length === 0;
+    !noAutoServe && !scopeNotFound && status === "Exhausted" && results.length === 0;
   const lastAutoServedScopeRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isReadyForAutoServe) return;
@@ -288,7 +293,21 @@ function FeedPage() {
     ),
   );
 
-  const tagsByDocId = useMemo(() => buildTagMap(tagsBatch), [tagsBatch]);
+  // Stabilize tagsByDocId across WebSocket re-emissions: tagsBatch gets a fresh
+  // reference each tick even when the underlying tag set is unchanged. Hash on
+  // a serialized signature so `enrichedResults` (and downstream <Post> props)
+  // only re-derive when tags actually change.
+  const tagsBatchKey = tagsBatch
+    ? Object.entries(tagsBatch)
+        .map(([docId, tags]) => `${docId}:${tags.map((t) => t._id).join(",")}`)
+        .sort()
+        .join("|")
+    : "";
+  const tagsByDocId = useMemo(
+    () => buildTagMap(tagsBatch),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stabilized via serialized key
+    [tagsBatchKey],
+  );
 
   const enrichedResults = useMemo(
     () =>
@@ -303,21 +322,31 @@ function FeedPage() {
   const jumpLoadRequestRef = useRef<string | null>(null);
   useEffect(() => {
     if (!pendingJumpPostId) return;
-    const didScroll = scrollToPostId(pendingJumpPostId);
-    if (!didScroll) {
+    const result = scrollToPostId(pendingJumpPostId);
+    if (!result.found) {
       const loadRequestKey = `${pendingJumpPostId}:${postIdKey}`;
       if (status === "CanLoadMore" && jumpLoadRequestRef.current !== loadRequestKey) {
         jumpLoadRequestRef.current = loadRequestKey;
         loadMore(10);
+        return;
+      }
+      // No more pages to load and we still couldn't find the post: it's been
+      // deleted, filtered out, or never made it into a served page. Drop the
+      // pending jump so we don't loop, and skip analytics — there's no jump.
+      if (status === "Exhausted") {
+        jumpLoadRequestRef.current = null;
+        setPendingJumpPostId(null);
       }
       return;
     }
 
-    posthog.capture("feed.unread_jump_performed", {
-      scope: scopeKind,
-      documentId: scopedDocumentId ?? null,
-      topicId: scopedTopicId ?? null,
-    });
+    if (result.scrolled) {
+      posthog.capture("feed.unread_jump_performed", {
+        scope: scopeKind,
+        documentId: scopedDocumentId ?? null,
+        topicId: scopedTopicId ?? null,
+      });
+    }
     jumpLoadRequestRef.current = null;
     setPendingJumpPostId(null);
   }, [

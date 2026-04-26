@@ -136,7 +136,10 @@ async function loadPendingDrafts(
           .take(2000),
       ),
     );
-    return draftsByDocument.flat();
+    // Defensive ownership filter: callers build `documentIds` from documentTopics
+    // rows the user owns, so this should be a no-op today, but the helper now
+    // enforces its own invariant rather than trusting the caller.
+    return draftsByDocument.flat().filter((draft) => draft.userId === params.userId);
   }
 
   return await ctx.db

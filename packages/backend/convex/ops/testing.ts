@@ -173,8 +173,12 @@ async function resetUserData(ctx: MutationCtx, userId: string) {
     .query("posts")
     .withIndex("by_userId", (q) => q.eq("userId", userId))
     .collect();
+  // Single per-post pass: clear reactions and the denormalized topicId stamp at
+  // once. Two patches on the same row would just bill us twice.
   for (const post of posts) {
-    await ctx.db.patch(post._id, { reaction: undefined });
+    const patch: { reaction?: undefined; topicId?: undefined } = { reaction: undefined };
+    if (post.topicId !== undefined) patch.topicId = undefined;
+    await ctx.db.patch(post._id, patch);
   }
 
   const bookmarks = await ctx.db
@@ -211,9 +215,8 @@ async function resetUserData(ctx: MutationCtx, userId: string) {
   }
 
   // Wipe topics and the documentTopics junction so topic-creating tests don't have
-  // to manage cleanup themselves (D1). Also clears the denormalized `posts.topicId`
-  // stamp on every post so a freshly-empty topic state is consistent across all
-  // serving paths.
+  // to manage cleanup themselves (D1). The `posts.topicId` stamp is already cleared
+  // by the single per-post pass above.
   const documentTopics = await ctx.db
     .query("documentTopics")
     .withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -228,12 +231,6 @@ async function resetUserData(ctx: MutationCtx, userId: string) {
     .collect();
   for (const topic of topics) {
     await ctx.db.delete(topic._id);
-  }
-
-  for (const post of posts) {
-    if (post.topicId !== undefined) {
-      await ctx.db.patch(post._id, { topicId: undefined });
-    }
   }
 
   if (posts.length > 0) {

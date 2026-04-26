@@ -112,8 +112,10 @@ export const embedTopicGoal = internalAction({
       evt.setError(error);
       // Re-throw rate-limit errors so the scheduler surfaces them; swallow other
       // errors (network/provider) since goal relevance falls back to 1.0 when
-      // the embedding is missing.
+      // the embedding is missing. Tag the skip reason so operators can grep for
+      // provider-side failures distinct from the empty-goal / empty-vector skips.
       if (error instanceof ConvexError) throw error;
+      evt.set("skipped", "provider_error");
       return null;
     } finally {
       evt.emit();
