@@ -181,16 +181,16 @@ export function PostCard({ post }: PostCardProps) {
       <View
         testID="post-card"
         accessibilityLabel={`${POST_TYPE_LABEL[post.postType]} post`}
-        className="border-b border-neutral-200 bg-white px-5 pt-5 pb-4"
+        className="border-b border-neutral-200 bg-white px-5 pt-5 pb-4 dark:border-neutral-800 dark:bg-neutral-950"
       >
         <View className="mb-3 flex-row items-center justify-between">
-          <Text className="text-[10px] font-medium uppercase tracking-widest text-neutral-500">
+          <Text className="text-[10px] font-medium uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
             {POST_TYPE_LABEL[post.postType]}
           </Text>
           {post.sectionTitle ? (
             <Text
               numberOfLines={1}
-              className="ml-3 max-w-[55%] text-[10px] uppercase tracking-wider text-neutral-400"
+              className="ml-3 max-w-[55%] text-[10px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500"
             >
               &sect; {post.sectionTitle}
             </Text>
@@ -199,12 +199,12 @@ export function PostCard({ post }: PostCardProps) {
 
         <PostCardContent post={post} />
 
-        <View className="mt-4 flex-row items-center justify-between border-t border-neutral-100 pt-3">
+        <View className="mt-4 flex-row items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800">
           <View className="flex-1 pr-3">
             <Text
               testID="source-badge"
               numberOfLines={1}
-              className="text-xs font-medium text-neutral-700"
+              className="text-xs font-medium text-neutral-700 dark:text-neutral-300"
             >
               {post.primarySourceDocumentTitle ?? "Untitled"}
             </Text>

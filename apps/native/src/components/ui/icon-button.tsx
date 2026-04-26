@@ -11,13 +11,13 @@ interface IconButtonProps extends Omit<PressableProps, "children"> {
   className?: string;
 }
 
-const inactiveByTone = "bg-transparent active:bg-neutral-100";
+const inactiveByTone = "bg-transparent active:bg-neutral-100 dark:active:bg-neutral-800";
 
 const activeByTone: Record<NonNullable<IconButtonProps["tone"]>, string> = {
-  neutral: "bg-neutral-100",
-  like: "bg-emerald-50",
-  dislike: "bg-red-50",
-  bookmark: "bg-neutral-900/5",
+  neutral: "bg-neutral-100 dark:bg-neutral-800",
+  like: "bg-emerald-50 dark:bg-emerald-950/40",
+  dislike: "bg-red-50 dark:bg-red-950/40",
+  bookmark: "bg-neutral-900/5 dark:bg-neutral-100/10",
 };
 
 export function IconButton({

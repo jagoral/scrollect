@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { useThemeColor } from "@/lib/theme/colors";
 import { ActivityIndicator, Pressable, Text, type PressableProps } from "@/tw";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -14,15 +15,16 @@ interface ButtonProps extends Omit<PressableProps, "children"> {
 }
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: "bg-neutral-900 active:opacity-90 disabled:opacity-50",
-  secondary: "border border-neutral-300 bg-white active:opacity-90 disabled:opacity-50",
+  primary: "bg-neutral-900 dark:bg-neutral-100 active:opacity-90 disabled:opacity-50",
+  secondary:
+    "border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-900 active:opacity-90 disabled:opacity-50",
   ghost: "active:opacity-70 disabled:opacity-50",
 };
 
 const variantTextClass: Record<ButtonVariant, string> = {
-  primary: "text-white",
-  secondary: "text-neutral-900",
-  ghost: "text-neutral-900",
+  primary: "text-white dark:text-neutral-900",
+  secondary: "text-neutral-900 dark:text-neutral-50",
+  ghost: "text-neutral-900 dark:text-neutral-50",
 };
 
 const sizeClass: Record<ButtonSize, string> = {
@@ -41,6 +43,7 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const indicatorColor = useThemeColor(variant === "primary" ? "surface" : "foreground");
   return (
     <Pressable
       accessibilityRole={accessibilityRole ?? "button"}
@@ -52,7 +55,7 @@ export function Button({
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "primary" ? "#ffffff" : "#171717"} />
+        <ActivityIndicator color={indicatorColor} />
       ) : typeof children === "string" ? (
         <Text className={`text-base font-medium ${variantTextClass[variant]}`}>{children}</Text>
       ) : (

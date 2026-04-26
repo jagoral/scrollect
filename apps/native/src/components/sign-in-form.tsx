@@ -2,9 +2,11 @@ import * as WebBrowser from "expo-web-browser";
 import { usePostHog } from "posthog-react-native";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { env } from "@/lib/env";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "@/tw";
+import { useThemeColor } from "@/lib/theme/colors";
+import { Pressable, Text, TextInput, View } from "@/tw";
 
 const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,6 +30,7 @@ function validate(email: string, password: string): FormError | null {
 
 export function SignInForm() {
   const posthog = usePostHog();
+  const placeholderColor = useThemeColor("subtleForeground");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<FormError | null>(null);
@@ -91,15 +94,19 @@ export function SignInForm() {
   return (
     <View className="flex-1 justify-center px-6">
       <View className="mb-8">
-        <Text className="text-3xl font-semibold text-neutral-900">Sign in</Text>
-        <Text className="mt-2 text-base text-neutral-500">
+        <Text className="text-3xl font-semibold text-neutral-900 dark:text-neutral-50">
+          Sign in
+        </Text>
+        <Text className="mt-2 text-base text-neutral-500 dark:text-neutral-400">
           Enter your email to continue to your feed.
         </Text>
       </View>
 
       <View className="space-y-4">
         <View>
-          <Text className="mb-2 text-sm font-medium text-neutral-900">Email</Text>
+          <Text className="mb-2 text-sm font-medium text-neutral-900 dark:text-neutral-50">
+            Email
+          </Text>
           <TextInput
             autoCapitalize="none"
             autoComplete="email"
@@ -108,15 +115,17 @@ export function SignInForm() {
             keyboardType="email-address"
             onChangeText={updateEmail}
             placeholder="you@example.com"
-            placeholderTextColor="#a3a3a3"
+            placeholderTextColor={placeholderColor}
             textContentType="emailAddress"
             value={email}
-            className="rounded-md border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-900"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
           />
         </View>
 
         <View>
-          <Text className="mb-2 text-sm font-medium text-neutral-900">Password</Text>
+          <Text className="mb-2 text-sm font-medium text-neutral-900 dark:text-neutral-50">
+            Password
+          </Text>
           <TextInput
             autoCapitalize="none"
             autoComplete="current-password"
@@ -124,33 +133,29 @@ export function SignInForm() {
             editable={!submitting}
             onChangeText={updatePassword}
             placeholder="Enter your password"
-            placeholderTextColor="#a3a3a3"
+            placeholderTextColor={placeholderColor}
             secureTextEntry
             textContentType="password"
             value={password}
-            className="rounded-md border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-900"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
           />
         </View>
 
         {error ? (
-          <Text accessibilityRole="alert" className="text-sm text-red-600">
+          <Text accessibilityRole="alert" className="text-sm text-red-600 dark:text-red-400">
             {error.message}
           </Text>
         ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: submitting }}
+        <Button
+          variant="primary"
+          loading={submitting}
           disabled={submitting}
           onPress={handleSubmit}
-          className="mt-2 flex-row items-center justify-center rounded-md bg-neutral-900 px-4 py-3 active:opacity-90 disabled:opacity-50"
+          className="mt-2"
         >
-          {submitting ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text className="text-base font-medium text-white">Sign in</Text>
-          )}
-        </Pressable>
+          Sign in
+        </Button>
 
         <Pressable
           accessibilityRole="link"
@@ -158,9 +163,11 @@ export function SignInForm() {
           onPress={openWebSignUp}
           className="items-center pt-2"
         >
-          <Text className="text-sm text-neutral-500">
+          <Text className="text-sm text-neutral-500 dark:text-neutral-400">
             New to Scrollect?{" "}
-            <Text className="font-medium text-neutral-900">Sign up on the web</Text>
+            <Text className="font-medium text-neutral-900 dark:text-neutral-50">
+              Sign up on the web
+            </Text>
           </Text>
         </Pressable>
       </View>

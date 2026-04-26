@@ -2,6 +2,7 @@ import { Ban, BookCheck, Shapes, ThumbsDown, type LucideIcon } from "lucide-reac
 import { useCallback } from "react";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { useThemeColor } from "@/lib/theme/colors";
 import { Pressable, Text, View } from "@/tw";
 
 import type { DislikeReason } from "./types";
@@ -24,6 +25,8 @@ interface DislikeReasonSheetProps {
 }
 
 export function DislikeReasonSheet({ open, onClose, onReasonSelected }: DislikeReasonSheetProps) {
+  const iconColor = useThemeColor("mutedForeground");
+
   const handleSelect = useCallback(
     (reason: DislikeReason) => {
       onReasonSelected(reason);
@@ -34,7 +37,7 @@ export function DislikeReasonSheet({ open, onClose, onReasonSelected }: DislikeR
 
   return (
     <BottomSheet open={open} onDismiss={onClose} testID="dislike-reason-sheet">
-      <Text className="px-5 py-2 text-xs font-medium uppercase tracking-wider text-neutral-500">
+      <Text className="px-5 py-2 text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
         What went wrong?
       </Text>
       <View accessibilityLabel="Dislike reasons">
@@ -45,10 +48,10 @@ export function DislikeReasonSheet({ open, onClose, onReasonSelected }: DislikeR
             accessibilityLabel={label}
             testID={`dislike-reason-${reason}`}
             onPress={() => handleSelect(reason)}
-            className="flex-row items-center gap-3 px-5 py-4 active:bg-neutral-100"
+            className="flex-row items-center gap-3 px-5 py-4 active:bg-neutral-100 dark:active:bg-neutral-800"
           >
-            <Icon size={18} color="#737373" />
-            <Text className="text-base text-neutral-900">{label}</Text>
+            <Icon size={18} color={iconColor} />
+            <Text className="text-base text-neutral-900 dark:text-neutral-50">{label}</Text>
           </Pressable>
         ))}
       </View>

@@ -25,15 +25,18 @@ export function BottomSheet({ open, onDismiss, children, testID }: BottomSheetPr
           accessibility tree only exposes "Dismiss" for the empty area
           above the sheet — VoiceOver inside the sheet content stays
           focused on the sheet's children. */}
-      <View className="flex-1 justify-end bg-black/40">
+      <View className="flex-1 justify-end bg-black/40 dark:bg-black/60">
         <RNPressable
           accessibilityRole="button"
           accessibilityLabel="Dismiss"
           onPress={onDismiss}
           style={styles.backdrop}
         />
-        <View testID={testID} className="rounded-t-2xl bg-white pb-8 pt-2 shadow-lg">
-          <View className="mx-auto mb-2 mt-1 h-1 w-10 rounded-full bg-neutral-300" />
+        <View
+          testID={testID}
+          className="rounded-t-2xl bg-white pb-8 pt-2 shadow-lg dark:bg-neutral-900"
+        >
+          <View className="mx-auto mb-2 mt-1 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700" />
           {children}
         </View>
       </View>

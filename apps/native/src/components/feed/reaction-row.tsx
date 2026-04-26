@@ -1,6 +1,7 @@
 import { Bookmark, BookmarkCheck, ThumbsDown, ThumbsUp } from "lucide-react-native";
 
 import { IconButton } from "@/components/ui/icon-button";
+import { useThemeColors } from "@/lib/theme/colors";
 import { View } from "@/tw";
 
 interface ReactionRowProps {
@@ -12,10 +13,6 @@ interface ReactionRowProps {
 }
 
 const ICON_SIZE = 18;
-const NEUTRAL_COLOR = "#737373";
-const LIKE_COLOR = "#059669";
-const DISLIKE_COLOR = "#ef4444";
-const BOOKMARK_COLOR = "#171717";
 
 export function ReactionRow({
   reaction,
@@ -24,6 +21,7 @@ export function ReactionRow({
   onOpenDislike,
   onToggleBookmark,
 }: ReactionRowProps) {
+  const colors = useThemeColors();
   return (
     <View className="flex-row items-center gap-1">
       <IconButton
@@ -34,9 +32,9 @@ export function ReactionRow({
         onPress={onToggleBookmark}
       >
         {isBookmarked ? (
-          <BookmarkCheck size={ICON_SIZE} color={BOOKMARK_COLOR} />
+          <BookmarkCheck size={ICON_SIZE} color={colors.bookmark} />
         ) : (
-          <Bookmark size={ICON_SIZE} color={NEUTRAL_COLOR} />
+          <Bookmark size={ICON_SIZE} color={colors.mutedForeground} />
         )}
       </IconButton>
       <IconButton
@@ -46,7 +44,10 @@ export function ReactionRow({
         tone="like"
         onPress={onToggleLike}
       >
-        <ThumbsUp size={ICON_SIZE} color={reaction === "like" ? LIKE_COLOR : NEUTRAL_COLOR} />
+        <ThumbsUp
+          size={ICON_SIZE}
+          color={reaction === "like" ? colors.success : colors.mutedForeground}
+        />
       </IconButton>
       <IconButton
         testID="dislike-button"
@@ -57,7 +58,7 @@ export function ReactionRow({
       >
         <ThumbsDown
           size={ICON_SIZE}
-          color={reaction === "dislike" ? DISLIKE_COLOR : NEUTRAL_COLOR}
+          color={reaction === "dislike" ? colors.warning : colors.mutedForeground}
         />
       </IconButton>
     </View>

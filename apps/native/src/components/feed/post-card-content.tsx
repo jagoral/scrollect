@@ -2,6 +2,7 @@ import { ArrowLeftRight, CheckCircle2, Eye, XCircle } from "lucide-react-native"
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useThemeColor } from "@/lib/theme/colors";
 import { Pressable, Text, View } from "@/tw";
 
 import type { FeedPost } from "./types";
@@ -62,7 +63,10 @@ export function PostCardContent({ post }: PostCardContentProps) {
 
 function InsightContent({ content }: { content: string }) {
   return (
-    <Text testID="insight-content" className="text-base leading-6 text-neutral-900">
+    <Text
+      testID="insight-content"
+      className="text-base leading-6 text-neutral-900 dark:text-neutral-50"
+    >
       {content}
     </Text>
   );
@@ -77,13 +81,16 @@ interface QuoteContentProps {
 function QuoteContent({ quotedText, attribution, context }: QuoteContentProps) {
   return (
     <View>
-      <Text testID="quoted-text" className="text-2xl font-semibold leading-8 text-neutral-900">
+      <Text
+        testID="quoted-text"
+        className="text-2xl font-semibold leading-8 text-neutral-900 dark:text-neutral-50"
+      >
         &ldquo;{quotedText}&rdquo;
       </Text>
       {attribution ? (
         <Text
           testID="quote-attribution"
-          className="mt-3 text-xs uppercase tracking-widest text-amber-600"
+          className="mt-3 text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400"
         >
           &mdash; {attribution}
         </Text>
@@ -91,7 +98,7 @@ function QuoteContent({ quotedText, attribution, context }: QuoteContentProps) {
       {context ? (
         <Text
           testID="quote-context"
-          className="mt-3 border-l-2 border-neutral-200 pl-3 text-sm leading-5 text-neutral-500"
+          className="mt-3 border-l-2 border-neutral-200 pl-3 text-sm leading-5 text-neutral-500 dark:border-neutral-700 dark:text-neutral-400"
         >
           {context}
         </Text>
@@ -108,7 +115,10 @@ interface SummaryContentProps {
 function SummaryContent({ bulletPoints, fallbackContent }: SummaryContentProps) {
   if (bulletPoints.length === 0) {
     return (
-      <Text testID="summary-content" className="text-base leading-6 text-neutral-900">
+      <Text
+        testID="summary-content"
+        className="text-base leading-6 text-neutral-900 dark:text-neutral-50"
+      >
         {fallbackContent}
       </Text>
     );
@@ -118,12 +128,16 @@ function SummaryContent({ bulletPoints, fallbackContent }: SummaryContentProps) 
       {bulletPoints.map((point, i) => (
         <View
           key={i}
-          className={`flex-row gap-3 py-2 ${i > 0 ? "border-t border-dashed border-neutral-200" : ""}`}
+          className={`flex-row gap-3 py-2 ${
+            i > 0 ? "border-t border-dashed border-neutral-200 dark:border-neutral-800" : ""
+          }`}
         >
-          <Text className="w-7 text-xs font-medium uppercase tracking-wider text-blue-500">
+          <Text className="w-7 text-xs font-medium uppercase tracking-wider text-blue-500 dark:text-blue-400">
             {String(i + 1).padStart(2, "0")}
           </Text>
-          <Text className="flex-1 text-sm leading-5 text-neutral-900">{point}</Text>
+          <Text className="flex-1 text-sm leading-5 text-neutral-900 dark:text-neutral-50">
+            {point}
+          </Text>
         </View>
       ))}
     </View>
@@ -145,6 +159,7 @@ function ConnectionContent({
   sourceBKeyIdea,
   summary,
 }: ConnectionContentProps) {
+  const accentColor = useThemeColor("accent");
   return (
     <View testID="connection-content">
       <View className="mb-4 flex-row items-stretch gap-2">
@@ -155,7 +170,7 @@ function ConnectionContent({
           keyIdea={sourceAKeyIdea}
         />
         <View className="items-center justify-center px-1">
-          <ArrowLeftRight size={18} color="#8b5cf6" />
+          <ArrowLeftRight size={18} color={accentColor} />
         </View>
         <ConnectionSource
           testID="connection-source-b"
@@ -164,7 +179,7 @@ function ConnectionContent({
           keyIdea={sourceBKeyIdea}
         />
       </View>
-      <Text className="text-base leading-6 text-neutral-900">{summary}</Text>
+      <Text className="text-base leading-6 text-neutral-900 dark:text-neutral-50">{summary}</Text>
     </View>
   );
 }
@@ -178,15 +193,18 @@ interface ConnectionSourceProps {
 
 function ConnectionSource({ testID, label, title, keyIdea }: ConnectionSourceProps) {
   return (
-    <View testID={testID} className="flex-1 border border-neutral-200 bg-violet-500/5 px-3 py-3">
-      <Text className="mb-1 text-[10px] font-medium uppercase tracking-widest text-violet-500">
+    <View
+      testID={testID}
+      className="flex-1 border border-neutral-200 bg-violet-500/5 px-3 py-3 dark:border-neutral-800 dark:bg-violet-500/10"
+    >
+      <Text className="mb-1 text-[10px] font-medium uppercase tracking-widest text-violet-500 dark:text-violet-300">
         {label}
       </Text>
-      <Text numberOfLines={1} className="text-xs text-neutral-500">
+      <Text numberOfLines={1} className="text-xs text-neutral-500 dark:text-neutral-400">
         {title}
       </Text>
       {keyIdea ? (
-        <Text className="mt-2 text-xs italic leading-4 text-neutral-700">
+        <Text className="mt-2 text-xs italic leading-4 text-neutral-700 dark:text-neutral-300">
           &ldquo;{keyIdea}&rdquo;
         </Text>
       ) : null}
@@ -204,10 +222,15 @@ interface QuizContentProps {
 function QuizMcContent({ question, options, correctIndex, explanation }: QuizContentProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const answered = selectedIndex !== null;
+  const successColor = useThemeColor("success");
+  const warningColor = useThemeColor("warning");
 
   return (
     <View>
-      <Text testID="quiz-question" className="mb-3 text-lg font-semibold text-neutral-900">
+      <Text
+        testID="quiz-question"
+        className="mb-3 text-lg font-semibold text-neutral-900 dark:text-neutral-50"
+      >
         {question}
       </Text>
       <View>
@@ -226,28 +249,30 @@ function QuizMcContent({ question, options, correctIndex, explanation }: QuizCon
               }}
               className={`mb-1.5 flex-row items-center gap-3 border px-3 py-2.5 ${
                 answered && isCorrect
-                  ? "border-emerald-500/45 bg-emerald-50"
+                  ? "border-emerald-500/45 bg-emerald-50 dark:border-emerald-500/55 dark:bg-emerald-950/40"
                   : answered && isPicked && !isCorrect
-                    ? "border-red-500/45 bg-red-50"
-                    : "border-neutral-200 bg-white"
+                    ? "border-red-500/45 bg-red-50 dark:border-red-500/55 dark:bg-red-950/40"
+                    : "border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900"
               } ${answered && !isPicked && !isCorrect ? "opacity-50" : ""}`}
             >
-              <Text className="w-5 text-xs font-medium tracking-wider text-neutral-500">
+              <Text className="w-5 text-xs font-medium tracking-wider text-neutral-500 dark:text-neutral-400">
                 {String.fromCharCode(65 + i)}
               </Text>
-              <Text className="flex-1 text-sm text-neutral-900">{option}</Text>
+              <Text className="flex-1 text-sm text-neutral-900 dark:text-neutral-50">{option}</Text>
               {answered && isCorrect ? (
                 <View className="flex-row items-center gap-1">
-                  <CheckCircle2 size={14} color="#059669" />
-                  <Text className="text-[10px] font-medium uppercase text-emerald-600">
+                  <CheckCircle2 size={14} color={successColor} />
+                  <Text className="text-[10px] font-medium uppercase text-emerald-600 dark:text-emerald-400">
                     Correct
                   </Text>
                 </View>
               ) : null}
               {answered && isPicked && !isCorrect ? (
                 <View className="flex-row items-center gap-1">
-                  <XCircle size={14} color="#ef4444" />
-                  <Text className="text-[10px] font-medium uppercase text-red-500">Your pick</Text>
+                  <XCircle size={14} color={warningColor} />
+                  <Text className="text-[10px] font-medium uppercase text-red-500 dark:text-red-400">
+                    Your pick
+                  </Text>
                 </View>
               ) : null}
             </Pressable>
@@ -258,10 +283,14 @@ function QuizMcContent({ question, options, correctIndex, explanation }: QuizCon
         <View
           testID="quiz-explanation"
           className={`mt-3 border px-3 py-2.5 ${
-            selectedIndex === correctIndex ? "border-emerald-500/35" : "border-red-500/35"
+            selectedIndex === correctIndex
+              ? "border-emerald-500/35 dark:border-emerald-500/45"
+              : "border-red-500/35 dark:border-red-500/45"
           }`}
         >
-          <Text className="text-sm leading-5 text-neutral-900">{explanation}</Text>
+          <Text className="text-sm leading-5 text-neutral-900 dark:text-neutral-50">
+            {explanation}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -270,9 +299,13 @@ function QuizMcContent({ question, options, correctIndex, explanation }: QuizCon
 
 function QuizRevealContent({ question, options, correctIndex, explanation }: QuizContentProps) {
   const [revealed, setRevealed] = useState(false);
+  const eyeColor = useThemeColor("foreground");
   return (
     <View>
-      <Text testID="quiz-question" className="mb-3 text-lg font-semibold text-neutral-900">
+      <Text
+        testID="quiz-question"
+        className="mb-3 text-lg font-semibold text-neutral-900 dark:text-neutral-50"
+      >
         {question}
       </Text>
       {!revealed ? (
@@ -283,16 +316,24 @@ function QuizRevealContent({ question, options, correctIndex, explanation }: Qui
           onPress={() => setRevealed(true)}
         >
           <View className="flex-row items-center gap-2">
-            <Eye size={14} color="#171717" />
-            <Text className="text-sm font-medium text-neutral-900">Reveal answer</Text>
+            <Eye size={14} color={eyeColor} />
+            <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+              Reveal answer
+            </Text>
           </View>
         </Button>
       ) : (
-        <View testID="quiz-answer" className="border border-emerald-500/35 p-3">
-          <Text className="text-base font-semibold text-emerald-700">
+        <View
+          testID="quiz-answer"
+          className="border border-emerald-500/35 p-3 dark:border-emerald-500/45"
+        >
+          <Text className="text-base font-semibold text-emerald-700 dark:text-emerald-400">
             {options[correctIndex] ?? "Answer unavailable"}
           </Text>
-          <Text testID="quiz-explanation" className="mt-2 text-sm leading-5 text-neutral-700">
+          <Text
+            testID="quiz-explanation"
+            className="mt-2 text-sm leading-5 text-neutral-700 dark:text-neutral-300"
+          >
             {explanation}
           </Text>
         </View>

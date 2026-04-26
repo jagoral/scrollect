@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { authClient } from "@/lib/auth-client";
 import { convex } from "@/lib/convex";
 import { env } from "@/lib/env";
+import { ThemeProvider } from "@/lib/theme/theme-context";
 
 const postHogApiKey = env.EXPO_PUBLIC_POSTHOG_KEY;
 const postHogOptions = { host: env.EXPO_PUBLIC_POSTHOG_HOST };
@@ -23,10 +24,12 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <AnalyticsProvider>
-      <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-        {children}
-      </ConvexBetterAuthProvider>
-    </AnalyticsProvider>
+    <ThemeProvider>
+      <AnalyticsProvider>
+        <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+          {children}
+        </ConvexBetterAuthProvider>
+      </AnalyticsProvider>
+    </ThemeProvider>
   );
 }
