@@ -92,7 +92,7 @@ export function SignInForm() {
   };
 
   return (
-    <View className="flex-1 justify-center px-6">
+    <View testID="sign-in-screen" className="flex-1 justify-center px-6">
       <View className="mb-8">
         <Text className="text-3xl font-semibold text-neutral-900 dark:text-neutral-50">
           Sign in
@@ -108,6 +108,7 @@ export function SignInForm() {
             Email
           </Text>
           <TextInput
+            testID="sign-in-email"
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect={false}
@@ -127,6 +128,7 @@ export function SignInForm() {
             Password
           </Text>
           <TextInput
+            testID="sign-in-password"
             autoCapitalize="none"
             autoComplete="current-password"
             autoCorrect={false}
@@ -148,6 +150,7 @@ export function SignInForm() {
         ) : null}
 
         <Button
+          testID="sign-in-submit"
           variant="primary"
           loading={submitting}
           disabled={submitting}

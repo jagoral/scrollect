@@ -1,0 +1,27 @@
+appId: com.scrollect.app
+name: Sign in - email/password reaches feed
+tags:
+  - core
+  - mvp
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    permissions:
+      notifications: deny
+- assertVisible:
+    id: "sign-in-screen"
+- tapOn:
+    id: "sign-in-email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "sign-in-submit"
+# After successful sign-in the AuthGuard renders the tabs with Feed selected.
+# Assert by tab testID rather than visible text so a copy edit doesn't break us.
+- assertVisible:
+    id: "tab-feed"
+- assertVisible: "Your Feed"

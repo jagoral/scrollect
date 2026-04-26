@@ -25,6 +25,7 @@ export default function TabsLayout() {
           name="feed"
           options={{
             title: "Feed",
+            tabBarButtonTestID: "tab-feed",
             tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
           }}
         />
@@ -32,6 +33,7 @@ export default function TabsLayout() {
           name="saved"
           options={{
             title: "Saved",
+            tabBarButtonTestID: "tab-saved",
             tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
           }}
         />
@@ -39,6 +41,7 @@ export default function TabsLayout() {
           name="topics"
           options={{
             title: "Topics",
+            tabBarButtonTestID: "tab-topics",
             tabBarIcon: ({ color, size }) => <Folder size={size} color={color} />,
           }}
         />
@@ -46,6 +49,7 @@ export default function TabsLayout() {
           name="settings"
           options={{
             title: "Settings",
+            tabBarButtonTestID: "tab-settings",
             tabBarIcon: ({ color, size }) => <SettingsIcon size={size} color={color} />,
           }}
         />
