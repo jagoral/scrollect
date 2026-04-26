@@ -30,6 +30,12 @@ jobs:
       - name: Format check
         run: bun run oxfmt --check
 
+      - name: Native typecheck
+        run: bun --filter @scrollect/native typecheck
+
+      - name: Native lint
+        run: bun --filter @scrollect/native lint
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest

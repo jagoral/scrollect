@@ -1,0 +1,6 @@
+[install]
+# React Native and Expo expect a flat node_modules tree so Metro and the
+# native build tools (CocoaPods/Gradle) can locate a single copy of each
+# native module. Bun's default isolated linker creates per-package trees
+# that Expo Doctor and EAS Build flag as duplicate dependencies.
+linker = "hoisted"

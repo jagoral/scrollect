@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Scrollect",
+    "slug": "scrollect",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "scheme": "scrollect",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.scrollect.app"
+    },
+    "android": {
+      "package": "com.scrollect.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b7e4337b-4f42-4679-b227-cd75ec2caf66"
+      }
+    },
+    "owner": "jagoral"
+  }
+}
