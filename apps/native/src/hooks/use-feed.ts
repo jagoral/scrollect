@@ -1,56 +1,44 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
+import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
 import { usePaginatedQuery } from "convex/react";
 import { usePostHog } from "posthog-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
+
+import { useRefreshSpinnerFloor } from "./use-refresh-spinner-floor";
 
 const INITIAL_PAGE_SIZE = 10;
 const LOAD_MORE_PAGE_SIZE = 10;
-const REFRESH_SPINNER_FLOOR_MS = 300;
 
-export function useFeed() {
+interface UseFeedOptions {
+  topicId?: Id<"topics">;
+}
+
+export function useFeed({ topicId }: UseFeedOptions = {}) {
   const posthog = usePostHog();
   const { results, status, loadMore } = usePaginatedQuery(
     api.feed.queries.list,
-    {},
+    topicId ? { topicId } : {},
     { initialNumItems: INITIAL_PAGE_SIZE },
   );
-
-  const [refreshing, setRefreshing] = useState(false);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Clear any pending refresh-spinner timer if the screen unmounts mid-gesture
-  // — leaving it pending would trigger a state update on an unmounted hook.
-  useEffect(() => {
-    return () => {
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    };
-  }, []);
+  const { refreshing, trigger: triggerRefreshFloor } = useRefreshSpinnerFloor();
 
   const onRefresh = useCallback(() => {
     // A refresh gesture during LoadingMore / LoadingFirstPage is intentionally
     // a no-op — the spinner already conveys "data in flight". Stacking another
     // pull-to-refresh on top would only confuse the user.
     if (status === "LoadingFirstPage" || status === "LoadingMore" || refreshing) return;
-    setRefreshing(true);
-    posthog?.capture("feed.refreshed");
-    // The Convex paginated query subscribes via WebSocket, so data is already
-    // live — we don't need to manually re-fetch. The spinner stays up for a
-    // short floor so the gesture feels intentional rather than dismissed
-    // instantly.
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    refreshTimerRef.current = setTimeout(() => {
-      setRefreshing(false);
-      refreshTimerRef.current = null;
-    }, REFRESH_SPINNER_FLOOR_MS);
-  }, [posthog, refreshing, status]);
+    triggerRefreshFloor();
+    posthog?.capture("feed.refreshed", topicId ? { scope: "topic", topic_id: topicId } : undefined);
+  }, [posthog, refreshing, status, topicId, triggerRefreshFloor]);
 
   const onEndReached = useCallback(() => {
     if (status !== "CanLoadMore") return;
     posthog?.capture("feed.paginated", {
       loaded_count: results.length,
+      ...(topicId ? { scope: "topic", topic_id: topicId } : {}),
     });
     loadMore(LOAD_MORE_PAGE_SIZE);
-  }, [loadMore, posthog, results.length, status]);
+  }, [loadMore, posthog, results.length, status, topicId]);
 
   // Fire `feed.exhausted` exactly once per mount. Stricter than web (web's
   // `prevStatusRef` re-fires on every transition INTO Exhausted across
@@ -61,8 +49,11 @@ export function useFeed() {
     if (status !== "Exhausted") return;
     if (exhaustedFiredRef.current) return;
     exhaustedFiredRef.current = true;
-    posthog?.capture("feed.exhausted", { total_posts: results.length });
-  }, [posthog, results.length, status]);
+    posthog?.capture("feed.exhausted", {
+      total_posts: results.length,
+      ...(topicId ? { scope: "topic", topic_id: topicId } : {}),
+    });
+  }, [posthog, results.length, status, topicId]);
 
   return {
     results,

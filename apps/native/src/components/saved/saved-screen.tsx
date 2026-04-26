@@ -1,57 +1,32 @@
-import type { Id } from "@scrollect/backend/convex/_generated/dataModel";
-import { usePostHog } from "posthog-react-native";
-import { type ReactNode, useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { ActivityIndicator, FlatList, type ListRenderItemInfo, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useFeed } from "@/hooks/use-feed";
+import { PostListSkeleton } from "@/components/feed/post-list-skeleton";
+import { PostCard } from "@/components/feed/post-card";
+import type { FeedPost } from "@/components/feed/types";
+import { useSaved } from "@/hooks/use-saved";
 import { useThemeColor } from "@/lib/theme/colors";
 import { Text, View } from "@/tw";
 
-import { FeedEmptyState } from "./feed-empty-state";
-import { PostCard } from "./post-card";
-import { PostListSkeleton } from "./post-list-skeleton";
-import type { FeedPost } from "./types";
+import { SavedEmptyState } from "./saved-empty-state";
 
 const ON_END_REACHED_THRESHOLD = 0.6;
 
-interface FeedScreenProps {
-  topicId?: Id<"topics">;
-  header?: ReactNode;
-}
-
-export function FeedScreen({ topicId, header }: FeedScreenProps = {}) {
-  const posthog = usePostHog();
-  const { results, status, refreshing, onRefresh, onEndReached } = useFeed({ topicId });
+export function SavedScreen() {
+  const { posts, status, refreshing, onRefresh, onEndReached } = useSaved();
   const spinnerColor = useThemeColor("foreground");
 
-  const renderItem = useCallback(({ item }: ListRenderItemInfo<FeedPost>) => {
-    return <PostCard post={item} />;
-  }, []);
-
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<FeedPost>) => <PostCard post={item} />,
+    [],
+  );
   const keyExtractor = useCallback((post: FeedPost) => post._id as string, []);
-
-  // Fire `feed.viewed` exactly once per mount, after the first load completes.
-  // A ref guard avoids the subtler "exclude posthog from deps" problem (stale
-  // posthog closure if the provider re-mounts) while still preventing re-fires
-  // on every pagination tick that grows `results`.
-  const feedViewedFiredRef = useRef(false);
-  useEffect(() => {
-    if (status === "LoadingFirstPage") return;
-    if (feedViewedFiredRef.current) return;
-    feedViewedFiredRef.current = true;
-    posthog?.capture("feed.viewed", {
-      post_count: results.length,
-      ...(topicId ? { scope: "topic", topic_id: topicId } : {}),
-    });
-  }, [posthog, results.length, status, topicId]);
-
-  const resolvedHeader = header ?? <FeedHeader />;
 
   if (status === "LoadingFirstPage") {
     return (
       <SafeAreaView edges={["top"]} className="flex-1 bg-white dark:bg-neutral-950">
-        {resolvedHeader}
+        <SavedHeader />
         <PostListSkeleton />
       </SafeAreaView>
     );
@@ -59,9 +34,9 @@ export function FeedScreen({ topicId, header }: FeedScreenProps = {}) {
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-white dark:bg-neutral-950">
-      {resolvedHeader}
+      <SavedHeader />
       <FlatList
-        data={results}
+        data={posts}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         onEndReached={onEndReached}
@@ -69,34 +44,34 @@ export function FeedScreen({ topicId, header }: FeedScreenProps = {}) {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={spinnerColor} />
         }
-        ListEmptyComponent={<FeedEmptyState />}
+        ListEmptyComponent={<SavedEmptyState />}
         ListFooterComponent={
           status === "LoadingMore" ? (
             <View className="items-center py-6">
               <ActivityIndicator color={spinnerColor} />
             </View>
-          ) : status === "Exhausted" && results.length > 0 ? (
+          ) : status === "Exhausted" && posts.length > 0 ? (
             <View className="items-center py-8">
               <Text className="text-xs uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
-                You&apos;re all caught up
+                You&apos;ve seen all your saved posts
               </Text>
             </View>
           ) : null
         }
-        contentContainerStyle={results.length === 0 ? styles.emptyContainer : undefined}
+        contentContainerStyle={posts.length === 0 ? styles.emptyContainer : undefined}
       />
     </SafeAreaView>
   );
 }
 
-function FeedHeader() {
+function SavedHeader() {
   return (
     <View className="border-b border-neutral-200 bg-white px-5 pt-2 pb-4 dark:border-neutral-800 dark:bg-neutral-950">
       <Text className="text-[11px] font-medium uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
-        Your Feed
+        Bookmarks
       </Text>
       <Text className="mt-1 text-2xl font-semibold text-neutral-900 dark:text-neutral-50">
-        Scrollect
+        Saved
       </Text>
     </View>
   );

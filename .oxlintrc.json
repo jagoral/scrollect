@@ -71,6 +71,17 @@
           }
         ]
       }
+    },
+    {
+      "files": ["apps/native/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": []
+          }
+        ]
+      }
     }
   ]
 }
