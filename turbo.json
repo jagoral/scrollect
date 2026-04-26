@@ -21,6 +21,14 @@
       "cache": false,
       "persistent": true
     },
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "typecheck": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
     "test": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$"],
