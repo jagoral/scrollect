@@ -31,7 +31,7 @@ function makeCtx(perTable: Record<string, Row[]>) {
 }
 
 describe("deleteRemainingUserDataLogic", () => {
-  it("deletes topics and documentTopics together with the other user-owned rows", async () => {
+  it("deletes topics, documentTopics, and pushTokens together with the other user-owned rows", async () => {
     const userId = "user-1";
     const { ctx, deleted } = makeCtx({
       bookmarks: [{ _id: "bm-1", userId }],
@@ -48,6 +48,10 @@ describe("deleteRemainingUserDataLogic", () => {
         { _id: "dt-2", userId },
         { _id: "dt-3", userId },
       ],
+      pushTokens: [
+        { _id: "pt-1", userId },
+        { _id: "pt-2", userId },
+      ],
     });
 
     const result = await deleteRemainingUserDataLogic(ctx, { userId });
@@ -60,6 +64,7 @@ describe("deleteRemainingUserDataLogic", () => {
       deletedEntitlementGrants: 1,
       deletedTopics: 2,
       deletedDocumentTopics: 3,
+      deletedPushTokens: 2,
     });
 
     expect(deleted).toContain("topic-1");
@@ -67,6 +72,8 @@ describe("deleteRemainingUserDataLogic", () => {
     expect(deleted).toContain("dt-1");
     expect(deleted).toContain("dt-2");
     expect(deleted).toContain("dt-3");
+    expect(deleted).toContain("pt-1");
+    expect(deleted).toContain("pt-2");
   });
 
   it("returns zero counts and deletes nothing when the user has no rows", async () => {
@@ -82,6 +89,7 @@ describe("deleteRemainingUserDataLogic", () => {
       deletedEntitlementGrants: 0,
       deletedTopics: 0,
       deletedDocumentTopics: 0,
+      deletedPushTokens: 0,
     });
     expect(deleted).toHaveLength(0);
   });

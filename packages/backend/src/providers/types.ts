@@ -377,3 +377,27 @@ export type VectorDeletionServices = {
 export type TopicEmbeddingServiceContext = {
   embedder: EmbeddingProvider;
 };
+
+export interface PushNotificationMessage {
+  /** The Expo push token (`ExponentPushToken[...]`) the message is sent to. */
+  token: string;
+  title: string;
+  body: string;
+  /** Custom payload delivered to the client; used for deep-link routing. */
+  data?: Record<string, unknown>;
+}
+
+export type PushSendOutcome =
+  | { status: "ok"; receiptId?: string }
+  /** Permanent: token is gone (DeviceNotRegistered etc.) - caller should remove it. */
+  | { status: "invalid_token"; reason: string }
+  /** Transient: rate-limited, server busy, etc. */
+  | { status: "error"; reason: string };
+
+export interface PushNotificationService {
+  send(messages: PushNotificationMessage[]): Promise<PushSendOutcome[]>;
+}
+
+export type PushNotificationServiceContext = {
+  pushNotifications: PushNotificationService;
+};

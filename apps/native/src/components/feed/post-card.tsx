@@ -5,6 +5,7 @@ import { usePostHog } from "posthog-react-native";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 
+import { usePushPrompt } from "@/components/push/push-bootstrap";
 import { haptics } from "@/lib/haptics";
 import { Text, View } from "@/tw";
 
@@ -55,6 +56,7 @@ function removePostFromPaginatedPages(localStore: OptimisticLocalStore, postId: 
 
 export function PostCard({ post }: PostCardProps) {
   const posthog = usePostHog();
+  const { noteReaction } = usePushPrompt();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [reasonSelectedDuringSession, setReasonSelectedDuringSession] = useState(false);
 
@@ -115,10 +117,21 @@ export function PostCard({ post }: PostCardProps) {
     });
     try {
       await setReaction({ postId: post._id, reaction: nextReaction });
+      // Only count an "actual" reaction (like) toward the push pre-prompt
+      // trigger - removing a like shouldn't gate the contextual moment.
+      if (nextReaction === "like") noteReaction();
     } catch (error) {
       reportMutationError(error, "reaction");
     }
-  }, [post._id, post.postType, post.reaction, posthog, reportMutationError, setReaction]);
+  }, [
+    noteReaction,
+    post._id,
+    post.postType,
+    post.reaction,
+    posthog,
+    reportMutationError,
+    setReaction,
+  ]);
 
   const handleOpenDislike = useCallback(() => {
     setReasonSelectedDuringSession(false);
@@ -161,11 +174,13 @@ export function PostCard({ post }: PostCardProps) {
           reaction: "dislike",
           dislikeReason: reason,
         });
+        noteReaction();
       } catch (error) {
         reportMutationError(error, "reaction");
       }
     },
     [
+      noteReaction,
       post._id,
       post.postDraftId,
       post.postType,

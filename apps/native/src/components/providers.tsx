@@ -2,6 +2,7 @@ import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { PostHogProvider } from "posthog-react-native";
 import type { ReactNode } from "react";
 
+import { PushNotificationsBootstrap } from "@/components/push/push-bootstrap";
 import { authClient } from "@/lib/auth-client";
 import { convex } from "@/lib/convex";
 import { env } from "@/lib/env";
@@ -27,7 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <ThemeProvider>
       <AnalyticsProvider>
         <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-          {children}
+          <PushNotificationsBootstrap>{children}</PushNotificationsBootstrap>
         </ConvexBetterAuthProvider>
       </AnalyticsProvider>
     </ThemeProvider>
