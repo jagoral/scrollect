@@ -1,0 +1,29 @@
+appId: com.scrollect.app
+name: Feed scroll + react (like + dislike with reason)
+tags:
+  - core
+  - mvp
+---
+- runFlow: 01-sign-in.yaml
+# Wait for the first post to render. The feed empty-state is rendered as a
+# View with testID "feed-empty-state" - if that's visible the seed data is
+# missing and we should fail loudly rather than silently passing.
+- assertVisible:
+    id: "post-card"
+- assertNotVisible:
+    id: "feed-empty-state"
+# Like the first visible post.
+- tapOn:
+    id: "like-button"
+    index: 0
+# Scroll to surface a second post and dislike it with a reason.
+- scroll
+- tapOn:
+    id: "dislike-button"
+    index: 0
+- assertVisible:
+    id: "dislike-reason-sheet"
+- tapOn:
+    id: "dislike-reason-not_interesting"
+- assertNotVisible:
+    id: "dislike-reason-sheet"

@@ -1,0 +1,14 @@
+# Maestro project config for the Scrollect mobile app.
+#
+# - flowsDir: where the YAML flow files live.
+# - includeTags / excludeTags: Maestro tag filters; reserved for future use
+#   when we add long-running smoke flows that we don't want in PR runs.
+flowsDir: flows
+
+# Inputs are surfaced to flows via `${MAESTRO_<name>}` placeholders. The CI
+# workflow injects these from repo secrets / vars; for local runs they fall
+# back to the seeded test account that already exists on the dev backend
+# (see apps/e2e/tests/helpers.ts).
+env:
+  EMAIL: e2e-seeded-account@test.scrollect.dev
+  PASSWORD: testpassword123

@@ -1,0 +1,149 @@
+name: Maestro Mobile E2E
+
+# Runs the Maestro flows defined in .maestro/flows/ against an EAS-built APK,
+# executed on Maestro Cloud. Best-effort gate on PRs to dev:
+#
+# - triggers when apps/native/**, .maestro/**, or backend code that the mobile
+#   flows depend on changes. Backend-only PRs that touch posts/bookmarks/auth
+#   would silently break mobile without this; the cost of an extra APK build
+#   is worth catching that.
+# - skips entirely when ENABLE_MAESTRO repo var is unset, so forks and
+#   bring-up-your-own-keys clones don't see red checks they can't fix.
+# - uses Maestro Cloud (not a self-hosted emulator) because GitHub-hosted
+#   macOS runners cost 10x ubuntu and Android emulator boot on ubuntu eats
+#   ~5min per run before any test work happens. Maestro Cloud is the
+#   cheaper, more reliable option for the MVP cadence.
+#
+# To narrow further if Cloud minutes get expensive, restrict the `branches:`
+# filter to `main` / release branches and document the move in
+# .maestro/README.md.
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "apps/native/**"
+      - ".maestro/**"
+      - ".github/workflows/maestro.yml"
+      # Backend surfaces the mobile flows touch. Listed explicitly rather than
+      # `packages/backend/**` because most backend work (pipeline internals,
+      # docs) cannot regress the mobile flows and isn't worth a 5-10min rebuild.
+      - "packages/backend/convex/schema.ts"
+      - "packages/backend/convex/http.ts"
+      - "packages/backend/convex/access/**"
+      - "packages/backend/convex/feed/**"
+      - "packages/backend/convex/content/bookmarks.ts"
+      - "packages/backend/convex/ops/testing.ts"
+      - "packages/backend/convex/ops/testingActions.ts"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  maestro:
+    name: Maestro flows (Android)
+    runs-on: ubuntu-latest
+    # Skip cleanly when the repo doesn't have Maestro Cloud configured.
+    if: ${{ vars.ENABLE_MAESTRO == 'true' }}
+    env:
+      TEST_EMAIL: e2e-seeded-account@test.scrollect.dev
+      TEST_PASSWORD: testpassword123
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Fail loud and early if a required secret is missing - Cloud key + Expo
+      # token are needed by later steps and there's no point spending 5-10
+      # minutes on an EAS build only to fail at the upload.
+      - name: Verify required secrets
+        run: |
+          missing=()
+          [ -z "$MAESTRO_CLOUD_API_KEY" ] && missing+=("MAESTRO_CLOUD_API_KEY")
+          [ -z "$EXPO_TOKEN" ] && missing+=("EXPO_TOKEN")
+          [ -z "$MAESTRO_CONVEX_URL" ] && missing+=("vars.MAESTRO_CONVEX_URL")
+          [ -z "$MAESTRO_SITE_URL" ] && missing+=("vars.MAESTRO_SITE_URL")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required configuration: ${missing[*]}. See .maestro/README.md."
+            exit 1
+          fi
+        env:
+          MAESTRO_CLOUD_API_KEY: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          MAESTRO_CONVEX_URL: ${{ vars.MAESTRO_CONVEX_URL }}
+          MAESTRO_SITE_URL: ${{ vars.MAESTRO_SITE_URL }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('apps/native/package.json') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build preview APK
+        working-directory: apps/native
+        run: eas build --platform android --profile preview --non-interactive --local --output ../../scrollect.apk
+        env:
+          EXPO_PUBLIC_CONVEX_URL: ${{ vars.MAESTRO_CONVEX_URL }}
+          EXPO_PUBLIC_SITE_URL: ${{ vars.MAESTRO_SITE_URL }}
+          EXPO_PUBLIC_POSTHOG_KEY: ${{ secrets.MAESTRO_POSTHOG_KEY }}
+          EXPO_PUBLIC_POSTHOG_HOST: ${{ vars.MAESTRO_POSTHOG_HOST }}
+
+      # Mirror apps/e2e/tests/global-setup.ts: ensure the seeded account exists
+      # (idempotent - 200 = created, 422 = already exists), then seed feed data
+      # via the JSON-body POST contract that packages/backend/convex/http.ts
+      # expects. The shared backend means concurrent PR runs share state - see
+      # the "Shared backend" note in .maestro/README.md.
+      - name: Provision and seed test account
+        run: |
+          set -o pipefail
+          provision_status=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Origin: ${SITE_URL}" \
+            --data "{\"email\":\"${TEST_EMAIL}\",\"password\":\"${TEST_PASSWORD}\",\"name\":\"E2E Maestro\"}" \
+            "${SITE_URL}/api/auth/sign-up/email")
+          if [ "$provision_status" != "200" ] && [ "$provision_status" != "422" ]; then
+            echo "::error::Account provision failed: HTTP $provision_status"
+            exit 1
+          fi
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Content-Type: application/json" \
+            --data "{\"email\":\"${TEST_EMAIL}\"}" \
+            "${SITE_URL}/api/e2e-seed"
+        env:
+          SITE_URL: ${{ vars.MAESTRO_SITE_URL }}
+
+      - name: Run flows on Maestro Cloud
+        uses: mobile-dev-inc/action-maestro-cloud@v1
+        with:
+          api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
+          app-file: scrollect.apk
+          workspace: .maestro
+          env: |
+            EMAIL=${{ env.TEST_EMAIL }}
+            PASSWORD=${{ env.TEST_PASSWORD }}

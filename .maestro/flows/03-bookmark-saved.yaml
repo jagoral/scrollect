@@ -1,0 +1,22 @@
+appId: com.scrollect.app
+name: Bookmark a post and verify it appears in Saved
+tags:
+  - core
+  - mvp
+---
+- runFlow: 01-sign-in.yaml
+- assertVisible:
+    id: "post-card"
+# Bookmark the first visible post.
+- tapOn:
+    id: "save-button"
+    index: 0
+# Switch to the Saved tab using its tabBarButtonTestID. Targeting by id keeps
+# us safe from copy/i18n changes to the tab label.
+- tapOn:
+    id: "tab-saved"
+# At least one post must be present and the empty state must not be.
+- assertVisible:
+    id: "post-card"
+- assertNotVisible:
+    id: "saved-empty-state"
