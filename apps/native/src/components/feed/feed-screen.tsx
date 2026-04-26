@@ -1,6 +1,6 @@
 import { LogOut } from "lucide-react-native";
 import { usePostHog } from "posthog-react-native";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, FlatList, type ListRenderItemInfo, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -26,19 +26,21 @@ export function FeedScreen() {
 
   const keyExtractor = useCallback((post: FeedPost) => post._id as string, []);
 
-  // Fire `feed.viewed` once per status transition out of LoadingFirstPage —
-  // we read `results.length` at fire time (closure) but intentionally omit it
-  // from deps so this fires on the load → ready transition, not on every
-  // pagination tick that grows the list.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Fire `feed.viewed` exactly once per mount, after the first load completes.
+  // A ref guard avoids the subtler "exclude posthog from deps" problem (stale
+  // posthog closure if the provider re-mounts) while still preventing re-fires
+  // on every pagination tick that grows `results`.
+  const feedViewedFiredRef = useRef(false);
   useEffect(() => {
     if (status === "LoadingFirstPage") return;
+    if (feedViewedFiredRef.current) return;
+    feedViewedFiredRef.current = true;
     posthog?.capture("feed.viewed", { post_count: results.length });
-  }, [status]);
+  }, [posthog, results.length, status]);
 
   if (status === "LoadingFirstPage") {
     return (
-      <SafeAreaView edges={["top"]} style={styles.root}>
+      <SafeAreaView edges={["top"]} className="flex-1 bg-white">
         <FeedHeader />
         <FeedSkeleton />
       </SafeAreaView>
@@ -46,7 +48,7 @@ export function FeedScreen() {
   }
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.root}>
+    <SafeAreaView edges={["top"]} className="flex-1 bg-white">
       <FeedHeader />
       <FlatList
         data={results}
@@ -105,6 +107,5 @@ function FeedHeader() {
 }
 
 const styles = {
-  root: { flex: 1, backgroundColor: "#ffffff" } as const,
   emptyContainer: { flexGrow: 1 } as const,
 };
