@@ -1,0 +1,45 @@
+import type { ReactNode } from "react";
+
+import { Pressable, type PressableProps } from "@/tw";
+
+const PRESS_HIT_SLOP = 8;
+
+interface IconButtonProps extends Omit<PressableProps, "children"> {
+  children: ReactNode;
+  active?: boolean;
+  tone?: "neutral" | "like" | "dislike" | "bookmark";
+  className?: string;
+}
+
+const inactiveByTone = "bg-transparent active:bg-neutral-100";
+
+const activeByTone: Record<NonNullable<IconButtonProps["tone"]>, string> = {
+  neutral: "bg-neutral-100",
+  like: "bg-emerald-50",
+  dislike: "bg-red-50",
+  bookmark: "bg-neutral-900/5",
+};
+
+export function IconButton({
+  children,
+  active = false,
+  tone = "neutral",
+  className,
+  accessibilityRole,
+  ...rest
+}: IconButtonProps) {
+  const stateClass = active ? activeByTone[tone] : inactiveByTone;
+  return (
+    <Pressable
+      accessibilityRole={accessibilityRole ?? "button"}
+      accessibilityState={{ selected: active, disabled: !!rest.disabled }}
+      hitSlop={PRESS_HIT_SLOP}
+      className={`size-11 items-center justify-center rounded-full ${stateClass}${
+        className ? ` ${className}` : ""
+      }`}
+      {...rest}
+    >
+      {children}
+    </Pressable>
+  );
+}
