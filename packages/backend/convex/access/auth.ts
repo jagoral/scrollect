@@ -1,5 +1,6 @@
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
+import { expo } from "@better-auth/expo";
 import { betterAuth } from "better-auth/minimal";
 
 import type { DataModel } from "../_generated/dataModel";
@@ -23,6 +24,9 @@ function createAuth(ctx: GenericCtx<DataModel>) {
       protocol: "auto",
       fallback: process.env.SITE_URL ?? "https://scrollect.app",
     },
+    // The `expo()` plugin auto-registers `exp://` in development only; the
+    // production-only Scrollect URI scheme is added here.
+    trustedOrigins: ["scrollect://"],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
@@ -33,6 +37,7 @@ function createAuth(ctx: GenericCtx<DataModel>) {
         authConfig,
         jwksRotateOnTokenGenerationError: true,
       }),
+      expo(),
     ],
   });
 }
