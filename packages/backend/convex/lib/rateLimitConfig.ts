@@ -23,9 +23,18 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   uploadUrlGeneration_pro: { kind: "fixed window", rate: 60, period: HOUR },
   feedGeneration: { kind: "fixed window", rate: 3, period: HOUR },
   feedGeneration_pro: { kind: "fixed window", rate: 15, period: HOUR },
+  topicCreate: { kind: "fixed window", rate: 20, period: HOUR },
+  topicCreate_pro: { kind: "fixed window", rate: 60, period: HOUR },
+  topicEmbed: { kind: "fixed window", rate: 30, period: HOUR },
+  topicEmbed_pro: { kind: "fixed window", rate: 100, period: HOUR },
 });
 
-export type TieredLimiterBase = "documentUpload" | "uploadUrlGeneration" | "feedGeneration";
+export type TieredLimiterBase =
+  | "documentUpload"
+  | "uploadUrlGeneration"
+  | "feedGeneration"
+  | "topicCreate"
+  | "topicEmbed";
 
 export function tieredLimiterName(base: TieredLimiterBase, tier: "free" | "pro") {
   return tier === "pro" ? (`${base}_pro` as const) : base;

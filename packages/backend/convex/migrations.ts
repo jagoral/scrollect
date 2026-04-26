@@ -1,5 +1,5 @@
 import { Migrations } from "@convex-dev/migrations";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 
@@ -23,8 +23,11 @@ export const run = migrations.runner();
  */
 export const runAll = action({
   args: {},
-  handler: async (_ctx) => {
-    // Schema-table migrations defined with `migrations.define()` go here, e.g.:
-    //   await migrations.runOne(ctx, internal.migrations.<name>);
+  handler: async (ctx) => {
+    await migrations.runOne(ctx, internal.migrations.backfillPostTopicId.backfillPostTopicId);
+    await migrations.runOne(
+      ctx,
+      internal.migrations.backfillTopicDocumentCount.backfillTopicDocumentCount,
+    );
   },
 });

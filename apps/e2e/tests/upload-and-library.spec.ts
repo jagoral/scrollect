@@ -343,48 +343,6 @@ test.describe("Library desktop layout", { tag: "@seeded" }, () => {
   });
 });
 
-test.describe("Library desktop layout", { tag: "@seeded" }, () => {
-  test.beforeEach(async () => {
-    await reseedAccount();
-  });
-
-  test.afterEach(async () => {
-    await resetTestData(SEEDED_USER.email);
-  });
-
-  test("right detail divider is a single collapsed border", async ({ page }) => {
-    await page.setViewportSize({ width: 1536, height: 864 });
-    await page.goto("/app/library");
-
-    const main = page.locator('[data-testid="app-main-scroll"]');
-    const panel = page.locator('[data-testid="library-detail-panel"]');
-    await expect(panel).toBeVisible();
-    await expect
-      .poll(() => main.evaluate((el) => getComputedStyle(el).borderRightWidth))
-      .toBe("0px");
-    await expect
-      .poll(() => panel.evaluate((el) => getComputedStyle(el).borderLeftWidth))
-      .toBe("1px");
-
-    const docButton = page.locator('[data-testid="document-item"]').first();
-    await expect(docButton).toBeVisible({ timeout: 15000 });
-    await docButton.click();
-
-    await expect(panel).toBeVisible();
-    await expect
-      .poll(() => panel.evaluate((el) => getComputedStyle(el).borderLeftWidth))
-      .toBe("1px");
-
-    const horizontalOverflow = await page.evaluate(() => {
-      const root = document.documentElement;
-      const body = document.body;
-      return Math.max(root.scrollWidth, body.scrollWidth) - root.clientWidth;
-    });
-
-    expect(horizontalOverflow).toBeLessThanOrEqual(1);
-  });
-});
-
 test.describe("Unauthenticated access", () => {
   test("unauthenticated user is redirected from /upload", async ({ page }) => {
     await page.goto("/app/upload");

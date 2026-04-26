@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bookmark, BookOpen, Rss, Settings, Upload } from "lucide-react";
+import { Bookmark, BookOpen, Layers, Rss, Settings, Upload } from "lucide-react";
 
 import {
   Sidebar,
@@ -15,7 +15,8 @@ const navLinks = [
   { to: "/app/feed" as const, label: "Feed", icon: Rss, shortcut: "01" },
   { to: "/app/saved" as const, label: "Saved", icon: Bookmark, shortcut: "02" },
   { to: "/app/library" as const, label: "Library", icon: BookOpen, shortcut: "03" },
-  { to: "/app/upload" as const, label: "Upload", icon: Upload, shortcut: "04" },
+  { to: "/app/topics" as const, label: "Topics", icon: Layers, shortcut: "04" },
+  { to: "/app/upload" as const, label: "Upload", icon: Upload, shortcut: "05" },
 ] as const;
 
 const menuButtonClassName =

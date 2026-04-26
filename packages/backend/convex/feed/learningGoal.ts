@@ -1,27 +1,66 @@
 import type { GenericMutationCtx, GenericQueryCtx } from "convex/server";
 
 import type { DataModel, Id } from "../_generated/dataModel";
+import { pickActiveTopicForDocument } from "../../src/feed/logic/pickActiveTopicForDocument";
 
 /**
- * Resolver seam for the learning-goal vector used by feed scoring.
+ * Tagged result of the goal-embedding resolver. The `source` discriminator drives
+ * the `goalSource*Count` analytics breakdown on the serving wide event so we can tell
+ * "topic-scoped goal", "per-document goal", and "no goal at all" apart in dashboards.
  *
- * Today it returns `documents.learningGoalEmbedding` for the given document. The vector
- * is colocated with the `learningGoal` text on the same document so edits on one
- * document never trample another document's goal. When per-topic goals ship
- * (ADR-018 §3 future-ready resolver seam), this function will look up the document's
- * topic, resolve the topic's embedding, and fall back to the per-document default.
- * Scoring code calls this helper and stays topic-agnostic.
+ * The `embedding` payload is `undefined` only on the `none` branch; consumers should
+ * treat that as "no goal" and default `goalRelevance` to 1.0.
+ */
+export type EffectiveGoalEmbedding =
+  | { source: "topic"; embedding: number[] }
+  | { source: "document"; embedding: number[] }
+  | { source: "none"; embedding: undefined };
+
+/**
+ * Resolver seam for the learning-goal vector used by feed scoring (ADR-018 §3, ADR-019).
  *
- * Returns `undefined` when the document has no learning goal or the embedding has
- * not yet been computed (scheduled action still pending, or provider error). The
- * serving scorer treats `undefined` as `goalRelevance = 1.0`.
+ * Resolution order is `topic → document → none`:
+ *  1. If the document is assigned to a topic and that topic has a `learningGoalEmbedding`,
+ *     return the topic's embedding. Topics are a personal goal-scoped lens over a subset
+ *     of documents; ranking against the topic vector lets users focus the feed.
+ *  2. Otherwise, return the document's own `learningGoalEmbedding` (the per-document goal
+ *     a user set during onboarding or on the document detail page).
+ *  3. Otherwise, return `{ source: "none", embedding: undefined }`. The serving scorer
+ *     treats `undefined` as `goalRelevance = 1.0`.
+ *
+ * Scoring code calls this helper and stays topic-agnostic. The schema permits multiple
+ * `documentTopics` rows per document so future multi-select doesn't require a migration;
+ * v1 UI is single-select, but if multiple rows exist the most-recent one wins (see
+ * `pickActiveTopicForDocument`).
+ *
+ * Note: `userProfiles.learningGoalEmbedding` is intentionally not consulted - per ADR-019,
+ * the per-document goal is the ultimate fallback, never a profile-level default.
  */
 export async function getEffectiveLearningGoalEmbedding(
   ctx: GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>,
   documentId: Id<"documents">,
-): Promise<number[] | undefined> {
+): Promise<EffectiveGoalEmbedding> {
+  const assignments = await ctx.db
+    .query("documentTopics")
+    .withIndex("by_documentId", (q) => q.eq("documentId", documentId))
+    .collect();
+
+  const activeTopicId = pickActiveTopicForDocument(
+    assignments.map((a) => ({ topicId: a.topicId as string, createdAt: a.createdAt })),
+  );
+
+  if (activeTopicId !== undefined) {
+    const topic = await ctx.db.get(activeTopicId as Id<"topics">);
+    if (topic?.learningGoalEmbedding && topic.learningGoalEmbedding.length > 0) {
+      return { source: "topic", embedding: topic.learningGoalEmbedding };
+    }
+  }
+
   const doc = await ctx.db.get(documentId);
-  return doc?.learningGoalEmbedding ?? undefined;
+  if (doc?.learningGoalEmbedding && doc.learningGoalEmbedding.length > 0) {
+    return { source: "document", embedding: doc.learningGoalEmbedding };
+  }
+  return { source: "none", embedding: undefined };
 }
 
 /**

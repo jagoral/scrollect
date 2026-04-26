@@ -1,7 +1,10 @@
 import { DEFAULT_SCORING_CONFIG } from "./scoring";
 import type { ScoringConfig } from "./scoring";
 
-export type ServingScope = { kind: "all" } | { kind: "document"; documentId: string };
+export type ServingScope =
+  | { kind: "all" }
+  | { kind: "document"; documentId: string }
+  | { kind: "topic"; topicId: string; documentIds: string[] };
 
 export type EmptyReason = "no_drafts" | "processing";
 
@@ -24,12 +27,20 @@ export function documentFeedScope(documentId: string): ServingScope {
   return { kind: "document", documentId };
 }
 
-export function servingScopeLabel(scope: ServingScope): "all" | "document" {
+export function topicFeedScope(topicId: string, documentIds: string[]): ServingScope {
+  return { kind: "topic", topicId, documentIds };
+}
+
+export function servingScopeLabel(scope: ServingScope): "all" | "document" | "topic" {
   return scope.kind;
 }
 
 export function servingScopeDocumentId(scope: ServingScope): string | undefined {
   return scope.kind === "document" ? scope.documentId : undefined;
+}
+
+export function servingScopeTopicId(scope: ServingScope): string | undefined {
+  return scope.kind === "topic" ? scope.topicId : undefined;
 }
 
 export function buildServingConfig(scope: ServingScope): ScoringConfig {
@@ -58,6 +69,11 @@ export function determineEmptyReasonForScope(input: {
     return input.documentStatus && PROCESSING_STAGES.has(input.documentStatus)
       ? "processing"
       : "no_drafts";
+  }
+
+  if (input.scope.kind === "topic") {
+    if (!input.hasAnyDocument) return "no_drafts";
+    return input.hasProcessingDocument ? "processing" : "no_drafts";
   }
 
   if (!input.hasAnyDocument) return "no_drafts";

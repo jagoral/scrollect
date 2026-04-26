@@ -16,6 +16,7 @@ import {
   ProcessingProgressBar,
   isProcessingStatus,
 } from "@/components/documents/processing-progress";
+import { LibraryRowTopicChip } from "@/components/library/library-row-topic-chip";
 import { useLibraryDetail } from "@/components/library-detail-panel";
 import { TagFilterBar, TagList, buildTagMap } from "@/components/tags";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,9 @@ function LibraryPage() {
   const { data: allUserTags } = useQuery(convexQuery(api.content.tags.listUserTags, {}));
   const { data: tagsBatch } = useQuery(
     convexQuery(api.content.tags.getDocumentTagsBatch, { documentIds }),
+  );
+  const { data: topicsBatch } = useQuery(
+    convexQuery(api.topics.topics.getDocumentTopicsBatch, { documentIds }),
   );
 
   const tagOptions = allUserTags ?? [];
@@ -235,38 +239,45 @@ function LibraryPage() {
 
               const isSelected = libraryDetail?.selectedDocumentId === doc._id;
 
+              const openRow = () => {
+                if (libraryDetail) {
+                  libraryDetail.openDetail(doc._id);
+                } else {
+                  navigate({
+                    to: "/app/library/$documentId",
+                    params: { documentId: doc._id },
+                  });
+                }
+              };
+
               return (
-                <button
-                  type="button"
+                <div
                   key={doc._id}
                   data-testid="document-item"
-                  onClick={() => {
-                    if (libraryDetail) {
-                      libraryDetail.openDetail(doc._id);
-                    } else {
-                      navigate({
-                        to: "/app/library/$documentId",
-                        params: { documentId: doc._id },
-                      });
-                    }
-                  }}
                   className={cn(
-                    "group relative block w-full cursor-pointer border-b border-border bg-card text-left transition-all duration-200",
-                    "hover:bg-accent/30",
+                    "group relative block w-full border-b border-border bg-card text-left transition-all duration-200",
+                    "hover:bg-accent/30 has-[button:focus-visible]:bg-accent/40 has-[button:focus-visible]:ring-1 has-[button:focus-visible]:ring-ring",
                     isSelected && "bg-accent/40",
                   )}
                 >
+                  <button
+                    type="button"
+                    onClick={openRow}
+                    aria-label={`Open ${doc.title}`}
+                    className="absolute inset-0 z-0 cursor-pointer outline-none"
+                  />
+
                   <div
                     aria-hidden
                     className={cn(
-                      "absolute left-0 top-0 bottom-0 w-[2px] transition-all",
+                      "pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-[2px] transition-all",
                       statusColor,
                       "group-hover:w-[3px]",
                       isSelected && "w-[3px]",
                     )}
                   />
 
-                  <div className="grid grid-cols-[2rem_1fr_5rem] gap-4 px-4 py-5 md:grid-cols-[2.5rem_1fr_6rem] md:gap-6 md:px-8 md:py-6">
+                  <div className="pointer-events-none relative z-10 grid grid-cols-[2rem_1fr_5rem] gap-4 px-4 py-5 md:grid-cols-[2.5rem_1fr_6rem] md:gap-6 md:px-8 md:py-6">
                     <div className="flex flex-col items-start pt-1">
                       <span className="font-mono text-[10.5px] tabular-nums tracking-[0.18em] text-muted-foreground/50 group-hover:text-muted-foreground">
                         {String(index + 1).padStart(2, "0")}
@@ -290,6 +301,9 @@ function LibraryPage() {
                             />
                           )}
                         </div>
+                        {doc.status === "ready" && (
+                          <LibraryRowTopicChip topic={topicsBatch?.[doc._id] ?? null} />
+                        )}
                       </div>
 
                       <h2 className="mt-2.5 font-logo text-lg font-semibold leading-[1.25] tracking-tight text-foreground [&]:line-clamp-2 md:text-[1.35rem]">
@@ -348,7 +362,7 @@ function LibraryPage() {
                       />
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
             {filteredDocuments.length === 0 && selectedTags.size > 0 && (

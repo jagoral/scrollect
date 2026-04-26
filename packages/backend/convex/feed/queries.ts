@@ -14,6 +14,7 @@ export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
     documentId: v.optional(v.id("documents")),
+    topicId: v.optional(v.id("topics")),
   },
   handler: async (ctx, args) => {
     const user = await optionalAuth(ctx);
@@ -25,7 +26,8 @@ export const list = query({
       };
     }
 
-    const scopedDocumentId = args.documentId;
+    const scopedTopicId = args.topicId;
+    const scopedDocumentId = scopedTopicId ? undefined : args.documentId;
     if (scopedDocumentId) {
       const document = await ctx.db.get(scopedDocumentId);
       if (!document || document.userId !== user._id) {
@@ -37,19 +39,41 @@ export const list = query({
       }
     }
 
-    const result = scopedDocumentId
-      ? await ctx.db
+    if (scopedTopicId) {
+      const topic = await ctx.db.get(scopedTopicId);
+      if (!topic || topic.userId !== user._id) {
+        return {
+          page: [],
+          isDone: true,
+          continueCursor: "",
+        };
+      }
+    }
+
+    const result = scopedTopicId
+      ? // Topic-scoped pagination uses the denormalized `by_userId_topic` index (B1).
+        // Earlier code paged by `by_userId` and post-filtered, which produced empty
+        // pages whenever the page contained zero topic-matching posts.
+        await ctx.db
           .query("posts")
-          .withIndex("by_userId_document", (q) =>
-            q.eq("userId", user._id).eq("primarySourceDocumentId", scopedDocumentId),
+          .withIndex("by_userId_topic", (q) =>
+            q.eq("userId", user._id).eq("topicId", scopedTopicId),
           )
           .order("desc")
           .paginate(args.paginationOpts)
-      : await ctx.db
-          .query("posts")
-          .withIndex("by_userId", (q) => q.eq("userId", user._id))
-          .order("desc")
-          .paginate(args.paginationOpts);
+      : scopedDocumentId
+        ? await ctx.db
+            .query("posts")
+            .withIndex("by_userId_document", (q) =>
+              q.eq("userId", user._id).eq("primarySourceDocumentId", scopedDocumentId),
+            )
+            .order("desc")
+            .paginate(args.paginationOpts)
+        : await ctx.db
+            .query("posts")
+            .withIndex("by_userId", (q) => q.eq("userId", user._id))
+            .order("desc")
+            .paginate(args.paginationOpts);
 
     const visiblePage = result.page.filter((post) => post.reaction !== "dislike");
 

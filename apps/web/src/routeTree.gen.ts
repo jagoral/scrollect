@@ -20,7 +20,9 @@ import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app/settings'
 import { Route as AuthenticatedAppSavedRouteImport } from './routes/_authenticated/app/saved'
 import { Route as AuthenticatedAppFeedRouteImport } from './routes/_authenticated/app/feed'
+import { Route as AuthenticatedAppTopicsIndexRouteImport } from './routes/_authenticated/app/topics/index'
 import { Route as AuthenticatedAppLibraryIndexRouteImport } from './routes/_authenticated/app/library/index'
+import { Route as AuthenticatedAppTopicsTopicIdRouteImport } from './routes/_authenticated/app/topics/$topicId'
 import { Route as AuthenticatedAppLibraryDocumentIdRouteImport } from './routes/_authenticated/app/library/$documentId'
 
 const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
@@ -78,10 +80,22 @@ const AuthenticatedAppFeedRoute = AuthenticatedAppFeedRouteImport.update({
   path: '/app/feed',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppTopicsIndexRoute =
+  AuthenticatedAppTopicsIndexRouteImport.update({
+    id: '/app/topics/',
+    path: '/app/topics/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAppLibraryIndexRoute =
   AuthenticatedAppLibraryIndexRouteImport.update({
     id: '/app/library/',
     path: '/app/library/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppTopicsTopicIdRoute =
+  AuthenticatedAppTopicsTopicIdRouteImport.update({
+    id: '/app/topics/$topicId',
+    path: '/app/topics/$topicId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAppLibraryDocumentIdRoute =
@@ -103,7 +117,9 @@ export interface FileRoutesByFullPath {
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/app/library/$documentId': typeof AuthenticatedAppLibraryDocumentIdRoute
+  '/app/topics/$topicId': typeof AuthenticatedAppTopicsTopicIdRoute
   '/app/library/': typeof AuthenticatedAppLibraryIndexRoute
+  '/app/topics/': typeof AuthenticatedAppTopicsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -117,7 +133,9 @@ export interface FileRoutesByTo {
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/app/library/$documentId': typeof AuthenticatedAppLibraryDocumentIdRoute
+  '/app/topics/$topicId': typeof AuthenticatedAppTopicsTopicIdRoute
   '/app/library': typeof AuthenticatedAppLibraryIndexRoute
+  '/app/topics': typeof AuthenticatedAppTopicsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -133,7 +151,9 @@ export interface FileRoutesById {
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authenticated/app/library/$documentId': typeof AuthenticatedAppLibraryDocumentIdRoute
+  '/_authenticated/app/topics/$topicId': typeof AuthenticatedAppTopicsTopicIdRoute
   '/_authenticated/app/library/': typeof AuthenticatedAppLibraryIndexRoute
+  '/_authenticated/app/topics/': typeof AuthenticatedAppTopicsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -149,7 +169,9 @@ export interface FileRouteTypes {
     | '/app/upload'
     | '/api/auth/$'
     | '/app/library/$documentId'
+    | '/app/topics/$topicId'
     | '/app/library/'
+    | '/app/topics/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -163,7 +185,9 @@ export interface FileRouteTypes {
     | '/app/upload'
     | '/api/auth/$'
     | '/app/library/$documentId'
+    | '/app/topics/$topicId'
     | '/app/library'
+    | '/app/topics'
   id:
     | '__root__'
     | '/'
@@ -178,7 +202,9 @@ export interface FileRouteTypes {
     | '/_authenticated/app/upload'
     | '/api/auth/$'
     | '/_authenticated/app/library/$documentId'
+    | '/_authenticated/app/topics/$topicId'
     | '/_authenticated/app/library/'
+    | '/_authenticated/app/topics/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -270,11 +296,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppFeedRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/topics/': {
+      id: '/_authenticated/app/topics/'
+      path: '/app/topics'
+      fullPath: '/app/topics/'
+      preLoaderRoute: typeof AuthenticatedAppTopicsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/library/': {
       id: '/_authenticated/app/library/'
       path: '/app/library'
       fullPath: '/app/library/'
       preLoaderRoute: typeof AuthenticatedAppLibraryIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/topics/$topicId': {
+      id: '/_authenticated/app/topics/$topicId'
+      path: '/app/topics/$topicId'
+      fullPath: '/app/topics/$topicId'
+      preLoaderRoute: typeof AuthenticatedAppTopicsTopicIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/app/library/$documentId': {
@@ -293,7 +333,9 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppLibraryDocumentIdRoute: typeof AuthenticatedAppLibraryDocumentIdRoute
+  AuthenticatedAppTopicsTopicIdRoute: typeof AuthenticatedAppTopicsTopicIdRoute
   AuthenticatedAppLibraryIndexRoute: typeof AuthenticatedAppLibraryIndexRoute
+  AuthenticatedAppTopicsIndexRoute: typeof AuthenticatedAppTopicsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -303,7 +345,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppLibraryDocumentIdRoute:
     AuthenticatedAppLibraryDocumentIdRoute,
+  AuthenticatedAppTopicsTopicIdRoute: AuthenticatedAppTopicsTopicIdRoute,
   AuthenticatedAppLibraryIndexRoute: AuthenticatedAppLibraryIndexRoute,
+  AuthenticatedAppTopicsIndexRoute: AuthenticatedAppTopicsIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
