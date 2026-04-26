@@ -87,6 +87,27 @@ export const listByDocumentStatus = internalQuery({
   },
 });
 
+/**
+ * Cap the count at this value - the only consumer is the push-notification threshold
+ * check, which doesn't need an exact tally above the threshold and would otherwise pay
+ * for a full collect on heavy users. Must remain strictly greater than
+ * `DRAFT_POOL_THRESHOLD`, otherwise sends would never fire (the pure-logic test in
+ * `tests/notifications/draftPoolPush.test.ts` guards this invariant).
+ */
+const PENDING_COUNT_CAP = 100;
+
+export const countPendingForUser = internalQuery({
+  args: { userId: v.string() },
+  returns: v.number(),
+  handler: async (ctx, { userId }) => {
+    const rows = await ctx.db
+      .query("postDrafts")
+      .withIndex("by_userId_status", (q) => q.eq("userId", userId).eq("status", "pending"))
+      .take(PENDING_COUNT_CAP);
+    return rows.length;
+  },
+});
+
 export const listByDocument = internalQuery({
   args: { documentId: v.id("documents") },
   returns: v.array(

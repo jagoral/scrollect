@@ -106,10 +106,13 @@ Backend code must read in Scrollect language. Use these terms in module names, f
 - **Resolve Tier** — combine Polar subscription state with Grants to yield an Entitlement Tier.
 - **Grant Entitlement** — admin-issued Grant (e.g. early adopter).
 - **Handle Polar Webhook** — ingest Polar subscription lifecycle events.
+- **Register Push Token** — upsert a mobile device's Expo push token under the current user (idempotent on the token itself; reassigns ownership on sign-in).
+- **Send Draft-Pool Push** — when the user's pending Post Draft pool refills past a threshold, fan-out a single notification to their devices (1/24h throttle; cleans up invalid Expo tokens).
+- **Cleanup Stale Push Tokens** — daily cron that drops tokens with no `lastSeenAt` heartbeat for 60 days.
 
 **Technical vocabulary**
 
-- **Provider Port** — a capability interface in `src/providers/types.ts` (e.g. `CardDraftLlm`, `EmbeddingProvider`, `VectorStore`, `SummaryVectorStore`, `ContentExtractor`, `AnalyticsService`).
+- **Provider Port** — a capability interface in `src/providers/types.ts` (e.g. `CardDraftLlm`, `EmbeddingProvider`, `VectorStore`, `SummaryVectorStore`, `ContentExtractor`, `AnalyticsService`, `PushNotificationService`).
 - **Provider Adapter** — a concrete implementation of a Provider Port (Voyage, Qdrant, Marker, Decodo/YouTube, PostHog).
 - **Use Case Context** — a typed bundle of Provider Ports injected into a pure use case (e.g. `SummarizingServiceContext`, `DraftGenerationServiceContext`, `FeedServiceContext`, `VectorDeletionServices`). One bundle per use case, not one bundle per domain.
 - **Convex edge** — the thin layer that owns auth, validator-checked args, `ctx.db` reads/writes, scheduling, `WideEvent`, and cascade mutation boundaries.
@@ -132,6 +135,7 @@ Supporting:
   - **Account Deletion** — cascade delete of user-owned data plus Better-Auth user.
   - plus **Entitlements** (Tier resolution), **Entitlement Grants**, and **Admin** grant issuance.
 - **Billing** — Polar subscription, checkout, customer portal, Polar webhook handling.
+- **Notifications** — mobile push delivery channel. Owns the `pushTokens` table (one row per registered device), the Expo Push provider port (`PushNotificationService`), the daily 24h throttle, the stale-token cleanup cron, and the `sendDraftPoolPush` action. Reads pending-draft counts from Drafting; cascade-deleted by Access on account deletion. Does not own the trigger decision — Drafting schedules the send when replenishment completes successfully.
 
 Generic / ops:
 
@@ -150,6 +154,7 @@ Context map (who depends on whom):
 - Content cascade-deletion invokes Drafting/Indexing vector cleanup through `VectorDeletionServices` ports, and removes Drafting and Feed artifacts in order (vectors → chunks/section summaries → card drafts → posts → bookmarks → highlights → connection pairs → document).
 - Access gates every user-facing Content and Feed mutation.
 - Billing drives Entitlements through the Polar webhook.
+- Notifications subscribes to Drafting Replenishment completion (read-only on Drafting), reads its own `pushTokens` table, and is cleaned up by Access account deletion alongside other user-owned rows.
 
 ## Convex backend
 

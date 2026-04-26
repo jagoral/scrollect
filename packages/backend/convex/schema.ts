@@ -289,4 +289,20 @@ export default defineSchema({
     .index("by_documentId", ["documentId"])
     .index("by_topicId", ["topicId"])
     .index("by_userId", ["userId"]),
+
+  // Expo push notification tokens registered by the mobile app (M5). Persistent rows -
+  // tokens are upserted on every cold start when notification permission is granted,
+  // refreshing `lastSeenAt`. The stale-token cron removes rows older than 60 days so the
+  // notifier doesn't fan out to dead devices. `by_token` supports the upsert lookup;
+  // `by_lastSeenAt` lets the cron range-scan without filtering in JS.
+  pushTokens: defineTable({
+    userId: v.string(),
+    token: v.string(),
+    platform: v.union(v.literal("ios"), v.literal("android")),
+    lastSeenAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_token", ["token"])
+    .index("by_lastSeenAt", ["lastSeenAt"]),
 });

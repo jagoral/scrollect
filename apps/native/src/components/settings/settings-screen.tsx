@@ -1,5 +1,5 @@
 import { api } from "@scrollect/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import * as Application from "expo-application";
 import * as Linking from "expo-linking";
 import { LogOut, Mail, User } from "lucide-react-native";
@@ -10,6 +10,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { authClient } from "@/lib/auth-client";
 import { env } from "@/lib/env";
+import { fetchExpoPushToken, getPushPermissionStatus } from "@/lib/push/notifications";
+import { clearPushPromptState } from "@/lib/push/storage";
 import { useThemeColor } from "@/lib/theme/colors";
 import type { ThemePreference } from "@/lib/theme/storage";
 import { useTheme } from "@/lib/theme/theme-context";
@@ -27,6 +29,7 @@ type ExternalLinkTarget = "subscription" | "delete_account";
 export function SettingsScreen() {
   const posthog = usePostHog();
   const user = useQuery(api.access.auth.getCurrentUser, {});
+  const removePushToken = useMutation(api.notifications.tokens.removePushToken);
   const { preference, setPreference } = useTheme();
   const iconColor = useThemeColor("mutedForeground");
   const destructiveColor = useThemeColor("destructive");
@@ -73,12 +76,29 @@ export function SettingsScreen() {
 
   const handleSignOut = useCallback(async () => {
     posthog?.capture("user.signed_out");
+    // Best-effort: detach this device's push token from the user before sign-out
+    // so the next user on the same device doesn't inherit pushes targeted at the
+    // previous account. Wrapped in a try because token-fetch can fail on
+    // simulators / no-permission states - we still want sign-out to proceed.
+    try {
+      const status = await getPushPermissionStatus();
+      if (status === "granted") {
+        const info = await fetchExpoPushToken();
+        if (info) await removePushToken({ token: info.token });
+      }
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error("removePushToken failed");
+      posthog?.captureException(err, { stage: "sign_out_remove_push_token" });
+    }
     try {
       await authClient.signOut();
     } finally {
+      // Clear device-scoped push prompt flags so the next user gets a fresh
+      // soft-prompt flow on the same device.
+      await clearPushPromptState();
       posthog?.reset();
     }
-  }, [posthog]);
+  }, [posthog, removePushToken]);
 
   const appVersion = Application.nativeApplicationVersion ?? "0.0.0";
   const buildVersion = Application.nativeBuildVersion;

@@ -4,7 +4,14 @@ import { RunPodMarkerClient, StubMarkerClient } from "./extractors/marker";
 import type { MarkerClient } from "./extractors/marker";
 import { DecodoYouTubeExtractor, StubYouTubeExtractor } from "./extractors/youtube";
 import { getAI } from "./llm/models";
-import type { ContentExtractor, EmbeddingProvider, SummaryVectorStore, VectorStore } from "./types";
+import { ExpoPushClient, StubPushClient } from "./push/expo";
+import type {
+  ContentExtractor,
+  EmbeddingProvider,
+  PushNotificationService,
+  SummaryVectorStore,
+  VectorStore,
+} from "./types";
 import { QdrantSummaryStore, QdrantVectorStore } from "./vectorStore/qdrant";
 
 export function createEmbeddingProvider(): EmbeddingProvider {
@@ -40,6 +47,11 @@ export function createYouTubeExtractor(): ContentExtractor {
   const authKey = process.env.DECODO_AUTH_KEY;
   if (!authKey) throw new Error("DECODO_AUTH_KEY environment variable is not set");
   return new DecodoYouTubeExtractor({ authKey });
+}
+
+export function createPushNotificationService(): PushNotificationService {
+  if (process.env.USE_STUB_PUSH === "true") return new StubPushClient();
+  return new ExpoPushClient({ accessToken: process.env.EXPO_PUSH_ACCESS_TOKEN });
 }
 
 function getQdrantConfig(): { url: string; apiKey: string } {

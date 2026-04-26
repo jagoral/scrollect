@@ -24,6 +24,7 @@ export type DeleteRemainingUserDataResult = {
   deletedEntitlementGrants: number;
   deletedTopics: number;
   deletedDocumentTopics: number;
+  deletedPushTokens: number;
 };
 
 /**
@@ -35,37 +36,49 @@ export async function deleteRemainingUserDataLogic(
   ctx: GenericMutationCtx<DataModel>,
   args: { userId: string },
 ): Promise<DeleteRemainingUserDataResult> {
-  const [bookmarks, bookmarkLists, tags, reactionFeedback, grants, topics, documentTopics] =
-    await Promise.all([
-      ctx.db
-        .query("bookmarks")
-        .withIndex("by_userId_post", (q) => q.eq("userId", args.userId))
-        .collect(),
-      ctx.db
-        .query("bookmarkLists")
-        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-        .collect(),
-      ctx.db
-        .query("tags")
-        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-        .collect(),
-      ctx.db
-        .query("reactionFeedback")
-        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-        .collect(),
-      ctx.db
-        .query("entitlementGrants")
-        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-        .collect(),
-      ctx.db
-        .query("topics")
-        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-        .collect(),
-      ctx.db
-        .query("documentTopics")
-        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-        .collect(),
-    ]);
+  const [
+    bookmarks,
+    bookmarkLists,
+    tags,
+    reactionFeedback,
+    grants,
+    topics,
+    documentTopics,
+    pushTokens,
+  ] = await Promise.all([
+    ctx.db
+      .query("bookmarks")
+      .withIndex("by_userId_post", (q) => q.eq("userId", args.userId))
+      .collect(),
+    ctx.db
+      .query("bookmarkLists")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect(),
+    ctx.db
+      .query("tags")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect(),
+    ctx.db
+      .query("reactionFeedback")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect(),
+    ctx.db
+      .query("entitlementGrants")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect(),
+    ctx.db
+      .query("topics")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect(),
+    ctx.db
+      .query("documentTopics")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect(),
+    ctx.db
+      .query("pushTokens")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect(),
+  ]);
 
   await Promise.all([
     ...bookmarks.map((doc) => ctx.db.delete(doc._id)),
@@ -75,6 +88,7 @@ export async function deleteRemainingUserDataLogic(
     ...grants.map((doc) => ctx.db.delete(doc._id)),
     ...topics.map((doc) => ctx.db.delete(doc._id)),
     ...documentTopics.map((doc) => ctx.db.delete(doc._id)),
+    ...pushTokens.map((doc) => ctx.db.delete(doc._id)),
   ]);
 
   return {
@@ -85,6 +99,7 @@ export async function deleteRemainingUserDataLogic(
     deletedEntitlementGrants: grants.length,
     deletedTopics: topics.length,
     deletedDocumentTopics: documentTopics.length,
+    deletedPushTokens: pushTokens.length,
   };
 }
 
@@ -98,6 +113,7 @@ export const deleteRemainingUserData = internalMutation({
     deletedEntitlementGrants: v.number(),
     deletedTopics: v.number(),
     deletedDocumentTopics: v.number(),
+    deletedPushTokens: v.number(),
   }),
   handler: async (ctx, args) => deleteRemainingUserDataLogic(ctx, args),
 });

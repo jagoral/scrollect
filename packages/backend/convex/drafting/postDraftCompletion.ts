@@ -56,6 +56,13 @@ export async function checkPostDraftGenerationCompletion(opts: {
   });
 
   if (mode === "replenishment") {
+    // Drafts have just been added; let the notifier decide whether to push (it checks
+    // the pool threshold, the user's tokens, and the 24h throttle).
+    if (resolvedUserId && job.completedBatches > 0) {
+      await ctx.scheduler.runAfter(0, internal.notifications.send.sendDraftPoolPush, {
+        userId: resolvedUserId,
+      });
+    }
     return;
   }
 

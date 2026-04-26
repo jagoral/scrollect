@@ -1,4 +1,4 @@
-import { RateLimiter, HOUR } from "@convex-dev/rate-limiter";
+import { RateLimiter, HOUR, DAY } from "@convex-dev/rate-limiter";
 
 import { components } from "../_generated/api";
 
@@ -27,6 +27,10 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   topicCreate_pro: { kind: "fixed window", rate: 60, period: HOUR },
   topicEmbed: { kind: "fixed window", rate: 30, period: HOUR },
   topicEmbed_pro: { kind: "fixed window", rate: 100, period: HOUR },
+  // M5 push notifications: at most one draft-pool refill push per user per 24h,
+  // regardless of how many replenishment events fire. Not tier-aware - every user
+  // has the same anti-spam budget.
+  pushDraftPool: { kind: "fixed window", rate: 1, period: DAY },
 });
 
 export type TieredLimiterBase =
