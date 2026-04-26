@@ -2,11 +2,13 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { api } from "@scrollect/backend/convex/_generated/api";
+import { useConvex } from "convex/react";
 import { format } from "date-fns";
 import { BookOpen, ExternalLink, Loader2, MousePointerClick, X } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { createContext, useCallback, useContext, useState } from "react";
 import Markdown from "react-markdown";
+import { toast } from "sonner";
 
 import {
   DetailRail,
@@ -159,6 +161,7 @@ function DetailPanelContent({ post, onClose }: { post: PostView; onClose: () => 
         ) : null}
 
         <SourceMarker post={post} />
+        <RelatedPostsMarker post={post} />
       </div>
     </div>
   );
@@ -275,5 +278,89 @@ function SourceMarker({ post }: { post: PostView }) {
         </RailMarker>
       )}
     </>
+  );
+}
+
+// 2-row floor: a single related entry feels like UI noise rather than a thread
+// of related ideas; we hide the rail until there are at least two siblings.
+const RELATED_POSTS_VISIBLE_FLOOR = 2;
+
+function RelatedPostsMarker({ post }: { post: PostView }) {
+  const posthog = usePostHog();
+  const convex = useConvex();
+  const ctx = useDetailPanel();
+  const [pendingId, setPendingId] = useState<PostView["_id"] | null>(null);
+  const { data: related } = useQuery(
+    convexQuery(api.feed.posts.listRelated, { postId: post._id, limit: 3 }),
+  );
+
+  if (!related || related.length < RELATED_POSTS_VISIBLE_FLOOR) return null;
+
+  async function handleSelect(target: NonNullable<typeof related>[number]) {
+    posthog.capture("feed.related_post_clicked", {
+      source_post_id: post._id,
+      target_post_id: target._id,
+      target_post_type: target.postType,
+    });
+    setPendingId(target._id);
+    try {
+      const fullPost = await convex.query(api.feed.posts.getEnriched, { postId: target._id });
+      if (fullPost) {
+        ctx?.openDetail(fullPost);
+      } else {
+        toast("That post is no longer available.");
+      }
+    } catch (error) {
+      posthog.captureException(error);
+      toast.error("Couldn't open that post. Please try again.");
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  return (
+    <RailMarker marker="E">
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+        See also
+      </div>
+      <ul className="divide-y divide-dashed divide-border/60">
+        {related.map((entry) => {
+          const isPending = pendingId === entry._id;
+          return (
+            <li key={entry._id}>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => {
+                  void handleSelect(entry);
+                }}
+                aria-label={`Open related ${postTypeLabel[entry.postType].toLowerCase()}: ${entry.summary}`}
+                className="group grid w-full grid-cols-[90px_1fr] items-baseline gap-x-3 py-2.5 text-left transition-transform duration-150 ease-out hover:translate-x-0.5 focus-visible:translate-x-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-progress disabled:opacity-60"
+                data-testid="detail-panel-related-post"
+                data-post-type={entry.postType}
+              >
+                <span
+                  className={cn(
+                    "font-mono text-[10px] uppercase tracking-[0.18em] decoration-current/[0.4] underline-offset-[5px] group-hover:underline group-focus-visible:underline",
+                    postTypeText[entry.postType],
+                  )}
+                >
+                  {postTypeLabel[entry.postType]}
+                </span>
+                <span className="flex items-center gap-2 font-logo text-[14px] leading-[1.55] text-foreground/80 transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+                  <span className="line-clamp-1 min-w-0 flex-1">{entry.summary}</span>
+                  {isPending && (
+                    <Loader2
+                      aria-hidden
+                      className="size-3 shrink-0 animate-spin text-muted-foreground"
+                    />
+                  )}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </RailMarker>
   );
 }
