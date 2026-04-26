@@ -194,6 +194,41 @@ test.describe("Feed interactions and pagination", { tag: "@seeded" }, () => {
     ).toBeLessThanOrEqual(1);
   });
 
+  test('"see also" rail shows related posts and swaps detail content on click', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1536, height: 864 });
+    await page.goto("/app/feed?noAutoGenerate");
+    await expect(page.locator('[data-testid="post-card"]').first()).toBeVisible();
+
+    await page
+      .locator('[data-testid="post-card"]')
+      .first()
+      .locator('[data-testid="source-badge"]')
+      .click();
+
+    const panel = page.locator('[data-testid="feed-detail-panel"]');
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("See also");
+
+    const relatedRows = panel.locator('[data-testid="detail-panel-related-post"]');
+    await expect(relatedRows.first()).toBeVisible();
+    const rowCount = await relatedRows.count();
+    expect(rowCount).toBeGreaterThanOrEqual(2);
+    expect(rowCount).toBeLessThanOrEqual(3);
+
+    const clickedRowText = (await relatedRows.first().innerText()).trim();
+    expect(clickedRowText.length).toBeGreaterThan(0);
+
+    await relatedRows.first().click();
+    await expect
+      .poll(async () => {
+        const texts = await relatedRows.allInnerTexts();
+        return texts.map((t) => t.trim()).includes(clickedRowText);
+      })
+      .toBe(false);
+  });
+
   test("empty state shows when no posts exist", async ({ page }) => {
     // Navigate to a feed state that has no posts by using noAutoGenerate
     // The seeded account has posts, so this test verifies the empty state UI exists
